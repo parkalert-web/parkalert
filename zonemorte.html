@@ -572,6 +572,23 @@ h1 u{text-decoration:none;color:var(--sang)}
   font-weight:700;font-size:10px;line-height:1;font-family:var(--mono);padding:5px 7px;border-radius:2px;letter-spacing:.06em}
 .tuile.vedette{border-color:rgba(255,176,46,.45);background:rgba(255,176,46,.07)}
 
+/* --- ce qui t'attend : réclamable maintenant, et l'heure du renouvellement --- */
+#attente{width:100%;max-width:760px;margin:12px 0 2px}
+#attente:empty{display:none}
+.atT{font-size:9.5px;letter-spacing:.34em;color:var(--gris);font-weight:700;margin-bottom:8px}
+.atL{display:flex;flex-wrap:wrap;gap:7px}
+.at{display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:8px;
+  border:1px solid var(--c);background:color-mix(in srgb,var(--c) 12%,transparent);
+  color:var(--c);font:700 11px/1 var(--mono);letter-spacing:.08em;cursor:pointer;
+  animation:surgit .4s var(--d) both}
+.at:hover{background:color-mix(in srgb,var(--c) 24%,transparent)}
+.at em{font-style:normal;font-size:14px;line-height:1}
+.atP{margin-top:9px;font-size:10.5px;letter-spacing:.12em;color:var(--gris2);font-weight:700}
+.atP b{color:var(--gris)}
+.tbBar{height:3px;border-radius:2px;background:rgba(0,0,0,.5);margin-top:5px;
+  overflow:hidden;max-width:170px}
+.tbBar i{display:block;height:100%;border-radius:2px;background:var(--ambre);
+  transition:width .5s ease-out}
 /* survivants */
 .chars{display:flex;gap:12px;margin:22px 0 6px;flex-wrap:wrap;justify-content:center}
 .char{--ac:var(--ambre);width:186px;padding:0 0 16px;background:rgba(255,255,255,.035);
@@ -627,6 +644,46 @@ kbd{border:1px solid rgba(242,238,226,.24);padding:3px 7px;color:var(--os);font-
 .card .sous{margin-top:11px;padding-top:9px;border-top:1px solid rgba(255,255,255,.1);
   font-size:10px;letter-spacing:.18em;color:var(--gris2)}
 
+/* le bouton de relance colle au bas de l'écran : l'écran de fin est long,
+   et c'est le seul geste qu'on veut pouvoir faire à tout moment */
+.relance{position:sticky;bottom:-4px;z-index:2;width:100%;display:flex;
+  justify-content:center;padding:10px 0 4px;
+  background:linear-gradient(180deg,rgba(5,7,5,0),rgba(5,7,5,.92) 42%)}
+.relance .btn{margin-top:0}
+/* --- « le presque », rang et palmarès de fin de partie --- */
+.presque{width:100%;max-width:520px;margin:18px auto 0}
+.pqT{font-size:10px;letter-spacing:.34em;color:var(--gris);font-weight:700;
+  text-align:center;margin-bottom:10px}
+.pq{margin-bottom:10px;animation:surgit .45s var(--d) both}
+.pqL{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.pqL span{font-size:10.5px;letter-spacing:.18em;color:var(--gris);font-weight:700}
+.pqL b{font-family:var(--titre);font-size:17px;color:var(--c);letter-spacing:.02em}
+.pqBar{height:6px;border-radius:3px;background:rgba(0,0,0,.5);overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
+.pqBar i{display:block;height:100%;border-radius:3px;background:var(--c);
+  box-shadow:0 0 12px var(--c)}
+.rangBloc{width:100%;max-width:520px;margin:20px auto 0;padding:13px 15px;
+  border:1px solid var(--bord);border-left:4px solid var(--c);border-radius:8px;
+  background:rgba(255,255,255,.04);animation:surgit .5s .25s both}
+.rgHaut{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.rgT{font-family:var(--titre);font-size:19px;color:var(--c);letter-spacing:.02em}
+.rgX{font-size:11px;letter-spacing:.16em;color:var(--os);font-weight:700}
+.rgBar{height:8px;border-radius:4px;background:rgba(0,0,0,.55);overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
+.rgBar i{display:block;height:100%;border-radius:4px;background:var(--c);
+  box-shadow:0 0 14px var(--c);transition:width 1.1s cubic-bezier(.2,.8,.3,1)}
+.rgBas{margin-top:7px;font-size:10.5px;letter-spacing:.14em;color:var(--gris);font-weight:700}
+.palmares{width:100%;max-width:520px;margin:16px auto 0;display:flex;
+  flex-direction:column;gap:7px}
+.pal{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:7px;
+  border:1px solid var(--bord);border-left:4px solid var(--c);
+  background:rgba(255,255,255,.035);animation:surgit .4s var(--d) both;text-align:left}
+.palIc{font-size:19px;line-height:1;flex:0 0 auto}
+.palT{flex:1;min-width:0}
+.palT b{display:block;font-size:11.5px;letter-spacing:.16em;color:var(--c);font-weight:700}
+.palT span{display:block;font-size:11px;color:var(--gris);line-height:1.55;margin-top:2px}
+.palV{font-family:var(--titre);font-size:17px;color:var(--os);flex:0 0 auto;
+  letter-spacing:.02em}
 /* fin de partie */
 .grid{display:grid;grid-template-columns:repeat(2,minmax(130px,1fr));gap:3px;
   margin:22px 0 4px;max-width:400px;width:100%}
@@ -1198,7 +1255,8 @@ body.paysage{}
       <div class="av" id="tbAv">?</div>
       <div style="min-width:0">
         <div class="nom" id="tbPseudo">SURVIVANT</div>
-        <div class="sousnom" id="tbRang">CLASSEMENT : —</div>
+        <div class="sousnom" id="tbRang">RANG 1</div>
+        <div class="tbBar"><i id="tbRangFill" style="width:0%"></i></div>
       </div>
     </div>
     <div class="por">
@@ -1207,6 +1265,7 @@ body.paysage{}
       <div class="jt"><span>JETONS</span><b id="mJetons">0</b></div>
     </div>
   </div>
+  <div id="attente"></div>
   <img id="logo" alt="ZONE MORTE">
 
   <div id="terrainBan">
@@ -1633,10 +1692,13 @@ body.paysage{}
     <div class="cell"><span>NIVEAU</span><b id="vicLvl">1</b></div>
   </div>
   <div class="grid" id="vicDetail"></div>
+  <div class="presque" id="vicPresque"></div>
+  <div class="rangBloc" id="vicRangB"></div>
+  <div class="palmares" id="vicPalmares"></div>
   <div class="rec" id="vicGain"></div>
   <div class="rec" id="vicBonus"></div>
   <div class="rec" id="vicDeblo"></div>
-  <button class="btn" id="vicRejouer">REPARTIR</button>
+  <div class="relance"><button class="btn" id="vicRejouer">REPARTIR</button></div>
   <button class="btn ghost" id="vicMenu">RETOUR À L'ACCUEIL</button>
   <div class="finbtns">
     <button class="lien" id="vicCad">OUVRIR MES CAISSES</button>
@@ -1656,12 +1718,15 @@ body.paysage{}
     <div class="cell"><span>MEILLEURE SÉRIE</span><b id="fCombo">0</b></div>
   </div>
   <div class="grid" id="fDetail"></div>
+  <div class="presque" id="fPresque"></div>
+  <div class="rangBloc" id="fRangB"></div>
+  <div class="palmares" id="fPalmares"></div>
   <div class="rec" id="fGain"></div>
   <div class="rec" id="fCaisse"></div>
   <div class="rec" id="fRang"></div>
   <div class="rec" id="fBonus"></div>
   <div class="rec" id="fRec"></div>
-  <button class="btn" id="again">RECOMMENCER</button>
+  <div class="relance"><button class="btn" id="again">RECOMMENCER</button></div>
   <div class="pubZone" id="pubFin">
     <ins class="adsbygoogle" style="display:block"
          data-ad-client="ca-pub-5640171592773109"
@@ -2920,6 +2985,8 @@ async function charger(){
   if(brut){ try{ Object.assign(SAVE,JSON.parse(brut)); }catch(e){} }
   if(!SAVE.boutique) SAVE.boutique={};
   if(!SIMUS[SAVE.simu]) SAVE.simu='survie';       // la simulation complète par défaut
+  if(!(SAVE.rangXp>=0)) SAVE.rangXp=0;
+  if(!SAVE.session) SAVE.session={j:AUJ(),n:0};
   if(SAVE.radar===undefined) SAVE.radar=true;
   if(!Array.isArray(SAVE.skins)||!SAVE.skins.length) SAVE.skins=['defaut'];
   if(!SAVE.skin) SAVE.skin='defaut';
@@ -4939,6 +5006,42 @@ function majJouer(){
   $('jouer').disabled=!pret;
   $('introZone').classList.toggle('on',!pret);
 }
+/* --- Ce qui t'attend : tout ce qui est réclamable tout de suite, au même
+   endroit, avant même le bouton JOUER. Un joueur qui revient après deux
+   jours doit voir en un coup d'œil ce qu'il a laissé derrière lui — et
+   l'heure à laquelle tombe la fournée suivante. --- */
+function majAttente(){
+  const el=$('attente'); if(!el) return;
+  const l=enAttente(), S=sessionDuJour(), restant=Math.max(0,3-S.n);
+  let h='';
+  if(l.length){
+    h+='<div class="atT">'+T('ceQuiTAttend')+'</div><div class="atL">'
+      +l.map((x,i)=>`<button class="at" data-go="${x.go}" style="--c:${x.c};--d:${(i*.06).toFixed(2)}s">
+          <em>${x.em}</em>${x.t}</button>`).join('')+'</div>';
+  }
+  const bas=[];
+  if(!S.n) bas.push('Objectif du jour : <b>3 sorties</b> — la première rapporte 150 pièces');
+  else if(restant>0) bas.push('Objectif du jour : <b>'+S.n+' sortie'+(S.n>1?'s':'')+' sur 3</b>'
+    +' — encore '+restant+(restant===1?' pour le jeton':''));
+  else bas.push('<b>Objectif du jour rempli.</b>');
+  bas.push('Contrats, défi et série renouvelés dans <b>'+avantMinuit()+'</b>');
+  h+='<div class="atP">'+bas.join(' &nbsp;·&nbsp; ')+'</div>';
+  el.innerHTML=h;
+  Array.prototype.forEach.call(el.querySelectorAll('.at'),b=>{
+    b.onclick=()=>{ const t=TUILES.find(x=>x.id===b.getAttribute('data-go'));
+      if(t){ SND.init(); SND.reprendre(); SND.ramasse(); t.go(); } };
+  });
+}
+
+/* le compte à rebours descend tout seul : on ne réécrit que la ligne du bas,
+   sinon les pastilles rejoueraient leur animation d'entrée toutes les minutes */
+setInterval(()=>{
+  const el=$('attente');
+  if(!el || !el.firstChild || !$('menu').classList.contains('on')) return;
+  const p=el.querySelector('.atP');
+  if(p) p.innerHTML=p.innerHTML.replace(/dans <b>[^<]*<\/b>/,'dans <b>'+avantMinuit()+'</b>');
+},30000);
+
 function majBanque(){
   const M=mapActuelle();
   if(!$('menuBg').dataset.pose){ $('menuBg').style.backgroundImage='url('+IMG.ville+')';
@@ -4957,7 +5060,10 @@ function majBanque(){
   $('sSolde').textContent=nb(SAVE.pieces);
   $('tbPseudo').textContent=SAVE.pseudo||'SURVIVANT';
   $('tbAv').textContent=(SAVE.pseudo||'?').charAt(0).toUpperCase();
-  $('tbRang').textContent='MEILLEUR SCORE : '+nb(SAVE.meilleurScore||0);
+  const RG=rangActuel();
+  $('tbRang').innerHTML='<span style="color:'+RG.titre.c+'">'+RG.titre.t+'</span> · '+T('rangMot')+' '+RG.n;
+  $('tbRangFill').style.width=Math.round(RG.reste/RG.seuil*100)+'%';
+  majAttente();
   $('mStats').innerHTML='SÉRIE '+(SAVE.serie||0)+' JOUR'+((SAVE.serie||0)>1?'S':'')
     +'   ·   MEILLEUR SCORE '+nb(SAVE.meilleurScore)
     +'   ·   MEILLEUR TEMPS '+fmt(SAVE.recTemps||0);
@@ -4967,6 +5073,104 @@ function majBanque(){
        +rc.map(m=>`<span class="pastilleObj" style="--ac:${RECRUES[m.t].col}">${RECRUES[m.t].em} ${m.n}</span>`).join('');
   $('equipBar').innerHTML=h||'<span class="pastilleObj vide">AUCUN OBJET NI COÉQUIPIER — OUVRE TON SAC OU TON CAMP</span>';
   construireTuiles();
+}
+
+/* ==========================================================================
+   3 quater. RANG, SESSION, « LE PRESQUE »
+   ==========================================================================
+   Le jeu ne manquait pas de systèmes de progression — il en avait treize.
+   Il leur manquait d'exister au bon moment : à la mort, quand on décide de
+   relancer ou de fermer l'onglet. Tout ce bloc sert ce moment-là. */
+
+/* --- rang du survivant : la seule progression qui ne peut jamais reculer.
+   Une sortie ratée à quarante secondes reste une sortie qui compte, et
+   c'est précisément à ce moment-là qu'on ferme le jeu. --- */
+const RANGS=[
+ {n:1, t:'RECRUE',       c:'#9aa094'},
+ {n:6, t:'SURVIVANT',    c:'#8fd14f'},
+ {n:12,t:'VÉTÉRAN',      c:'#6fc4e8'},
+ {n:20,t:'CHASSEUR',     c:'#c9a4ea'},
+ {n:30,t:'SPECTRE',      c:'#ffb02e'},
+ {n:45,t:'LÉGENDE',      c:'#ff3d4f'}
+];
+function titreRang(n){
+  let r=RANGS[0];
+  for(const x of RANGS) if(n>=x.n) r=x;
+  return r;
+}
+/* montée rapide au début — on veut que la deuxième partie serve à quelque
+   chose — puis de plus en plus lente. */
+function rangSeuil(n){ return Math.round(180+n*150+n*n*10); }
+function rangDe(xp){
+  let n=1, r=Math.max(0,xp|0);
+  while(n<300 && r>=rangSeuil(n)){ r-=rangSeuil(n); n++; }
+  return {n, reste:r, seuil:rangSeuil(n), titre:titreRang(n)};
+}
+function rangActuel(){ return rangDe(SAVE.rangXp||0); }
+/* ce que rapporte une sortie : le score domine, mais le temps tenu et les
+   morts au sol comptent aussi — on ne rentre jamais les mains vides. */
+function gainRang(g,score){
+  return Math.max(30, Math.round(score/6 + g.kills*.8 + g.t*.6));
+}
+function lotRang(n){
+  const l={pieces:60+n*25};
+  if(n%5===0) l.jetons=1;
+  if(n%10===0) l.caisse=true;
+  return l;
+}
+
+/* --- objectif de session : trois sorties dans la journée.
+   La série de connexion récompense le fait de venir ; celui-ci récompense
+   le fait de rester. --- */
+const SESSION_LOTS=[150,250,400];
+function sessionDuJour(){
+  const j=AUJ();
+  if(!SAVE.session || SAVE.session.j!==j) SAVE.session={j,n:0,pris:0};
+  return SAVE.session;
+}
+function sessionRestant(){ return Math.max(0,3-sessionDuJour().n); }
+
+/* --- « le presque » : de combien on a manqué la marche suivante.
+   C'est le seul chiffre qui donne envie de relancer tout de suite. --- */
+function presqueDe(g,score){
+  const l=[];
+  const pp=prochainPalier(score);
+  if(pp) l.push({t:T('prochCaisse'), manque:nb(pp-score)+' points',
+    prog:clamp(score/pp,0,1), c:'#8fd14f'});
+  if(recTemps && g.t<recTemps) l.push({t:T('recordSurvie'),
+    manque:Math.ceil(recTemps-g.t)+' s', prog:clamp(g.t/recTemps,0,1), c:'#ffb02e'});
+  const mb=(SAVE.meilleurParMap||{})[g.M.id]||0;
+  if(mb && g.t<mb) l.push({t:T('meilleurTempsIci'),
+    manque:Math.ceil(mb-g.t)+' s', prog:clamp(g.t/mb,0,1), c:'#6fc4e8'});
+  if((SAVE.meilleurScore||0)>score) l.push({t:T('meilleurScoreT'),
+    manque:nb(SAVE.meilleurScore-score)+' points', prog:clamp(score/SAVE.meilleurScore,0,1), c:'#c9a4ea'});
+  if(g.sauves.length<g.captifMax) l.push({t:T('tousSurvivants'),
+    manque:(g.captifMax-g.sauves.length)+' à délivrer',
+    prog:g.sauves.length/g.captifMax, c:'#ffd45c'});
+  /* on ne montre que les deux marches les plus proches : au-delà, ce n'est
+     plus un encouragement, c'est une liste de reproches. */
+  return l.sort((a,b)=>b.prog-a.prog).slice(0,2);
+}
+
+/* --- ce qui t'attend au menu : réclamable maintenant, et quand tombe la suite --- */
+function enAttente(){
+  const l=[];
+  if(SAVE.cadeaux.length) l.push({em:'\u{1F381}', t:SAVE.cadeaux.length+' caisse'+(SAVE.cadeaux.length>1?'s':'')+' à ouvrir', c:'#8fd14f', go:'cadeaux'});
+  if(serieDisponible()) l.push({em:'\u{1F525}', t:'récompense du jour', c:'#ffb02e', go:'serie'});
+  const p=passDispo(); if(p) l.push({em:'\u{1F396}', t:p+' palier'+(p>1?'s':'')+' de pass', c:'#c9a4ea', go:'pass'});
+  const r=routeDispo(); if(r) l.push({em:'⭐', t:r+' lot'+(r>1?'s':'')+' sur la route', c:'#ffd45c', go:'route'});
+  const h=hebdoDispo(); if(h) l.push({em:'\u{1F5D3}', t:h+' mission'+(h>1?'s':'')+' finie'+(h>1?'s':''), c:'#c9a4ea', go:'hebdo'});
+  if(SAVE.camp.length && !(SAVE.equipe||[]).length)
+    l.push({em:'\u{1F91D}', t:'personne dans ton équipe', c:'#8fd14f', go:'recrues'});
+  return l;
+}
+/* temps restant avant que contrats, défi et série ne se renouvellent */
+function avantMinuit(){
+  const d=new Date(), f=new Date(d);
+  f.setHours(24,0,0,0);
+  const s=Math.max(0,Math.round((f-d)/1000));
+  const h=Math.floor(s/3600), m=Math.floor(s%3600/60);
+  return h? h+' h '+m+' min' : m+' min';
 }
 
 /* ==========================================================================
@@ -8528,6 +8732,7 @@ function cloturer(victoire){
         +(bac?'CARTE PERSONNELLE — aucun gain, aucune progression'
              :'MODE ENTRAÎNEMENT — aucun gain, aucune progression')
         +(G.repli?' · '+G.repli+' relevé'+(G.repli>1?'s':''):'')+'</span>',
+      lignes:[], presque:[], rang:null, session:null,
       caisseTxt:bac?'AUCUNE CAISSE SUR UNE CARTE PERSONNELLE':'AUCUNE CAISSE EN ENTRAÎNEMENT',
       txtSauves:G.sauves.length? G.sauves.length+' survivant'+(G.sauves.length>1?'s':'')
         +' délivré'+(G.sauves.length>1?'s':'')+' — ils ne rejoignent pas le camp' : '',
@@ -8655,23 +8860,68 @@ function cloturer(victoire){
 
   sauver(); majBanque(); construireBoutique(); construireMaps(); majMode(); majHisto();
 
-  let bonus='';
-  if(primeTxt) bonus+=primeTxt;
-  if(faits.length) bonus+=(bonus?'<br>':'')+'CONTRAT VALIDÉ : '+faits.join(' · ')+' (+'+primeC+' ¤)';
-  if(neufs.length) bonus+=(bonus?'<br>':'')+'SUCCÈS : '+neufs.map(x=>x.nom).join(' · ')
-    +' (+'+neufs.reduce((a,b)=>a+b.prime,0)+' ¤)';
-  if(G.cauchemar) bonus+=(bonus?'<br>':'')+'PRIME DE CAUCHEMAR ×1,6';
-  if(G.defi) bonus+=(bonus?'<br>':'')+'DÉFI DU JOUR : PIÈCES ×2';
-  if(etTxt) bonus=('<span style="color:var(--or)">'+etTxt+'</span>')+(bonus?'<br>':'')+bonus;
-  bonus+=(bonus?'<br>':'')+'<span style="color:#8fd14f">'+persoTxt+'</span>';
-  if(alliesTxt.length) bonus+='<br><span style="color:#6fc4e8">ÉQUIPE : '+alliesTxt.join(' · ')+'</span>';
-  bonus+=(bonus?'<br>':'')+'+ '+nb(gainPass)+' EXPÉRIENCE DE PASS'
-    +(apPal>avPal?' · PALIER '+apPal+' ATTEINT !':'');
+  /* --- rang du survivant : il monte à chaque sortie, même ratée --- */
+  const avRang=rangDe(SAVE.rangXp||0);
+  const gRang=gainRang(G,score);
+  SAVE.rangXp=(SAVE.rangXp||0)+gRang;
+  const apRang=rangDe(SAVE.rangXp);
+  const lotsRang=[];
+  for(let n=avRang.n+1;n<=apRang.n;n++){
+    const L=lotRang(n);
+    SAVE.pieces+=L.pieces;
+    if(L.jetons) SAVE.jetons=(SAVE.jetons||0)+L.jetons;
+    if(L.caisse) SAVE.cadeaux.push(2);
+    lotsRang.push('RANG '+n+' · +'+nb(L.pieces)+' ¤'
+      +(L.jetons?' · +'+L.jetons+' jeton':'')+(L.caisse?' · 1 caisse':''));
+  }
+
+  /* --- objectif de session : trois sorties dans la journée --- */
+  const SS=sessionDuJour();
+  let sessGain=0, sessJeton=false;
+  if(SS.n<3){
+    SS.n++;
+    sessGain=SESSION_LOTS[SS.n-1];
+    SAVE.pieces+=sessGain;
+    if(SS.n===3){ SAVE.jetons=(SAVE.jetons||0)+1; sessJeton=true; }
+  }
+
+  /* --- palmarès : une ligne par chose qui a bougé, plutôt qu'un pavé --- */
+  const lignes=[];
+  const ligne=(em,t,s,v,c)=>lignes.push({em,t,s:s||'',v:v||'',c:c||'#8e948a'});
+  if(etTxt) ligne('\u2B50','ÉTOILES GAGNÉES',etTxt.replace(/^★+\s*/,''),'','#ffd45c');
+  if(primeTxt) ligne('\u{1F3C6}','PRIME DE VICTOIRE',
+    prime? 'victoire '+SAVE.victJour.n+' sur 5 aujourd\'hui' : 'les cinq primes du jour sont passées',
+    prime?'+'+nb(prime):'','#ffd45c');
+  if(faits.length) ligne('\u{1F4CB}',faits.length>1?'CONTRATS VALIDÉS':'CONTRAT VALIDÉ',
+    faits.join(' · '),'+'+nb(primeC),'#6fc4e8');
+  if(neufs.length) ligne('\u{1F396}',neufs.length>1?'SUCCÈS DÉBLOQUÉS':'SUCCÈS DÉBLOQUÉ',
+    neufs.map(x=>x.nom).join(' · '),'+'+nb(neufs.reduce((a,b)=>a+b.prime,0)),'#b98ce8');
+  if(lotsRang.length) ligne('\u{1F51D}',apRang.n>avRang.n+1?'RANGS FRANCHIS':'NOUVEAU RANG',
+    lotsRang.join('  ·  '),'',apRang.titre.c);
+  if(sessGain) ligne('\u{1F5D3}','SORTIE '+SS.n+' SUR 3 AUJOURD\'HUI',
+    SS.n<3?('encore '+(3-SS.n)+' pour le jeton du jour'):'objectif du jour rempli',
+    '+'+nb(sessGain)+(sessJeton?' +1 jeton':''),'#ffb02e');
+  ligne('\u{1F396}','PASS DE COMBAT',
+    apPal>avPal? 'palier '+apPal+' atteint'
+      : (apPal? 'palier '+apPal+' sur '+PASS_N : 'en route vers le premier palier'),
+    '+'+nb(gainPass),'#c9a4ea');
+  ligne('\u{1F464}',G.S.nom,
+    apNiv>avNiv? 'passe niveau '+apNiv+' : +'+Math.round(apNiv*4)+' % de vie, +'
+      +Math.round(apNiv*3)+' % de dégâts'
+      : (apNiv? 'niveau '+apNiv : 'pas encore de niveau'),
+    '+'+nb(gainP),'#8fd14f');
+  if(alliesTxt.length) ligne('\u{1F91D}','TON ÉQUIPE',alliesTxt.join(' · '),'','#6fc4e8');
+  if(G.cauchemar) ligne('\u{1F480}','CAUCHEMAR','les pièces comptent une fois et demie','×1,6','#ff3d4f');
+  if(G.defi) ligne('\u{1F3AF}','DÉFI DU JOUR','terrain mis en avant','×2','#ffd45c');
+
   const caisseTxt=cs.length
     ? cs.length+' CAISSE'+(cs.length>1?'S':'')+' : '+cs.map(c=>c.nom).join(' · ')
     : 'AUCUNE CAISSE — IL EN FAUT '+nb(PALIERS_CAISSE[0])+' POINTS';
 
-  return {score,gain,record,bonus,caisseTxt,txtSauves,deblo};
+  return {score,gain,record,caisseTxt,txtSauves,deblo,lignes,
+    presque:presqueDe(G,score),
+    rang:{av:avRang,ap:apRang,gain:gRang},
+    session:{n:SS.n,restant:Math.max(0,3-SS.n)}};
 }
 
 function gagnerPartie(){
@@ -8690,9 +8940,11 @@ function gagnerPartie(){
   $('vicSauv').textContent=G.sauves.length+' / '+G.captifMax;
   $('vicLvl').textContent=G.p.niv;
   detailPartie($('vicDetail'));
-  $('vicBonus').innerHTML=R.bonus
-    +(R.txtSauves?'<br><span style="color:var(--toxique)">'+R.txtSauves+'</span>':'')
-    +'<br>'+R.caisseTxt;
+  remplirPalmares($('vicPalmares'),R.lignes);
+  remplirPresque($('vicPresque'),R.presque);
+  remplirRang($('vicRangB'),R.rang);
+  $('vicBonus').innerHTML=(R.txtSauves?'<span style="color:var(--toxique)">'+R.txtSauves+'</span><br>':'')
+    +R.caisseTxt;
   $('vicDeblo').innerHTML=R.deblo?'<span style="color:var(--ambre)">'+R.deblo+'</span>':'';
   const i=MAPS.findIndex(m=>m.id===G.M.id), suiv=MAPS[i+1];
   $('vicSuite').style.display=(suiv&&SAVE.maps.indexOf(suiv.id)<0)?'':'none';
@@ -8729,7 +8981,10 @@ function finPartie(){
   $('fCombo').textContent=G.serieMax;
   detailPartie($('fDetail'));
   $('fRec').textContent=R.record?'\u2605 NOUVEAU RECORD':'RECORD : '+fmt(recTemps);
-  $('fBonus').innerHTML=R.bonus;
+  remplirPalmares($('fPalmares'),R.lignes);
+  remplirPresque($('fPresque'),R.presque);
+  remplirRang($('fRangB'),R.rang);
+  $('fBonus').innerHTML='';
   $('fCaisse').textContent=R.caisseTxt;
   $('fRang').innerHTML=(R.txtSauves?'<span style="color:var(--toxique)">'+R.txtSauves+'</span><br>':'')
     +'<span style="color:var(--gris)">OBJECTIF MANQUÉ : '+G.sauves.length+'/'+G.captifMax
@@ -8738,20 +8993,64 @@ function finPartie(){
   $('over').classList.add('on');
   majRecord();
 }
+/* --- « le presque » : de combien on a manqué la marche suivante.
+   Placé juste sous les chiffres, c'est ce qui fait relancer tout de suite. --- */
+function remplirPresque(el,l){
+  if(!el) return;
+  if(!l||!l.length){ el.innerHTML=''; el.style.display='none'; return; }
+  el.style.display='';
+  el.innerHTML='<div class="pqT">'+T('pasLoin')+'</div>'+l.map((p,i)=>
+    `<div class="pq" style="--c:${p.c};--d:${(.5+i*.12).toFixed(2)}s">
+       <div class="pqL"><span>${p.t}</span><b>${p.manque}</b></div>
+       <div class="pqBar"><i style="width:${Math.round(p.prog*100)}%"></i></div>
+     </div>`).join('');
+}
+
+/* --- rang du survivant : la barre qui bouge même après une sortie ratée --- */
+function remplirRang(el,r){
+  if(!el) return;
+  if(!r){ el.innerHTML=''; el.style.display='none'; return; }
+  el.style.display='';
+  const monte=r.ap.n>r.av.n;
+  el.style.setProperty('--c',r.ap.titre.c);
+  el.innerHTML=`<div class="rgHaut">
+      <span class="rgT">${r.ap.titre.t} · ${T('rangMot')} ${r.ap.n}</span>
+      <span class="rgX">+ ${nb(r.gain)} XP</span></div>
+    <div class="rgBar"><i id="rgFill" style="width:${monte?0:Math.round(r.av.reste/r.av.seuil*100)}%"></i></div>
+    <div class="rgBas">${monte? 'TU VIENS DE PASSER '+(r.ap.n-r.av.n)+' RANG'+(r.ap.n-r.av.n>1?'S':'')
+      : 'encore '+nb(r.ap.seuil-r.ap.reste)+' XP avant le rang '+(r.ap.n+1)}</div>`;
+  /* la barre se remplit après coup : on veut la voir monter */
+  setTimeout(()=>{ const f=el.querySelector('#rgFill');
+    if(f) f.style.width=Math.round(r.ap.reste/r.ap.seuil*100)+'%'; },monte?700:260);
+}
+
+/* --- palmarès : une ligne par chose qui a bougé, révélées l'une après l'autre --- */
+function remplirPalmares(el,l){
+  if(!el) return;
+  if(!l||!l.length){ el.innerHTML=''; el.style.display='none'; return; }
+  el.style.display='';
+  el.innerHTML=l.map((x,i)=>
+    `<div class="pal" style="--c:${x.c};--d:${(.9+i*.11).toFixed(2)}s">
+       <span class="palIc">${x.em}</span>
+       <div class="palT"><b>${x.t}</b>${x.s?'<span>'+x.s+'</span>':''}</div>
+       ${x.v?'<span class="palV">'+x.v+'</span>':''}
+     </div>`).join('');
+}
+
 /* --- le détail d'une sortie : ce que les chiffres bruts ne disent pas --- */
 function detailPartie(el){
   if(!el||!G) return;
   const prec=G.tirs? Math.round(G.touches/G.tirs*100) : 0;
   const cases=[
-    ['PRÉCISION', G.tirs? prec+' %' : '—'],
-    ['COUPS VITAUX', nb(G.vitaux)],
-    ['DISTANCE', Math.round(G.distance/9)+' m'],
-    ['DISCRÉTION', Math.round((G.discretion||0)*100)+' %']
+    [T('precision'), G.tirs? prec+' %' : '—'],
+    [T('vitaux'), nb(G.vitaux)],
+    [T('distance'), Math.round(G.distance/9)+' m'],
+    [T('discretion'), Math.round((G.discretion||0)*100)+' %']
   ];
-  if(G.melees) cases.push(['CORPS À CORPS',nb(G.melees)]);
-  if(G.jetsLances) cases.push(['OBJETS LANCÉS',nb(G.jetsLances)]);
-  if(G.saignements) cases.push(['HÉMORRAGIES',nb(G.saignements)]);
-  if(G.p.infect>0) cases.push(['INFECTION',Math.round(G.p.infect*100)+' %']);
+  if(G.melees) cases.push([T('corpsACorps'),nb(G.melees)]);
+  if(G.jetsLances) cases.push([T('objetsLances'),nb(G.jetsLances)]);
+  if(G.saignements) cases.push([T('hemorragies'),nb(G.saignements)]);
+  if(G.p.infect>0) cases.push([T('infection'),Math.round(G.p.infect*100)+' %']);
   el.innerHTML=cases.slice(0,8).map(c=>
     '<div class="cell"><span>'+c[0]+'</span><b>'+c[1]+'</b></div>').join('');
 }
@@ -9001,7 +9300,15 @@ const TR={
   retour:'RETOUR',pieces:'PIÈCES',jetons:'JETONS',etoiles:'ÉTOILES',vie:'TA VIE',
   victoire:'VICTOIRE',defaite:'FIN DE PARTIE',rejouer:'REPARTIR',accueil:'RETOUR À L\'ACCUEIL',
   prepare:'PRÉPARE TA SORTIE',recomp:'RÉCOMPENSES',reste:'LE RESTE',langue:'LANGUE',
-  score:'SCORE',temps:'TEMPS',abattus:'ABATTUS',niveau:'NIVEAU',delivres:'DÉLIVRÉS'},
+  score:'SCORE',temps:'TEMPS',abattus:'ABATTUS',niveau:'NIVEAU',delivres:'DÉLIVRÉS',
+  tempsTenu:'TEMPS TENU',serieMax:'MEILLEURE SÉRIE',
+  precision:'PRÉCISION',vitaux:'COUPS VITAUX',distance:'DISTANCE',discretion:'DISCRÉTION',
+  corpsACorps:'CORPS À CORPS',objetsLances:'OBJETS LANCÉS',hemorragies:'HÉMORRAGIES',
+  infection:'INFECTION',
+  pasLoin:'TU N\'ÉTAIS PAS LOIN',prochCaisse:'PROCHAINE CAISSE',recordSurvie:'TON RECORD DE SURVIE',
+  meilleurTempsIci:'TON MEILLEUR TEMPS ICI',meilleurScoreT:'TON MEILLEUR SCORE',
+  tousSurvivants:'TOUS LES SURVIVANTS',rangMot:'RANG',
+  ceQuiTAttend:'CE QUI T\'ATTEND'},
  en:{jouer:'PLAY',survie:'SURVIVAL',entrain:'TRAINING',boutique:'SHOP',caisses:'CRATES',
   camp:'THE CAMP',sac:'BAG',terrains:'MAPS',arsenal:'ARSENAL',editeur:'EDITOR',
   route:'STAR ROAD',missions:'MISSIONS',contrats:'CONTRACTS',succes:'ACHIEVEMENTS',
@@ -9009,7 +9316,15 @@ const TR={
   retour:'BACK',pieces:'COINS',jetons:'TOKENS',etoiles:'STARS',vie:'YOUR HEALTH',
   victoire:'VICTORY',defaite:'GAME OVER',rejouer:'PLAY AGAIN',accueil:'BACK TO MENU',
   prepare:'GEAR UP',recomp:'REWARDS',reste:'MORE',langue:'LANGUAGE',
-  score:'SCORE',temps:'TIME',abattus:'KILLS',niveau:'LEVEL',delivres:'RESCUED'},
+  score:'SCORE',temps:'TIME',abattus:'KILLS',niveau:'LEVEL',delivres:'RESCUED',
+  tempsTenu:'TIME SURVIVED',serieMax:'BEST STREAK',
+  precision:'ACCURACY',vitaux:'VITAL HITS',distance:'DISTANCE',discretion:'STEALTH',
+  corpsACorps:'MELEE',objetsLances:'THROWABLES USED',hemorragies:'BLEEDS',
+  infection:'INFECTION',
+  pasLoin:'YOU WERE CLOSE',prochCaisse:'NEXT CRATE',recordSurvie:'YOUR SURVIVAL RECORD',
+  meilleurTempsIci:'YOUR BEST TIME HERE',meilleurScoreT:'YOUR BEST SCORE',
+  tousSurvivants:'ALL SURVIVORS',rangMot:'RANK',
+  ceQuiTAttend:'WAITING FOR YOU'},
  de:{jouer:'SPIELEN',survie:'ÜBERLEBEN',entrain:'TRAINING',boutique:'SHOP',caisses:'KISTEN',
   camp:'DAS LAGER',sac:'RUCKSACK',terrains:'KARTEN',arsenal:'ARSENAL',editeur:'EDITOR',
   route:'STERNENWEG',missions:'MISSIONEN',contrats:'AUFTRÄGE',succes:'ERFOLGE',
@@ -9017,7 +9332,15 @@ const TR={
   retour:'ZURÜCK',pieces:'MÜNZEN',jetons:'MARKEN',etoiles:'STERNE',vie:'DEIN LEBEN',
   victoire:'SIEG',defaite:'SPIEL VORBEI',rejouer:'NOCHMAL',accueil:'ZUM MENÜ',
   prepare:'AUSRÜSTEN',recomp:'BELOHNUNGEN',reste:'MEHR',langue:'SPRACHE',
-  score:'PUNKTE',temps:'ZEIT',abattus:'GETÖTET',niveau:'STUFE',delivres:'GERETTET'},
+  score:'PUNKTE',temps:'ZEIT',abattus:'GETÖTET',niveau:'STUFE',delivres:'GERETTET',
+  tempsTenu:'ÜBERLEBTE ZEIT',serieMax:'BESTE SERIE',
+  precision:'TREFFERQUOTE',vitaux:'VITALTREFFER',distance:'STRECKE',discretion:'TARNUNG',
+  corpsACorps:'NAHKAMPF',objetsLances:'GEWORFEN',hemorragies:'BLUTUNGEN',
+  infection:'INFEKTION',
+  pasLoin:'DU WARST NAH DRAN',prochCaisse:'NÄCHSTE KISTE',recordSurvie:'DEIN ÜBERLEBENSREKORD',
+  meilleurTempsIci:'DEINE BESTZEIT HIER',meilleurScoreT:'DEINE BESTPUNKTZAHL',
+  tousSurvivants:'ALLE ÜBERLEBENDEN',rangMot:'RANG',
+  ceQuiTAttend:'DAS WARTET AUF DICH'},
  es:{jouer:'JUGAR',survie:'SUPERVIVENCIA',entrain:'ENTRENAMIENTO',boutique:'TIENDA',caisses:'CAJAS',
   camp:'EL CAMPAMENTO',sac:'MOCHILA',terrains:'MAPAS',arsenal:'ARSENAL',editeur:'EDITOR',
   route:'RUTA DE ESTRELLAS',missions:'MISIONES',contrats:'CONTRATOS',succes:'LOGROS',
@@ -9025,7 +9348,15 @@ const TR={
   retour:'VOLVER',pieces:'MONEDAS',jetons:'FICHAS',etoiles:'ESTRELLAS',vie:'TU VIDA',
   victoire:'VICTORIA',defaite:'FIN DE PARTIDA',rejouer:'JUGAR OTRA VEZ',accueil:'AL MENÚ',
   prepare:'PREPÁRATE',recomp:'RECOMPENSAS',reste:'MÁS',langue:'IDIOMA',
-  score:'PUNTOS',temps:'TIEMPO',abattus:'ABATIDOS',niveau:'NIVEL',delivres:'RESCATADOS'}
+  score:'PUNTOS',temps:'TIEMPO',abattus:'ABATIDOS',niveau:'NIVEL',delivres:'RESCATADOS',
+  tempsTenu:'TIEMPO AGUANTADO',serieMax:'MEJOR RACHA',
+  precision:'PRECISIÓN',vitaux:'GOLPES VITALES',distance:'DISTANCIA',discretion:'SIGILO',
+  corpsACorps:'CUERPO A CUERPO',objetsLances:'OBJETOS LANZADOS',hemorragies:'HEMORRAGIAS',
+  infection:'INFECCIÓN',
+  pasLoin:'TE QUEDASTE CERCA',prochCaisse:'PRÓXIMA CAJA',recordSurvie:'TU RÉCORD DE SUPERVIVENCIA',
+  meilleurTempsIci:'TU MEJOR TIEMPO AQUÍ',meilleurScoreT:'TU MEJOR PUNTUACIÓN',
+  tousSurvivants:'TODOS LOS SUPERVIVIENTES',rangMot:'RANGO',
+  ceQuiTAttend:'TE ESPERA'}
 };
 Object.assign(TR.fr,{titreShop:'BOUTIQUE',titreMaps:'TERRAINS',titreCad:'CAISSES',titreCamp:'LE CAMP',titreSac:'SAC',titreArs:'ARSENAL',titreEd:'ÉDITEUR',titreRoute:'ROUTE DES ÉTOILES',titreMis:'MISSIONS',titreCon:'CONTRATS',titreSuc:'SUCCÈS',titreBest:'BESTIAIRE',titreStats:'STATISTIQUES',titreRegl:'RÉGLAGES',titrePass:'PASS DE COMBAT',titreSurv:'SURVIVANTS',titreSerie:'SÉRIE DE CONNEXION',recuperer:'RÉCUPÉRER',acheter:'ACHETER',choisir:'CHOISIR',equiper:'ÉQUIPER',retirer:'RETIRER',emmener:'EMMENER',laisser:'LAISSER',renvoyer:'RENVOYER',ouvrir:'OUVRIR',continuer:'CONTINUER',reprendre:'REPRENDRE',pause:'PAUSE',integrite:'EXPÉRIENCE',survie:'SURVIE',elimines:'ABATTUS',menace:'MENACE',esquive:'ESQUIVE',recharge:'RECHARGE…',cauchemar:'CAUCHEMAR',normal:'NORMAL',tirManuel:'TIR : MANUEL',tirAuto:'TIR : AUTO',son:'SON',muet:'MUET'});
 Object.assign(TR.en,{titreShop:'SHOP',titreMaps:'MAPS',titreCad:'CRATES',titreCamp:'THE CAMP',titreSac:'BAG',titreArs:'ARSENAL',titreEd:'EDITOR',titreRoute:'STAR ROAD',titreMis:'MISSIONS',titreCon:'CONTRACTS',titreSuc:'ACHIEVEMENTS',titreBest:'BESTIARY',titreStats:'STATISTICS',titreRegl:'SETTINGS',titrePass:'BATTLE PASS',titreSurv:'SURVIVORS',titreSerie:'DAILY STREAK',recuperer:'CLAIM',acheter:'BUY',choisir:'SELECT',equiper:'EQUIP',retirer:'REMOVE',emmener:'TAKE',laisser:'LEAVE',renvoyer:'DISMISS',ouvrir:'OPEN',continuer:'CONTINUE',reprendre:'RESUME',pause:'PAUSE',integrite:'EXPERIENCE',survie:'TIME',elimines:'KILLS',menace:'THREAT',esquive:'DODGE',recharge:'RELOADING…',cauchemar:'NIGHTMARE',normal:'NORMAL',tirManuel:'FIRE: MANUAL',tirAuto:'FIRE: AUTO',son:'SOUND',muet:'MUTED'});
@@ -9065,9 +9396,10 @@ function appliquerLangue(){
   /* titres de victoire et de défaite */
   const hv=document.querySelector('#victoire h1'); if(hv) hv.textContent=T('victoire');
   const hd=document.querySelector('#over h1'); if(hd) hd.textContent=T('defaite');
-  const cells=document.querySelectorAll('#victoire .cell span, #over .cell span');
-  const cl=['temps','abattus','delivres','niveau'];
-  Array.prototype.forEach.call(cells,(c,i)=>{ if(cl[i%4]) c.textContent=T(cl[i%4]); });
+  const cellules=(sel,cl)=>Array.prototype.forEach.call(
+    document.querySelectorAll(sel),(c,i)=>{ if(cl[i]) c.textContent=T(cl[i]); });
+  cellules('#victoire .grid:not(#vicDetail) .cell span',['temps','abattus','delivres','niveau']);
+  cellules('#over .grid:not(#fDetail) .cell span',['tempsTenu','abattus','niveau','serieMax']);
 }
 
 function genererCode(){

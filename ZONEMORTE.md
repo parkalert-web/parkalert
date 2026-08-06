@@ -122,7 +122,71 @@ place 9 s et vide le quartier).
 - Entraînement : trois étapes de plus (bruit et position accroupie, machette,
   objets lancés). L'étape sur le bruit est sautée en mode arcade.
 
-## Note
+---
 
-Un `\n` littéral traînait dans le HTML du HUD depuis l'origine et s'affichait à
-l'écran ; il a été corrigé au passage.
+# Ce qui donne envie de rester, et de revenir
+
+Le jeu ne manquait pas de systèmes de progression — il en avait treize.
+Il leur manquait d'exister **au bon moment** : à la mort, quand on décide de
+relancer ou de fermer l'onglet. Rien de neuf n'a été empilé par-dessus ; ce qui
+existait a été amené à ce moment-là.
+
+## L'écran de fin
+
+Avant, il énumérait des chiffres dans un pavé de texte. Il fait maintenant trois
+choses, dans cet ordre.
+
+1. **« Tu n'étais pas loin »** — les deux marches les plus proches, avec le
+   manque exact et une barre : *« prochaine caisse : 1 580 points »*,
+   *« ton record de survie : 14 s »*. Au-delà de deux, ce n'est plus un
+   encouragement mais une liste de reproches.
+2. **Le rang** — une barre qui monte, toujours, même après une sortie ratée à
+   quarante secondes (voir plus bas).
+3. **Le palmarès** — une ligne par chose qui a bougé, révélées l'une après
+   l'autre : étoiles, prime de victoire, contrats validés, succès, rangs
+   franchis, objectif du jour, pass, personnage, équipe, multiplicateurs.
+   Même information qu'avant, mais on la *voit* arriver.
+
+Le bouton de relance colle au bas de l'écran : la page est longue, et c'est le
+seul geste qu'on veut pouvoir faire à tout moment.
+
+## Le rang du survivant
+
+La seule progression qui ne peut jamais reculer. Chaque sortie donne de
+l'expérience de rang — le score domine, mais le temps tenu et les morts au sol
+comptent aussi, donc **on ne rentre jamais les mains vides**. C'est précisément
+après une mort rapide qu'on ferme le jeu ; il fallait que cette sortie-là compte
+quand même.
+
+Six titres : `RECRUE` → `SURVIVANT` (6) → `VÉTÉRAN` (12) → `CHASSEUR` (20) →
+`SPECTRE` (30) → `LÉGENDE` (45). Le titre et le rang s'affichent sous le pseudo,
+avec leur barre. Chaque rang rapporte des pièces, un jeton tous les cinq rangs,
+une caisse tous les dix. La montée est rapide au début — la deuxième partie doit
+servir à quelque chose — puis de plus en plus lente.
+
+## L'objectif de session
+
+Trois sorties dans la journée : 150, puis 250, puis 400 pièces et un jeton.
+La série de connexion récompense le fait de **venir** ; celui-ci récompense le
+fait de **rester**. Il s'affiche au menu et sur chaque écran de fin
+(*« encore 1 pour le jeton du jour »*).
+
+## Le bandeau « ce qui t'attend »
+
+Placé sous l'identité, avant même le bouton JOUER : tout ce qui est réclamable
+tout de suite, au même endroit — caisses à ouvrir, récompense du jour, paliers
+de pass, lots de la route, missions finies, équipe vide. Un joueur qui revient
+après deux jours voit d'un coup d'œil ce qu'il a laissé derrière lui.
+
+Dessous, l'échéance : *« contrats, défi et série renouvelés dans 2 h 04 »* —
+un compte à rebours qui descend sous les yeux.
+
+## Notes
+
+- Les libellés des écrans de fin et du bandeau sont traduits dans les quatre
+  langues du jeu. Les textes longs restent en français, comme le reste de la
+  prose (annonces, bestiaire, contrats, cinématiques).
+- Deux défauts d'origine corrigés au passage : un `\n` littéral traînait dans le
+  HTML du HUD et s'affichait à l'écran ; et l'écran de mort portait les libellés
+  de l'écran de victoire — « DÉLIVRÉS » au-dessus du niveau, « NIVEAU » au-dessus
+  de la meilleure série.
