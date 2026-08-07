@@ -60,20 +60,64 @@ la chaleur, qui monte bien avant de brûler. Il faut aussi sortir les habitants 
 ils fuient d'eux-mêmes quand ça approche, mais ils ne connaissent pas le chemin
 du camion.
 
-## Les huit secteurs
+## L'équipe
+
+Seul, on ne tient pas une ligne : on court d'un flanc à l'autre pendant que le
+feu passe derrière. Commander trois hommes change la nature du jeu — on cesse
+d'éteindre pour se mettre à **décider où l'on tient**.
+
+Un ordre tient en deux gestes : choisir qui (`Q`), désigner où (`E`). Le reste,
+ils le font seuls — y compris reculer quand ça devient intenable, et repartir
+faire le plein quand la cuve est vide. `F` rappelle tout le monde.
+
+| Équipier | Ce qu'il fait tout seul |
+|---|---|
+| **Porte-lance** | Tient la ligne à la lance au point où tu le postes ; va remplir sa cuve et revient |
+| **Piocheur** | Ouvre une coupure **en travers du vent** autour de son point, parcelle après parcelle |
+| **Guetteur** | Surveille les arrières et signale les départs secondaires sur ton plan |
+| **Chef d'agrès** | Un largage de plus, et il prévient quand un homme est en danger |
+
+Personne ne meurt : un homme trop exposé est **évacué**, et il manquera à la
+sortie suivante. Ils prennent de l'expérience à chaque intervention.
+
+## La campagne
+
+Un été, douze journées, de la mi-juin à fin août. La **sécheresse monte** de
+journée en journée : l'humidité baisse, le vent forcit, et la colline qu'on
+tenait sans peine en juin devient intenable en août.
+
+L'été ne s'arrête pas : la journée avance qu'on l'ait gagnée ou perdue. On peut
+rejouer n'importe quelle journée déjà faite pour améliorer ses étoiles. Boucler
+un été ouvre le suivant, plus sec encore.
+
+Le mode **secteur libre** reste là pour rejouer ce qu'on veut.
+
+## Les douze secteurs
 
 Chacun a son relief, sa végétation et son vice.
 
 | Secteur | Ce qui le caractérise |
 |---|---|
 | **Les Restanques** | Terrasses et vignes : des coupures naturelles offertes |
+| **L'Oliveraie** | Peu de combustible, mais tout se tient par l'herbe entre les rangs |
 | **La Pinède** | Le pin d'Alep est de la résine sur pied |
 | **Le Vallon** | Forte pente : le feu monte quatre fois plus vite |
-| **Le Mistral** | Vent violent et instable, sautes de feu permanentes |
+| **Les Calanques** | La roche fait les coupures — reste à trouver lesquelles se rejoignent |
 | **La Garrigue** | Front très large, presque aucune coupure naturelle |
+| **Le Mistral** | Vent violent et instable, sautes de feu permanentes |
 | **Le Hameau** | Vingt maisons, une route, des gens partout |
+| **Les Gorges** | Pente extrême : le feu monte plus vite que tu ne cours |
 | **La Nuit** | Aucun moyen aérien, aucune visibilité — mais l'air est humide |
+| **La Réserve** | Cent ans de chênes-lièges, aucun bâti, aucune deuxième chance |
 | **La Crête** | Deux fronts, deux versants, un seul homme |
+
+## La reprise
+
+Un feu qui s'éteint tout seul en deux minutes n'est pas une intervention. Sous
+les cendres il reste toujours de quoi repartir : si le front meurt trop tôt sans
+avoir rien pris, **un foyer reprend sous le vent**. C'est la hantise des équipes
+de nuit, et ici c'est ce qui garantit qu'il y a une partie quel que soit le
+tirage du terrain.
 
 ## Progression
 
@@ -106,6 +150,17 @@ raccourcit les sautes de feu — pour apprendre, ou pour jouer tranquille.
   automatique** : additionner mille six cents halos donnait un écran blanc,
   alors chaque foyer pèse d'autant moins que le front est large — c'est ce que
   fait l'œil devant un incendie.
-- 60 images par seconde sur les plus grandes cartes, 51 de nuit (passe
-  d'éclairage supplémentaire).
+- La nuit, la couche d'obscurité est tenue au tiers de la résolution et percée
+  avec une pastille pré-calculée : refabriquer deux dégradés radiaux à chaque
+  image coûtait à lui seul un tiers du temps d'affichage.
 - Clavier et tactile, portrait et paysage.
+
+### Sur les mesures de vitesse
+
+Les chiffres relevés ici viennent d'un Chromium **sans accélération
+matérielle** : tout le compositing y est fait par le processeur, et les mesures
+varient beaucoup d'une exécution à l'autre selon la charge de la machine. Dans
+ces conditions on relève 33 à 53 images par seconde sur les plus grandes cartes
+et 39 de nuit. Sur un vrai navigateur avec GPU, le canevas 2D est accéléré et
+ces chiffres n'ont rien à voir — il faut les lire comme un plancher, pas comme
+une mesure de terrain.
