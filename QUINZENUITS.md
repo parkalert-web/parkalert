@@ -211,6 +211,25 @@ stocks, santé et moral de l'équipe. C'est ce relevé qui a mis en évidence la
 dépense des gardes, la pénurie de munitions et le silence de la fin de partie
 quand la réserve était vide.
 
+Une seconde sonde saute directement aux nuits 5, 10 et 15 avec des stocks
+plausibles et joue la nuit entière. C'est elle qui donne les chiffres de fin de
+campagne, en 1200 × 760 :
+
+| Nuit | Durée | Horde lâchée | Images/s | Images > 20 ms | Barricade à l'aube | Encore debout |
+|---|---|---|---|---|---|---|
+| 5 | 70 s | 35 | 60 | 7 | 150 / 150 | 18 |
+| 10 | 86 s | 78 | 60 | 6 | 230 / 230 | 4 |
+| 15 | 102 s | 139 | 59 | 41 | 300 / 300 | 52 |
+
+La dernière ligne dit exactement ce que le jeu cherche : cinquante-deux morts
+encore debout dans la rue au lever du jour, et la barricade intacte. La nuit est
+gagnée sans avoir été nettoyée.
+
+Les images lourdes de la nuit 15 sont passées de 135 à 41 en deux gestes : le
+liseré n'est plus tracé pour les silhouettes lointaines quand la foule dépasse
+vingt-huit, et celles qui attendent leur tour hors cadre à droite ne sont plus
+peintes du tout.
+
 Les images par seconde sont mesurées dans un rendu **logiciel** — sans carte
 graphique. Elles donnent un plancher, pas une mesure : une vraie machine fera
 mieux.

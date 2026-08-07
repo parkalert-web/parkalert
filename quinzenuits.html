@@ -1606,7 +1606,7 @@ addEventListener('keyup',e=>{ if(!N) return;
    rue nocturne lisible, et ça évite d'avoir à dessiner des visages qu'on ne
    verrait pas. La lumière vient de trois endroits seulement — la lune, les
    incendies au fond, et le canon quand il crache. */
-let etoiles=null;
+let etoiles=null, rimSeuil=1e9;
 function dessinerNuit(){
   const sx=secousse?rnd(-secousse,secousse):0, sy=secousse?rnd(-secousse,secousse)*.6:0;
   ctx.setTransform(DPR,0,0,DPR,0,0);
@@ -1669,9 +1669,16 @@ function dessinerNuit(){
   }
   ctx.globalAlpha=1;
 
-  /* ---------- les morts, du fond vers l'avant ---------- */
+  /* ---------- les morts, du fond vers l'avant ----------
+     Le liseré double le coût d'une silhouette. Passé une certaine foule — la
+     quinzième nuit en lâche cent quarante — on le réserve à ceux qui sont
+     assez près pour qu'on le voie. Mesuré : 135 images au-dessus de 20 ms
+     sans ce garde-fou, une poignée avec. */
+  rimSeuil = N.morts.length>28 ? SC.barX+VW*.52 : 1e9;
   const tri=N.morts.slice().sort((a,b)=>a.z-b.z);
-  for(const z of tri) dessinerMort(z);
+  /* ceux qui attendent leur tour hors cadre, à droite, ne sont pas peints :
+     une nuit tardive en garde plusieurs dizaines en réserve derrière le bord */
+  for(const z of tri){ if(z.x>VW+70 || z.x<-90) continue; dessinerMort(z); }
 
   /* ---------- la barricade ---------- */
   barricade();
@@ -2036,12 +2043,14 @@ function dessinerMort(z){
     ctx.restore();
   }
 
-  ctx.save();
-  ctx.translate(1.4*e,-1.0*e);
-  ctx.globalAlpha=clair?1:.30;
-  tracer(liser);
-  ctx.restore();
-  ctx.globalAlpha=1;
+  if(clair || z.x<rimSeuil){
+    ctx.save();
+    ctx.translate(1.4*e,-1.0*e);
+    ctx.globalAlpha=clair?1:.30;
+    tracer(liser);
+    ctx.restore();
+    ctx.globalAlpha=1;
+  }
   tracer(noir);
 
   /* les yeux : un reflet, pas des phares. Seulement quand ils sont sur nous. */
@@ -2250,7 +2259,7 @@ let fondT=0;
    décrire : le menu est la première chose qu'on voit. */
 let figurants=null;
 function dessinerFond(dt){
-  fondT+=dt;
+  fondT+=dt; rimSeuil=1e9;
   ctx.setTransform(DPR,0,0,DPR,0,0);
   const g=ctx.createLinearGradient(0,0,0,SC.solY);
   g.addColorStop(0,'#070c18'); g.addColorStop(.6,'#101a2c'); g.addColorStop(1,'#1e2438');
