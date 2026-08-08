@@ -450,8 +450,19 @@ C'est ce relevé qui a mis en évidence, dans l'ordre :
   journées d'affilée à zéro tour de manège, sans une panne ni une fermeture,
   simplement parce que les visiteurs entraient sans un sou.
 
+La couche méta est vérifiée à part, par une seconde sonde qui joue l'interface
+plutôt que le parc : elle nomme le profil, change de portrait, achète une
+amélioration, contrôle que les jetons sont débités et le rang enregistré, lance
+une partie, vérifie que le pactole de départ s'applique (22 000 → 26 000 €),
+ouvre l'onglet des contrats, joue une journée entière, puis **recharge
+complètement le navigateur** et reprend la saison. Caisse, bâtiments, employés,
+niveau, expérience, cases d'allée, révisions et campagne en cours reviennent
+identiques.
+
 Le relevé de la partie de référence, en difficulté normale, trente-deux
-journées jouées d'affilée sans une erreur :
+journées jouées d'affilée sans une erreur — un robot qui ne touche ni à la
+publicité, ni aux révisions, ni à la boutique, pour que la mesure porte sur
+l'économie de base :
 
 | | Été 1 | Été 2 | Été 3 | Été 4 |
 |---|---|---|---|---|
