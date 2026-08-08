@@ -36,11 +36,23 @@ canvas#c.tire{cursor:grabbing}
   gap:1px;padding:calc(env(safe-area-inset-top) + 6px) 8px 6px;pointer-events:none;
   background:linear-gradient(180deg,rgba(253,248,236,.96),rgba(253,248,236,.72) 70%,rgba(253,248,236,0))}
 .jauge{pointer-events:auto;display:flex;flex-direction:column;justify-content:center;
-  padding:5px 11px;min-width:74px}
+  padding:5px 11px;min-width:74px;overflow:hidden}
 .jauge span{font-size:8.5px;letter-spacing:.17em;color:var(--gris);font-weight:700}
 .jauge b{font-family:var(--titre);font-size:clamp(15px,3.4vw,21px);line-height:1.1;
   font-variant-numeric:tabular-nums}
-.jauge.arg b{color:var(--vert)} .jauge.arg.neg b{color:var(--rouge)}
+/* la caisse est le chiffre qu'on regarde en permanence : elle a droit à sa
+   propre pastille et au double de la taille des autres */
+.jauge.arg{background:linear-gradient(180deg,#fffdf6,#f3ead4);border:2px solid var(--bord);
+  border-radius:11px;box-shadow:var(--ombre);padding:5px 14px;min-width:132px;cursor:pointer}
+.jauge.arg span{color:var(--gris)}
+.jauge.arg b{color:#2c7a41;font-size:clamp(21px,4.6vw,31px);letter-spacing:-.01em}
+.jauge.arg.neg b{color:var(--rouge)}
+.jauge.niv{min-width:66px}
+.jauge.niv b{color:var(--violet)}
+.xpb{display:block;height:4px;border-radius:2px;background:rgba(34,48,63,.16);margin-top:3px;
+  overflow:hidden;width:52px}
+.xpb u{display:block;height:100%;border-radius:2px;background:var(--violet);
+  text-decoration:none;transition:width .3s}
 .jauge.vis b{color:var(--bleu)} .jauge.et b{color:var(--or)}
 #barre .pousse{flex:1}
 #etoiles{letter-spacing:1px}
@@ -70,6 +82,7 @@ canvas#c.tire{cursor:grabbing}
 .pal.cher em{color:var(--rouge)}
 .pal.bloque{opacity:.5;cursor:not-allowed}
 .pal .cad{position:absolute;top:3px;right:5px;font-size:8px;color:var(--gris);font-weight:700}
+.pal .cad.ver{color:#fff;background:var(--violet);border-radius:4px;padding:1px 4px;font-size:7.5px}
 #cats{pointer-events:auto;display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
 .cat{padding:9px 13px;border:2px solid var(--bord);border-radius:10px;background:var(--creme);
   box-shadow:var(--ombre);cursor:pointer;font:700 10.5px/1 var(--mono);letter-spacing:.1em;
@@ -213,9 +226,23 @@ body:not(.enJeu) #flash{display:none !important}
   .cat{padding:8px 10px;font-size:9.5px;flex:0 0 auto}
   #construire{padding-left:4px;padding-right:4px}
 }
-@media (max-width:430px){
-  .jauge.et{display:none}
-  .jauge b{font-size:12px}
+/* Sous 470 pixels de large, la barre ne peut pas tout porter. On garde ce qui
+   sert à décider dans la seconde — la caisse, le niveau, la date, le monde
+   présent — et on renvoie la réputation et la météo au bilan du soir et au
+   panneau du parc, où elles sont de toute façon détaillées. */
+@media (max-width:470px){
+  /* la foule, on la voit à l'écran ; la réputation et la météo sont détaillées
+     le soir et dans le panneau du parc. La date, elle, commande le loyer. */
+  .jauge.et,.jauge.vis,#meteo{display:none}
+  .jauge b{font-size:12.5px}
+  .jauge.arg{min-width:104px;padding:4px 10px}
+  .jauge.arg b{font-size:20px}
+  #barre{gap:4px}
+  .jauge{padding:3px 5px}
+  .jauge:not(.arg){flex:0 0 auto;max-width:62px}
+  .jauge span{font-size:6.5px}
+  .xpb{width:42px}
+  #vit button{width:24px;height:24px}
 }
 @media (max-height:460px){
   #panneau{max-height:52vh}
@@ -228,6 +255,8 @@ body:not(.enJeu) #flash{display:none !important}
 
 <div id="barre">
   <div class="jauge arg" id="jArg"><span>CAISSE</span><b>0 €</b></div>
+  <div class="jauge niv" id="jNivBloc"><span>NIVEAU</span><b id="jNiv">1</b>
+    <i class="xpb"><u id="xpFill"></u></i></div>
   <div class="jauge"><span>ÉTÉ</span><b id="jJour">1 · J1</b></div>
   <div class="jauge vis"><span>DANS LE PARC</span><b id="jVis">0</b></div>
   <div class="jauge et"><span>RÉPUTATION</span><b id="etoiles">☆☆☆☆☆</b></div>
@@ -236,8 +265,8 @@ body:not(.enJeu) #flash{display:none !important}
   <div id="vit">
     <button data-v="0">❚❚</button>
     <button data-v="1" class="on">▶</button>
-    <button data-v="2">▶▶</button>
-    <button data-v="4">▶▶▶</button>
+    <button data-v="3">▶▶</button>
+    <button data-v="10">▶▶▶</button>
     <button id="btnRegl">⚙</button>
   </div>
 </div>
@@ -270,6 +299,7 @@ body:not(.enJeu) #flash{display:none !important}
   <h1 style="font-size:var(--t2)" class="plat" id="sTitre">SOIRÉE</h1>
   <div class="carte"><div class="sur" id="sSur">RECETTES DE LA JOURNÉE</div>
     <div id="sLignes"></div></div>
+  <div class="carte" id="sNiveau"></div>
   <div class="grille" style="max-width:620px" id="sGrille"></div>
   <div class="carte" id="sLoyer" style="display:none"></div>
   <div class="carte"><div class="sur">CE QUI A MANQUÉ</div><div id="sManque"></div></div>
@@ -386,7 +416,15 @@ const eur=n=>nb(n)+' €';
    Une grille de parcelles carrées. Le portail est en bas, au milieu : c'est
    par là qu'on entre et qu'on sort, et c'est de là que part tout le réseau
    d'allées. */
-const GX=44, GY=30, TUILE=26;
+/* Le terrain fait quatre fois la surface d'avant. À cette taille, deux choses
+   ne passent plus telles quelles : le sol ne peut plus tenir dans un seul
+   calque (ce serait soixante mégaoctets), et la beauté du décor ne peut plus
+   être recalculée par visiteur et par image. Les deux sont réglées plus bas —
+   un sol découpé en morceaux repeints à la demande, et un champ de beauté
+   calculé une fois par modification du tracé. */
+const GX=88, GY=60, TUILE=26;
+const CH=22;                        // côté d'un morceau de sol, en cases
+const CHX=Math.ceil(GX/CH), CHY=Math.ceil(GY/CH);
 const VIDE=0, ALLEE=1, BATI=2, DECOR=3, EAU=4, PORTAIL=5, ROCHE=6;
 const idx=(x,y)=>y*GX+x;
 const dedans=(x,y)=>x>=0&&y>=0&&x<GX&&y<GY;
@@ -401,7 +439,7 @@ function caseSous(sx,sy){
 }
 function cadrer(){
   /* on garde toujours le parc à portée : pas de dérive dans le vide */
-  const m=260/cam.z;
+  const m=340/cam.z;
   cam.x=clamp(cam.x,-m,GX*TUILE+m);
   cam.y=clamp(cam.y,-m,GY*TUILE+m);
 }
@@ -413,12 +451,11 @@ function redim(){
   cv.style.width=VW+'px'; cv.style.height=VH+'px';
   ctx.setTransform(DPR,0,0,DPR,0,0);
   /* zoom minimal : que le parc tienne à peu près dans la fenêtre */
-  ZMIN=clamp(Math.min(VW/(GX*TUILE),VH/(GY*TUILE))*.90,.22,.8);
+  ZMIN=clamp(Math.min(VW/(GX*TUILE),VH/(GY*TUILE))*.90,.14,.7);
   cam.z=clamp(cam.z,ZMIN,2.4); cam.zc=clamp(cam.zc,ZMIN,2.4);
   cadrer();
-  SOL=null;                       // le fond du terrain sera repeint
 }
-let ZMIN=.5, SOL=null;
+let ZMIN=.5;
 addEventListener('resize',redim);
 
 /* état global */
@@ -582,75 +619,120 @@ const SND={
 
 /* frisson/faim/soif/vessie/fatigue : ce que la chose fait baisser, en part du
    besoin. attrait : ce qui donne envie de traverser le parc pour y aller. */
+/* frisson/faim/soif/vessie/fatigue : ce que la chose fait baisser, en part du
+   besoin. attrait : ce qui donne envie de traverser le parc pour y aller.
+   niv : le niveau de licence qu'il faut avoir atteint pour la proposer.
+   Les durées sont en secondes réelles et une journée en dure sept cent vingt :
+   un manège tourne une quarantaine de fois par jour. */
 const ATTRACTIONS={
- carrousel:{nom:'MANÈGE',        w:2,h:2, prix:1800,  ent:30,  cap:8,  duree:4.0, frisson:.20,
-   nausee:.04, attrait:.55, fiab:.0035, px:2, pxMax:6,  et:0, col:'#e0503e',
+ carrousel:{nom:'MANÈGE',        w:2,h:2, prix:1800,  ent:30,  cap:8,  duree:16, frisson:.20,
+   nausee:.04, attrait:.55, fiab:.0035, px:2, pxMax:6,  niv:1, col:'#e0503e',
    d:'Des chevaux de bois et une musique qui reste dans la tête. Tout le monde y monte.'},
- tasses:{nom:'TASSES FOLLES',    w:2,h:2, prix:2400,  ent:36,  cap:8,  duree:3.4, frisson:.36,
-   nausee:.34, attrait:.60, fiab:.005,  px:2, pxMax:7,  et:0, col:'#8e6bbf',
+ tasses:{nom:'TASSES FOLLES',    w:2,h:2, prix:2400,  ent:36,  cap:8,  duree:13, frisson:.36,
+   nausee:.34, attrait:.60, fiab:.005,  px:2, pxMax:7,  niv:1, col:'#8e6bbf',
    d:'Ça tourne dans un sens, la tasse tourne dans l\'autre. On en ressort vert.'},
- chaises:{nom:'CHAISES VOLANTES',w:3,h:3, prix:3600,  ent:48,  cap:12, duree:4.4, frisson:.48,
-   nausee:.16, attrait:.68, fiab:.005,  px:3, pxMax:8,  et:1, col:'#2e86c1',
+ chaises:{nom:'CHAISES VOLANTES',w:3,h:3, prix:3600,  ent:48,  cap:12, duree:17, frisson:.48,
+   nausee:.16, attrait:.68, fiab:.005,  px:3, pxMax:8,  niv:3, col:'#2e86c1',
    d:'On décolle en cercle, les pieds dans le vide. Un classique qui ne rate jamais.'},
- fantome:{nom:'TRAIN FANTÔME',   w:3,h:2, prix:4400,  ent:55,  cap:6,  duree:5.0, frisson:.42,
-   nausee:.04, attrait:.72, fiab:.004,  px:3, pxMax:8,  et:1, col:'#4a3f6b',
+ fantome:{nom:'TRAIN FANTÔME',   w:3,h:2, prix:4400,  ent:55,  cap:8,  duree:20, frisson:.42,
+   nausee:.04, attrait:.72, fiab:.004,  px:3, pxMax:8,  niv:4, col:'#4a3f6b',
    d:'Deux wagonnets, un rideau noir, et des choses qui sortent des murs.'},
- tampon:{nom:'AUTO-TAMPONNEUSES',w:3,h:3, prix:5400,  ent:64,  cap:10, duree:4.6, frisson:.40,
-   nausee:.08, attrait:.74, fiab:.007,  px:3, pxMax:8,  et:2, col:'#f2b229',
+ tampon:{nom:'AUTO-TAMPONNEUSES',w:3,h:3, prix:5400,  ent:64,  cap:12, duree:18, frisson:.40,
+   nausee:.08, attrait:.74, fiab:.007,  px:3, pxMax:8,  niv:5, col:'#f2b229',
    d:'La seule attraction où l\'on est censé se rentrer dedans.'},
- chute:{nom:'TOUR DE CHUTE',     w:2,h:3, prix:7800,  ent:88,  cap:8,  duree:3.4, frisson:.80,
-   nausee:.24, attrait:.82, fiab:.009,  px:4, pxMax:10, et:2, col:'#e86ca0',
+ pieuvre:{nom:'LA PIEUVRE',      w:3,h:3, prix:6400,  ent:74,  cap:12, duree:17, frisson:.58,
+   nausee:.28, attrait:.76, fiab:.006,  px:4, pxMax:9,  niv:6, col:'#c0577b',
+   d:'Six bras qui montent et descendent en tournant, avec des nacelles qui tournent aussi.'},
+ chute:{nom:'TOUR DE CHUTE',     w:2,h:3, prix:7800,  ent:88,  cap:8,  duree:14, frisson:.80,
+   nausee:.24, attrait:.82, fiab:.009,  px:4, pxMax:10, niv:7, col:'#e86ca0',
    d:'Trente mètres de montée lente, une seconde et demie de chute. On l\'entend de loin.'},
- roue:{nom:'GRANDE ROUE',        w:3,h:3, prix:9500,  ent:92,  cap:16, duree:7.5, frisson:.30,
-   nausee:.02, attrait:.80, fiab:.0035, px:3, pxMax:9,  et:3, col:'#3fa65a',
+ bateau:{nom:'BATEAU PIRATE',    w:4,h:2, prix:8800,  ent:98,  cap:14, duree:20, frisson:.64,
+   nausee:.26, attrait:.80, fiab:.006,  px:4, pxMax:10, niv:8, col:'#a5794a',
+   d:'Une coque de bois qui balance de plus en plus haut. Le creux du ventre à chaque passage.'},
+ roue:{nom:'GRANDE ROUE',        w:3,h:3, prix:9500,  ent:92,  cap:20, duree:30, frisson:.30,
+   nausee:.02, attrait:.80, fiab:.0035, px:3, pxMax:9,  niv:9, col:'#3fa65a',
    d:'On voit tout le parc de là-haut. Elle attire même ceux qui ont peur de tout.'},
- huit:{nom:'LE GRAND HUIT',      w:5,h:4, prix:17000, ent:155, cap:12, duree:6.5, frisson:1,
-   nausee:.30, attrait:1,   fiab:.011,  px:5, pxMax:12, et:3, col:'#e0503e',
-   d:'Celui pour lequel on fait la route. Il coûte une fortune et il la rend.'}
+ toboggan:{nom:'TOBOGGAN GÉANT', w:3,h:4, prix:11800, ent:124, cap:8,  duree:22, frisson:.66,
+   nausee:.10, attrait:.86, fiab:.007,  px:5, pxMax:11, niv:10, col:'#4aa8d8',
+   d:'Quatre virages en spirale et une gerbe d\'eau à l\'arrivée. Imbattable quand il fait chaud.'},
+ navette:{nom:'LA NAVETTE',      w:2,h:2, prix:4600,  ent:44,  cap:8,  duree:12, frisson:.10,
+   nausee:0,   attrait:.34, fiab:.003,  px:1, pxMax:5,  niv:11, col:'#7d8c9c', transport:true,
+   d:'Une gare. Pose-en deux et les visiteurs passent de l\'une à l\'autre sans traverser le parc.'},
+ rapides:{nom:'RIVIÈRE SAUVAGE', w:5,h:5, prix:16000, ent:150, cap:16, duree:34, frisson:.56,
+   nausee:.12, attrait:.90, fiab:.006,  px:5, pxMax:11, niv:12, col:'#2e86c1',
+   d:'Des bouées rondes lâchées dans un torrent artificiel. On en ressort trempé et content.'},
+ huit:{nom:'LE GRAND HUIT',      w:5,h:4, prix:17500, ent:158, cap:16, duree:26, frisson:1,
+   nausee:.30, attrait:1,   fiab:.011,  px:5, pxMax:12, niv:13, col:'#e0503e',
+   d:'Celui pour lequel on fait la route. Il coûte une fortune et il la rend.'},
+ looping:{nom:'LE LOOPING',      w:6,h:4, prix:29000, ent:240, cap:16, duree:24, frisson:1,
+   nausee:.38, attrait:1.1, fiab:.013,  px:7, pxMax:15, niv:16, col:'#8e6bbf',
+   d:'Une boucle verticale complète. On l\'entend hurler depuis le parking.'}
 };
 
 const BOUTIQUES={
- buvette:{nom:'BUVETTE',    w:1,h:1, prix:700,  ent:14, cap:2, duree:1.8,  px:3, pxMax:8,
-   cout:.9, calme:{soif:.95, vessie:-.35}, attrait:.30, et:0, col:'#2e86c1',
+ buvette:{nom:'BUVETTE',    w:1,h:1, prix:700,  ent:14, cap:3, duree:7,  px:3, pxMax:8,
+   cout:.9, calme:{soif:.95, vessie:-.35}, attrait:.30, niv:1, col:'#2e86c1',
    d:'Limonade et sirop à l\'eau. C\'est ce qui manque en premier quand il fait chaud.'},
- friterie:{nom:'FRITERIE',  w:2,h:1, prix:1500, ent:26, cap:3, duree:2.8, px:6, pxMax:14,
-   cout:2.1, calme:{faim:.95, soif:-.22}, attrait:.36, et:0, col:'#f2b229',
+ friterie:{nom:'FRITERIE',  w:2,h:1, prix:1500, ent:26, cap:4, duree:11, px:6, pxMax:14,
+   cout:2.1, calme:{faim:.95, soif:-.22}, attrait:.36, niv:1, col:'#f2b229',
    d:'L\'odeur porte à trente mètres et fait vendre toute seule.'},
- glacier:{nom:'GLACIER',    w:1,h:1, prix:950,  ent:18, cap:2, duree:2.0,  px:3, pxMax:9,
-   cout:.9, calme:{faim:.45, soif:.40}, attrait:.34, et:1, col:'#e86ca0',
-   d:'Deux boules, un cornet. Marche surtout quand le soleil tape.'},
- souvenir:{nom:'SOUVENIRS', w:2,h:1, prix:1700, ent:24, cap:2, duree:3.0, px:9, pxMax:24,
-   cout:2.4, calme:{}, attrait:.24, et:2, col:'#8e6bbf',
-   d:'Peluches et porte-clés. Aucun besoin à calmer — que de la marge.'},
- toilettes:{nom:'TOILETTES',w:2,h:1, prix:1200, ent:22, cap:4, duree:3.2, px:0, pxMax:2,
-   cout:0, calme:{vessie:1}, attrait:.10, et:0, col:'#7d8c9c',
+ toilettes:{nom:'TOILETTES',w:2,h:1, prix:1200, ent:22, cap:5, duree:12, px:0, pxMax:2,
+   cout:0, calme:{vessie:1}, attrait:.10, niv:1, col:'#7d8c9c',
    d:'Personne n\'en parle en bien. Tout le monde part si elles manquent.'},
  /* Un banc n'est pas un décor : c'est un endroit où l'on s'arrête. Il se
     choisit exactement comme une buvette, avec la même file et la même envie —
     et c'est ce qui fait qu'une allée trop longue coûte des visiteurs. */
- banc:{nom:'BANC',          w:1,h:1, prix:120,  ent:2,  cap:2, duree:2.6, px:0, pxMax:0,
-   cout:0, calme:{fatigue:.80}, attrait:.08, et:0, col:'#a5794a', decor:true,
-   d:'On s\'assoit deux minutes. La fatigue est ce qui fait rentrer les gens chez eux.'}
+ banc:{nom:'BANC',          w:1,h:1, prix:120,  ent:2,  cap:3, duree:30, px:0, pxMax:0,
+   cout:0, calme:{fatigue:.80}, attrait:.08, niv:1, col:'#a5794a', decor:true,
+   d:'On s\'assoit deux minutes. La fatigue est ce qui fait rentrer les gens chez eux.'},
+ glacier:{nom:'GLACIER',    w:1,h:1, prix:950,  ent:18, cap:3, duree:8,  px:3, pxMax:9,
+   cout:.9, calme:{faim:.45, soif:.40}, attrait:.34, niv:2, col:'#e86ca0',
+   d:'Deux boules, un cornet. Marche surtout quand le soleil tape.'},
+ barbe:{nom:'BARBE À PAPA', w:1,h:1, prix:850,  ent:16, cap:2, duree:8,  px:3, pxMax:9,
+   cout:.7, calme:{faim:.36, soif:-.12}, attrait:.38, niv:4, col:'#e86ca0',
+   d:'Rose, collante, et aucun enfant ne passe devant sans s\'arrêter.'},
+ souvenir:{nom:'SOUVENIRS', w:2,h:1, prix:1700, ent:24, cap:3, duree:12, px:9, pxMax:24,
+   cout:2.4, calme:{}, attrait:.24, niv:5, col:'#8e6bbf',
+   d:'Peluches et porte-clés. Aucun besoin à calmer — que de la marge.'},
+ pizzeria:{nom:'PIZZERIA',  w:2,h:2, prix:2900, ent:42, cap:5, duree:14, px:8, pxMax:18,
+   cout:3.0, calme:{faim:1, soif:-.25}, attrait:.44, niv:7, col:'#e0503e',
+   d:'Un vrai repas assis. Ça vide la file de la friterie et ça remplit la caisse.'},
+ photo:{nom:'PHOTO SOUVENIR',w:1,h:1,prix:1600, ent:22, cap:3, duree:6,  px:7, pxMax:18,
+   cout:1.2, calme:{}, attrait:.26, niv:9, col:'#f2b229',
+   d:'La photo prise dans la descente, vendue à la sortie. Marge indécente.'},
+ infirmerie:{nom:'INFIRMERIE',w:2,h:1,prix:2300, ent:36, cap:2, duree:16, px:0, pxMax:4,
+   cout:0, calme:{fatigue:.55}, attrait:.14, niv:10, col:'#e0503e', soigne:true,
+   d:'On y remet d\'aplomb ceux qui sont sortis verts des tasses. Ça ne rapporte rien et ça sauve des avis.'}
 };
 
 const DECORS={
- arbre:{nom:'ARBRE',       w:1,h:1, prix:40,  ent:1, beau:.10, col:'#3fa65a',
+ arbre:{nom:'ARBRE',       w:1,h:1, prix:40,  ent:1, beau:.10, niv:1, col:'#3fa65a',
    d:'De l\'ombre et du vert. Trois arbres valent mieux qu\'un panneau.'},
- parterre:{nom:'PARTERRE', w:1,h:1, prix:60,  ent:2, beau:.14, col:'#e86ca0',
+ parterre:{nom:'PARTERRE', w:1,h:1, prix:60,  ent:2, beau:.14, niv:1, col:'#e86ca0',
    d:'Des fleurs le long de l\'allée. Ça ne sert à rien, et ça se voit quand ça manque.'},
- poubelle:{nom:'POUBELLE', w:1,h:1, prix:90,  ent:2, beau:.02, propre:1, col:'#3c4f63',
+ poubelle:{nom:'POUBELLE', w:1,h:1, prix:90,  ent:2, beau:.02, propre:1, niv:1, col:'#3c4f63',
    d:'Sans elle, tout finit par terre — et un parc sale se vide.'},
- fontaine:{nom:'FONTAINE', w:2,h:2, prix:420, ent:8, beau:.42, col:'#4aa8d8',
-   d:'Le point de rendez-vous. Elle embellit tout un quartier du parc.'}
+ haie:{nom:'HAIE',         w:1,h:1, prix:55,  ent:1, beau:.09, niv:2, col:'#2c7a41',
+   d:'Pour border une allée et cacher l\'arrière des baraques.'},
+ lampadaire:{nom:'LAMPADAIRE',w:1,h:1,prix:180,ent:3, beau:.12, lumiere:1, niv:3, col:'#f2b229',
+   d:'Le parc en fin de journée sans lampadaires, c\'est un parc qui ferme plus tôt.'},
+ fontaine:{nom:'FONTAINE', w:2,h:2, prix:420, ent:8, beau:.42, niv:4, col:'#4aa8d8',
+   d:'Le point de rendez-vous. Elle embellit tout un quartier du parc.'},
+ statue:{nom:'STATUE',     w:1,h:1, prix:340, ent:5, beau:.30, niv:6, col:'#c2ccd4',
+   d:'Personne ne sait qui c\'est, et tout le monde se prend en photo devant.'},
+ bassin:{nom:'BASSIN',     w:2,h:2, prix:540, ent:9, beau:.38, niv:8, col:'#3f97c8',
+   d:'Des nénuphars et des poissons rouges. Le coin le plus calme du parc.'}
 };
 
 const METIERS={
- balayeur:{nom:'BALAYEUR',   paie:42, col:'#3fa65a', ico:'🧹',
+ balayeur:{nom:'BALAYEUR',   paie:42, niv:1, col:'#3fa65a', ico:'🧹',
    d:'Il ramasse ce que les gens jettent. Un par tranche de deux cents pas d\'allée.'},
- mecano:{nom:'MÉCANICIEN',   paie:78, col:'#f2b229', ico:'🔧',
+ mecano:{nom:'MÉCANICIEN',   paie:78, niv:3, col:'#f2b229', ico:'🔧',
    d:'Il répare les pannes et entretient. Sans lui, une attraction reste à l\'arrêt.'},
- animateur:{nom:'ANIMATEUR', paie:58, col:'#e86ca0', ico:'🎈',
-   d:'Il fait rire ceux qui font la queue. La file paraît deux fois plus courte.'}
+ animateur:{nom:'ANIMATEUR', paie:58, niv:5, col:'#e86ca0', ico:'🎈',
+   d:'Il fait rire ceux qui font la queue. La file paraît deux fois plus courte.'},
+ jardinier:{nom:'JARDINIER', paie:54, niv:7, col:'#2c7a41', ico:'🌿',
+   d:'Il taille et il arrose. Tout le décor du parc rend quarante pour cent de plus.'}
 };
 
 /* --- la météo du jour --- */
@@ -662,7 +744,6 @@ const METEOS={
  pluie:{nom:'PLUIE',         ico:'🌧', affl:.55,  soif:.7,  fatigue:1.1,  ferme:false, col:'#8fa3b0'},
  orage:{nom:'ORAGE',         ico:'⛈',  affl:.34,  soif:.7,  fatigue:1.2,  ferme:true,  col:'#6d7f8e'}
 };
-/* un été commence beau et se dégrade : l'urne change avec le jour */
 /* Un été commence beau et se dégrade. L'orage n'arrive jamais avant le sixième
    jour : sur une saison de huit jours, deux orages précoces suffisaient à
    couler un parc qui n'avait rien fait de mal. */
@@ -674,25 +755,46 @@ function urneMeteo(jour){
 }
 
 const DIFFS={
- facile:{nom:'TRANQUILLE', affl:1.25, bourse:1.25, loyer:.75, patience:1.3,
+ facile:{nom:'TRANQUILLE', affl:1.25, bourse:1.25, loyer:.75, patience:1.3, xp:1.2,
    d:'Plus de monde, des portefeuilles pleins, une mairie compréhensive.'},
- normale:{nom:'NORMALE',   affl:1,    bourse:1,    loyer:1,   patience:1,
+ normale:{nom:'NORMALE',   affl:1,    bourse:1,    loyer:1,   patience:1,   xp:1,
    d:'Le jeu tel qu\'il est pensé. Quatre étés, ça passe vite.'},
- dure:{nom:'SANS FILET',   affl:.86,  bourse:.82,  loyer:1.35, patience:.82,
+ dure:{nom:'SANS FILET',   affl:.86,  bourse:.82,  loyer:1.35, patience:.82, xp:.9,
    d:'Moins de visiteurs, moins d\'argent dans leurs poches, un loyer qui étrangle.'}
 };
 function DIF(){ return DIFFS[SAVE.diff]||DIFFS.normale; }
 
-/* --- la campagne : quatre étés, un loyer à la fin de chacun --- */
-const ETES=4, JOURS=8;
-const LOYERS=[3800,10000,19000,31000];
-const OUVERTURE=10, FERMETURE=19;           // heures affichées
-const SECONDES_JOUR=60;                      // durée réelle d'une journée à vitesse 1
+/* ==========================================================================
+   LA LICENCE D'EXPLOITATION — les niveaux
+   ==========================================================================
+   Tout ce qu'on peut poser est derrière un niveau, et le niveau se gagne en
+   faisant tourner le parc : chaque visiteur accueilli, chaque tour vendu,
+   chaque article servi, la satisfaction du jour et le bénéfice y contribuent.
+   C'est la deuxième boucle du jeu, plus lente que celle de la réputation, et
+   c'est elle qui donne les nouveautés. */
+const NIV_MAX=20;
+function xpPour(n){ return Math.round(60*Math.pow(Math.max(1,n-1),2.05)); }
+function xpDuJour(j,moy,benefice){
+  return Math.round((j.entrees + j.tours*2 + j.ventes
+    + moy*60 + Math.max(0,benefice)/80) * DIF().xp);
+}
+/* ce que chaque niveau ouvre, construit une fois à partir des tables */
+let DEBLOCAGES=null;
+function construireDeblocages(){
+  DEBLOCAGES={};
+  const ajoute=(niv,nom)=>{ (DEBLOCAGES[niv]=DEBLOCAGES[niv]||[]).push(nom); };
+  for(const k in ATTRACTIONS) ajoute(ATTRACTIONS[k].niv,ATTRACTIONS[k].nom);
+  for(const k in BOUTIQUES)   ajoute(BOUTIQUES[k].niv,BOUTIQUES[k].nom);
+  for(const k in DECORS)      ajoute(DECORS[k].niv,DECORS[k].nom);
+  for(const k in METIERS)     ajoute(METIERS[k].niv,METIERS[k].nom);
+}
+/* La subvention de palier ne doit pas remplacer la caisse : vingt niveaux à
+   deux cent cinquante plus cent quatre-vingts par niveau donnaient quarante-
+   deux mille euros gratuits, plus que la somme de tous les loyers. */
+function subventionDe(n){ return 150+n*80; }
 
-/* réputation → étoiles. Le maximum jamais atteint débloque les attractions. */
-/* Une réputation moyenne tourne autour de 0,65 : à 5,4 le compteur restait
-   collé à trois étoiles du premier au dernier été, et la seule récompense
-   visible du jeu ne bougeait jamais. */
+/* réputation → étoiles. Elle ne débloque plus rien : c'est l'affluence qu'elle
+   commande, et c'est déjà beaucoup. */
 function etoilesDe(rep){ return clamp(Math.floor(rep*5.9),0,5); }
 
 /* --- ce que les gens disent en partant : construit à partir de leur journée --- */
@@ -709,9 +811,7 @@ const AVIS={
    'On n\'a même pas trouvé de toilettes.','Je veux être remboursé.']
 };
 /* Un mécontent qui se plaint au hasard n'apprend rien au joueur. On regarde ce
-   qui, dans sa journée, a le plus pesé, et il se plaint de ça. C'est le retour
-   d'information le plus direct du jeu : cinq phrases le soir disent ce qui
-   manque au parc. */
+   qui, dans sa journée, a le plus pesé, et il se plaint de ça. */
 const PLAINTES={
  toilettes:{t:['On n\'a pas trouvé une seule toilette.','Il faudrait des toilettes, quand même.'],
    nom:'des toilettes'},
@@ -758,6 +858,23 @@ function avisDe(v){
 const HABITS=['#e0503e','#2e86c1','#f2b229','#8e6bbf','#3fa65a','#e86ca0','#ef7d3a',
   '#4aa8d8','#c0577b','#5c8f3f','#d94f6e','#7a6cc4'];
 const PEAUX=['#f0c9a4','#e0ac82','#c78c5f','#9c6742','#7a4d31','#5c3a24'];
+
+/* --- la campagne : quatre étés, un loyer à la fin de chacun --- */
+const ETES=4, JOURS=8;
+/* Attention au piège : la journée dure douze fois plus longtemps, mais il ne
+   vient pas douze fois plus de monde — un visiteur fait simplement plus de
+   choses pendant sa visite. La recette d'une journée ne bouge donc presque
+   pas, et les loyers non plus. Mesuré : 362 € de recette le premier jour,
+   contre 391 € avec les journées d'une minute. */
+const LOYERS=[5000,13000,24000,40000];
+const OUVERTURE=10, FERMETURE=19;           // heures affichées
+/* Une journée de parc dure douze minutes en vrai. C'est long, et c'est voulu :
+   on a le temps de voir une file se former, de comprendre pourquoi, d'aller
+   poser une deuxième buvette et de regarder l'effet. Les commandes de vitesse
+   montent jusqu'à dix pour ceux qui veulent avancer. */
+const SECONDES_JOUR=720;
+
+/* (les avis, les plaintes et les teintes sont définis plus haut, avec les niveaux) */
 /* ==========================================================================
    4. LE PARC
    ==========================================================================
@@ -776,7 +893,7 @@ const Store={
   set(k,v){ try{ localStorage.setItem(k,v); }catch(e){ this.mem[k]=v; } }
 };
 const SAVE_DEF={ volume:.6, son:true, diff:'normale',
-  parties:0, victoires:0, meilleur:0, meilleureRep:0, totalVis:0 };
+  parties:0, victoires:0, meilleur:0, meilleureRep:0, totalVis:0, meilleurNiveau:0 };
 let SAVE=Object.assign({},SAVE_DEF);
 function charger(){
   try{ const b=Store.get(CLE); if(b) SAVE=Object.assign({},SAVE_DEF,JSON.parse(b)); }catch(e){}
@@ -786,12 +903,13 @@ function sauver(){ try{ Store.set(CLE,JSON.stringify(SAVE)); }catch(e){} }
 function nouvellePartie(){
   P={
     ete:1, jour:1, t:0, heure:OUVERTURE, ouvert:true,
-    argent:14000, prixEntree:5,
+    argent:22000, prixEntree:5,
     sol:new Uint8Array(GX*GY), occ:new Int16Array(GX*GY).fill(-1),
     salete:new Float32Array(GX*GY),
     batis:[], visiteurs:[], employes:[], parts:[], flottants:[],
     champs:{}, champSortie:null, sale:true,
     rep:.30, etoilesMax:0, meteo:'soleil',
+    niveau:1, xp:0, beaute:null, jardinier:false,
     entres:0, sortis:0, refus:0,
     jourNum:1, fini:false, gagne:false,
     jt:{entrees:0, tours:0, ventes:0, recEntree:0, recTours:0, recVentes:0,
@@ -803,8 +921,10 @@ function nouvellePartie(){
   terrainNaturel();
   portail();
   refaireChamps();
-  cam.x=GX*TUILE/2; cam.y=GY*TUILE*.74; cam.z=clamp(1.55,ZMIN,2.4); cam.zc=cam.z;
-  SOL=null;
+  /* on démarre serré sur le portail : un terrain vide vu de loin ne dit rien
+     de ce qu'on doit faire */
+  cam.x=GX*TUILE/2; cam.y=(GY-8.5)*TUILE; cam.z=clamp(1.5,ZMIN,2.4); cam.zc=cam.z;
+  CHUNKS=null;
 }
 
 /* --- le terrain de départ : deux mares, quelques rochers, des bosquets ---
@@ -812,22 +932,31 @@ function nouvellePartie(){
    intéressant : les obstacles obligent à dessiner de vraies allées. */
 function terrainNaturel(){
   const g=ri(0,9999);
-  for(let m=0;m<2;m++){
-    const cx=ri(6,GX-8), cy=ri(4,GY-9), r=rnd(2.2,3.6);
-    for(let y=-5;y<=5;y++) for(let x=-5;x<=5;x++){
-      const d=Math.hypot(x,y*1.25)+hash2(cx+x,cy+y,g)*1.1;
+  /* Sur un terrain quatre fois plus grand, deux mares perdues au milieu ne se
+     voient pas. On en met plusieurs, de tailles différentes, et des bosquets
+     denses : ce sont les obstacles qui donnent au tracé des allées son
+     intérêt. On garde toujours dégagé le bas du terrain, autour du portail. */
+  for(let m=0;m<7;m++){
+    const cx=ri(6,GX-8), cy=ri(4,GY-14), r=rnd(2.4,6.2);
+    if(Math.abs(cx-Math.floor(GX/2))<5&&cy>GY-20) continue;
+    for(let y=-8;y<=8;y++) for(let x=-9;x<=9;x++){
+      const d=Math.hypot(x,y*1.25)+hash2(cx+x,cy+y,g)*1.3;
       if(d<r && dedans(cx+x,cy+y)) P.sol[idx(cx+x,cy+y)]=EAU;
     }
   }
-  for(let i=0;i<10;i++){
-    const x=ri(2,GX-3), y=ri(2,GY-6);
+  for(let i=0;i<42;i++){
+    const x=ri(2,GX-3), y=ri(2,GY-8);
     if(P.sol[idx(x,y)]) continue;
     P.sol[idx(x,y)]=ROCHE;
   }
-  for(let i=0;i<34;i++){
-    const x=ri(1,GX-2), y=ri(1,GY-5);
-    if(P.sol[idx(x,y)]||P.occ[idx(x,y)]>=0) continue;
-    poserBrut('decor','arbre',x,y,true);
+  /* des bosquets plutôt que des arbres semés un par un */
+  for(let b=0;b<26;b++){
+    const bx=ri(2,GX-3), by=ri(2,GY-6), n=ri(3,9);
+    for(let i=0;i<n;i++){
+      const x=bx+ri(-2,2), y=by+ri(-2,2);
+      if(!dedans(x,y)||P.sol[idx(x,y)]||P.occ[idx(x,y)]>=0) continue;
+      poserBrut('decor','arbre',x,y,true);
+    }
   }
 }
 
@@ -839,7 +968,7 @@ function portail(){
     P.sol[idx(x,GY-2)]=ALLEE;
   }
   /* une amorce d'allée, sinon la première pose est un casse-tête */
-  for(let y=GY-6;y<GY-2;y++) P.sol[idx(cx+1,y)]=ALLEE;
+  for(let y=GY-9;y<GY-2;y++) P.sol[idx(cx+1,y)]=ALLEE;
   P.entreeX=cx+1;
 }
 
@@ -883,7 +1012,7 @@ function toucheAllee(x,y,w,h){
 }
 function peutPoser(cat,k,x,y){
   const d=catalogue(cat,k); if(!d) return {ok:false,r:'?'};
-  if(cat!=='decor'&&d.et>P.etoilesMax) return {ok:false,r:'Il faut '+d.et+' étoiles'};
+  if((d.niv||1)>P.niveau) return {ok:false,r:'Niveau '+d.niv+' requis'};
   for(let j=0;j<d.h;j++) for(let i=0;i<d.w;i++)
     if(!terrainLibre(x+i,y+j)) return {ok:false,r:'Le terrain n\'est pas libre'};
   if(cat!=='decor'&&!toucheAllee(x,y,d.w,d.h)) return {ok:false,r:'À coller à une allée'};
@@ -914,7 +1043,9 @@ function poser(cat,k,x,y){
   SND.pose();
   return b;
 }
-const PRIX_ALLEE=14;
+/* La carte est quatre fois plus grande : une allée qui la traverse coûterait
+   une fortune au tarif d'avant. */
+const PRIX_ALLEE=10;
 function poserAllee(x,y){
   if(!dedans(x,y)) return false;
   const t=idx(x,y);
@@ -928,7 +1059,7 @@ function poserAllee(x,y){
   }
   if(P.argent<PRIX_ALLEE) return false;
   P.argent-=PRIX_ALLEE;
-  P.sol[t]=ALLEE; P.occ[t]=-1; P.sale=true; SOL=null;
+  P.sol[t]=ALLEE; P.occ[t]=-1; P.sale=true; invaliderSol(x,y);
   return true;
 }
 function retirerBati(n){
@@ -942,14 +1073,16 @@ function retirerBati(n){
   for(let t=0;t<P.occ.length;t++) if(P.occ[t]>n) P.occ[t]--;
   for(const v of P.visiteurs) if(v.cible===b||v.lieu===b){ v.cible=null; v.lieu=null; v.etat='flane'; }
   for(const e of P.employes) if(e.cible===b) e.cible=null;
-  P.sale=true; SOL=null;
+  for(let j=0;j<b.h;j++) for(let i=0;i<b.w;i++) invaliderSol(b.x+i,b.y+j);
+  P.sale=true;
 }
 function demolir(x,y){
   if(!dedans(x,y)) return;
   const t=idx(x,y);
   if(P.sol[t]===PORTAIL){ flash('Le portail reste','mal'); return; }
   if(P.sol[t]===ALLEE){
-    P.sol[t]=VIDE; P.sale=true; SOL=null; P.argent+=Math.round(PRIX_ALLEE*.3); SND.clic(); return;
+    P.sol[t]=VIDE; P.sale=true; invaliderSol(x,y); P.argent+=Math.round(PRIX_ALLEE*.3);
+    SND.clic(); return;
   }
   const n=P.occ[t];
   if(n<0){ return; }
@@ -1012,6 +1145,8 @@ function refaireChamps(){
       }
     }
   }
+  calculerBeaute();
+  P.jardinier=P.employes.some(e=>e.k==='jardinier');
   P.sale=false;
 }
 /* la case voisine qui rapproche le plus de la cible */
@@ -1048,16 +1183,29 @@ function nbAllees(){
   for(let t=0;t<P.sol.length;t++) if(P.sol[t]===ALLEE) n++;
   return n;
 }
-/* beauté locale : ce que le décor apporte autour d'une case */
-function beauteAutour(x,y,r){
-  let b=0;
+/* La beauté du décor : calculée une fois par modification du tracé, dans un
+   champ, au lieu d'être resommée sur tous les massifs de fleurs pour chacun
+   des trois cents visiteurs à chaque image. Sur une carte de cinq mille cases
+   avec deux cents décors, la version naïve coûtait à elle seule plus cher que
+   tout le reste du jeu. */
+const R_BEAU=6;
+function calculerBeaute(){
+  P.beaute=new Float32Array(GX*GY);
   for(const s of P.batis){
     if(s.cat!=='decor'||!s.d.beau) continue;
-    const dx=s.x+s.w/2-x, dy=s.y+s.h/2-y;
-    const d=Math.hypot(dx,dy);
-    if(d<r) b+=s.d.beau*(1-d/r);
+    const cx=s.x+s.w/2, cy=s.y+s.h/2;
+    const x0=Math.max(0,Math.floor(cx-R_BEAU)), x1=Math.min(GX-1,Math.ceil(cx+R_BEAU));
+    const y0=Math.max(0,Math.floor(cy-R_BEAU)), y1=Math.min(GY-1,Math.ceil(cy+R_BEAU));
+    for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){
+      const d=Math.hypot(cx-x-.5,cy-y-.5);
+      if(d<R_BEAU) P.beaute[idx(x,y)]+=s.d.beau*(1-d/R_BEAU);
+    }
   }
-  return Math.min(1,b);
+  for(let t=0;t<P.beaute.length;t++) if(P.beaute[t]>1) P.beaute[t]=1;
+}
+function beauteAutour(x,y){
+  if(!P.beaute||!dedans(x,y)) return 0;
+  return P.beaute[idx(x,y)]*(P.jardinier?1.4:1);
 }
 /* ==========================================================================
    5. LES GENS
@@ -1078,12 +1226,9 @@ function beauteAutour(x,y,r){
 const BESOINS=['frisson','faim','soif','vessie','fatigue'];
 /* de combien chaque besoin monte par heure de parc */
 const MONTEE={frisson:.42, faim:.20, soif:.26, vessie:.16, fatigue:.145};
-/* Un visiteur traverse le parc en une dizaine de minutes de parc. Avec une
-   journée de soixante secondes, ça fait une marche rapide à l'écran — mais un
-   piéton lent transforme la journée en trajet aller-retour unique, et les
-   manèges tournent à vide. Mesuré : à trente pixels par seconde, deux
-   attractions ne servaient que dix-huit tours pour trente-six visiteurs. */
-const VIT_BASE=64;
+/* Un visiteur met une petite minute à traverser le parc en diagonale. Tout est
+   proportionné à ça : les durées de tour, les files, la patience. */
+const VIT_BASE=15;
 
 function nouveauVisiteur(){
   const dif=DIF();
@@ -1122,13 +1267,22 @@ function bourseMoyenne(){
   return 50*DIF().bourse*(1+P.rep*.5)*(P.richesse||1);
 }
 function majRichesse(){
+  P.richesse=1+attractionsUtiles()*.075;
+}
+/* La vingt-huitième attraction n'amène pas autant de monde que la troisième :
+   le bassin de population est fini. Sans cette saturation, l'affluence ET le
+   prix acceptable montaient tous les deux linéairement avec le nombre de
+   manèges, la recette grimpait au carré, et la partie de référence finissait
+   avec cent quatre-vingt-douze mille euros en caisse et un billet à cinquante-
+   huit euros. C'est la qualité — donc la réputation — qui doit porter la
+   croissance, pas l'entassement. */
+function attractionsUtiles(){
   const n=P.batis.filter(b=>b.cat==='attraction'&&b.relie).length;
-  P.richesse=1+n*.055;
+  return 15*(1-Math.exp(-n/7));
 }
 function affluencePrevue(){
   const dif=DIF(), m=METEOS[P.meteo];
-  const attractions=P.batis.filter(b=>b.cat==='attraction'&&b.relie).length;
-  const base=14 + attractions*9 + P.rep*95;
+  const base=12 + attractionsUtiles()*7 + P.rep*140;
   const bouche=.45+P.rep*1.25;                  // le bouche-à-oreille
   return Math.max(4,Math.round(base*bouche*m.affl*dif.affl*(1+(P.ete-1)*.06)));
 }
@@ -1141,9 +1295,10 @@ function partArrivee(u){
 }
 
 function prixAcceptable(){
-  /* ce qu'un visiteur accepte de payer à l'entrée, vu ce qu'il voit du parc */
-  const att=P.batis.filter(b=>b.cat==='attraction'&&b.relie).length;
-  return 4 + att*1.7 + P.rep*14;
+  /* ce qu'un visiteur accepte de payer à l'entrée, vu ce qu'il voit du parc.
+     Plafonné par la même saturation que l'affluence : au-delà d'une quinzaine
+     d'attractions, doubler le catalogue ne double pas le prix du billet. */
+  return 5 + attractionsUtiles()*1.5 + P.rep*18;
 }
 
 function faireEntrer(){
@@ -1261,7 +1416,7 @@ function pasVisiteur(v,dt,heures){
   const t=idx(clamp(v.tx,0,GX-1),clamp(v.ty,0,GY-1));
   const sale=P.salete[t]||0;
   v.saleCum+=sale*heures;
-  v.bonheur=clamp(v.bonheur - sale*.09*heures + beauteAutour(v.tx,v.ty,6)*.05*heures,0,1);
+  v.bonheur=clamp(v.bonheur - sale*.09*heures + beauteAutour(v.tx,v.ty)*.055*heures,0,1);
   if(P.meteo==='pluie'||P.meteo==='orage') v.bonheur=clamp(v.bonheur-.05*heures,0,1);
   if(v.besoins.vessie>.94||v.besoins.faim>.96||v.besoins.soif>.96)
     v.bonheur=clamp(v.bonheur-.28*heures,0,1);
@@ -1298,7 +1453,7 @@ function pasVisiteur(v,dt,heures){
         v.errT-=dt;
         const cx=(v.tx+.5)*TUILE+v.dx, cy=(v.ty+.5)*TUILE+v.dy;
         const dx=cx-v.x, dy=cy-v.y, d=Math.hypot(dx,dy);
-        if(d>2){ v.x+=dx/d*VIT_BASE*.5*dt; v.y+=dy/d*VIT_BASE*.5*dt; v.vx=dx/d; v.vy=dy/d; }
+        if(d>2){ v.x+=dx/d*VIT_BASE*.55*dt; v.y+=dy/d*VIT_BASE*.55*dt; v.vx=dx/d; v.vy=dy/d; }
       }
       break;
     }
@@ -1364,6 +1519,14 @@ function pasBati(b,dt,heures){
     if(b.t>0){
       b.t-=dt;
       if(b.t<=0){
+        /* la navette ne fait pas tourner : elle déplace. On ressort à l'autre
+           gare, et c'est ce qui rend un grand parc praticable. */
+        let gare=null;
+        if(b.d.transport){
+          const autres=P.batis.filter(x=>x!==b&&x.d.transport&&x.relie&&!x.panne&&x.portes
+            &&x.portes.length);
+          if(autres.length) gare=pick(autres);
+        }
         for(const v of b.dedans){
           v.etat='flane'; v.cible=null; v.ennui=0; v.dec=.2;
           /* un tour ne suffit jamais tout à fait : un manège calme apporte
@@ -1374,6 +1537,11 @@ function pasBati(b,dt,heures){
           v.besoins.fatigue=clamp(v.besoins.fatigue+.05,0,1);
           v.bonheur=clamp(v.bonheur + b.d.attrait*.22 - b.d.nausee*.10,0,1);
           v.vus[b.id]=(v.vus[b.id]||0)+1; v.tours++;
+          if(gare){
+            const t=pick(gare.portes);
+            v.tx=t%GX; v.ty=(t/GX|0);
+            v.vus={};                       // tout redevient neuf de l'autre côté
+          }
           v.x=(v.tx+.5)*TUILE; v.y=(v.ty+.5)*TUILE;
         }
         b.dedans.length=0;
@@ -1407,7 +1575,8 @@ function pasBati(b,dt,heures){
       for(const k in b.d.calme){
         v.besoins[k]=clamp(v.besoins[k]-b.d.calme[k],0,1);
       }
-      v.bonheur=clamp(v.bonheur+.09,0,1);
+      v.bonheur=clamp(v.bonheur+(b.d.soigne?.24:.09),0,1);
+      if(b.d.soigne) v.attCum=Math.max(0,v.attCum-.5);
       v.vus[b.id]=(v.vus[b.id]||0)+1; v.achats++;
       v.x=(v.tx+.5)*TUILE; v.y=(v.ty+.5)*TUILE;
     }
@@ -1438,7 +1607,7 @@ function licencier(k){
 function pasEmploye(e,dt,heures){
   /* chacun cherche sa cible, puis y va, puis travaille */
   if(!e.cible||e.recalc<=0){
-    e.recalc=2.5;
+    e.recalc=9;
     if(e.k==='balayeur'){
       let pire=null, pv=.10;
       for(let t=0;t<P.sol.length;t++)
@@ -1561,8 +1730,12 @@ function pasJournee(dt){
     P.grace+=dt;
   }
 
-  /* le monde */
-  if(P.sale) refaireChamps();
+  /* Le monde. Sur une carte de cinq mille cases avec quarante bâtiments, un
+     parcours en largeur par bâtiment coûte trop cher pour être refait à chaque
+     case d'allée posée pendant un glissé : on l'espace d'un quart de seconde,
+     ce qui ne se voit pas et divise le coût par dix pendant les travaux. */
+  P.saleT=(P.saleT||0)-dt;
+  if(P.sale && P.saleT<=0){ refaireChamps(); P.saleT=.25; }
   for(const b of P.batis){
     pasBati(b,dt,heures);
     if(b.file) for(let i=0;i<b.file.length;i++) b.file[i].place=i;
@@ -1600,7 +1773,7 @@ function glisserFile(v,dt){
   const b=v.cible; if(!b||!b.places||!b.places.length) return;
   const p=b.places[Math.min(v.place||0,b.places.length-1)];
   const dx=p[0]-v.x, dy=p[1]-v.y, d=Math.hypot(dx,dy);
-  if(d>1.5){ const s=Math.min(d,VIT_BASE*1.3*dt);
+  if(d>1.5){ const s=Math.min(d,VIT_BASE*2.2*dt);
     v.x+=dx/d*s; v.y+=dy/d*s; v.vx=dx/d; v.vy=dy/d; }
 }
 
@@ -1632,6 +1805,21 @@ function fermerJournee(){
     P.rep=clamp(P.rep-.03,0,1);
   }
   P.etoilesMax=Math.max(P.etoilesMax,etoilesDe(P.rep));
+
+  /* --- l'expérience et la licence ---
+     Elle se gagne en faisant tourner le parc, pas en dépensant : accueillir,
+     vendre des tours, servir, satisfaire, dégager un bénéfice. Chaque palier
+     ouvre du matériel neuf et vient avec une subvention de la mairie. */
+  const moyJ=n?P.jt.bonheur.reduce((a,b)=>a+b,0)/n:0;
+  const gagne=xpDuJour(P.jt,moyJ,rec-dep);
+  P.xp+=gagne; P.jt.xp=gagne; P.jt.niveaux=[];
+  while(P.niveau<NIV_MAX && P.xp>=xpPour(P.niveau+1)){
+    P.niveau++;
+    const sub=subventionDe(P.niveau);
+    P.argent+=sub;
+    P.jt.niveaux.push({n:P.niveau, sub, ouvre:(DEBLOCAGES[P.niveau]||[]).slice()});
+  }
+  SAVE.meilleurNiveau=Math.max(SAVE.meilleurNiveau||0,P.niveau);
   SAVE.meilleureRep=Math.max(SAVE.meilleureRep||0,Math.round(P.rep*100));
   SAVE.totalVis=(SAVE.totalVis||0)+P.jt.entrees;
 
@@ -1698,84 +1886,120 @@ function coutsQuotidiens(){
    Les attractions ne sont pas des icônes : chacune tourne, monte ou roule. Un
    parc où rien ne bouge n'est qu'un tableur avec des couleurs. */
 
-const SOLK=2;
-function peindreSol(){
-  const cvs=document.createElement('canvas');
-  cvs.width=GX*TUILE*SOLK; cvs.height=GY*TUILE*SOLK;
-  const g=cvs.getContext('2d');
-  g.setTransform(SOLK,0,0,SOLK,0,0);
+/* Le sol est découpé en morceaux de vingt-deux cases de côté. Un morceau n'est
+   repeint que si quelque chose a changé dedans, et seuls les morceaux visibles
+   sont dessinés. Un unique calque pour toute la carte tiendrait soixante
+   mégaoctets et se repeindrait entièrement au moindre bout d'allée posé. */
+const SOLK=1;
+let CHUNKS=null;
+function creerChunks(){
+  CHUNKS=[];
+  for(let cy=0;cy<CHY;cy++) for(let cx=0;cx<CHX;cx++){
+    const c=document.createElement('canvas');
+    c.width=CH*TUILE*SOLK; c.height=CH*TUILE*SOLK;
+    c.cx=cx; c.cy=cy; c.sale=true;
+    CHUNKS.push(c);
+  }
+}
+function invaliderSol(x,y){
+  if(!CHUNKS) return;
+  for(let j=-1;j<=1;j++) for(let i=-1;i<=1;i++){
+    const cx=Math.floor((x+i)/CH), cy=Math.floor((y+j)/CH);
+    if(cx<0||cy<0||cx>=CHX||cy>=CHY) continue;
+    CHUNKS[cy*CHX+cx].sale=true;
+  }
+}
+function invaliderTout(){ if(CHUNKS) for(const c of CHUNKS) c.sale=true; }
+
+function peindreChunk(cv2){
+  const g=cv2.getContext('2d');
+  const x0=cv2.cx*CH, y0=cv2.cy*CH;
+  g.setTransform(SOLK,0,0,SOLK,-x0*TUILE*SOLK,-y0*TUILE*SOLK);
+  g.clearRect(x0*TUILE,y0*TUILE,CH*TUILE,CH*TUILE);
+  const X1=Math.min(GX,x0+CH), Y1=Math.min(GY,y0+CH);
   /* l'herbe : deux verts et des touffes, sinon c'est une nappe */
-  g.fillStyle='#5aa84f'; g.fillRect(0,0,GX*TUILE,GY*TUILE);
-  for(let y=0;y<GY;y++) for(let x=0;x<GX;x++){
+  g.fillStyle='#5aa84f'; g.fillRect(x0*TUILE,y0*TUILE,CH*TUILE,CH*TUILE);
+  for(let y=y0;y<Y1;y++) for(let x=x0;x<X1;x++){
     const h=hash2(x,y,7);
-    if(h>.5){ g.fillStyle='rgba(255,255,255,'+((h-.5)*.10).toFixed(3)+')';
-      g.fillRect(x*TUILE,y*TUILE,TUILE,TUILE); }
-    else { g.fillStyle='rgba(20,60,20,'+((.5-h)*.10).toFixed(3)+')';
-      g.fillRect(x*TUILE,y*TUILE,TUILE,TUILE); }
+    if(h>.5){ g.fillStyle='rgba(255,255,255,'+((h-.5)*.10).toFixed(3)+')'; }
+    else { g.fillStyle='rgba(20,60,20,'+((.5-h)*.10).toFixed(3)+')'; }
+    g.fillRect(x*TUILE,y*TUILE,TUILE,TUILE);
   }
   g.strokeStyle='rgba(30,80,32,.30)'; g.lineWidth=1.1; g.lineCap='round';
-  for(let i=0;i<2400;i++){
-    const x=hash2(i,3,11)*GX*TUILE, y=hash2(i,4,11)*GY*TUILE;
-    const tx=Math.floor(x/TUILE), ty=Math.floor(y/TUILE);
-    if(P.sol[idx(tx,ty)]!==VIDE&&P.sol[idx(tx,ty)]!==DECOR) continue;
-    g.beginPath(); g.moveTo(x,y); g.lineTo(x+hash2(i,5,11)*2-1,y-2-hash2(i,6,11)*3); g.stroke();
+  for(let y=y0;y<Y1;y++) for(let x=x0;x<X1;x++){
+    const t=idx(x,y);
+    if(P.sol[t]!==VIDE&&P.sol[t]!==DECOR) continue;
+    for(let k=0;k<3;k++){
+      const a2=hash2(x*7+k,y*5,11), b2=hash2(y*7+k,x*5,13);
+      const px=x*TUILE+a2*TUILE, py=y*TUILE+b2*TUILE;
+      g.beginPath(); g.moveTo(px,py);
+      g.lineTo(px+hash2(k,x+y,17)*2-1,py-2-hash2(x,y+k,19)*3); g.stroke();
+    }
   }
   /* une berge de sable, sinon la mare est un rectangle bleu posé sur l'herbe */
-  for(let y=0;y<GY;y++) for(let x=0;x<GX;x++){
-    if(P.sol[idx(x,y)]===EAU) continue;
+  for(let y=y0-1;y<Y1+1;y++) for(let x=x0-1;x<X1+1;x++){
+    if(!dedans(x,y)||P.sol[idx(x,y)]===EAU) continue;
     let pres=false;
-    for(let j=-1;j<=1&&!pres;j++) for(let i=-1;i<=1;i++){
+    for(let j=-1;j<=1&&!pres;j++) for(let i=-1;i<=1;i++)
       if(dedans(x+i,y+j)&&P.sol[idx(x+i,y+j)]===EAU){ pres=true; break; }
-    }
     if(!pres) continue;
     g.fillStyle='rgba(228,208,158,.72)';
     g.fillRect(x*TUILE,y*TUILE,TUILE,TUILE);
   }
   /* les mares */
-  for(let y=0;y<GY;y++) for(let x=0;x<GX;x++){
-    if(P.sol[idx(x,y)]!==EAU) continue;
+  for(let y=y0-1;y<Y1+1;y++) for(let x=x0-1;x<X1+1;x++){
+    if(!dedans(x,y)||P.sol[idx(x,y)]!==EAU) continue;
     g.fillStyle='#3f97c8'; g.fillRect(x*TUILE,y*TUILE,TUILE,TUILE);
-    const bord=[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>
-      !dedans(x+a,y+b)||P.sol[idx(x+a,y+b)]!==EAU);
-    if(bord){ g.fillStyle='rgba(255,255,255,.20)';
-      g.fillRect(x*TUILE,y*TUILE,TUILE,3); }
+    const bord=[[1,0],[-1,0],[0,1],[0,-1]].some(([a2,b2])=>
+      !dedans(x+a2,y+b2)||P.sol[idx(x+a2,y+b2)]!==EAU);
+    if(bord){ g.fillStyle='rgba(255,255,255,.20)'; g.fillRect(x*TUILE,y*TUILE,TUILE,3); }
   }
   /* les rochers */
-  for(let y=0;y<GY;y++) for(let x=0;x<GX;x++){
-    if(P.sol[idx(x,y)]!==ROCHE) continue;
-    const cx=x*TUILE+TUILE/2, cy=y*TUILE+TUILE/2;
+  for(let y=y0-1;y<Y1+1;y++) for(let x=x0-1;x<X1+1;x++){
+    if(!dedans(x,y)||P.sol[idx(x,y)]!==ROCHE) continue;
+    const cx2=x*TUILE+TUILE/2, cy2=y*TUILE+TUILE/2;
     g.fillStyle='rgba(20,40,20,.24)';
-    g.beginPath(); g.ellipse(cx,cy+4,TUILE*.40,TUILE*.22,0,0,TAU); g.fill();
+    g.beginPath(); g.ellipse(cx2,cy2+4,TUILE*.40,TUILE*.22,0,0,TAU); g.fill();
     g.fillStyle='#9aa3a8';
-    g.beginPath(); g.ellipse(cx,cy,TUILE*.36,TUILE*.30,hash2(x,y,9),0,TAU); g.fill();
+    g.beginPath(); g.ellipse(cx2,cy2,TUILE*.36,TUILE*.30,hash2(x,y,9),0,TAU); g.fill();
     g.fillStyle='#c2c9cc';
-    g.beginPath(); g.ellipse(cx-2,cy-3,TUILE*.20,TUILE*.15,0,0,TAU); g.fill();
+    g.beginPath(); g.ellipse(cx2-2,cy2-3,TUILE*.20,TUILE*.15,0,0,TAU); g.fill();
   }
-  /* les allées : un liseré plus clair au bord, du gravier au milieu */
-  for(let y=0;y<GY;y++) for(let x=0;x<GX;x++){
-    const s=P.sol[idx(x,y)];
-    if(s!==ALLEE&&s!==PORTAIL) continue;
+  /* les allées : gravier au milieu, liseré là où ça s'arrête */
+  for(let y=y0-1;y<Y1+1;y++) for(let x=x0-1;x<X1+1;x++){
+    if(!dedans(x,y)) continue;
+    const so=P.sol[idx(x,y)];
+    if(so!==ALLEE&&so!==PORTAIL) continue;
     const X=x*TUILE, Y=y*TUILE;
-    g.fillStyle=s===PORTAIL?'#c8a97a':'#e2d3ac';
+    g.fillStyle=so===PORTAIL?'#c8a97a':'#e2d3ac';
     g.fillRect(X,Y,TUILE,TUILE);
     g.fillStyle='rgba(140,116,74,.30)';
     for(let i=0;i<7;i++){
-      const a=hash2(x*13+i,y*7,17), b=hash2(y*13+i,x*7,19);
-      g.fillRect(X+a*(TUILE-3),Y+b*(TUILE-3),2,2);
+      const a2=hash2(x*13+i,y*7,17), b2=hash2(y*13+i,x*7,19);
+      g.fillRect(X+a2*(TUILE-3),Y+b2*(TUILE-3),2,2);
     }
-    /* bordure là où l'allée s'arrête */
+    const ouvert=(a2,b2)=>{ const u=x+a2, v=y+b2;
+      return dedans(u,v)&&(P.sol[idx(u,v)]===ALLEE||P.sol[idx(u,v)]===PORTAIL); };
     g.fillStyle='rgba(255,255,255,.34)';
-    if(!dedans(x,y-1)||!(P.sol[idx(x,y-1)]===ALLEE||P.sol[idx(x,y-1)]===PORTAIL))
-      g.fillRect(X,Y,TUILE,2);
+    if(!ouvert(0,-1)) g.fillRect(X,Y,TUILE,2);
     g.fillStyle='rgba(120,96,58,.26)';
-    if(!dedans(x,y+1)||!(P.sol[idx(x,y+1)]===ALLEE||P.sol[idx(x,y+1)]===PORTAIL))
-      g.fillRect(X,Y+TUILE-2,TUILE,2);
-    if(!dedans(x-1,y)||!(P.sol[idx(x-1,y)]===ALLEE||P.sol[idx(x-1,y)]===PORTAIL))
-      g.fillRect(X,Y,2,TUILE);
-    if(!dedans(x+1,y)||!(P.sol[idx(x+1,y)]===ALLEE||P.sol[idx(x+1,y)]===PORTAIL))
-      g.fillRect(X+TUILE-2,Y,2,TUILE);
+    if(!ouvert(0,1)) g.fillRect(X,Y+TUILE-2,TUILE,2);
+    if(!ouvert(-1,0)) g.fillRect(X,Y,2,TUILE);
+    if(!ouvert(1,0)) g.fillRect(X+TUILE-2,Y,2,TUILE);
   }
-  SOL=cvs;
+  cv2.sale=false;
+}
+function dessinerSol(x0,y0,x1,y1){
+  if(!CHUNKS) creerChunks();
+  const a=clamp(Math.floor(x0/TUILE/CH),0,CHX-1), b=clamp(Math.floor(x1/TUILE/CH),0,CHX-1);
+  const c=clamp(Math.floor(y0/TUILE/CH),0,CHY-1), d=clamp(Math.floor(y1/TUILE/CH),0,CHY-1);
+  let repeints=0;
+  for(let cy=c;cy<=d;cy++) for(let cx=a;cx<=b;cx++){
+    const k=CHUNKS[cy*CHX+cx];
+    if(k.sale&&repeints<3){ peindreChunk(k); repeints++; }
+    if(k.sale) continue;                       // on le peindra à la prochaine image
+    ctx.drawImage(k,cx*CH*TUILE,cy*CH*TUILE,CH*TUILE,CH*TUILE);
+  }
 }
 
 /* teinte de l'heure : le matin est frais, le soir est doré */
@@ -1792,18 +2016,16 @@ function dessiner(dt){
   ctx.fillStyle=P?METEOS[P.meteo].col:'#8fd0ee';
   ctx.fillRect(0,0,VW,VH);
   if(!P) return;
-  if(!SOL) peindreSol();
-
   ctx.save();
   ctx.translate(VW/2,VH/2); ctx.scale(cam.z,cam.z); ctx.translate(-cam.x,-cam.y);
 
   /* ombre portée du terrain, pour le décoller du ciel */
   ctx.fillStyle='rgba(20,50,70,.20)';
   ctx.fillRect(6,8,GX*TUILE,GY*TUILE);
-  ctx.drawImage(SOL,0,0,GX*TUILE,GY*TUILE);
+  const [x0,y0]=monde(0,0), [x1,y1]=monde(VW,VH);
+  dessinerSol(x0,y0,x1,y1);
 
   /* saleté */
-  const [x0,y0]=monde(0,0), [x1,y1]=monde(VW,VH);
   const cx0=clamp(Math.floor(x0/TUILE)-1,0,GX-1), cx1=clamp(Math.ceil(x1/TUILE)+1,0,GX-1);
   const cy0=clamp(Math.floor(y0/TUILE)-1,0,GY-1), cy1=clamp(Math.ceil(y1/TUILE)+1,0,GY-1);
   for(let y=cy0;y<=cy1;y++) for(let x=cx0;x<=cx1;x++){
@@ -1953,6 +2175,12 @@ function dessinerBati(b,T){
       case 'chute':     aChute(b,X,Y,W,H,cx,cy,t,actif); break;
       case 'roue':      aRoue(b,cx,cy,W,H,t,actif); break;
       case 'huit':      aHuit(b,X,Y,W,H,t,actif); break;
+      case 'pieuvre':   aPieuvre(b,cx,cy,W,H,t,actif); break;
+      case 'bateau':    aBateau(b,X,Y,W,H,cx,cy,t,actif); break;
+      case 'toboggan':  aToboggan(b,X,Y,W,H,cx,cy,t,actif); break;
+      case 'rapides':   aRapides(b,cx,cy,W,H,t,actif); break;
+      case 'looping':   aLooping(b,X,Y,W,H,t,actif); break;
+      case 'navette':   aNavette(b,X,Y,W,H,cx,cy,t,actif); break;
     }
   }
   /* panneau d'état */
@@ -2134,6 +2362,22 @@ function aRoue(b,cx,cy,W,H,t,actif){
   ctx.fillStyle='#22303f'; ctx.beginPath(); ctx.arc(cx,cy,r*.13,0,TAU); ctx.fill();
   ctx.fillStyle='#f2b229'; ctx.beginPath(); ctx.arc(cx,cy,r*.07,0,TAU); ctx.fill();
 }
+/* Un wagon posé sur le rail, orienté dans le sens de la marche. Sans la
+   rotation, les voitures restent alignées sur l'écran et paraissent glisser en
+   crabe dans les virages. */
+function wagon(x,y,ang,s,col){
+  ctx.fillStyle='rgba(20,45,25,.24)';
+  ctx.beginPath(); ctx.ellipse(x+2.4,y+3,5*s,2.9*s,0,0,TAU); ctx.fill();
+  ctx.save(); ctx.translate(x,y); ctx.rotate(ang);
+  ctx.fillStyle='#22303f'; arrondi(-5.6*s,-3.9*s,11.2*s,7.8*s,2.6); ctx.fill();
+  ctx.fillStyle=col;       arrondi(-4.6*s,-3.1*s,9.2*s,6.2*s,2.2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.72)';
+  ctx.fillRect(-3.4*s,-2.4*s,6.8*s,1.7*s);
+  ctx.fillStyle='#22303f';
+  ctx.beginPath(); ctx.arc(4.2*s,0,1.5*s,0,TAU); ctx.fill();
+  ctx.restore();
+}
+
 /* --- le grand huit : une lemniscate, deux rails, trois wagons --- */
 function pisteHuit(X,Y,W,H,u){
   const a=u*TAU;
@@ -2168,19 +2412,244 @@ function aHuit(b,X,Y,W,H,t,actif){
   /* le train */
   const u0=(t*(actif?.20:.045))%1;
   for(let k=0;k<3;k++){
-    const p=pisteHuit(X,Y,W,H,(u0-k*.028+1)%1);
-    const s=.8+p[2]*.6;
-    ctx.fillStyle='rgba(20,45,25,.22)';
-    ctx.beginPath(); ctx.ellipse(p[0]+2.5,p[1]+3,4*s,2.4*s,0,0,TAU); ctx.fill();
-    ctx.fillStyle=k?'#f2b229':'#e0503e';
-    arrondi(p[0]-4*s,p[1]-3*s,8*s,6*s,2); ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,.6)';
-    ctx.fillRect(p[0]-3*s,p[1]-2.4*s,6*s,1.6*s);
+    const uu=(u0-k*.028+1)%1;
+    const p=pisteHuit(X,Y,W,H,uu);
+    const q=pisteHuit(X,Y,W,H,(uu+.004)%1);
+    const s=.9+p[2]*.6;
+    wagon(p[0],p[1],Math.atan2(q[1]-p[1],q[0]-p[0]),s,k?'#f2b229':'#e0503e');
   }
 }
 
+/* --- la pieuvre : six bras qui montent et descendent en tournant --- */
+function aPieuvre(b,cx,cy,W,H,t,actif){
+  const r=Math.min(W,H)*.47, a=t*(actif?.85:.10);
+  ctx.fillStyle='#8d3f5c'; ctx.beginPath(); ctx.arc(cx,cy,r,0,TAU); ctx.fill();
+  ctx.fillStyle='#c0577b'; ctx.beginPath(); ctx.arc(cx,cy,r*.93,0,TAU); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.22)'; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.arc(cx,cy,r*.66,0,TAU); ctx.stroke();
+  const cols=['#f2b229','#fdf8ec','#4aa8d8','#3fa65a','#e0503e','#8e6bbf'];
+  for(let i=0;i<6;i++){
+    const an=a+i*TAU/6;
+    /* la hauteur du bras se lit à la longueur et à la taille de la nacelle */
+    const hh=.5+.5*Math.sin(t*(actif?1.7:.3)+i*1.05);
+    const rr=r*(.50+.34*hh);
+    const hx=cx+Math.cos(an)*rr, hy=cy+Math.sin(an)*rr;
+    ctx.strokeStyle='#5e2a40'; ctx.lineWidth=Math.max(1.6,3.2);
+    ctx.beginPath(); ctx.moveTo(cx+Math.cos(an)*r*.14,cy+Math.sin(an)*r*.14);
+    ctx.lineTo(hx,hy); ctx.stroke();
+    ctx.fillStyle='rgba(20,20,40,.24)';
+    ctx.beginPath(); ctx.arc(hx+1.6+hh*2,hy+2+hh*2,r*.15,0,TAU); ctx.fill();
+    ctx.fillStyle=cols[i];
+    ctx.beginPath(); ctx.arc(hx,hy,r*.15*(.85+hh*.35),0,TAU); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.5)';
+    const sp=-a*3.4+i;
+    ctx.beginPath(); ctx.arc(hx+Math.cos(sp)*r*.07,hy+Math.sin(sp)*r*.07,r*.045,0,TAU); ctx.fill();
+  }
+  ctx.fillStyle='#5e2a40'; ctx.beginPath(); ctx.arc(cx,cy,r*.16,0,TAU); ctx.fill();
+  ctx.fillStyle='#f2b229'; ctx.beginPath(); ctx.arc(cx,cy,r*.08,0,TAU); ctx.fill();
+}
+
+/* --- le bateau pirate : une coque qui balance sur un arc --- */
+function aBateau(b,X,Y,W,H,cx,cy,t,actif){
+  ctx.fillStyle='#7a5732'; arrondi(X+1,Y+1,W-2,H-2,5); ctx.fill();
+  ctx.fillStyle='#a5794a'; arrondi(X+3,Y+3,W-6,H-6,4); ctx.fill();
+  /* l'arc au sol, et les deux portiques */
+  ctx.strokeStyle='rgba(60,40,22,.45)'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.ellipse(cx,cy+H*.10,W*.34,H*.20,0,Math.PI,TAU); ctx.stroke();
+  ctx.strokeStyle='#4d3720'; ctx.lineWidth=4; ctx.lineCap='round';
+  for(const sx of [-1,1]){
+    ctx.beginPath();
+    ctx.moveTo(cx+sx*W*.30,cy+H*.26); ctx.lineTo(cx+sx*W*.16,cy-H*.28); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(cx-W*.16,cy-H*.28); ctx.lineTo(cx+W*.16,cy-H*.28); ctx.stroke();
+  /* la nacelle */
+  const u=Math.sin(t*(actif?1.0:.18));
+  const bx=cx+u*W*.28, by=cy+H*.08-(1-Math.abs(u))*H*.10;
+  ctx.strokeStyle='rgba(60,40,22,.55)'; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.moveTo(cx,cy-H*.28); ctx.lineTo(bx,by); ctx.stroke();
+  ctx.save(); ctx.translate(bx,by); ctx.rotate(u*.42);
+  ctx.fillStyle='rgba(20,20,10,.24)';
+  ctx.beginPath(); ctx.ellipse(2,3,W*.13,H*.09,0,0,TAU); ctx.fill();
+  /* une coque assez large pour se lire de loin */
+  ctx.fillStyle='#3d2814';
+  ctx.beginPath();
+  ctx.moveTo(-W*.19,-H*.10); ctx.quadraticCurveTo(0,H*.19,W*.19,-H*.10);
+  ctx.lineTo(W*.16,-H*.14); ctx.quadraticCurveTo(0,H*.10,-W*.16,-H*.14);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#8a5f33';
+  ctx.beginPath();
+  ctx.moveTo(-W*.185,-H*.105); ctx.quadraticCurveTo(0,H*.17,W*.185,-H*.105);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#c99a5c';
+  ctx.beginPath();
+  ctx.moveTo(-W*.16,-H*.11); ctx.quadraticCurveTo(0,H*.09,W*.16,-H*.11);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#e0503e';
+  for(let i=0;i<5;i++) ctx.fillRect(-W*.13+i*W*.065,-H*.155,2.8,4.4);
+  ctx.fillStyle='#22303f';
+  for(let i=0;i<4;i++) ctx.beginPath(),
+    ctx.arc(-W*.10+i*W*.067,-H*.03,2.1,0,TAU), ctx.fill();
+  ctx.restore();
+}
+
+/* --- le toboggan : une spirale et une gerbe d'eau --- */
+function aToboggan(b,X,Y,W,H,cx,cy,t,actif){
+  ctx.fillStyle='#2f7fa8'; arrondi(X+1,Y+1,W-2,H-2,5); ctx.fill();
+  ctx.fillStyle='#5aa84f'; arrondi(X+3,Y+3,W-6,H-6,4); ctx.fill();
+  const py=Y+H*.80, r0=Math.min(W,H)*.30;
+  /* le bassin d'arrivée */
+  ctx.fillStyle='#3f97c8';
+  ctx.beginPath(); ctx.ellipse(cx,py,W*.34,H*.11,0,0,TAU); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.45)'; ctx.lineWidth=1.1;
+  for(let i=0;i<3;i++){
+    const rr=((t*9+i*6)%16);
+    ctx.globalAlpha=clamp(1-rr/16,0,1)*.6;
+    ctx.beginPath(); ctx.ellipse(cx,py,rr*.9,rr*.3,0,0,TAU); ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+  /* la spirale : trois tours qui montent */
+  ctx.lineCap='round';
+  for(let k=0;k<3;k++){
+    const rr=r0*(1-k*.24), yy=Y+H*.56-k*H*.13;
+    ctx.strokeStyle=k%2?'#4aa8d8':'#7fc9e8'; ctx.lineWidth=5.5;
+    ctx.beginPath(); ctx.ellipse(cx,yy,rr,rr*.42,0,.35,Math.PI*1.75); ctx.stroke();
+  }
+  ctx.strokeStyle='#c2ccd4'; ctx.lineWidth=2.4;
+  ctx.beginPath(); ctx.moveTo(cx+r0*.86,Y+H*.30); ctx.lineTo(cx+r0*.86,Y+H*.60); ctx.stroke();
+  /* le baigneur */
+  if(actif){
+    const u=(t*.42)%1;
+    const k=Math.min(2,Math.floor(u*3));
+    const an=.35+ (u*3-k)*(Math.PI*1.4);
+    const rr=r0*(1-k*.24), yy=Y+H*.56-k*H*.13;
+    ctx.fillStyle='#f2b229';
+    ctx.beginPath(); ctx.arc(cx+Math.cos(an)*rr,yy+Math.sin(an)*rr*.42,3.2,0,TAU); ctx.fill();
+    if(u>.93){
+      ctx.fillStyle='rgba(255,255,255,.75)';
+      for(let i=0;i<7;i++){
+        const a2=rnd(0,TAU), d2=rnd(2,13);
+        ctx.fillRect(cx+Math.cos(a2)*d2,py+Math.sin(a2)*d2*.4,2,2);
+      }
+    }
+  }
+}
+
+/* --- la rivière sauvage : un anneau d'eau et des bouées --- */
+function aRapides(b,cx,cy,W,H,t,actif){
+  const r=Math.min(W,H)*.46;
+  ctx.fillStyle='#2c7a41'; ctx.beginPath(); ctx.arc(cx,cy,r,0,TAU); ctx.fill();
+  ctx.fillStyle='#5aa84f'; ctx.beginPath(); ctx.arc(cx,cy,r*.95,0,TAU); ctx.fill();
+  /* le chenal */
+  ctx.strokeStyle='#2f7fa8'; ctx.lineWidth=r*.34;
+  ctx.beginPath(); ctx.arc(cx,cy,r*.66,0,TAU); ctx.stroke();
+  ctx.strokeStyle='#3f97c8'; ctx.lineWidth=r*.27;
+  ctx.beginPath(); ctx.arc(cx,cy,r*.66,0,TAU); ctx.stroke();
+  /* le courant */
+  ctx.strokeStyle='rgba(255,255,255,.34)'; ctx.lineWidth=1.4;
+  for(let i=0;i<10;i++){
+    const a=t*.5+i*TAU/10;
+    ctx.beginPath();
+    ctx.arc(cx,cy,r*(.58+ (i%3)*.06),a,a+.22); ctx.stroke();
+  }
+  /* les rochers du milieu */
+  ctx.fillStyle='#8d9aa2';
+  for(let i=0;i<4;i++){
+    const a=i*TAU/4+.6;
+    ctx.beginPath();
+    ctx.ellipse(cx+Math.cos(a)*r*.24,cy+Math.sin(a)*r*.24,r*.10,r*.08,a,0,TAU); ctx.fill();
+  }
+  /* les bouées */
+  const cols=['#f2b229','#e0503e','#fdf8ec','#8e6bbf'];
+  for(let i=0;i<4;i++){
+    const a=t*(actif?.36:.06)+i*TAU/4;
+    const rr=r*(.66+Math.sin(t*2+i*2)*.05);
+    const bx=cx+Math.cos(a)*rr, by=cy+Math.sin(a)*rr;
+    ctx.fillStyle='rgba(10,40,60,.28)';
+    ctx.beginPath(); ctx.arc(bx+1.4,by+1.8,r*.11,0,TAU); ctx.fill();
+    ctx.fillStyle=cols[i];
+    ctx.beginPath(); ctx.arc(bx,by,r*.10,0,TAU); ctx.fill();
+    ctx.fillStyle='#22303f';
+    ctx.beginPath(); ctx.arc(bx,by,r*.05,0,TAU); ctx.fill();
+  }
+}
+
+/* --- le looping : un ovale, et une boucle greffée dessus --- */
+function pisteLooping(X,Y,W,H,u){
+  const cx=X+W/2, cy=Y+H/2;
+  const RX=W*.37, RY=H*.34, lr=Math.min(W*.115,H*.19);
+  if(u<.74){
+    const a=(u/.74)*TAU;
+    return [cx+Math.cos(a)*RX, cy+Math.sin(a)*RY, .35+.32*(1-Math.cos(a))];
+  }
+  const a=((u-.74)/.26)*TAU;
+  const lcx=cx+RX-lr;
+  return [lcx+Math.cos(a)*lr, cy+Math.sin(a)*lr*1.55, 1];
+}
+function aLooping(b,X,Y,W,H,t,actif){
+  ctx.fillStyle='#6f5aa0'; arrondi(X+1,Y+1,W-2,H-2,7); ctx.fill();
+  ctx.fillStyle='#d9c8a0'; arrondi(X+4,Y+4,W-8,H-8,5); ctx.fill();
+  ctx.fillStyle='rgba(140,116,74,.20)';
+  for(let i=0;i<30;i++){
+    const a2=hash2(i,5,53), c2=hash2(i,9,53);
+    ctx.fillRect(X+6+a2*(W-12),Y+6+c2*(H-12),2.4,2.4);
+  }
+  ctx.fillStyle='rgba(20,45,25,.20)';
+  for(let i=0;i<16;i++){
+    const p=pisteLooping(X,Y,W,H,i/16);
+    ctx.beginPath(); ctx.ellipse(p[0]+2.5,p[1]+3,3.4,2,0,0,TAU); ctx.fill();
+  }
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  const trace=()=>{ ctx.beginPath();
+    for(let i=0;i<=140;i++){ const p=pisteLooping(X,Y,W,H,i/140);
+      i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]); }
+    ctx.closePath(); };
+  trace(); ctx.strokeStyle='rgba(48,28,14,.9)'; ctx.lineWidth=8; ctx.stroke();
+  trace(); ctx.strokeStyle='#f7efdc'; ctx.lineWidth=3.8; ctx.stroke();
+  trace(); ctx.strokeStyle='#6f5aa0'; ctx.lineWidth=1.8; ctx.stroke();
+  /* la rame : sur des rails clairs, des wagons petits et pastel disparaissent.
+     On les fait plus gros, plus foncés, avec un liseré blanc. */
+  const u0=(t*(actif?.19:.04))%1;
+  for(let k=0;k<4;k++){
+    const uu=(u0-k*.026+1)%1;
+    const p=pisteLooping(X,Y,W,H,uu);
+    const q=pisteLooping(X,Y,W,H,(uu+.004)%1);
+    const sc=1.05+p[2]*.6;
+    wagon(p[0],p[1],Math.atan2(q[1]-p[1],q[0]-p[0]),sc,k?'#8e6bbf':'#f2b229');
+  }
+}
+
+/* --- la navette : un quai, un rail, une rame --- */
+function aNavette(b,X,Y,W,H,cx,cy,t,actif){
+  ctx.fillStyle='#5c6a78'; arrondi(X+1,Y+1,W-2,H-2,5); ctx.fill();
+  ctx.fillStyle='#c2ccd4'; arrondi(X+3,Y+3,W-6,H*.44,3); ctx.fill();
+  /* le rail */
+  ctx.strokeStyle='#6b7a88'; ctx.lineWidth=3.4;
+  ctx.beginPath(); ctx.moveTo(X+4,Y+H*.72); ctx.lineTo(X+W-4,Y+H*.72); ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.45)'; ctx.lineWidth=1.2;
+  ctx.beginPath(); ctx.moveTo(X+4,Y+H*.66); ctx.lineTo(X+W-4,Y+H*.66); ctx.stroke();
+  for(let i=0;i<5;i++){
+    ctx.strokeStyle='rgba(70,50,32,.5)'; ctx.lineWidth=2;
+    const xx=X+6+(W-12)*i/4;
+    ctx.beginPath(); ctx.moveTo(xx,Y+H*.63); ctx.lineTo(xx,Y+H*.76); ctx.stroke();
+  }
+  /* la rame */
+  const u=actif?(Math.sin(t*1.1)*.5+.5):.5;
+  const rx=X+W*.18+u*W*.5;
+  ctx.fillStyle='rgba(20,30,40,.24)';
+  arrondi(rx-W*.15+2,Y+H*.60+2,W*.30,H*.16,3); ctx.fill();
+  ctx.fillStyle='#f2b229';
+  arrondi(rx-W*.15,Y+H*.58,W*.30,H*.16,3); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.55)';
+  ctx.fillRect(rx-W*.12,Y+H*.61,W*.24,H*.05);
+  /* le panneau */
+  ctx.fillStyle='#22303f'; ctx.fillRect(cx-W*.12,Y+H*.10,W*.24,H*.16);
+  ctx.fillStyle='#f2b229';
+  for(let i=0;i<3;i++) ctx.fillRect(cx-W*.09+i*W*.07,Y+H*.15,W*.04,H*.05);
+}
+
 /* --- boutiques : un kiosque, un auvent rayé, un pictogramme --- */
-const PICTO={buvette:'🥤',friterie:'🍟',glacier:'🍦',souvenir:'🎁',toilettes:'🚻'};
+const PICTO={buvette:'🥤',friterie:'🍟',glacier:'🍦',souvenir:'🎁',toilettes:'🚻',
+  barbe:'🍭',pizzeria:'🍕',photo:'📷',infirmerie:'⛑'};
 function dessinerBoutique(b,X,Y,W,H,cx,cy,t){
   ctx.fillStyle='#b09a70'; arrondi(X+1,Y+1,W-2,H-2,4); ctx.fill();
   ctx.fillStyle='#fdf8ec'; arrondi(X+2.5,Y+2.5,W-5,H-5,3); ctx.fill();
@@ -2232,6 +2701,50 @@ function dessinerDecor(b,X,Y,W,H,cx,cy,t,T){
     ctx.beginPath(); ctx.ellipse(cx+2,cy+4,5,2.8,0,0,TAU); ctx.fill();
     ctx.fillStyle='#3c4f63'; arrondi(cx-4.4,cy-6,8.8,11,2); ctx.fill();
     ctx.fillStyle='#5d7186'; ctx.fillRect(cx-5,cy-7,10,2.4);
+  } else if(b.k==='haie'){
+    ctx.fillStyle='rgba(20,50,20,.20)'; ctx.fillRect(X+4,cy+3,W-8,3);
+    ctx.fillStyle='#2c7a41'; arrondi(X+2.5,cy-6,W-5,12,4); ctx.fill();
+    ctx.fillStyle='#3fa65a'; arrondi(X+3.5,cy-7,W-7,7,3); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.14)'; arrondi(X+4.5,cy-6.5,W-9,3,2); ctx.fill();
+  } else if(b.k==='statue'){
+    ctx.fillStyle='rgba(20,50,20,.22)';
+    ctx.beginPath(); ctx.ellipse(cx+2,cy+5,7,3.4,0,0,TAU); ctx.fill();
+    ctx.fillStyle='#9aa3a8'; arrondi(cx-6,cy+1,12,5,2); ctx.fill();
+    ctx.fillStyle='#c2ccd4';
+    ctx.beginPath(); ctx.moveTo(cx-3.4,cy+1); ctx.lineTo(cx-1.8,cy-7);
+    ctx.lineTo(cx+1.8,cy-7); ctx.lineTo(cx+3.4,cy+1); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx,cy-9,2.8,0,TAU); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.45)';
+    ctx.beginPath(); ctx.arc(cx-1,cy-10,1.2,0,TAU); ctx.fill();
+  } else if(b.k==='lampadaire'){
+    /* en fin de journée elle éclaire pour de bon */
+    const soir=P?clamp((P.heure-16.4)/2.6,0,1):0;
+    if(soir>0){
+      const g2=ctx.createRadialGradient(cx,cy,0,cx,cy,26);
+      g2.addColorStop(0,'rgba(255,214,140,'+(.34*soir).toFixed(2)+')');
+      g2.addColorStop(1,'rgba(255,214,140,0)');
+      ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(cx,cy,26,0,TAU); ctx.fill();
+    }
+    ctx.fillStyle='rgba(20,50,20,.22)'; ctx.fillRect(cx+1,cy+3,7,2.6);
+    ctx.fillStyle='#3c4f63'; ctx.fillRect(cx-1.4,cy-8,2.8,12);
+    ctx.fillStyle='#5d7186'; ctx.fillRect(cx-4,cy-10,8,3);
+    ctx.fillStyle=soir>.2?'#ffe6a8':'#e6eef2';
+    ctx.beginPath(); ctx.arc(cx,cy-9,2.6,0,TAU); ctx.fill();
+  } else if(b.k==='bassin'){
+    ctx.fillStyle='rgba(20,50,20,.20)';
+    ctx.beginPath(); ctx.ellipse(cx+3,cy+4,W*.40,H*.26,0,0,TAU); ctx.fill();
+    ctx.fillStyle='#9aa3a8'; ctx.beginPath(); ctx.ellipse(cx,cy,W*.42,H*.36,0,0,TAU); ctx.fill();
+    ctx.fillStyle='#3f97c8'; ctx.beginPath(); ctx.ellipse(cx,cy,W*.36,H*.30,0,0,TAU); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.20)';
+    ctx.beginPath(); ctx.ellipse(cx-W*.10,cy-H*.08,W*.14,H*.07,-.4,0,TAU); ctx.fill();
+    for(let i=0;i<4;i++){
+      const a=i*1.9+Math.sin(t*.5+i)*.2;
+      const px=cx+Math.cos(a)*W*.20, py=cy+Math.sin(a)*H*.16;
+      ctx.fillStyle='#3fa65a';
+      ctx.beginPath(); ctx.ellipse(px,py,3.4,2.4,a,0,TAU); ctx.fill();
+      if(i%2){ ctx.fillStyle='#e86ca0';
+        ctx.beginPath(); ctx.arc(px,py-.6,1.2,0,TAU); ctx.fill(); }
+    }
   } else if(b.k==='fontaine'){
     ctx.fillStyle='rgba(20,50,20,.22)';
     ctx.beginPath(); ctx.ellipse(cx+3,cy+4,W*.40,H*.24,0,0,TAU); ctx.fill();
@@ -2394,15 +2907,16 @@ function paletteObjets(cat){
   const p=$('palette'); p.innerHTML='';
   for(const k in tab){
     const d=tab[k];
-    const bloque=(d.et||0)>P.etoilesMax;
+    const bloque=(d.niv||1)>P.niveau;
     const cher=d.prix>P.argent;
     const el=document.createElement('button');
     el.className='pal'+(bloque?' bloque':'')+(cher?' cher':'');
     el.innerHTML='<i></i><b>'+d.nom+'</b><em>'+eur(d.prix)+'</em>'
-      +(d.ent?'<span class="cad">'+d.ent+'/j</span>':'');
+      +(bloque?'<span class="cad ver">NIV '+d.niv+'</span>'
+        :(d.ent?'<span class="cad">'+d.ent+'/j</span>':''));
     el.querySelector('i').appendChild(iconeDe(cat,k,30));
     el.onclick=()=>{
-      if(bloque){ flash('Il faut '+d.et+' étoiles de réputation','mal'); SND.erreur(); return; }
+      if(bloque){ flash('Débloqué au niveau '+d.niv,'mal'); SND.erreur(); return; }
       outil={cat,k}; SND.clic();
       Array.prototype.forEach.call(p.children,x=>x.classList.remove('on'));
       el.classList.add('on');
@@ -2416,12 +2930,15 @@ function palettePersonnel(){
   for(const k in METIERS){
     const m=METIERS[k];
     const n=P.employes.filter(e=>e.k===k).length;
+    const bloque=(m.niv||1)>P.niveau;
     const el=document.createElement('button');
-    el.className='pal';
+    el.className='pal'+(bloque?' bloque':'');
     el.style.width='118px';
     el.innerHTML='<i style="font-size:22px;line-height:30px">'+m.ico+'</i>'
-      +'<b>'+m.nom+' ×'+n+'</b><em>'+m.paie+' €/jour</em>';
-    el.onclick=()=>{ embaucher(k); palettePersonnel(); aide('<b>'+m.nom+'</b> — '+m.d); };
+      +'<b>'+m.nom+' ×'+n+'</b><em>'+m.paie+' €/jour</em>'
+      +(bloque?'<span class="cad ver">NIV '+m.niv+'</span>':'');
+    el.onclick=()=>{ if(bloque){ flash('Débloqué au niveau '+m.niv,'mal'); SND.erreur(); return; }
+      embaucher(k); palettePersonnel(); aide('<b>'+m.nom+'</b> — '+m.d); };
     el.oncontextmenu=e=>{ e.preventDefault(); licencier(k); palettePersonnel(); };
     p.appendChild(el);
     if(n){
@@ -2538,6 +3055,10 @@ function majBarre(){
   set('jVis',nb(P.visiteurs.length));
   const e=etoilesDe(P.rep);
   set('etoiles','★★★★★'.slice(0,e)+'☆☆☆☆☆'.slice(0,5-e));
+  set('jNiv',String(P.niveau));
+  const x0=xpPour(P.niveau), x1=xpPour(P.niveau+1);
+  const u=P.niveau>=NIV_MAX?1:clamp((P.xp-x0)/Math.max(1,x1-x0),0,1);
+  $('xpFill').style.width=Math.round(u*100)+'%';
   const m=METEOS[P.meteo];
   set('mIco',m.ico); set('mTxt',m.nom+' · '+Math.floor(P.heure)+'h'
     +String(Math.floor((P.heure%1)*60)).padStart(2,'0'));
@@ -2578,6 +3099,27 @@ function montrerSoir(rec,dep){
     +c('PARTIS FÂCHÉS',j.partisFaches,j.partisFaches>j.entrees*.2?'#c0392b':'#3c4f63')
     +c('DEMI-TOUR AU PORTAIL',j.refus||0,(j.refus||0)>6?'#c0392b':'#3c4f63')
     +c('PANNES',j.pannes,j.pannes?'#c0392b':'#3c4f63');
+  /* l'expérience du jour, et ce que le palier a ouvert */
+  const nx=$('sNiveau');
+  const x0=xpPour(P.niveau), x1=xpPour(P.niveau+1);
+  const pu=P.niveau>=NIV_MAX?1:clamp((P.xp-x0)/Math.max(1,x1-x0),0,1);
+  let hn='<div class="sur">LICENCE D\'EXPLOITATION</div>'
+    +'<div class="rl"><span class="re">⭐</span><div class="rt">'
+    +'<b style="color:#8e6bbf">NIVEAU '+P.niveau+(P.niveau>=NIV_MAX?' — LE MAXIMUM':'')+'</b>'
+    +'<span>'+(P.niveau>=NIV_MAX?'Tout est ouvert.'
+      :(nb(Math.max(0,x1-P.xp))+' points avant le niveau '+(P.niveau+1)))+'</span>'
+    +'<div class="barre" style="margin-top:5px"><i style="width:'+Math.round(pu*100)
+    +'%;background:#8e6bbf"></i></div></div>'
+    +'<span class="rv" style="color:#8e6bbf">+'+nb(j.xp||0)+'</span></div>';
+  for(const l of (j.niveaux||[])){
+    hn+='<div class="rl"><span class="re">🎉</span><div class="rt">'
+      +'<b style="color:#2c7a41">NIVEAU '+l.n+' ATTEINT</b><span>'
+      +(l.ouvre.length?'Débloqué : '+l.ouvre.join(', ')+'.':'Rien de neuf à ce palier.')
+      +' Subvention de la mairie.</span></div>'
+      +'<span class="rv" style="color:#2c7a41">+'+eur(l.sub)+'</span></div>';
+  }
+  nx.innerHTML=hn;
+
   /* le classement des reproches : c'est la liste des courses du lendemain */
   const cz=Object.entries(j.causes||{}).sort((a,b)=>b[1]-a[1]).slice(0,3);
   $('sManque').innerHTML=cz.length
@@ -2628,6 +3170,7 @@ function montrerFin(gagne,txt){
     +c('TOURS VENDUS',nb(P.total.tours),'#8e6bbf')
     +c('RECETTE TOTALE',eur(P.total.recette),'#2c7a41')
     +c('RÉPUTATION',etoilesDe(P.rep)+' ★','#f2b229')
+    +c('NIVEAU ATTEINT',P.niveau+' / '+NIV_MAX,'#8e6bbf')
     +c('EN CAISSE',eur(P.argent),P.argent<0?'#c0392b':'#2c7a41');
   const R=[];
   if(gagne) R.push({e:'🎡',t:'QUATRE ÉTÉS',s:'La mairie a renouvelé le bail. Le parc reste.'});
@@ -2647,6 +3190,8 @@ function majMenu(){
     +' journée'+(SAVE.meilleur>1?'s':'')+' tenue'+(SAVE.meilleur>1?'s':'')+'</b>');
   if(SAVE.victoires) r.push('<b style="color:#2c7a41">'+SAVE.victoires+' parc'
     +(SAVE.victoires>1?'s':'')+' sauvé'+(SAVE.victoires>1?'s':'')+'</b>');
+  if(SAVE.meilleurNiveau) r.push('NIVEAU MAX : <b style="color:#8e6bbf">'
+    +SAVE.meilleurNiveau+'</b>');
   if(SAVE.totalVis) r.push(nb(SAVE.totalVis)+' visiteurs accueillis');
   $('menuRec').innerHTML=r.length
     ? '<div class="note" style="margin-top:12px;letter-spacing:.08em;padding:9px 16px">'
@@ -2776,8 +3321,8 @@ function cabler(){
     if(ecranActif!=='jeu') return;
     if(e.code==='Space'){ e.preventDefault(); enPause=!enPause; majVitesse(); return; }
     if(e.code==='Digit1'){ vitesse=1; enPause=false; majVitesse(); }
-    if(e.code==='Digit2'){ vitesse=2; enPause=false; majVitesse(); }
-    if(e.code==='Digit3'){ vitesse=4; enPause=false; majVitesse(); }
+    if(e.code==='Digit2'){ vitesse=3; enPause=false; majVitesse(); }
+    if(e.code==='Digit3'){ vitesse=10; enPause=false; majVitesse(); }
     if(e.key==='+'||e.key==='='){ zoomer(1.16,VW/2,VH/2); }
     if(e.key==='-'||e.key==='_'){ zoomer(1/1.16,VW/2,VH/2); }
   });
@@ -2836,54 +3381,77 @@ function parcDemo(){
   P.demo=true;
   const cx=P.entreeX;
   /* Le terrain est tiré au sort à chaque partie ; celui du menu, non. On dégage
-     d'abord le rectangle où le parc de démonstration va s'installer, sinon une
-     mare tombe au milieu de la grande roue une fois sur trois et le menu montre
-     un pré vide. */
-  for(let y=GY-22;y<GY-1;y++) for(let x=cx-13;x<=cx+13;x++){
+     d'abord le rectangle où le parc de démonstration s'installe, sinon une mare
+     tombe au milieu de la grande roue une fois sur trois. */
+  for(let y=GY-34;y<GY-1;y++) for(let x=cx-22;x<=cx+22;x++){
     if(!dedans(x,y)) continue;
     const t=idx(x,y);
     if(P.sol[t]===EAU||P.sol[t]===ROCHE){ P.sol[t]=VIDE; P.occ[t]=-1; }
   }
-  const all=(x,y)=>{ if(dedans(x,y)&&P.sol[idx(x,y)]===VIDE) P.sol[idx(x,y)]=ALLEE;
-    else if(dedans(x,y)&&P.sol[idx(x,y)]===DECOR){
-      const n=P.occ[idx(x,y)];
-      if(n>=0&&P.batis[n]&&P.batis[n].nature){ retirerBati(n); P.sol[idx(x,y)]=ALLEE; }
-    } };
-  for(let y=GY-17;y<GY-2;y++) all(cx,y);
-  for(let x=cx-12;x<=cx+12;x++){ all(x,GY-9); all(x,GY-16); }
-  for(let y=GY-16;y<GY-9;y++){ all(cx-12,y); all(cx+12,y); }
+  const all=(x,y)=>{ if(!dedans(x,y)) return;
+    const t=idx(x,y);
+    if(P.sol[t]===DECOR){ const n=P.occ[t];
+      if(n>=0&&P.batis[n]&&P.batis[n].nature) retirerBati(n); }
+    if(P.sol[idx(x,y)]===VIDE) P.sol[idx(x,y)]=ALLEE; };
+  for(let y=GY-30;y<GY-2;y++) all(cx,y);
+  for(const yy of [GY-9,GY-17,GY-25]) for(let x=cx-20;x<=cx+20;x++) all(x,yy);
+  for(let y=GY-25;y<GY-9;y++){ all(cx-20,y); all(cx+20,y); }
   P.sale=true; refaireChamps();
 
   const p=(cat,k,x,y)=>{ if(peutPoser(cat,k,x,y).ok) poserBrut(cat,k,x,y); };
-  P.etoilesMax=5; P.argent=999999;      // le parc du menu ne paie rien
-  p('attraction','carrousel',cx-6,GY-11);
-  p('attraction','tasses',cx+4,GY-11);
-  p('attraction','chaises',cx-11,GY-12);
-  p('attraction','roue',cx+8,GY-12);
-  p('attraction','huit',cx-11,GY-20);
-  p('attraction','tampon',cx-5,GY-19);
-  p('attraction','fantome',cx+2,GY-18);
-  p('attraction','chute',cx+7,GY-19);
-  p('boutique','toilettes',cx-6,GY-8);
-  p('boutique','buvette',cx-2,GY-8);
-  p('boutique','friterie',cx+1,GY-8);
-  p('boutique','glacier',cx+5,GY-8);
-  p('boutique','souvenir',cx-10,GY-8);
-  p('decor','fontaine',cx-1,GY-14);
-  for(let i=0;i<5;i++){ p('decor','parterre',cx-4+i*2,GY-13); p('boutique','banc',cx-5+i*3,GY-10); }
-  for(let i=0;i<16;i++) p('decor','arbre',ri(cx-13,cx+13),ri(GY-21,GY-3));
+  P.niveau=NIV_MAX; P.argent=9999999;
+  /* rangée du bas : les manèges familiaux */
+  p('attraction','carrousel',cx-18,GY-11);
+  p('attraction','tasses',cx-13,GY-11);
+  p('attraction','chaises',cx-8,GY-12);
+  p('attraction','pieuvre',cx+3,GY-12);
+  p('attraction','tampon',cx+9,GY-12);
+  p('attraction','roue',cx+15,GY-12);
+  /* rangée du milieu : les grosses */
+  p('attraction','huit',cx-19,GY-21);
+  p('attraction','bateau',cx-12,GY-19);
+  p('attraction','chute',cx-6,GY-20);
+  p('attraction','fantome',cx+2,GY-19);
+  p('attraction','toboggan',cx+7,GY-21);
+  p('attraction','navette',cx+13,GY-19);
+  /* rangée du haut : le morceau de bravoure */
+  p('attraction','looping',cx-8,GY-29);
+  p('attraction','rapides',cx+2,GY-30);
+  p('attraction','navette',cx-15,GY-28);
+  /* les services, collés à l'allée du bas */
+  p('boutique','toilettes',cx-16,GY-8);
+  p('boutique','buvette',cx-12,GY-8);
+  p('boutique','friterie',cx-10,GY-8);
+  p('boutique','glacier',cx-6,GY-8);
+  p('boutique','barbe',cx-4,GY-8);
+  p('boutique','pizzeria',cx+2,GY-8);
+  p('boutique','souvenir',cx+6,GY-8);
+  p('boutique','photo',cx+9,GY-8);
+  p('boutique','infirmerie',cx+12,GY-8);
+  for(let i=0;i<9;i++) p('boutique','banc',cx-16+i*4,GY-10);
+  for(let i=0;i<6;i++) p('boutique','banc',cx-14+i*5,GY-18);
+  /* le décor */
+  p('decor','fontaine',cx-1,GY-15);
+  p('decor','bassin',cx-1,GY-23);
+  for(let i=0;i<8;i++) p('decor','statue',ri(cx-19,cx+19),ri(GY-28,GY-4));
+  for(let i=0;i<16;i++) p('decor','lampadaire',ri(cx-19,cx+19),ri(GY-28,GY-4));
+  for(let i=0;i<22;i++) p('decor','parterre',ri(cx-19,cx+19),ri(GY-28,GY-4));
+  for(let i=0;i<26;i++) p('decor','haie',ri(cx-19,cx+19),ri(GY-28,GY-4));
+  for(let i=0;i<40;i++) p('decor','arbre',ri(cx-21,cx+21),ri(GY-32,GY-3));
+  for(let i=0;i<10;i++) p('decor','poubelle',ri(cx-18,cx+18),ri(GY-26,GY-4));
 
-  P.argent=14000; P.rep=.68;
+  P.argent=22000; P.rep=.72;
   P.sale=true; refaireChamps();
-  embaucher('balayeur'); embaucher('mecano'); embaucher('animateur');
+  embaucher('balayeur'); embaucher('balayeur'); embaucher('mecano');
+  embaucher('animateur'); embaucher('jardinier');
   ouvrirJournee();
-  P.prevu=190;
+  P.prevu=420;
   /* on démarre le menu en plein après-midi, avec la foule déjà là : un parc
      vide derrière le titre ne donne envie de rien */
   P.t=SECONDES_JOUR*.36; P.spawnAcc=0;
   const cases=[];
   for(let t=0;t<GX*GY;t++) if(P.sol[t]===ALLEE) cases.push(t);
-  for(let i=0;i<80&&cases.length;i++){
+  for(let i=0;i<170&&cases.length;i++){
     faireEntrer();
     const v=P.visiteurs[P.visiteurs.length-1];
     if(!v) continue;
@@ -2892,7 +3460,7 @@ function parcDemo(){
     v.x=(v.tx+.5)*TUILE+rnd(-7,7); v.y=(v.ty+.5)*TUILE+rnd(-7,7);
     v.dec=rnd(0,.5);
   }
-  cam.x=cx*TUILE; cam.y=(GY-11.9)*TUILE; cam.z=clamp(1.20,ZMIN,2.4); cam.zc=cam.z;
+  cam.x=cx*TUILE; cam.y=(GY-14.5)*TUILE; cam.z=clamp(.90,ZMIN,2.4); cam.zc=cam.z;
 }
 
 function boucle(now){
@@ -2909,12 +3477,16 @@ function boucle(now){
       if(P.fini) break;
     }
   }
+  /* en pause ou pendant un écran, les chemins se refont quand même : sinon la
+     fiche d'un bâtiment posé à l'arrêt annonce qu'aucune allée n'y mène */
+  if(P&&P.sale&&!joue){ refaireChamps(); P.saleT=0; }
   dessiner(dt);
   if(P&&ecranActif==='jeu') majBarre();
   document.body.classList.toggle('enJeu',ecranActif==='jeu');
 }
 
 charger();
+construireDeblocages();
 SND.on=SAVE.son!==false;
 SND.volume=SAVE.volume!=null?SAVE.volume:.6;
 redim();

@@ -6,15 +6,27 @@ synthétisé note par note.
 
 ## L'idée
 
-La mairie loue un pré derrière la nationale. Il y a quatre étés de huit jours
-pour en faire un parc d'attractions, et un loyer à payer à la fin de chacun —
-un loyer qui triple presque à chaque fois. On trace les allées, on monte les
-manèges, on fixe les prix, on embauche, et on regarde.
+La mairie loue un pré de **quatre-vingt-huit sur soixante** derrière la
+nationale. Il y a quatre étés de huit jours pour en faire un parc
+d'attractions, et un loyer à payer à la fin de chacun — un loyer qui double à
+chaque fois. On trace les allées, on monte les manèges, on fixe les prix, on
+embauche, et on regarde.
 
-Le jeu n'a qu'une boucle, et tout le reste sert à la nourrir :
+**Une journée dure douze minutes.** C'est long, et c'est voulu : on a le temps
+de voir une file se former, de comprendre pourquoi, d'aller poser une deuxième
+buvette et de regarder l'effet. Les commandes de vitesse montent jusqu'à ×10
+pour ceux qui veulent avancer.
+
+Le jeu a deux boucles. La première, rapide, est la réputation :
 
 > **un visiteur décide → il repart content ou fâché → sa satisfaction fait la
 > réputation → la réputation décide de combien de monde se présente demain.**
+
+La seconde, plus lente, est la **licence d'exploitation** : vingt niveaux qui
+se gagnent en faisant tourner le parc — chaque visiteur accueilli, chaque tour
+vendu, chaque article servi, la satisfaction du jour et le bénéfice. Chaque
+palier ouvre du matériel neuf et vient avec une subvention de la mairie. C'est
+elle qui donne les nouveautés ; la réputation, elle, ne donne que du monde.
 
 ## En quoi ce n'est pas les trois autres jeux du dépôt
 
@@ -26,7 +38,7 @@ personnage, une main, une menace. Celui-ci n'a rien de tout ça.
 | Ce qu'on contrôle | un personnage | **rien de vivant** — un curseur et des prix |
 | Ce qu'on fait | viser, éteindre, tenir | **construire, tarifer, embaucher** |
 | L'adversaire | des morts, un feu | **l'arithmétique** : un loyer qui monte |
-| Le temps | continu, subi | **réglable** : pause, ×1, ×2, ×4 |
+| Le temps | continu, subi | **réglable** : pause, ×1, ×3, ×10 |
 | Perdre | on meurt | **on ne peut plus payer** |
 | Palette | nuit, sang, cendre | **plein soleil** |
 
@@ -92,6 +104,27 @@ calcule le même score, tout le monde va au même endroit. Mesuré sur quatre
 manèges côte à côte : 1 / 31 / 0 / 0 avant, 2 / 9 / 13 / 12 après, et le nombre
 de tours par visiteur passe de 0,8 à 1,3.
 
+### La saturation, ou pourquoi la vingt-huitième attraction ne sert à rien
+
+Le piège symétrique du précédent, et il a fallu une campagne complète pour le
+voir lui aussi. L'affluence montait avec le nombre d'attractions, et le prix
+acceptable à l'entrée montait avec le nombre d'attractions : la recette montait
+donc au *carré*. La partie de référence finissait avec vingt-huit manèges, un
+billet à cinquante-huit euros, trente-sept mille euros de recette par jour et
+**cent quatre-vingt-douze mille euros en caisse** — le loyer était devenu une
+formalité dès le troisième été.
+
+Le bassin de population d'un parc est fini. Les deux formules passent
+maintenant par la même saturation :
+
+```js
+attractionsUtiles = 15 × (1 − e^(−n / 7))
+```
+
+Sept manèges en valent neuf, quatorze en valent douze, vingt-huit en valent
+quatorze. Au-delà, c'est la **réputation** qui porte la croissance — et la
+réputation se gagne en raccourcissant les files, pas en alignant des baraques.
+
 ## Comment ils trouvent leur chemin
 
 Le réseau d'allées est un graphe. Pour **chaque** bâtiment, à chaque
@@ -112,22 +145,45 @@ s'allonge visiblement le long de l'allée au lieu de s'empiler sur la porte.
 
 ## Ce qu'on peut poser
 
-**Huit attractions**, du manège à 1 800 € au Grand Huit à 17 000 €. Chacune a sa
-capacité, sa durée de tour, son frisson, sa nausée, sa fiabilité — et son propre
-prix, réglable de la gratuité au prix indécent. Les plus grosses demandent de la
-réputation avant d'être proposées.
+**Quatorze attractions**, du manège à 1 800 € au Looping à 29 000 €. Chacune a
+sa capacité, sa durée de tour, son frisson, sa nausée, sa fiabilité — et son
+propre prix, réglable de la gratuité au prix indécent.
 
-**Six services** : buvette, friterie, glacier, souvenirs, toilettes, banc. Un
-banc n'est pas un décor ici : c'est un lieu qui se choisit exactement comme une
-buvette, avec sa file et son envie. C'est ce qui rend une allée trop longue
-coûteuse.
+| Niveau | Ce qui s'ouvre |
+|---|---|
+| 1 | manège, tasses folles, buvette, friterie, toilettes, banc, arbre, parterre, poubelle, balayeur |
+| 2 | glacier, haie |
+| 3 | chaises volantes, lampadaire, mécanicien |
+| 4 | train fantôme, barbe à papa, fontaine |
+| 5 | auto-tamponneuses, souvenirs, animateur |
+| 6 | la pieuvre, statue |
+| 7 | tour de chute, pizzeria, jardinier |
+| 8 | bateau pirate, bassin |
+| 9 | grande roue, photo souvenir |
+| 10 | toboggan géant, infirmerie |
+| 11 | **la navette** |
+| 12 | rivière sauvage |
+| 13 | **le grand huit** |
+| 16 | **le looping** |
 
-**Quatre décors** — arbre, parterre, poubelle, fontaine. La beauté autour d'une
-case remonte l'humeur de qui passe ; une poubelle proche divise par trois ce qui
-finit par terre.
+La **navette** est à part : ce n'est pas un manège, c'est un moyen de transport.
+Posées par deux, deux gares font passer les visiteurs de l'une à l'autre sans
+traverser le parc à pied. Sur un terrain de cette taille, c'est la réponse au
+problème que pose la distance.
 
-**Trois métiers** — le balayeur nettoie autour de lui, le mécanicien répare et
-révise, l'animateur fait paraître les files deux fois plus courtes.
+**Dix services** : buvette, friterie, glacier, barbe à papa, pizzeria,
+souvenirs, photo souvenir, toilettes, infirmerie, banc. Un banc n'est pas un
+décor ici : c'est un lieu qui se choisit exactement comme une buvette, avec sa
+file et son envie. C'est ce qui rend une allée trop longue coûteuse.
+
+**Huit décors** — arbre, parterre, haie, poubelle, lampadaire, fontaine, statue,
+bassin. La beauté autour d'une case remonte l'humeur de qui passe ; une poubelle
+proche divise par trois ce qui finit par terre ; un lampadaire éclaire pour de
+bon en fin de journée.
+
+**Quatre métiers** — le balayeur nettoie autour de lui, le mécanicien répare et
+révise, l'animateur fait paraître les files deux fois plus courtes, le jardinier
+fait rendre quarante pour cent de plus à tout le décor du parc.
 
 ## Le soir
 
@@ -160,8 +216,19 @@ Vue de dessus, plein soleil, palette saturée — l'exact opposé des trois autr
 jeux du dépôt.
 
 Le sol — herbe, mares, berges de sable, rochers, allées avec leurs bordures — ne
-change qu'à la pose : il est peint une fois dans un calque au double de la
-résolution et redessiné d'un seul appel.
+change qu'à la pose. Sur cinq mille parcelles, un calque unique tiendrait
+soixante mégaoctets et se repeindrait entièrement au moindre bout d'allée : il
+est donc **découpé en douze morceaux de vingt-deux cases de côté**, un morceau
+n'est repeint que si quelque chose a changé dedans, et seuls les morceaux
+visibles sont dessinés.
+
+Deux autres choses ne passaient plus à cette échelle. La **beauté du décor**
+était resommée sur tous les massifs de fleurs pour chacun des trois cents
+visiteurs à chaque image : elle est maintenant calculée une fois par
+modification du tracé, dans un champ. Et le **recalcul des chemins** se
+déclenchait à chaque case d'allée posée pendant un glissé : il est espacé d'un
+quart de seconde, ce qui ne se voit pas et divise le coût par dix pendant les
+travaux.
 
 Les attractions ne sont pas des icônes. Le manège tourne avec ses chevaux, les
 tasses tournent sur un plateau qui tourne, les chaises volantes s'écartent quand
@@ -192,13 +259,15 @@ derrière le titre.
 ## Réglages du fichier
 
 ```js
-const GX=44, GY=30, TUILE=26;                 // le terrain
+const GX=88, GY=60, TUILE=26;                 // le terrain, 5 280 parcelles
+const CH=22;                                  // côté d'un morceau de sol
 const ETES=4, JOURS=8;                        // la campagne
-const LOYERS=[3800,10000,19000,31000];        // ce que la mairie prend
-const SECONDES_JOUR=60;                       // une journée à vitesse 1
-const VIT_BASE=64;                            // un visiteur, en pixels/seconde
-const MONTEE={frisson:.34, faim:.20, soif:.26, vessie:.16, fatigue:.145};
-const PRIX_ALLEE=14;
+const LOYERS=[5000,13000,24000,40000];        // ce que la mairie prend
+const SECONDES_JOUR=720;                      // une journée à vitesse 1
+const VIT_BASE=15;                            // un visiteur, en pixels/seconde
+const NIV_MAX=20;                             // la licence d'exploitation
+const MONTEE={frisson:.42, faim:.20, soif:.26, vessie:.16, fatigue:.145};
+const PRIX_ALLEE=10;
 ```
 
 ## Comment ça a été vérifié
