@@ -172,15 +172,15 @@ qui valent pour toutes les parties suivantes :
 | 🎓 **École de forains** | +10 % d'expérience gagnée | 3 |
 | 📓 **Carnet d'adresses** | +1 contrat par été | 2 |
 
-Le catalogue complet coûte 645 jetons ; les dix-neuf succès en rapportent 280.
+Le catalogue complet coûte 645 jetons ; les vingt et un succès en rapportent 294.
 C'est volontaire : la boutique ne se vide pas en trois parties.
 
 ### Les succès
 
-Dix-neuf, du premier tour de manège vendu à *SANS FILET* — gagner en difficulté
-la plus dure, 60 jetons. Ils se vérifient à la pose d'un bâtiment et à la
-fermeture du soir, et le succès décroché s'affiche dans le bilan de la journée
-avec sa prime.
+Vingt et un, du premier tour de manège vendu à *SANS FILET* — gagner en
+difficulté la plus dure, 60 jetons. Ils se vérifient à la pose d'un bâtiment, à
+l'achat d'une révision ou d'une campagne, et à la fermeture du soir ; le succès
+décroché s'affiche dans le bilan de la journée avec sa prime.
 
 ### Les contrats
 
@@ -301,6 +301,44 @@ bon en fin de journée.
 **Quatre métiers** — le balayeur nettoie autour de lui, le mécanicien répare et
 révise, l'animateur fait paraître les files deux fois plus courtes, le jardinier
 fait rendre quarante pour cent de plus à tout le décor du parc.
+
+## Deux leviers qui ne se posent pas
+
+Poser un bâtiment était la seule action du jeu. Ces deux-là sont des décisions
+de gestion, pas de construction, et elles répondent à deux impasses réelles.
+
+### La publicité
+
+L'affluence ne dépendait que de la réputation, qui met des journées à bouger. Une
+campagne s'achète le matin et se voit le lendemain :
+
+| | Prix | Durée | Effet | Niveau |
+|---|---|---|---|---|
+| 📄 Affiches en ville | 900 € | 2 jours | +22 % d'affluence | 1 |
+| 📻 Radio locale | 2 600 € | 3 jours | +38 % | 4 |
+| 📰 Pleine page | 5 600 € | 4 jours | +56 % | 8 |
+| 📺 Spot à la télé | 13 000 € | 5 jours | +88 % | 12 |
+
+Elle coûte cher exprès, et elle se retourne contre celui qui la lance au mauvais
+moment : le monde qu'elle amène s'entasse dans les files d'un parc qui ne peut
+pas l'absorber, la satisfaction tombe, et la réputation paie l'addition pendant
+que la campagne dure encore. Mesuré : un spot télé fait passer l'attente prévue
+de 66 à 124 visiteurs pour la journée du lendemain.
+
+### La révision d'une attraction
+
+Une file trop longue n'avait qu'une réponse — en poser une deuxième — et sur un
+terrain où la place manque, ce n'est pas toujours possible. Chaque attraction
+accepte **trois révisions**, de plus en plus chères (42 % puis 72 % puis 102 %
+du prix d'achat) :
+
+- **+22 % de places par tour**, arrondi à une place au minimum ;
+- **+9 % d'attrait**, donc plus d'envie dans la décision du visiteur ;
+- **−22 % de pannes**, cumulables avec l'atelier mécanique de la boutique ;
+- l'état repart à neuf, et la révision rapporte des points de licence.
+
+Mesuré sur le manège : huit places et 0,55 d'attrait au départ, quatorze places
+et 0,70 d'attrait à fond, pour un tiers de pannes en moins.
 
 ## Le soir
 

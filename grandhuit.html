@@ -888,6 +888,59 @@ function urneMeteo(jour){
   return u;
 }
 
+/* ==========================================================================
+   LA PUBLICITÉ
+   ==========================================================================
+   Le seul moyen d'agir sur l'affluence était jusqu'ici la réputation, qui met
+   des jours à bouger. Une campagne s'achète le matin et se voit le lendemain :
+   c'est le levier court de la gestion, en face du levier court des visiteurs
+   qu'est le prix. Elle coûte cher exprès — mal placée, elle amène du monde dans
+   un parc qui ne peut pas l'absorber, et la réputation en prend un coup. */
+const PUBS={
+ affiches:{nom:'AFFICHES EN VILLE', ico:'📄', prix:900,   jours:2, boost:.22, niv:1,
+   d:'Deux jours de monde en plus, pour le prix d\'un rouleau de colle.'},
+ radio:{nom:'RADIO LOCALE',         ico:'📻', prix:2600,  jours:3, boost:.38, niv:4,
+   d:'Trois jours. On entend le jingle jusque dans les cafés.'},
+ journal:{nom:'PLEINE PAGE',        ico:'📰', prix:5600,  jours:4, boost:.56, niv:8,
+   d:'Quatre jours en première page du quotidien du dimanche.'},
+ tele:{nom:'SPOT À LA TÉLÉ',        ico:'📺', prix:13000, jours:5, boost:.88, niv:12,
+   d:'Cinq jours. Après ça, tout le département connaît le parc.'}
+};
+function pubActive(){ return P&&P.pub&&P.pub.reste>0?P.pub:null; }
+function boostPub(){ const p=pubActive(); return p?PUBS[p.k].boost:0; }
+function lancerPub(k){
+  const d=PUBS[k]; if(!d) return;
+  if((d.niv||1)>P.niveau){ flash('Niveau '+d.niv+' requis','mal'); SND.erreur(); return; }
+  if(P.argent<d.prix){ flash('Pas assez d\'argent','mal'); SND.erreur(); return; }
+  P.argent-=d.prix;
+  P.pub={k, reste:d.jours};
+  P.jt.pub=(P.jt.pub||0)+d.prix;
+  SND.cloche(); flash(d.nom+' · '+d.jours+' JOURS','bon');
+  if(k==='tele') decrocher('vedette');
+  fichePark();
+}
+
+/* --- la révision d'une attraction ---
+   Trois crans. Chacun ajoute une place par tour, neuf pour cent d'attrait et
+   coupe un cinquième des pannes. C'est la réponse à une file trop longue quand
+   il n'y a plus de place pour en poser une deuxième. */
+const AMELIO_MAX=3;
+function capDe(b){ return b.d.cap + (b.amelio||0)*Math.max(1,Math.round(b.d.cap*.22)); }
+function attraitDe(b){ return b.d.attrait*(1+.09*(b.amelio||0)); }
+function fiabDe(b){ return b.d.fiab*(1-.22*(b.amelio||0)); }
+function coutAmelio(b){ return Math.round(b.d.prix*(.42+.30*(b.amelio||0))); }
+function ameliorer(b){
+  if(b.cat!=='attraction'||(b.amelio||0)>=AMELIO_MAX) return;
+  const c=coutAmelio(b);
+  if(P.argent<c){ flash('Pas assez d\'argent','mal'); SND.erreur(); return; }
+  P.argent-=c; b.amelio=(b.amelio||0)+1; b.etat=1; b.panne=false;
+  P.xp+=90+40*b.amelio;
+  SND.cloche(); flash(b.d.nom+' · RÉVISION '+b.amelio+'/'+AMELIO_MAX,'bon');
+  flotte((b.x+b.w/2)*TUILE,b.y*TUILE-6,'−'+eur(c),'#c0392b');
+  if(b.amelio>=AMELIO_MAX) decrocher('revision');
+  ficheBati(b);
+}
+
 const DIFFS={
  facile:{nom:'TRANQUILLE', affl:1.25, bourse:1.25, loyer:.75, patience:1.3, xp:1.2,
    d:'Plus de monde, des portefeuilles pleins, une mairie compréhensive.'},
@@ -1107,6 +1160,8 @@ const SUCCES=[
  {id:'transport',nom:'CORRESPONDANCE',     d:'Deux navettes en service en même temps',      j:7},
  {id:'jardin',   nom:'PARC PAYSAGER',      d:'Cinquante décors posés dans un même parc',    j:7},
  {id:'complet',  nom:'CATALOGUE COMPLET',  d:'Poser les quatorze attractions',              j:22},
+ {id:'revision',  nom:'MACHINE DE COURSE',  d:'Réviser une attraction jusqu\'au bout',       j:8},
+ {id:'vedette',   nom:'PASSAGE À LA TÉLÉ',  d:'Payer un spot télévisé',                      j:6},
  {id:'gagne',    nom:'QUATRE ÉTÉS',        d:'Payer les quatre loyers',                     j:35},
  {id:'gagnedur', nom:'SANS FILET',         d:'Gagner en difficulté SANS FILET',             j:60}
 ];
@@ -1256,8 +1311,10 @@ function serialiserPartie(){
     niveau:P.niveau, xp:Math.round(P.xp), meteo:P.meteo,
     st:P.st, total:P.total, contrats:P.contrats, histoire:P.histoire,
     sol, sal,
+    pub:P.pub,
     batis:P.batis.map(b=>[b.cat,b.k,b.x,b.y,Math.round(b.px||0),b.nature?1:0,
-      b.panne?1:0,+(b.etat||1).toFixed(3),b.ferme?1:0,b.tours|0,Math.round(b.recette||0)]),
+      b.panne?1:0,+(b.etat||1).toFixed(3),b.ferme?1:0,b.tours|0,Math.round(b.recette||0),
+      b.amelio|0]),
     emp:P.employes.map(e=>e.k)
   };
 }
@@ -1281,7 +1338,7 @@ function restaurerPartie(d){
       if(!catalogue(cat,k)) continue;
       const b=poserBrut(cat,k,a[2],a[3],!!a[5]);
       b.px=a[4]; b.panne=!!a[6]; b.etat=a[7]; b.ferme=!!a[8];
-      b.tours=a[9]|0; b.recette=a[10]|0;
+      b.tours=a[9]|0; b.recette=a[10]|0; b.amelio=a[11]|0;
     }
     P.employes=[];
     for(const k of (d.emp||[])) if(METIERS[k]) embaucher(k,true);
@@ -1294,7 +1351,7 @@ function restaurerPartie(d){
     P.rep=d.rep; P.etoilesMax=d.etoilesMax||0;
     P.niveau=d.niveau; P.xp=d.xp; P.meteo=d.meteo||'soleil';
     P.st=d.st||P.st; P.total=d.total||P.total;
-    P.contrats=d.contrats||[]; P.histoire=d.histoire||[];
+    P.contrats=d.contrats||[]; P.histoire=d.histoire||[]; P.pub=d.pub||null;
     CHUNKS=null; P.beaute=null; P.sale=true;
     refaireChamps();
     cam.x=P.entreeX*TUILE; cam.y=(GY-12)*TUILE; cam.z=clamp(1.05,ZMIN,2.4); cam.zc=cam.z;
@@ -1333,6 +1390,7 @@ function nouvellePartie(){
     contrats:[], histoire:[],
     entres:0, sortis:0, refus:0,
     jourNum:1, fini:false, gagne:false,
+    pub:null,
     jt:{entrees:0, tours:0, ventes:0, recEntree:0, recTours:0, recVentes:0,
         depEnt:0, depPaie:0, avis:[], bonheur:[], partisFaches:0, pannes:0},
     st:{visiteurs:0, recette:0, depense:0},
@@ -1706,7 +1764,7 @@ function attractionsUtiles(){
 }
 function affluencePrevue(){
   const dif=DIF(), m=METEOS[P.meteo];
-  const base=12 + attractionsUtiles()*7 + P.rep*140;
+  const base=(12 + attractionsUtiles()*7 + P.rep*140)*(1+boostPub());
   const bouche=.45+P.rep*1.25;                  // le bouche-à-oreille
   return Math.max(4,Math.round(base*bouche*m.affl*dif.affl*(1+(P.ete-1)*.06)
     *(1+.07*AM('renommee'))));
@@ -1755,15 +1813,15 @@ function faireEntrer(){
 
 /* ---------------------------------------------------------------- la décision */
 function attenteEstimee(b){
-  if(b.cat==='attraction') return (b.file.length/Math.max(1,b.d.cap))*b.d.duree + b.t;
-  return (b.file.length/Math.max(1,b.d.cap))*b.d.duree;
+  if(b.cat==='attraction') return (b.file.length/Math.max(1,capDe(b)))*b.d.duree + b.t;
+  return (b.file.length/Math.max(1,capDe(b)))*b.d.duree;
 }
 function gout(v,b){ return .78 + ((v.gout*(b.id*7.31+2.17))%1)*.44; }
 function envieDe(v,b){
   if(b.cat==='attraction'){
     const nouv=1/(1+(v.vus[b.id]||0)*.85);       // la deuxième fois est moins bien
     const tolerance=1-v.besoins.fatigue*.4;
-    return v.besoins.frisson*b.d.attrait*nouv*tolerance*gout(v,b)
+    return v.besoins.frisson*attraitDe(b)*nouv*tolerance*gout(v,b)
       *(1-b.d.nausee*v.besoins.faim*.5);
   }
   let e=0;
@@ -1790,11 +1848,11 @@ function choisir(v){
     const d=b.champ[tv];
     if(d<0) continue;
     if(b.px>v.argent) continue;
-    if(b.file.length>b.d.cap*4+8) continue;      // file décourageante, on renonce
+    if(b.file.length>capDe(b)*4+8) continue;    // file décourageante, on renonce
     const envie=envieDe(v,b);
     if(envie<=.02) continue;
     const att=attenteEstimee(b)*(P.animation?.55:1);
-    const s= envie*(1+b.d.attrait*.45)
+    const s= envie*(1+attraitDe(b)*.45)
            - d*cPas
            - att*.011/v.patience
            - (b.px/Math.max(6,v.argent))*1.25;
@@ -1925,7 +1983,7 @@ function pasBati(b,dt,heures){
   /* usure et pannes */
   if(!b.panne){
     b.etat=clamp(b.etat-heures*.020*(b.cat==='attraction'?1:.4),0,1);
-    if(b.cat==='attraction'&&Math.random()<b.d.fiab*(1-.20*AM('atelier'))*heures*(2.2-b.etat*1.6)){
+    if(b.cat==='attraction'&&Math.random()<fiabDe(b)*(1-.20*AM('atelier'))*heures*(2.2-b.etat*1.6)){
       b.panne=true; b.file.forEach(v=>{ v.bonheur=clamp(v.bonheur-.16,0,1); v.etat='flane';
         v.cible=null; v.vuPanne=true; });
       b.file.length=0;
@@ -1960,7 +2018,7 @@ function pasBati(b,dt,heures){
              visiteurs ne faisaient que trente-deux tours dans la journée. */
           v.besoins.frisson=clamp(v.besoins.frisson-b.d.frisson*.62,0,1);
           v.besoins.fatigue=clamp(v.besoins.fatigue+.05,0,1);
-          v.bonheur=clamp(v.bonheur + b.d.attrait*.22 - b.d.nausee*.10,0,1);
+          v.bonheur=clamp(v.bonheur + attraitDe(b)*.22 - b.d.nausee*.10,0,1);
           v.vus[b.id]=(v.vus[b.id]||0)+1; v.tours++;
           if(gare){
             const t=pick(gare.portes);
@@ -1974,7 +2032,7 @@ function pasBati(b,dt,heures){
       return;
     }
     if(b.file.length){
-      const n=Math.min(b.d.cap,b.file.length);
+      const n=Math.min(capDe(b),b.file.length);
       const lot=b.file.splice(0,n);
       for(const v of lot){
         v.etat='dedans'; v.lieu=b; v.t=0;
@@ -2006,7 +2064,7 @@ function pasBati(b,dt,heures){
       v.x=(v.tx+.5)*TUILE; v.y=(v.ty+.5)*TUILE;
     }
   }
-  while(b.dedans.length<b.d.cap && b.file.length){
+  while(b.dedans.length<capDe(b) && b.file.length){
     const v=b.file.shift();
     v.etat='dedans'; v.lieu=b; v.t=b.d.duree;
     v.argent-=b.px; P.argent+=b.px;
@@ -2290,6 +2348,11 @@ function jourSuivant(){
     SND.bien();
   } else {
     P.jour++;
+  }
+  /* la campagne s'use d'une journée ; on prévient le soir où elle s'arrête */
+  if(P.pub&&P.pub.reste>0){
+    P.pub.reste--;
+    if(!P.pub.reste){ flash('LA CAMPAGNE '+PUBS[P.pub.k].nom+' EST TERMINÉE',''); P.pub=null; }
   }
   P.jourNum++;
   SAVE.meilleur=Math.max(SAVE.meilleur||0,P.jourNum-1);
@@ -2644,7 +2707,7 @@ function dessinerBati(b,T){
   /* panneau d'état */
   if(b.panne){ bulle(cx,Y-9,'⚠ PANNE','#e0503e'); }
   else if(b.ferme){ bulle(cx,Y-9,'FERMÉ','#7d8c9c'); }
-  else if(cam.z>.55&&b.file.length>b.d.cap*2.5) bulle(cx,Y-9,'FILE '+b.file.length,'#f2b229');
+  else if(cam.z>.55&&b.file.length>capDe(b)*2.5) bulle(cx,Y-9,'FILE '+b.file.length,'#f2b229');
 }
 function arrondi(x,y,w,h,r){
   ctx.beginPath();
@@ -3470,6 +3533,17 @@ function fichePark(){
   +'<div class="ligne"><span>Loyer fin d\'été</span><b class="danger">'+eur(loyerProchain())+'</b></div>'
   +'<div class="ligne"><span>Attendus aujourd\'hui</span><b>'+(P.prevu||0)+'</b></div>'
   +'<div class="ligne"><span>Propreté</span><b>'+Math.round((1-saleteMoyenne())*100)+' %</b></div>'
+  +'<div class="sous" style="margin-top:12px">PUBLICITÉ</div>'
+  +(pubActive()
+    ? '<div class="txt"><b style="color:#2c7a41">'+PUBS[P.pub.k].ico+' '
+      +PUBS[P.pub.k].nom+'</b><br>+'+Math.round(PUBS[P.pub.k].boost*100)
+      +' % d\'affluence, encore '+P.pub.reste+' jour'+(P.pub.reste>1?'s':'')+'.</div>'
+    : '<div class="txt">Une campagne remplit le parc en deux jours. Assure-toi de '
+      +'pouvoir encaisser le monde qu\'elle amène.</div>'
+      +Object.keys(PUBS).map(k=>{ const d=PUBS[k];
+        const bloque=(d.niv||1)>P.niveau, cher=d.prix>P.argent;
+        return '<button class="bt" data-pub="'+k+'"'+((bloque||cher)?' disabled':'')+'>'
+          +d.ico+' '+d.nom+' · '+(bloque?'NIVEAU '+d.niv:eur(d.prix))+'</button>'; }).join(''))
   +'<button class="bt" id="pFerme">FERMER</button>';
   const maj=()=>{
     const s=prixAcceptable(), b=bourseMoyenne();
@@ -3486,6 +3560,9 @@ function fichePark(){
     else txt+=' Il leur restera environ '+reste+' € à dépenser dedans.';
     t.innerHTML=txt;
   };
+  Array.prototype.forEach.call(el.querySelectorAll('[data-pub]'),x=>{
+    x.onclick=()=>lancerPub(x.getAttribute('data-pub'));
+  });
   $('pEnt').oninput=e=>{ P.prixEntree=+e.target.value; $('pEntV').textContent=P.prixEntree+' €'; maj(); };
   $('pFerme').onclick=()=>{ fermerFiche(); catOuverte=null; majCats(); };
   maj();
@@ -3508,10 +3585,22 @@ function ficheBati(b){
       h+='<div class="ligne" style="border:0"><span>État</span><b>'+Math.round(b.etat*100)+' %</b></div>'
         +'<div class="barre'+(b.etat<.35?' ba':(b.etat<.7?' us':''))+'"><i style="width:'
         +Math.round(b.etat*100)+'%"></i></div>';
+      h+='<div class="ligne"><span>Places par tour</span><b>'+capDe(b)
+        +(b.amelio?' <span style="color:#2c7a41">(+'+(capDe(b)-d.cap)+')</span>':'')+'</b></div>';
       if(b.panne) h+='<button class="bt rouge" id="bRep">RÉPARER TOUT DE SUITE · '
         +eur(Math.round(d.prix*.06))+'</button>';
-      else if(b.etat<.9) h+='<button class="bt" id="bRep">RÉVISER · '
+      else if(b.etat<.9) h+='<button class="bt" id="bRep">ENTRETENIR · '
         +eur(Math.round(d.prix*.03))+'</button>';
+      /* la révision : trois crans, chacun plus cher que le précédent */
+      const nv=b.amelio||0;
+      h+='<div class="ligne" style="border:0"><span>Révisions</span><b>'
+        +'●'.repeat(nv)+'○'.repeat(AMELIO_MAX-nv)+'</b></div>';
+      h+= nv>=AMELIO_MAX
+        ? '<div class="txt">Cette machine a tout ce qu\'on peut lui donner.</div>'
+        : '<button class="bt vert" id="bAme">RÉVISER À FOND · '+eur(coutAmelio(b))+'</button>'
+          +'<div class="txt">+'+Math.max(1,Math.round(d.cap*.22))+' place'
+          +(Math.max(1,Math.round(d.cap*.22))>1?'s':'')+' par tour, +9 % d\'attrait, '
+          +'−22 % de pannes.</div>';
     }
     if(!b.relie) h+='<div class="txt"><b class="danger">Aucune allée n\'y mène : '
       +'personne ne peut y aller.</b></div>';
@@ -3523,7 +3612,7 @@ function ficheBati(b){
   if(b.cat!=='decor'){
     const maj=()=>{
       const t=$('bPxT');
-      const ref=b.cat==='attraction'?d.attrait*5.5:2.6;
+      const ref=b.cat==='attraction'?attraitDe(b)*5.5:2.6;
       if(b.px===0) t.innerHTML='Gratuit. Ça remplit la file et ça ne rapporte rien.';
       else if(b.px<ref*.7) t.innerHTML='Bon marché : la file sera longue.';
       else if(b.px<ref*1.25) t.innerHTML='Prix raisonnable.';
@@ -3538,6 +3627,8 @@ function ficheBati(b){
       P.argent-=c; b.panne=false; b.etat=1; b.reparT=0;
       SND.cloche(); flash(d.nom+' remise à neuf','bon'); ficheBati(b);
     };
+    const a=$('bAme');
+    if(a) a.onclick=()=>ameliorer(b);
   }
   $('bDem').onclick=()=>{ demolir(b.x,b.y); fermerFiche(); };
   $('bFer').onclick=fermerFiche;
@@ -3589,6 +3680,9 @@ function montrerSoir(rec,dep){
   L+=li('🔧','ENTRETIEN',P.batis.filter(b=>!b.nature).length+' installations','−'+eur(j.depEnt),'#c0392b');
   L+=li('👷','SALAIRES',P.employes.length+' employés','−'+eur(j.depPaie),'#c0392b');
   L+=li(ben>=0?'💰':'📉','BÉNÉFICE','', (ben>=0?'+':'')+eur(ben), ben>=0?'#2c7a41':'#c0392b');
+  if(pubActive()) L+=li(PUBS[P.pub.k].ico,'CAMPAGNE EN COURS',PUBS[P.pub.k].nom
+    +' — le monde qu\'elle amène est déjà compté dans les entrées',
+    '+'+Math.round(PUBS[P.pub.k].boost*100)+' %','#e86ca0');
   $('sLignes').innerHTML=L;
   const c=(t,v,col)=>'<div class="cell"><span>'+t+'</span><b'+(col?' style="color:'+col+'"':'')
     +'>'+v+'</b></div>';
