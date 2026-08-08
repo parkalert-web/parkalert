@@ -1077,7 +1077,7 @@ function beauteAutour(x,y,r){
 
 const BESOINS=['frisson','faim','soif','vessie','fatigue'];
 /* de combien chaque besoin monte par heure de parc */
-const MONTEE={frisson:.34, faim:.20, soif:.26, vessie:.16, fatigue:.145};
+const MONTEE={frisson:.42, faim:.20, soif:.26, vessie:.16, fatigue:.145};
 /* Un visiteur traverse le parc en une dizaine de minutes de parc. Avec une
    journée de soixante secondes, ça fait une marche rapide à l'écran — mais un
    piéton lent transforme la journée en trajet aller-retour unique, et les
@@ -1098,7 +1098,11 @@ function nouveauVisiteur(){
     etat:'entre', cible:null, lieu:null, tx:0, ty:0, avance:0,
     vus:{}, tours:0, achats:0, ennui:0, t:0, place:0, cri:0,
     attCum:0, saleCum:0, vuPanne:false,
-    enfant:groupe<.28, dec:0, dx:rnd(-5,5), dy:rnd(-5,5)
+    enfant:groupe<.28, dec:0, dx:rnd(-5,5), dy:rnd(-5,5),
+    /* les goûts : sans eux, deux attractions comparables ne se départagent
+       jamais et tout le monde fait la même file. Le tirage est stable pour un
+       visiteur donné — il n'change pas d'avis toutes les dix secondes. */
+    gout:Math.random()*997
   };
   v.depart=v.argent;
   if(v.enfant){ v.taille*=.72; v.besoins.frisson=rnd(.6,.95); v.argent=Math.round(v.argent*.55); }
@@ -1153,11 +1157,13 @@ function attenteEstimee(b){
   if(b.cat==='attraction') return (b.file.length/Math.max(1,b.d.cap))*b.d.duree + b.t;
   return (b.file.length/Math.max(1,b.d.cap))*b.d.duree;
 }
+function gout(v,b){ return .78 + ((v.gout*(b.id*7.31+2.17))%1)*.44; }
 function envieDe(v,b){
   if(b.cat==='attraction'){
     const nouv=1/(1+(v.vus[b.id]||0)*.85);       // la deuxième fois est moins bien
     const tolerance=1-v.besoins.fatigue*.4;
-    return v.besoins.frisson*b.d.attrait*nouv*tolerance*(1-b.d.nausee*v.besoins.faim*.5);
+    return v.besoins.frisson*b.d.attrait*nouv*tolerance*gout(v,b)
+      *(1-b.d.nausee*v.besoins.faim*.5);
   }
   let e=0;
   for(const k in b.d.calme){
@@ -1166,7 +1172,7 @@ function envieDe(v,b){
   }
   if(b.k==='souvenir') e+=.22*v.bonheur*(v.argent>28?1:.2);
   const nouv=1/(1+(v.vus[b.id]||0)*.5);
-  return e*nouv;
+  return e*nouv*gout(v,b);
 }
 function choisir(v){
   const tv=idx(v.tx,v.ty);
@@ -1339,7 +1345,11 @@ function pasBati(b,dt,heures){
       if(b.t<=0){
         for(const v of b.dedans){
           v.etat='flane'; v.cible=null; v.ennui=0; v.dec=.2;
-          v.besoins.frisson=clamp(v.besoins.frisson-b.d.frisson,0,1);
+          /* un tour ne suffit jamais tout à fait : un manège calme apporte
+             peu, le grand huit apporte beaucoup, et personne ne repart après
+             une seule attraction. Mesuré : à satisfaction pleine, quarante
+             visiteurs ne faisaient que trente-deux tours dans la journée. */
+          v.besoins.frisson=clamp(v.besoins.frisson-b.d.frisson*.62,0,1);
           v.besoins.fatigue=clamp(v.besoins.fatigue+.05,0,1);
           v.bonheur=clamp(v.bonheur + b.d.attrait*.22 - b.d.nausee*.10,0,1);
           v.vus[b.id]=(v.vus[b.id]||0)+1; v.tours++;
@@ -1900,13 +1910,16 @@ function dessinerBati(b,T){
   const t=b.phase;
   const actif=!b.panne&&!b.ferme&&(b.cat!=='attraction'||b.t>0);
 
-  if(b.cat==='decor'){ dessinerDecor(b,X,Y,W,H,cx,cy,t,T); return; }
-
-  /* ombre au sol */
-  ctx.fillStyle='rgba(20,45,25,.24)';
-  arrondi(X+3+T.ang*3,Y+5,W,H,6); ctx.fill();
-
-  if(b.k==='banc') dessinerDecor(b,X,Y,W,H,cx,cy,t,T);
+  /* le banc est rangé avec les services parce qu'il se choisit comme eux,
+     mais il se dessine comme du mobilier : pas d'ombre de bâtiment */
+  if(b.cat==='decor'||b.k==='banc'){ dessinerDecor(b,X,Y,W,H,cx,cy,t,T);
+    if(b.k!=='banc') return; }
+  else {
+    /* ombre au sol */
+    ctx.fillStyle='rgba(20,45,25,.24)';
+    arrondi(X+3+T.ang*3,Y+5,W,H,6); ctx.fill();
+  }
+  if(b.k==='banc'){ /* déjà peint */ }
   else if(b.cat==='boutique') dessinerBoutique(b,X,Y,W,H,cx,cy,t);
   else {
     switch(b.k){
@@ -2590,7 +2603,8 @@ function montrerFin(gagne,txt){
   const R=[];
   if(gagne) R.push({e:'🎡',t:'QUATRE ÉTÉS',s:'La mairie a renouvelé le bail. Le parc reste.'});
   if(P.jourNum-1>=(SAVE.meilleur||0)) R.push({e:'⭐',t:'MEILLEURE SAISON',
-    s:'Ton record est maintenant de '+(P.jourNum-1)+' journées tenues.'});
+    s:'Ton record est maintenant de '+(P.jourNum-1)+' journée'
+      +((P.jourNum-1)>1?'s tenues':' tenue')+'.'});
   R.push({e:'📊',t:'AU TOTAL',s:nb(SAVE.totalVis||0)+' visiteurs accueillis sur '
     +nb(SAVE.parties||0)+' parties.'});
   $('fRapport').innerHTML=R.map(x=>'<div class="rl"><span class="re">'+x.e+'</span>'
@@ -2601,7 +2615,7 @@ function montrerFin(gagne,txt){
 function majMenu(){
   const r=[];
   if(SAVE.meilleur) r.push('MEILLEURE SAISON : <b style="color:#c0392b">'+SAVE.meilleur
-    +' journée'+(SAVE.meilleur>1?'s':'')+'</b>');
+    +' journée'+(SAVE.meilleur>1?'s':'')+' tenue'+(SAVE.meilleur>1?'s':'')+'</b>');
   if(SAVE.victoires) r.push('<b style="color:#2c7a41">'+SAVE.victoires+' parc'
     +(SAVE.victoires>1?'s':'')+' sauvé'+(SAVE.victoires>1?'s':'')+'</b>');
   if(SAVE.totalVis) r.push(nb(SAVE.totalVis)+' visiteurs accueillis');

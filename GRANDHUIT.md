@@ -61,6 +61,13 @@ un visiteur refusait tout ce qui se trouvait à plus de vingt cases : un parc qu
 grandissait devenait un parc où plus personne ne montait, et le reproche
 numéro un restait « on n'a rien fait » avec dix attractions ouvertes.
 
+Un dernier terme, invisible mais indispensable : **le goût**. Chaque visiteur
+porte un tirage stable qui module son envie de ±22 % selon le bâtiment. Sans
+lui, deux attractions comparables ne se départagent jamais — tout le monde
+calcule le même score, tout le monde va au même endroit. Mesuré sur quatre
+manèges côte à côte : 1 / 31 / 0 / 0 avant, 2 / 9 / 13 / 12 après, et le nombre
+de tours par visiteur passe de 0,8 à 1,3.
+
 ## Comment ils trouvent leur chemin
 
 Le réseau d'allées est un graphe. Pour **chaque** bâtiment, à chaque
@@ -189,3 +196,33 @@ C'est ce relevé qui a mis en évidence, dans l'ordre :
 - une **saleté ingérable** — un balayeur qui traitait une case à la fois puis
   retraversait le parc ne tenait pas deux cents visiteurs ;
 - des **orages précoces** qui coulaient un parc sans faute de jeu.
+
+Le relevé de la partie de référence, en difficulté normale, trente-deux
+journées jouées d'affilée sans une erreur :
+
+| | Été 1 | Été 2 | Été 3 | Été 4 |
+|---|---|---|---|---|
+| Visiteurs le meilleur jour | 139 | 197 | 236 | 259 |
+| Recette du meilleur jour | 3 197 € | 5 839 € | 7 223 € | 8 859 € |
+| Attractions en fin d'été | 5 | 8 | 11 | 11 |
+| Étoiles | 3 | 4 | 3 | 4 |
+| Loyer payé | 3 800 € | 10 000 € | 19 000 € | 31 000 € |
+| En caisse après le loyer | 2 300 € | 4 413 € | 2 323 € | **8 240 €** |
+
+Le motif qui revient chaque été est celui qu'on veut voir dans un jeu de
+gestion : les jours de grand soleil remplissent le parc, la satisfaction tombe
+à 50 % avec « les files sont interminables » et « pas une buvette, en plein
+soleil », la réputation baisse, l'affluence se corrige d'elle-même le lendemain.
+Le parc se régule ; c'est au joueur de casser cette limite en doublant ce qui
+sature.
+
+Le coût du rendu, mesuré à part, avec le pire cas fabriqué à la main —
+soixante-quatorze bâtiments, quatre cent seize visiteurs dans la journée,
+en 1280 × 800 :
+
+| Images/s | Pire image | Images > 20 ms |
+|---|---|---|
+| 59 | 33 ms | 1 |
+
+Comme pour les autres jeux du dépôt, c'est du rendu **logiciel**, sans carte
+graphique : un plancher, pas une mesure.
