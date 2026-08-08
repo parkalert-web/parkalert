@@ -28,6 +28,11 @@ vendu, chaque article servi, la satisfaction du jour et le bénéfice. Chaque
 palier ouvre du matériel neuf et vient avec une subvention de la mairie. C'est
 elle qui donne les nouveautés ; la réputation, elle, ne donne que du monde.
 
+La troisième, la plus lente de toutes, ne s'arrête jamais avec la partie : la
+**carrière**. Un nom, un portrait, un rang, des jetons, des succès, et une
+boutique d'améliorations définitives. C'est elle qui fait qu'une faillite au
+troisième été n'est pas une soirée perdue.
+
 ## En quoi ce n'est pas les trois autres jeux du dépôt
 
 *Zone Morte*, *Brasier* et *Quinze Nuits* sont trois jeux d'action : un
@@ -125,6 +130,105 @@ Sept manèges en valent neuf, quatorze en valent douze, vingt-huit en valent
 quatorze. Au-delà, c'est la **réputation** qui porte la croissance — et la
 réputation se gagne en raccourcissant les files, pas en alignant des baraques.
 
+## La carrière — ce qui survit à la partie
+
+Une campagne dure quatre étés de huit journées de douze minutes. C'est long, et
+elle peut se perdre au dernier loyer. Sans rien autour, ça fait une soirée pour
+rien. Tout ce qui suit existe pour que ce ne soit jamais le cas.
+
+### Le profil
+
+Un nom sur l'enseigne, un portrait à choisir parmi six, et un **rang** qui monte
+avec les points de carrière — une fraction des points de licence gagnés en
+partie, plus une prime de victoire :
+
+| Rang | À partir de |
+|---|---|
+| 🎪 FORAIN | 0 |
+| 🎠 CHEF DE PISTE | 2 500 |
+| 🎟 GÉRANT | 9 000 |
+| 🎩 DIRECTEUR | 24 000 |
+| 💼 MAGNAT | 55 000 |
+| 👑 LÉGENDE | 110 000 |
+
+La fiche tient aussi les compteurs de toute une vie : parties jouées, parcs
+sauvés, meilleure saison, niveau maximum, visiteurs accueillis, tours vendus,
+recette de carrière, plus grosse caisse, succès décrochés.
+
+### La boutique
+
+Les **jetons de fête foraine** viennent des succès et de la fin de chaque partie
+— **y compris perdue**. Ils s'échangent contre huit améliorations définitives,
+qui valent pour toutes les parties suivantes :
+
+| | Effet par rang | Rangs |
+|---|---|---|
+| 💰 **Pactole de départ** | +4 000 € au démarrage | 4 |
+| 🏛 **Mairie conciliante** | −8 % sur tous les loyers | 3 |
+| 📣 **Renommée** | +7 % d'affluence | 3 |
+| 🤝 **Bonne entente** | −12 % sur les salaires | 3 |
+| 🔧 **Atelier mécanique** | −20 % de pannes | 3 |
+| 🌾 **Terrain défriché** | moins de mares, de rochers et de bosquets | 2 |
+| 🎓 **École de forains** | +10 % d'expérience gagnée | 3 |
+| 📓 **Carnet d'adresses** | +1 contrat par été | 2 |
+
+Le catalogue complet coûte 645 jetons ; les dix-neuf succès en rapportent 280.
+C'est volontaire : la boutique ne se vide pas en trois parties.
+
+### Les succès
+
+Dix-neuf, du premier tour de manège vendu à *SANS FILET* — gagner en difficulté
+la plus dure, 60 jetons. Ils se vérifient à la pose d'un bâtiment et à la
+fermeture du soir, et le succès décroché s'affiche dans le bilan de la journée
+avec sa prime.
+
+### Les contrats
+
+Deux par été (trois avec le carnet d'adresses), tirés parmi huit types et
+recalibrés sur l'été en cours : accueillir tant de monde en une journée, dégager
+tant de bénéfice, vendre tant de tours, finir à tant de satisfaction, atteindre
+tant d'étoiles, tenir le parc propre avec du monde dedans, servir tant
+d'articles, avoir tant d'attractions ouvertes.
+
+Un contrat se solde **à la fermeture, sur la journée écoulée**. Il paie une
+prime et des points de licence, une seule fois, puis il est rangé. Ce qui n'a
+pas été rempli expire avec l'été, et le tirage suivant est plus exigeant et
+mieux payé.
+
+C'est le seul système du jeu qui donne un **objectif court**. Le loyer est à
+huit journées ; un contrat est à aujourd'hui, et il oriente la construction du
+matin : on ne pose pas la même chose selon qu'on court après la satisfaction ou
+après le volume.
+
+Un onglet leur est réservé dans la barre de construction, avec une pastille qui
+compte ce qui reste à remplir, et une barre d'avancement par contrat qui se
+lit en pleine journée.
+
+### La saison reprend où on l'a laissée
+
+Trente-deux journées de douze minutes ne se jouent pas d'une traite. Un
+instantané est pris **chaque matin, à l'ouverture des grilles** — le seul moment
+où le parc se décrit entièrement : pas un visiteur en chemin, pas une file, pas
+une particule. Le menu propose alors *REPRENDRE · ÉTÉ 2 · JOUR 5*, et les
+réglages offrent un retour au menu qui ne perd rien.
+
+Ce qui est écrit : le sol et la saleté en chiffres collés — cinq mille cases
+font cinq kilo-octets au lieu de vingt en JSON —, la liste des bâtiments avec
+leur prix, leur usure et leurs pannes, les employés, les contrats, l'historique
+et les compteurs. Ce qui est **reconstruit** au chargement : les champs de
+distance, les morceaux de sol, le champ de beauté. Vérifié par rechargement
+complet du navigateur : caisse, bâtiments, employés, niveau, expérience et cases
+d'allée identiques au jeton près.
+
+### La courbe de la campagne
+
+Le bilan du soir et l'écran de fin portent un graphique de toute la campagne :
+une barre par journée pour le bénéfice — verte au-dessus de zéro, rouge en
+dessous —, la caisse en courbe dorée par-dessus, et les fins d'été en traits
+verticaux. Trente-deux lignes de chiffres ne racontent rien ; la même chose en
+courbe montre d'un coup d'œil l'été qui a décroché et la journée de pluie qui a
+coûté deux mille euros.
+
 ## Comment ils trouvent leur chemin
 
 Le réseau d'allées est un graphe. Pour **chaque** bâtiment, à chaque
@@ -165,6 +269,19 @@ propre prix, réglable de la gratuité au prix indécent.
 | 12 | rivière sauvage |
 | 13 | **le grand huit** |
 | 16 | **le looping** |
+
+### La courbe des paliers
+
+```js
+xpPour(n) = 43 × (n − 1)^2,43
+```
+
+L'exposant a été redressé de 2,05 à 2,43, ce qui rend le vingtième palier
+**2,2 fois plus cher** qu'avant. La raison est mesurée : avec l'ancienne courbe,
+la partie de référence atteignait le niveau maximum au vingtième jour sur
+trente-deux, et la seconde moitié de la campagne n'ouvrait plus rien du tout.
+Maintenant le Grand Huit se mérite, le Looping arrive tard, et le niveau 20
+n'est pas garanti par une partie simplement correcte.
 
 La **navette** est à part : ce n'est pas un manège, c'est un moyen de transport.
 Posées par deux, deux gares font passer les visiteurs de l'une à l'autre sans
@@ -268,6 +385,8 @@ const VIT_BASE=15;                            // un visiteur, en pixels/seconde
 const NIV_MAX=20;                             // la licence d'exploitation
 const MONTEE={frisson:.42, faim:.20, soif:.26, vessie:.16, fatigue:.145};
 const PRIX_ALLEE=10;
+xpPour(n) = 43 × (n−1)^2,43                   // les paliers de licence
+RANGS = [0, 2500, 9000, 24000, 55000, 110000] // les rangs de carrière
 ```
 
 ## Comment ça a été vérifié

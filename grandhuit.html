@@ -197,6 +197,84 @@ kbd{background:var(--creme2);border:1px solid var(--bord);border-radius:4px;padd
 .btnHaut button{background:var(--creme);border:2px solid var(--bord);color:var(--encre2);
   font:700 10px/1 var(--mono);letter-spacing:.2em;padding:11px 16px;cursor:pointer;border-radius:9px}
 
+/* ---------------- la couche carrière ---------------- */
+input[type=text]{-webkit-user-select:text;user-select:text}
+/* le bandeau du menu : portrait, nom d'enseigne, rang, jetons */
+.mprof{display:flex;align-items:center;gap:11px;margin-top:14px;padding:9px 14px 9px 9px;
+  border-radius:14px;background:rgba(253,248,236,.94);box-shadow:var(--ombre);
+  max-width:460px;width:100%}
+.mprof .av{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;
+  justify-content:center;font-size:24px;flex:0 0 auto;border:2px solid rgba(0,0,0,.14)}
+.mprof .mid{flex:1;min-width:0}
+.mprof .mid b{display:block;font-family:var(--titre);font-size:14px;letter-spacing:.02em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mprof .mid span{display:block;font-size:9px;color:var(--gris);font-weight:700;
+  letter-spacing:.06em;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mprof .mje{flex:0 0 auto;font-family:var(--titre);font-size:15px;color:#b8791a}
+.liens{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;margin-top:10px;
+  background:rgba(253,248,236,.9);border-radius:11px;padding:2px 6px;box-shadow:var(--ombre)}
+/* la fiche de carrière */
+.entete{display:flex;align-items:center;gap:14px}
+.entete .av{width:66px;height:66px;border-radius:18px;display:flex;align-items:center;
+  justify-content:center;font-size:34px;flex:0 0 auto;border:3px solid rgba(0,0,0,.14)}
+.entete .id{flex:1;min-width:0}
+.entete .id h2{font-family:var(--titre);font-size:20px;line-height:1.1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.entete .id p{font-size:10px;color:var(--gris);font-weight:700;letter-spacing:.1em;margin-top:4px}
+.entete .je{flex:0 0 auto;text-align:right}
+.entete .je b{display:block;font-family:var(--titre);font-size:22px;color:#b8791a}
+.entete .je span{display:block;font-size:8px;letter-spacing:.16em;color:var(--gris);font-weight:700}
+.nomL input{width:100%;padding:11px 13px;border:2px solid var(--bord);border-radius:9px;
+  background:var(--creme2);font:700 14px var(--mono);color:var(--encre);letter-spacing:.1em;
+  text-transform:uppercase;outline:none}
+.nomL input:focus{border-color:var(--or);background:#fff}
+.avs{display:flex;gap:7px;flex-wrap:wrap}
+.avs button{width:50px;height:50px;border-radius:14px;border:3px solid var(--bord);
+  font-size:25px;cursor:pointer;background:var(--creme2)}
+.avs button.on{border-color:var(--or);box-shadow:0 0 0 3px rgba(242,178,41,.34)}
+/* la boutique */
+.bouL{width:100%;max-width:620px;display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.art{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;
+  background:var(--creme);box-shadow:var(--ombre)}
+.art .ai{font-size:25px;width:32px;text-align:center;flex:0 0 auto}
+.art .ac{flex:1;min-width:0}
+.art .ac h4{font-size:11px;letter-spacing:.12em}
+.art .ac p{font-size:10px;color:var(--gris);line-height:1.55;margin-top:3px}
+.pts{display:flex;gap:3px;margin-top:6px}
+.pts i{width:17px;height:5px;border-radius:3px;background:rgba(34,48,63,.15)}
+.pts i.on{background:var(--violet)}
+.achat{flex:0 0 auto;padding:10px 12px;border:2px solid #c8901a;border-radius:9px;
+  background:var(--or);font:700 11px/1.35 var(--mono);color:#4a3208;cursor:pointer;
+  white-space:nowrap;text-align:center}
+.achat b{display:block;font-size:12px}
+.achat:disabled{background:var(--creme2);border-color:var(--bord);color:var(--gris);cursor:default}
+.art.plein{opacity:.72}
+/* les succès */
+.sucG{width:100%;max-width:620px;display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(186px,1fr));gap:8px;margin-top:12px}
+.suc{padding:10px 12px;border-radius:10px;background:var(--creme);box-shadow:var(--ombre);
+  border-left:5px solid var(--bord);opacity:.62}
+.suc.ok{opacity:1;border-left-color:var(--vert)}
+.suc b{display:block;font-size:10.5px;letter-spacing:.09em}
+.suc em{float:right;font-style:normal;font-weight:700;color:#b8791a;font-size:10px}
+.suc span{display:block;font-size:9.5px;color:var(--gris);margin-top:4px;line-height:1.5}
+/* la courbe de la campagne */
+.gcv{width:100%;height:132px;display:block;margin-top:2px}
+.leg{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:9px;color:var(--gris);
+  font-weight:700;letter-spacing:.08em}
+.leg i{display:inline-block;width:11px;height:4px;border-radius:2px;margin-right:5px;
+  vertical-align:middle}
+/* les contrats, dans le panneau de droite */
+.ct{padding:8px 0;border-bottom:1px dashed var(--bord)}
+.ct b{display:block;font-size:10.5px;letter-spacing:.05em}
+.ct span{display:block;font-size:9.5px;color:var(--gris);line-height:1.5;margin:3px 0 5px}
+.ct em{display:block;font-style:normal;font-size:9.5px;font-weight:700;color:var(--vert);
+  margin-top:4px}
+.ct.ok b{color:#2c7a41}
+.cat .pas{position:absolute;top:-4px;right:-4px;background:var(--vert);color:#fff;
+  border-radius:8px;font-size:8px;padding:1px 4px;font-weight:700}
+.cat{position:relative}
+
 /* hors jeu, aucune barre : le menu doit être une image, pas un tableau de bord */
 body:not(.enJeu) #barre,
 body:not(.enJeu) #construire,
@@ -254,7 +332,7 @@ body:not(.enJeu) #flash{display:none !important}
 <canvas id="c"></canvas>
 
 <div id="barre">
-  <div class="jauge arg" id="jArg"><span>CAISSE</span><b>0 €</b></div>
+  <div class="jauge arg" id="jArg"><span>CAISSE</span><b id="jArgV">0 €</b></div>
   <div class="jauge niv" id="jNivBloc"><span>NIVEAU</span><b id="jNiv">1</b>
     <i class="xpb"><u id="xpFill"></u></i></div>
   <div class="jauge"><span>ÉTÉ</span><b id="jJour">1 · J1</b></div>
@@ -284,14 +362,21 @@ body:not(.enJeu) #flash{display:none !important}
 <div class="screen on" id="menu">
   <h1>GRAND <u>HUIT</u></h1>
   <div class="eyebrow" style="margin-top:10px">UN TERRAIN VAGUE · QUATRE ÉTÉS · UNE SEULE CHANCE</div>
+  <div id="menuProfil"></div>
   <div id="menuRec"></div>
   <div class="note">
     La mairie te loue un pré derrière la nationale et la banque t'avance de quoi commencer.<br>
     Trace les allées, monte les manèges, fixe tes prix, surveille les files.<br>
     Les visiteurs ont soif, faim et envie de crier — et en repartant, ils racontent leur journée.
   </div>
+  <button class="btn" id="reprendre" style="display:none">REPRENDRE</button>
   <button class="btn" id="jouer">OUVRIR LE PARC</button>
-  <button class="lien" id="ouvrirRegl">RÈGLES ET RÉGLAGES</button>
+  <div class="liens">
+    <button class="lien" id="ouvrirProfil">PROFIL</button>
+    <button class="lien" id="ouvrirBoutique">BOUTIQUE</button>
+    <button class="lien" id="ouvrirSucces">SUCCÈS</button>
+    <button class="lien" id="ouvrirRegl">RÈGLES</button>
+  </div>
 </div>
 
 <div class="screen" id="soir">
@@ -300,8 +385,15 @@ body:not(.enJeu) #flash{display:none !important}
   <div class="carte"><div class="sur" id="sSur">RECETTES DE LA JOURNÉE</div>
     <div id="sLignes"></div></div>
   <div class="carte" id="sNiveau"></div>
+  <div class="carte" id="sContrats"></div>
   <div class="grille" style="max-width:620px" id="sGrille"></div>
   <div class="carte" id="sLoyer" style="display:none"></div>
+  <div class="carte" id="sCourbe"><div class="sur">LA CAMPAGNE JOUR APRÈS JOUR</div>
+    <canvas class="gcv" id="sGraph"></canvas>
+    <div class="leg"><span><i style="background:#2c7a41"></i>BÉNÉFICE DU JOUR</span>
+      <span><i style="background:#c0392b"></i>PERTE</span>
+      <span><i style="background:#f2b229"></i>CAISSE</span>
+      <span><i style="background:#8e6bbf"></i>FIN D'ÉTÉ</span></div></div>
   <div class="carte"><div class="sur">CE QUI A MANQUÉ</div><div id="sManque"></div></div>
   <div class="carte" id="sAvisCarte"><div class="sur">CE QU'ILS EN ONT DIT</div>
     <div id="sAvis"></div></div>
@@ -312,11 +404,49 @@ body:not(.enJeu) #flash{display:none !important}
   <div class="eyebrow" id="fEye"></div>
   <h1 style="font-size:var(--t2)" class="plat" id="fTitre">FIN</h1>
   <div class="grille" style="max-width:620px" id="fGrille"></div>
+  <div class="carte" id="fCourbe"><div class="sur">LA CAMPAGNE JOUR APRÈS JOUR</div>
+    <canvas class="gcv" id="fGraph"></canvas>
+    <div class="leg"><span><i style="background:#2c7a41"></i>BÉNÉFICE DU JOUR</span>
+      <span><i style="background:#c0392b"></i>PERTE</span>
+      <span><i style="background:#f2b229"></i>CAISSE</span>
+      <span><i style="background:#8e6bbf"></i>FIN D'ÉTÉ</span></div></div>
   <div class="carte"><div class="sur">LE MOT DE LA FIN</div><div id="fRapport"></div></div>
   <div class="relance">
     <button class="btn" id="fRejouer">REPRENDRE UN TERRAIN</button>
     <button class="btn ghost" id="fMenu">MENU</button>
   </div>
+</div>
+
+<div class="screen" id="profil">
+  <div class="btnHaut"><button id="fermerProfil">RETOUR</button></div>
+  <div class="eyebrow">FICHE DE CARRIÈRE</div>
+  <h1 style="font-size:var(--t2)">TON PARCOURS</h1>
+  <div class="carte" id="proTete"></div>
+  <div class="carte">
+    <div class="sur">LE NOM SUR L'ENSEIGNE</div>
+    <div class="nomL"><input type="text" id="proNom" maxlength="16" placeholder="SANS NOM"></div>
+    <div class="sur" style="margin:14px 0 8px">LE PORTRAIT</div>
+    <div class="avs" id="proAvs"></div>
+  </div>
+  <div class="grille" style="max-width:620px" id="proGrille"></div>
+  <div class="carte"><div class="sur">CE QUI EST ACQUIS POUR TOUJOURS</div>
+    <div id="proAmel"></div></div>
+</div>
+
+<div class="screen" id="boutique">
+  <div class="btnHaut"><button id="fermerBoutique">RETOUR</button></div>
+  <div class="eyebrow">LA ROULOTTE DU FORAIN</div>
+  <h1 style="font-size:var(--t2)">BOUTIQUE</h1>
+  <div class="carte" id="bouTete"></div>
+  <div class="bouL" id="bouListe"></div>
+</div>
+
+<div class="screen" id="succes">
+  <div class="btnHaut"><button id="fermerSucces">RETOUR</button></div>
+  <div class="eyebrow">TABLEAU DE CHASSE</div>
+  <h1 style="font-size:var(--t2)">SUCCÈS</h1>
+  <div class="carte" id="sucTete"></div>
+  <div class="sucG" id="sucListe"></div>
 </div>
 
 <div class="screen" id="reglages">
@@ -359,7 +489,11 @@ body:not(.enJeu) #flash{display:none !important}
         <input type="range" id="volIn" min="0" max="100" step="5" style="width:126px">
         <span id="volVal" style="font:700 12px var(--mono);color:var(--rouge);width:44px;
           text-align:right">60 %</span></div></div>
-    <div class="reg"><div><h4 class="danger">EFFACER</h4><p>Records et parties en cours.</p></div>
+    <div class="reg"><div><h4>QUITTER LA SAISON</h4><p>Retour au menu. La saison est
+      gardée au matin de la journée en cours et se reprend quand tu veux.</p></div>
+      <button class="lien" id="quitter">RETOUR AU MENU</button></div>
+    <div class="reg"><div><h4 class="danger">EFFACER</h4><p>Carrière, succès, boutique
+      et saison en cours.</p></div>
       <button class="lien danger" id="effacer">TOUT EFFACER</button></div>
   </div>
 </div>
@@ -773,10 +907,15 @@ function DIF(){ return DIFFS[SAVE.diff]||DIFFS.normale; }
    C'est la deuxième boucle du jeu, plus lente que celle de la réputation, et
    c'est elle qui donne les nouveautés. */
 const NIV_MAX=20;
-function xpPour(n){ return Math.round(60*Math.pow(Math.max(1,n-1),2.05)); }
+/* La courbe a été redressée : avec l'ancienne, le vingtième et dernier palier
+   tombait au vingtième jour sur trente-deux et la seconde moitié de la campagne
+   n'ouvrait plus rien. Maintenant le Grand Huit arrive vers le vingt-quatrième
+   jour, le Looping vers le vingt-neuvième, et le niveau 20 n'est atteint que
+   par une très bonne partie. */
+function xpPour(n){ return Math.round(43*Math.pow(Math.max(1,n-1),2.43)); }
 function xpDuJour(j,moy,benefice){
   return Math.round((j.entrees + j.tours*2 + j.ventes
-    + moy*60 + Math.max(0,benefice)/80) * DIF().xp);
+    + moy*60 + Math.max(0,benefice)/80) * DIF().xp * (1+.10*AM('ecole')));
 }
 /* ce que chaque niveau ouvre, construit une fois à partir des tables */
 let DEBLOCAGES=null;
@@ -893,7 +1032,288 @@ const Store={
   set(k,v){ try{ localStorage.setItem(k,v); }catch(e){ this.mem[k]=v; } }
 };
 const SAVE_DEF={ volume:.6, son:true, diff:'normale',
-  parties:0, victoires:0, meilleur:0, meilleureRep:0, totalVis:0, meilleurNiveau:0 };
+  nom:'', avatar:0,
+  parties:0, victoires:0, meilleur:0, meilleureRep:0, totalVis:0, meilleurNiveau:0,
+  jetons:0, xpCarriere:0, totalRecette:0, meilleureCaisse:0, totalTours:0,
+  succes:{}, ameliorations:{}, partie:null };
+
+/* ==========================================================================
+   LA CARRIÈRE
+   ==========================================================================
+   Ce qui survit à une partie : un nom, un rang, des jetons de fête foraine, des
+   succès, et des améliorations achetées une fois pour toutes. Une partie perdue
+   n'est jamais tout à fait perdue — elle laisse de quoi commencer la suivante
+   un cran plus haut. */
+const RANGS=[
+ {s:0,      nom:'FORAIN',        ico:'🎪', d:'On monte le manège soi-même.'},
+ {s:2500,   nom:'CHEF DE PISTE', ico:'🎠', d:'On commence à savoir où poser les allées.'},
+ {s:9000,   nom:'GÉRANT',        ico:'🎟', d:'Le parc tourne sans qu\'on le pousse.'},
+ {s:24000,  nom:'DIRECTEUR',     ico:'🎩', d:'La mairie décroche son téléphone quand on appelle.'},
+ {s:55000,  nom:'MAGNAT',        ico:'💼', d:'On rachète les parcs des autres.'},
+ {s:110000, nom:'LÉGENDE',       ico:'👑', d:'Il y a une statue de toi à l\'entrée.'}
+];
+function rangDe(xp){
+  let r=RANGS[0];
+  for(const x of RANGS) if(xp>=x.s) r=x;
+  return r;
+}
+function rangSuivant(xp){
+  for(const x of RANGS) if(xp<x.s) return x;
+  return null;
+}
+const AVATARS=[
+  {ico:'🎩', col:'#8e6bbf'}, {ico:'🧢', col:'#2e86c1'}, {ico:'👒', col:'#e86ca0'},
+  {ico:'🎓', col:'#3fa65a'}, {ico:'👑', col:'#f2b229'}, {ico:'🤠', col:'#e0503e'}
+];
+
+/* --- la boutique : des améliorations définitives, payées en jetons --- */
+const AMELIORATIONS={
+ pactole:{nom:'PACTOLE DE DÉPART', ico:'💰', max:4, cout:n=>6+n*6,
+   d:n=>'+'+nb(4000*n)+' € au démarrage de chaque partie'},
+ mairie:{nom:'MAIRIE CONCILIANTE', ico:'🏛', max:3, cout:n=>12+n*10,
+   d:n=>'−'+(8*n)+' % sur tous les loyers'},
+ renommee:{nom:'RENOMMÉE', ico:'📣', max:3, cout:n=>10+n*9,
+   d:n=>'+'+(7*n)+' % d\'affluence'},
+ entente:{nom:'BONNE ENTENTE', ico:'🤝', max:3, cout:n=>8+n*7,
+   d:n=>'−'+(12*n)+' % sur les salaires'},
+ atelier:{nom:'ATELIER MÉCANIQUE', ico:'🔧', max:3, cout:n=>9+n*8,
+   d:n=>'−'+(20*n)+' % de pannes'},
+ defriche:{nom:'TERRAIN DÉFRICHÉ', ico:'🌾', max:2, cout:n=>11+n*10,
+   d:n=>'Un terrain de départ '+(n>1?'presque nu':'moins encombré')},
+ ecole:{nom:'ÉCOLE DE FORAINS', ico:'🎓', max:3, cout:n=>14+n*12,
+   d:n=>'+'+(10*n)+' % d\'expérience gagnée'},
+ carnet:{nom:'CARNET D\'ADRESSES', ico:'📓', max:2, cout:n=>16+n*14,
+   d:n=>n+' contrat'+(n>1?'s':'')+' de plus par été'}
+};
+function rangAmelio(k){ return (SAVE.ameliorations&&SAVE.ameliorations[k])||0; }
+function AM(k){ return rangAmelio(k); }
+
+/* --- les succès --- */
+const SUCCES=[
+ {id:'premier',  nom:'PREMIER TOUR',       d:'Vendre un tour de manège',                    j:2},
+ {id:'cent',     nom:'CENT VISITEURS',     d:'Cent visiteurs en une journée',               j:3},
+ {id:'troiscent',nom:'LA FOULE',           d:'Trois cents visiteurs en une journée',        j:7},
+ {id:'cinqcent', nom:'JOUR DE POINTE',     d:'Cinq cents visiteurs en une journée',         j:12},
+ {id:'etoile3',  nom:'TROIS ÉTOILES',      d:'Atteindre trois étoiles de réputation',       j:3},
+ {id:'etoile5',  nom:'CINQ ÉTOILES',       d:'Atteindre cinq étoiles de réputation',        j:14},
+ {id:'niveau10', nom:'MOITIÉ DU CHEMIN',   d:'Atteindre le niveau 10',                      j:7},
+ {id:'niveau20', nom:'LICENCE COMPLÈTE',   d:'Atteindre le niveau 20',                      j:30},
+ {id:'huit',     nom:'LE GRAND HUIT',      d:'Poser le Grand Huit',                         j:10},
+ {id:'looping',  nom:'LA BOUCLE',          d:'Poser le Looping',                            j:18},
+ {id:'propre',   nom:'AUCUNE PLAINTE',     d:'Finir une journée sans un seul reproche',     j:9},
+ {id:'benef',    nom:'GROSSE JOURNÉE',     d:'Dix mille euros de bénéfice en une journée',  j:9},
+ {id:'magot',    nom:'LE MAGOT',           d:'Cent mille euros en caisse',                  j:14},
+ {id:'satisfait',nom:'TOUT LE MONDE SOURIT',d:'Une journée à plus de 90 % de satisfaction', j:11},
+ {id:'transport',nom:'CORRESPONDANCE',     d:'Deux navettes en service en même temps',      j:7},
+ {id:'jardin',   nom:'PARC PAYSAGER',      d:'Cinquante décors posés dans un même parc',    j:7},
+ {id:'complet',  nom:'CATALOGUE COMPLET',  d:'Poser les quatorze attractions',              j:22},
+ {id:'gagne',    nom:'QUATRE ÉTÉS',        d:'Payer les quatre loyers',                     j:35},
+ {id:'gagnedur', nom:'SANS FILET',         d:'Gagner en difficulté SANS FILET',             j:60}
+];
+function succesFait(id){ return !!(SAVE.succes&&SAVE.succes[id]); }
+function decrocher(id){
+  if(succesFait(id)) return;
+  const s=SUCCES.find(x=>x.id===id); if(!s) return;
+  SAVE.succes=SAVE.succes||{}; SAVE.succes[id]=1;
+  SAVE.jetons=(SAVE.jetons||0)+s.j;
+  sauver();
+  if(P) P.jt.succes=(P.jt.succes||[]).concat([s]);
+  flash('SUCCÈS · '+s.nom+' · +'+s.j+' jetons','bon');
+  SND.cloche();
+}
+/* on regarde ce qui vient d'être atteint, une fois par soir et à la pose */
+function verifierSucces(fin){
+  if(!P) return;
+  const j=P.jt||{};
+  if(P.total.tours>0) decrocher('premier');
+  if(j.entrees>=100) decrocher('cent');
+  if(j.entrees>=300) decrocher('troiscent');
+  if(j.entrees>=500) decrocher('cinqcent');
+  const et=etoilesDe(P.rep);
+  if(et>=3) decrocher('etoile3');
+  if(et>=5) decrocher('etoile5');
+  if(P.niveau>=10) decrocher('niveau10');
+  if(P.niveau>=20) decrocher('niveau20');
+  if(P.batis.some(b=>b.k==='huit')) decrocher('huit');
+  if(P.batis.some(b=>b.k==='looping')) decrocher('looping');
+  if(P.batis.filter(b=>b.k==='navette'&&b.relie).length>=2) decrocher('transport');
+  if(P.batis.filter(b=>b.cat==='decor').filter(b=>!b.nature).length>=50) decrocher('jardin');
+  if(Object.keys(ATTRACTIONS).every(k=>P.batis.some(b=>b.k===k))) decrocher('complet');
+  if(P.argent>=100000) decrocher('magot');
+  if(fin){
+    const n=j.bonheur?j.bonheur.length:0;
+    if(n>=20&&!Object.keys(j.causes||{}).length) decrocher('propre');
+    if(n>=20){
+      const moy=j.bonheur.reduce((a,b)=>a+b,0)/n;
+      if(moy>=.90) decrocher('satisfait');
+    }
+    const ben=(j.recEntree+j.recTours+j.recVentes)-(j.depEnt+j.depPaie);
+    if(ben>=10000) decrocher('benef');
+  }
+}
+
+/* --- les contrats : ce que la mairie et les sponsors demandent --- */
+const CONTRATS=[
+ {id:'foule', nom:'JOURNÉE RECORD', ico:'👥',
+  gen:e=>({but:Math.round(110+e*95)}),
+  txt:c=>'Accueillir '+c.but+' visiteurs en une seule journée',
+  jauge:(c,j)=>j.entrees/c.but, test:(c,j)=>j.entrees>=c.but,
+  rec:e=>3000+e*3000, xp:e=>500+e*400},
+ {id:'benef', nom:'BONNE AFFAIRE', ico:'💶',
+  gen:e=>({but:Math.round(1800+e*2600)}),
+  txt:c=>'Dégager '+eur(c.but)+' de bénéfice sur une journée',
+  jauge:(c,j,b)=>b/c.but, test:(c,j,b)=>b>=c.but,
+  rec:e=>2500+e*2600, xp:e=>450+e*380},
+ {id:'tours', nom:'ÇA TOURNE', ico:'🎠',
+  gen:e=>({but:Math.round(130+e*130)}),
+  txt:c=>'Vendre '+c.but+' tours de manège dans la journée',
+  jauge:(c,j)=>j.tours/c.but, test:(c,j)=>j.tours>=c.but,
+  rec:e=>2200+e*2400, xp:e=>420+e*350},
+ {id:'sourire', nom:'CLIENTS RAVIS', ico:'😊',
+  gen:e=>({but:Math.min(88,72+e*4)}),
+  txt:c=>'Finir une journée à '+c.but+' % de satisfaction',
+  jauge:(c,j)=>{ const n=j.bonheur.length; return n?(j.bonheur.reduce((a,b)=>a+b,0)/n*100)/c.but:0; },
+  test:(c,j)=>{ const n=j.bonheur.length;
+    return n>=15 && j.bonheur.reduce((a,b)=>a+b,0)/n*100>=c.but; },
+  rec:e=>2600+e*2500, xp:e=>520+e*400},
+ {id:'etoiles', nom:'BONNE PRESSE', ico:'⭐',
+  gen:e=>({but:Math.min(5,2+e)}),
+  txt:c=>'Atteindre '+c.but+' étoiles de réputation',
+  jauge:c=>etoilesDe(P.rep)/c.but, test:c=>etoilesDe(P.rep)>=c.but,
+  rec:e=>3200+e*2800, xp:e=>600+e*420},
+ {id:'propre', nom:'PARC IMPECCABLE', ico:'🧹',
+  /* un terrain vague est parfaitement propre : sans plancher de fréquentation,
+     ce contrat se gagnait tout seul au premier soir */
+  gen:e=>({but:88, mini:Math.round(40+e*35)}),
+  txt:c=>'Finir une journée à '+c.but+' % de propreté avec au moins '
+    +(c.mini||40)+' visiteurs',
+  jauge:(c,j)=>Math.min((1-saleteMoyenne())*100/c.but, j.entrees/(c.mini||40)),
+  test:(c,j)=>j.entrees>=(c.mini||40)&&(1-saleteMoyenne())*100>=c.but,
+  rec:e=>2000+e*2200, xp:e=>400+e*320},
+ {id:'ventes', nom:'LE COMPTOIR', ico:'🍟',
+  gen:e=>({but:Math.round(110+e*110)}),
+  txt:c=>'Servir '+c.but+' articles en boutique dans la journée',
+  jauge:(c,j)=>j.ventes/c.but, test:(c,j)=>j.ventes>=c.but,
+  rec:e=>2100+e*2200, xp:e=>400+e*330},
+ {id:'parc', nom:'AGRANDISSEMENT', ico:'🏗',
+  gen:e=>({but:Math.round(4+e*3)}),
+  txt:c=>'Avoir '+c.but+' attractions ouvertes en même temps',
+  jauge:c=>P.batis.filter(b=>b.cat==='attraction'&&b.relie).length/c.but,
+  test:c=>P.batis.filter(b=>b.cat==='attraction'&&b.relie).length>=c.but,
+  rec:e=>2800+e*2600, xp:e=>500+e*400}
+];
+function tirerContrats(){
+  const n=2+AM('carnet');
+  const pool=CONTRATS.slice();
+  const l=[];
+  for(let i=0;i<n&&pool.length;i++){
+    const c=pool.splice(Math.floor(Math.random()*pool.length),1)[0];
+    const p=c.gen(P.ete);
+    /* Les tables sont écrites en valeurs pleines ; on les rabote ici. Deux
+       primes au tarif plein doublaient la mise de départ dès le premier été et
+       faisaient sauter trois paliers de licence en une soirée. */
+    l.push({id:c.id, but:p.but, mini:p.mini, fait:false, ete:P.ete,
+      rec:Math.round(c.rec(P.ete)*.62), xp:Math.round(c.xp(P.ete)*.5)});
+  }
+  return l;
+}
+function defContrat(id){ return CONTRATS.find(c=>c.id===id); }
+function verifierContrats(benefice){
+  if(!P||!P.contrats) return;
+  for(const c of P.contrats){
+    if(c.fait) continue;
+    const d=defContrat(c.id); if(!d) continue;
+    let ok=false;
+    try{ ok=d.test(c,P.jt,benefice); }catch(e){ ok=false; }
+    if(ok){
+      c.fait=true;
+      P.argent+=c.rec; P.xp+=c.xp;
+      P.jt.contrats=(P.jt.contrats||[]).concat([{nom:d.nom, rec:c.rec, xp:c.xp,
+        txt:d.txt(c)}]);
+      SND.bien();
+    }
+  }
+}
+/* ==========================================================================
+   LA SAISON EN COURS, GARDÉE AU CHAUD
+   ==========================================================================
+   Une campagne, c'est quatre étés de huit journées de douze minutes : personne
+   ne la finit d'une traite. On prend donc un instantané chaque matin, à
+   l'ouverture des grilles — le seul moment où le parc n'a ni visiteur en
+   chemin, ni file, ni particule à décrire. Tout le reste se reconstruit :
+   les champs de distance, les morceaux de sol, la beauté du décor.
+
+   Le sol et la saleté sont écrits en chiffres collés plutôt qu'en tableaux
+   JSON : cinq mille cases font cinq kilo-octets au lieu de vingt. */
+function serialiserPartie(){
+  if(!P||P.demo||P.fini) return null;
+  let sol='', sal='';
+  for(let t=0;t<GX*GY;t++){ sol+=P.sol[t]; sal+=Math.round(clamp(P.salete[t],0,1)*9); }
+  return {
+    v:1, diff:SAVE.diff,
+    ete:P.ete, jour:P.jour, jourNum:P.jourNum, argent:Math.round(P.argent),
+    prixEntree:P.prixEntree, rep:+P.rep.toFixed(4), etoilesMax:P.etoilesMax,
+    niveau:P.niveau, xp:Math.round(P.xp), meteo:P.meteo,
+    st:P.st, total:P.total, contrats:P.contrats, histoire:P.histoire,
+    sol, sal,
+    batis:P.batis.map(b=>[b.cat,b.k,b.x,b.y,Math.round(b.px||0),b.nature?1:0,
+      b.panne?1:0,+(b.etat||1).toFixed(3),b.ferme?1:0,b.tours|0,Math.round(b.recette||0)]),
+    emp:P.employes.map(e=>e.k)
+  };
+}
+function instantane(){
+  if(!P||P.demo||P.fini) return;
+  try{ SAVE.partie=serialiserPartie(); sauver(); }catch(e){ SAVE.partie=null; }
+}
+function restaurerPartie(d){
+  if(!d||!d.sol||d.sol.length!==GX*GY) return false;
+  try{
+    if(d.diff&&DIFFS[d.diff]) SAVE.diff=d.diff;
+    nouvellePartie();                       // structures neuves, terrain jeté ensuite
+    for(let t=0;t<GX*GY;t++){
+      P.sol[t]=+d.sol[t]||0;
+      P.occ[t]=-1;
+      P.salete[t]=(+d.sal[t]||0)/9;
+    }
+    P.batis=[]; P.idBati=1;
+    for(const a of (d.batis||[])){
+      const cat=a[0], k=a[1];
+      if(!catalogue(cat,k)) continue;
+      const b=poserBrut(cat,k,a[2],a[3],!!a[5]);
+      b.px=a[4]; b.panne=!!a[6]; b.etat=a[7]; b.ferme=!!a[8];
+      b.tours=a[9]|0; b.recette=a[10]|0;
+    }
+    P.employes=[];
+    for(const k of (d.emp||[])) if(METIERS[k]) embaucher(k,true);
+    P.portail=[];
+    for(let t=0;t<GX*GY;t++) if(P.sol[t]===PORTAIL) P.portail.push(t);
+    if(!P.portail.length) portail();
+    P.entreeX=Math.floor(GX/2);
+    P.ete=d.ete; P.jour=d.jour; P.jourNum=d.jourNum;
+    P.argent=d.argent; P.prixEntree=d.prixEntree;
+    P.rep=d.rep; P.etoilesMax=d.etoilesMax||0;
+    P.niveau=d.niveau; P.xp=d.xp; P.meteo=d.meteo||'soleil';
+    P.st=d.st||P.st; P.total=d.total||P.total;
+    P.contrats=d.contrats||[]; P.histoire=d.histoire||[];
+    CHUNKS=null; P.beaute=null; P.sale=true;
+    refaireChamps();
+    cam.x=P.entreeX*TUILE; cam.y=(GY-12)*TUILE; cam.z=clamp(1.05,ZMIN,2.4); cam.zc=cam.z;
+    return true;
+  }catch(e){ return false; }
+}
+function reprendrePartie(){
+  if(!restaurerPartie(SAVE.partie)){
+    SAVE.partie=null; sauver(); majMenu();
+    flash('Sauvegarde illisible','mal');
+    return;
+  }
+  ecranActif='jeu'; ecrans(null);
+  construireCats(); catOuverte=null; majCats(); $('palette').innerHTML='';
+  aide('Reprise de l\'été '+P.ete+', journée '+P.jour+' sur '+JOURS+'.');
+  setTimeout(()=>aide(null),6000);
+  ouvrirJournee();
+}
+
 let SAVE=Object.assign({},SAVE_DEF);
 function charger(){
   try{ const b=Store.get(CLE); if(b) SAVE=Object.assign({},SAVE_DEF,JSON.parse(b)); }catch(e){}
@@ -903,13 +1323,14 @@ function sauver(){ try{ Store.set(CLE,JSON.stringify(SAVE)); }catch(e){} }
 function nouvellePartie(){
   P={
     ete:1, jour:1, t:0, heure:OUVERTURE, ouvert:true,
-    argent:22000, prixEntree:5,
+    argent:22000+4000*AM('pactole'), prixEntree:5,
     sol:new Uint8Array(GX*GY), occ:new Int16Array(GX*GY).fill(-1),
     salete:new Float32Array(GX*GY),
     batis:[], visiteurs:[], employes:[], parts:[], flottants:[],
     champs:{}, champSortie:null, sale:true,
     rep:.30, etoilesMax:0, meteo:'soleil',
     niveau:1, xp:0, beaute:null, jardinier:false,
+    contrats:[], histoire:[],
     entres:0, sortis:0, refus:0,
     jourNum:1, fini:false, gagne:false,
     jt:{entrees:0, tours:0, ventes:0, recEntree:0, recTours:0, recVentes:0,
@@ -921,6 +1342,7 @@ function nouvellePartie(){
   terrainNaturel();
   portail();
   refaireChamps();
+  P.contrats=tirerContrats();
   /* on démarre serré sur le portail : un terrain vide vu de loin ne dit rien
      de ce qu'on doit faire */
   cam.x=GX*TUILE/2; cam.y=(GY-8.5)*TUILE; cam.z=clamp(1.5,ZMIN,2.4); cam.zc=cam.z;
@@ -936,7 +1358,8 @@ function terrainNaturel(){
      voient pas. On en met plusieurs, de tailles différentes, et des bosquets
      denses : ce sont les obstacles qui donnent au tracé des allées son
      intérêt. On garde toujours dégagé le bas du terrain, autour du portail. */
-  for(let m=0;m<7;m++){
+  const moins=AM('defriche');
+  for(let m=0;m<7-moins*2;m++){
     const cx=ri(6,GX-8), cy=ri(4,GY-14), r=rnd(2.4,6.2);
     if(Math.abs(cx-Math.floor(GX/2))<5&&cy>GY-20) continue;
     for(let y=-8;y<=8;y++) for(let x=-9;x<=9;x++){
@@ -944,13 +1367,13 @@ function terrainNaturel(){
       if(d<r && dedans(cx+x,cy+y)) P.sol[idx(cx+x,cy+y)]=EAU;
     }
   }
-  for(let i=0;i<42;i++){
+  for(let i=0;i<42-moins*14;i++){
     const x=ri(2,GX-3), y=ri(2,GY-8);
     if(P.sol[idx(x,y)]) continue;
     P.sol[idx(x,y)]=ROCHE;
   }
   /* des bosquets plutôt que des arbres semés un par un */
-  for(let b=0;b<26;b++){
+  for(let b=0;b<26-moins*8;b++){
     const bx=ri(2,GX-3), by=ri(2,GY-6), n=ri(3,9);
     for(let i=0;i<n;i++){
       const x=bx+ri(-2,2), y=by+ri(-2,2);
@@ -1041,6 +1464,7 @@ function poser(cat,k,x,y){
   const b=poserBrut(cat,k,x,y);
   P.argent-=b.d.prix;
   SND.pose();
+  verifierSucces(false);
   return b;
 }
 /* La carte est quatre fois plus grande : une allée qui la traverse coûterait
@@ -1284,7 +1708,8 @@ function affluencePrevue(){
   const dif=DIF(), m=METEOS[P.meteo];
   const base=12 + attractionsUtiles()*7 + P.rep*140;
   const bouche=.45+P.rep*1.25;                  // le bouche-à-oreille
-  return Math.max(4,Math.round(base*bouche*m.affl*dif.affl*(1+(P.ete-1)*.06)));
+  return Math.max(4,Math.round(base*bouche*m.affl*dif.affl*(1+(P.ete-1)*.06)
+    *(1+.07*AM('renommee'))));
 }
 /* la courbe de la journée : ça arrive doucement, ça culmine en début
    d'après-midi, ça s'arrête une heure avant la fermeture */
@@ -1500,7 +1925,7 @@ function pasBati(b,dt,heures){
   /* usure et pannes */
   if(!b.panne){
     b.etat=clamp(b.etat-heures*.020*(b.cat==='attraction'?1:.4),0,1);
-    if(b.cat==='attraction'&&Math.random()<b.d.fiab*heures*(2.2-b.etat*1.6)){
+    if(b.cat==='attraction'&&Math.random()<b.d.fiab*(1-.20*AM('atelier'))*heures*(2.2-b.etat*1.6)){
       b.panne=true; b.file.forEach(v=>{ v.bonheur=clamp(v.bonheur-.16,0,1); v.etat='flane';
         v.cible=null; v.vuPanne=true; });
       b.file.length=0;
@@ -1592,12 +2017,13 @@ function pasBati(b,dt,heures){
 }
 
 /* ---------------------------------------------------------------- employés */
-function embaucher(k){
+function embaucher(k,muet){
   const m=METIERS[k];
   const t=pick(P.portail);
   P.employes.push({k, d:m, x:(t%GX+.5)*TUILE, y:((t/GX|0)+.5)*TUILE,
     tx:t%GX, ty:(t/GX|0), cible:null, champ:null, t:0, ph:rnd(0,TAU),
     dx:0, dy:0, vx:0, vy:1});
+  if(muet) return;
   flash(m.nom+' EMBAUCHÉ','bon'); SND.pose();
 }
 function licencier(k){
@@ -1709,6 +2135,9 @@ function ouvrirJournee(){
   SND.tempoOrgue=(P.meteo==='pluie'||P.meteo==='orage')?.82:1;
   SND.musiqueVol(.30);
   SND.lancerOrgue();
+  /* le parc est au calme plat : c'est le seul instant de la journée qui se
+     décrit entièrement, donc le seul où l'on sauvegarde */
+  instantane();
 }
 
 function pasJournee(dt){
@@ -1786,7 +2215,7 @@ function fermerJournee(){
   for(const b of P.batis){ b.file.length=0; b.dedans.length=0; b.t=0; }
 
   const ent=P.batis.reduce((s,b)=>s+(b.nature?0:b.d.ent),0);
-  const paie=P.employes.reduce((s,e)=>s+e.d.paie,0);
+  const paie=Math.round(P.employes.reduce((s,e)=>s+e.d.paie,0)*(1-.12*AM('entente')));
   P.jt.depEnt=ent; P.jt.depPaie=paie;
   P.argent-=ent+paie;
 
@@ -1813,6 +2242,9 @@ function fermerJournee(){
   const moyJ=n?P.jt.bonheur.reduce((a,b)=>a+b,0)/n:0;
   const gagne=xpDuJour(P.jt,moyJ,rec-dep);
   P.xp+=gagne; P.jt.xp=gagne; P.jt.niveaux=[];
+  /* les contrats se soldent avant le calcul des paliers : leurs points comptent
+     pour le niveau du soir même */
+  verifierContrats(rec-dep);
   while(P.niveau<NIV_MAX && P.xp>=xpPour(P.niveau+1)){
     P.niveau++;
     const sub=subventionDe(P.niveau);
@@ -1822,6 +2254,14 @@ function fermerJournee(){
   SAVE.meilleurNiveau=Math.max(SAVE.meilleurNiveau||0,P.niveau);
   SAVE.meilleureRep=Math.max(SAVE.meilleureRep||0,Math.round(P.rep*100));
   SAVE.totalVis=(SAVE.totalVis||0)+P.jt.entrees;
+  SAVE.totalTours=(SAVE.totalTours||0)+P.jt.tours;
+  SAVE.totalRecette=(SAVE.totalRecette||0)+rec;
+  SAVE.meilleureCaisse=Math.max(SAVE.meilleureCaisse||0,P.argent);
+  verifierSucces(true);
+  /* la courbe de la saison, pour le graphique du bilan */
+  P.histoire.push({e:P.ete, j:P.jour, ent:P.jt.entrees, ben:rec-dep,
+    arg:P.argent, rep:P.rep, met:P.meteo});
+  sauver();
 
   ecranActif='soir';
   montrerSoir(rec,dep);
@@ -1830,7 +2270,7 @@ function fermerJournee(){
 function jourSuivant(){
   if(P.jour>=JOURS){
     /* fin d'été : le loyer */
-    const loyer=Math.round(LOYERS[P.ete-1]*DIF().loyer);
+    const loyer=Math.round(LOYERS[P.ete-1]*DIF().loyer*(1-.08*AM('mairie')));
     P.argent-=loyer;
     if(P.argent<0){
       finPartie(false,'La mairie a repris le terrain : le loyer de '+eur(loyer)
@@ -1843,6 +2283,9 @@ function jourSuivant(){
     }
     P.ete++; P.jour=1;
     P.st={visiteurs:0,recette:0,depense:0};
+    /* les contrats non remplis expirent avec leur été ; on en retire de neufs,
+       plus exigeants et mieux payés */
+    P.contrats=tirerContrats();
     flash('ÉTÉ '+P.ete+' — LOYER PAYÉ ('+eur(loyer)+')','bon');
     SND.bien();
   } else {
@@ -1863,16 +2306,31 @@ function finPartie(gagne,txt){
   SND.silence();
   gagne?SND.bien():SND.mal();
   SAVE.parties=(SAVE.parties||0)+1;
-  if(gagne) SAVE.victoires=(SAVE.victoires||0)+1;
+  if(gagne){
+    SAVE.victoires=(SAVE.victoires||0)+1;
+    decrocher('gagne');
+    if(SAVE.diff==='dure') decrocher('gagnedur');
+  }
+  /* Ce que la partie laisse à la carrière. Une partie perdue en laisse aussi :
+     c'est ce qui fait qu'on relance. Les points sont une fraction de ceux du
+     parc, sinon un seul été réussi ferait passer trois rangs d'un coup. */
+  const pts=Math.round(P.xp*.22*(gagne?1.35:1)+(gagne?3000:0));
+  const jet=Math.round(2+(P.jourNum-1)/5+P.etoilesMax*1.6+P.niveau*.5+(gagne?18:0));
+  SAVE.xpCarriere=(SAVE.xpCarriere||0)+pts;
+  SAVE.jetons=(SAVE.jetons||0)+jet;
+  P.gainCarriere={pts, jet, rang:rangDe(SAVE.xpCarriere)};
+  SAVE.partie=null;
   sauver();
   montrerFin(gagne,txt);
 }
 
 /* ---------------------------------------------------------------- aides UI */
-function loyerProchain(){ return Math.round(LOYERS[Math.min(P.ete,ETES)-1]*DIF().loyer); }
+function loyerProchain(){
+  return Math.round(LOYERS[Math.min(P.ete,ETES)-1]*DIF().loyer*(1-.08*AM('mairie')));
+}
 function coutsQuotidiens(){
   const ent=P.batis.reduce((s,b)=>s+(b.nature?0:b.d.ent),0);
-  const paie=P.employes.reduce((s,e)=>s+e.d.paie,0);
+  const paie=Math.round(P.employes.reduce((s,e)=>s+e.d.paie,0)*(1-.12*AM('entente')));
   return ent+paie;
 }
 /* ==========================================================================
@@ -2828,7 +3286,7 @@ let outil=null, selection=null;
 const souris={x:0,y:0,g:[0,0],down:false,bouge:false,pan:false,px:0,py:0};
 
 function ecrans(id){
-  ['menu','soir','fin','reglages'].forEach(k=>{
+  ['menu','soir','fin','reglages','profil','boutique','succes'].forEach(k=>{
     const e=$(k); if(e) e.classList.toggle('on',k===id);
   });
 }
@@ -2873,6 +3331,7 @@ const CATS=[
  {id:'boutique',nom:'BOUTIQUES',  ico:'🍟'},
  {id:'decor',   nom:'DÉCOR',      ico:'🌳'},
  {id:'personnel',nom:'PERSONNEL', ico:'🧹'},
+ {id:'contrats',nom:'CONTRATS',    ico:'📋'},
  {id:'parc',    nom:'LE PARC',    ico:'🎟'},
  {id:'demolir', nom:'DÉMOLIR',    ico:'⛏', sup:true}
 ];
@@ -2894,6 +3353,7 @@ function ouvrirCat(id){
   else if(id==='demolir'){ outil={cat:'demolir'}; $('palette').innerHTML='';
     aide('Clique sur ce que tu veux retirer. On récupère 45 % du prix.'); }
   else if(id==='parc'){ outil=null; $('palette').innerHTML=''; aide(null); fichePark(); }
+  else if(id==='contrats'){ outil=null; $('palette').innerHTML=''; aide(null); ficheContrats(); }
   else if(id==='personnel'){ outil=null; palettePersonnel(); aide(null); }
   else { outil=null; paletteObjets(id); aide(null); }
   majCats();
@@ -2901,6 +3361,46 @@ function ouvrirCat(id){
 function majCats(){
   Array.prototype.forEach.call($('cats').children,el=>
     el.classList.toggle('on',el.getAttribute('data-c')===catOuverte));
+  /* une pastille sur l'onglet des contrats : combien restent à remplir */
+  const c=$('cats').querySelector('[data-c="contrats"]');
+  if(c&&P){
+    const n=(P.contrats||[]).filter(x=>!x.fait).length;
+    let p=c.querySelector('.pas');
+    if(n){ if(!p){ p=document.createElement('span'); p.className='pas'; c.appendChild(p); }
+      p.textContent=n; }
+    else if(p) p.remove();
+  }
+}
+
+/* la progression d'un contrat, telle qu'elle se lit en pleine journée : les
+   dépenses ne sont soldées qu'au soir, on prend donc le coût courant. */
+function avanceeContrat(c){
+  const d=defContrat(c.id); if(!d) return 0;
+  const rec=P.jt.recEntree+P.jt.recTours+P.jt.recVentes;
+  try{ return clamp(d.jauge(c,P.jt,rec-coutsQuotidiens()),0,1); }catch(e){ return 0; }
+}
+function ficheContrats(){
+  selection=null;
+  const el=$('panneau'); el.classList.add('on');
+  const l=P.contrats||[];
+  let h='<h3>CONTRATS</h3><div class="sous">ÉTÉ '+P.ete+' · '
+    +l.filter(c=>c.fait).length+' / '+l.length+' REMPLIS</div>';
+  if(!l.length) h+='<div class="txt">Aucun contrat signé cet été.</div>';
+  for(const c of l){
+    const d=defContrat(c.id); if(!d) continue;
+    const u=c.fait?1:avanceeContrat(c);
+    h+='<div class="ct'+(c.fait?' ok':'')+'">'
+      +'<b>'+d.ico+' '+d.nom+(c.fait?' ✓':'')+'</b>'
+      +'<span>'+d.txt(c)+'</span>'
+      +'<div class="barre"><i style="width:'+Math.round(u*100)+'%;background:'
+        +(c.fait?'#2c7a41':'#8e6bbf')+'"></i></div>'
+      +'<em>'+(c.fait?'Payé : ':'')+eur(c.rec)+' · +'+nb(c.xp)+' points</em></div>';
+  }
+  h+='<div class="txt">Un contrat se solde à la fermeture, sur la journée écoulée.'
+    +' Il est payé une fois, puis rangé. Les suivants arrivent avec le prochain été.</div>'
+    +'<button class="bt" id="cFer">FERMER</button>';
+  el.innerHTML=h;
+  $('cFer').onclick=()=>{ fermerFiche(); catOuverte=null; majCats(); };
 }
 function paletteObjets(cat){
   const tab=cat==='attraction'?ATTRACTIONS:cat==='boutique'?BOUTIQUES:DECORS;
@@ -3049,7 +3549,7 @@ function majBarre(){
   if(!P) return;
   const set=(id,v)=>{ const e=$(id); if(e&&hudC[id]!==v){ hudC[id]=v; e.textContent=v; } };
   const a=$('jArg');
-  set('jArg',eur(P.argent));
+  set('jArgV',eur(P.argent));
   a.classList.toggle('neg',P.argent<0);
   set('jJour',P.ete+' · J'+P.jour);
   set('jVis',nb(P.visiteurs.length));
@@ -3120,6 +3620,31 @@ function montrerSoir(rec,dep){
   }
   nx.innerHTML=hn;
 
+  /* les contrats soldés ce soir, les succès du jour, et ce qu'il reste à faire */
+  const ct=$('sContrats');
+  let hc='';
+  for(const x of (j.contrats||[]))
+    hc+='<div class="rl"><span class="re">📋</span><div class="rt">'
+      +'<b style="color:#2c7a41">CONTRAT REMPLI · '+x.nom+'</b><span>'+x.txt
+      +' — la prime tombe ce soir.</span></div>'
+      +'<span class="rv" style="color:#2c7a41">+'+eur(x.rec)+'</span></div>';
+  for(const x of (j.succes||[]))
+    hc+='<div class="rl"><span class="re">🏆</span><div class="rt">'
+      +'<b style="color:#b8791a">SUCCÈS · '+x.nom+'</b><span>'+x.d+'</span></div>'
+      +'<span class="rv" style="color:#b8791a">🪙 '+x.j+'</span></div>';
+  for(const c of (P.contrats||[])){
+    if(c.fait) continue;
+    const d=defContrat(c.id); if(!d) continue;
+    const u=avanceeContrat(c);
+    hc+='<div class="rl"><span class="re">'+d.ico+'</span><div class="rt">'
+      +'<b>'+d.nom+'</b><span>'+d.txt(c)+'</span>'
+      +'<div class="barre" style="margin-top:5px"><i style="width:'+Math.round(u*100)
+        +'%;background:#8e6bbf"></i></div></div>'
+      +'<span class="rv" style="color:#8e6bbf;font-size:13px">'+Math.round(u*100)+' %</span></div>';
+  }
+  ct.style.display=hc?'':'none';
+  if(hc) ct.innerHTML='<div class="sur">CONTRATS ET SUCCÈS</div>'+hc;
+
   /* le classement des reproches : c'est la liste des courses du lendemain */
   const cz=Object.entries(j.causes||{}).sort((a,b)=>b[1]-a[1]).slice(0,3);
   $('sManque').innerHTML=cz.length
@@ -3152,6 +3677,7 @@ function montrerSoir(rec,dep){
       +'</span></div><span class="rv" style="color:'
       +(manque>0?'#c0392b':'#2c7a41')+'">'+(manque>0?'−'+eur(manque):'✓')+'</span></div>';
   } else el.style.display='none';
+  dessinerHistoire($('sGraph'));
   $('sSuite').textContent=P.jour>=JOURS
     ? (P.ete>=ETES?'DERNIER COMPTE':'PAYER LE LOYER · '+eur(loyerProchain()))
     : 'JOURNÉE SUIVANTE';
@@ -3177,14 +3703,244 @@ function montrerFin(gagne,txt){
   if(P.jourNum-1>=(SAVE.meilleur||0)) R.push({e:'⭐',t:'MEILLEURE SAISON',
     s:'Ton record est maintenant de '+(P.jourNum-1)+' journée'
       +((P.jourNum-1)>1?'s tenues':' tenue')+'.'});
+  const gc=P.gainCarriere||{pts:0,jet:0,rang:rangDe(0)};
+  R.push({e:'🪙',t:'JETONS DE FÊTE',s:'À dépenser à la boutique — les améliorations '
+    +'valent pour toutes les parties suivantes. Tu en as '+nb(SAVE.jetons||0)+' en poche.',
+    v:'+'+gc.jet});
+  R.push({e:gc.rang.ico,t:'CARRIÈRE · '+gc.rang.nom,
+    s:(rangSuivant(SAVE.xpCarriere||0)
+      ? nb(rangSuivant(SAVE.xpCarriere||0).s-(SAVE.xpCarriere||0))+' points avant '
+        +rangSuivant(SAVE.xpCarriere||0).nom+'.'
+      : 'Plus haut rang de la profession.'),
+    v:'+'+nb(gc.pts)});
+  const np=SAVE.parties||0;
   R.push({e:'📊',t:'AU TOTAL',s:nb(SAVE.totalVis||0)+' visiteurs accueillis sur '
-    +nb(SAVE.parties||0)+' parties.'});
+    +nb(np)+' partie'+(np>1?'s':'')+'.'});
   $('fRapport').innerHTML=R.map(x=>'<div class="rl"><span class="re">'+x.e+'</span>'
-    +'<div class="rt"><b>'+x.t+'</b><span>'+x.s+'</span></div></div>').join('');
+    +'<div class="rt"><b>'+x.t+'</b><span>'+x.s+'</span></div>'
+    +(x.v?'<span class="rv" style="color:#b8791a">'+x.v+'</span>':'')+'</div>').join('');
   ecrans('fin');
+  dessinerHistoire($('fGraph'));
+}
+
+/* ==========================================================================
+   LA COURBE DE LA CAMPAGNE
+   ==========================================================================
+   Trente-deux journées de chiffres alignés ne racontent rien ; la même chose
+   en courbe se lit d'un coup d'œil : les étés qui montent, celui où la caisse
+   a plongé, la journée de pluie qui a coûté deux mille euros. */
+function dessinerHistoire(cvs){
+  if(!cvs) return;
+  const h=(P&&P.histoire)||[];
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const W=Math.max(220,cvs.clientWidth||520), H=132;
+  cvs.width=Math.round(W*dpr); cvs.height=Math.round(H*dpr);
+  const g=cvs.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,W,H);
+  g.font='700 8px '+FONT; g.textBaseline='middle';
+  if(h.length<2){
+    g.fillStyle='#a9b6c2'; g.textAlign='center';
+    g.fillText('LA COURBE SE DESSINE À PARTIR DE LA DEUXIÈME JOURNÉE',W/2,H/2);
+    return;
+  }
+  const N=ETES*JOURS;
+  const L=8, R=W-8, HAUT=10, BAS=H-14;
+  const px=i=>L+(R-L)*(i+.5)/N;
+  const pas=(R-L)/N;
+  /* deux échelles : les barres du bénéfice autour de leur zéro, la caisse sur
+     toute la hauteur */
+  const M=Math.max(600,...h.map(x=>Math.abs(x.ben)));
+  const A1=Math.max(1000,...h.map(x=>x.arg)), A0=Math.min(0,...h.map(x=>x.arg));
+  const zero=BAS-(BAS-HAUT)*.34;
+  const yb=v=>zero-(v/M)*(BAS-zero)*.92;
+  const ya=v=>BAS-(v-A0)/Math.max(1,A1-A0)*(BAS-HAUT);
+  /* les fins d'été */
+  g.strokeStyle='rgba(142,107,191,.45)'; g.lineWidth=1; g.setLineDash([3,3]);
+  for(let e=1;e<ETES;e++){
+    const x=L+(R-L)*(e*JOURS)/N;
+    g.beginPath(); g.moveTo(x,HAUT-4); g.lineTo(x,BAS+4); g.stroke();
+  }
+  g.setLineDash([]);
+  /* la ligne de zéro */
+  g.strokeStyle='rgba(34,48,63,.22)';
+  g.beginPath(); g.moveTo(L,zero); g.lineTo(R,zero); g.stroke();
+  /* les barres */
+  const larg=Math.max(2,Math.min(11,pas*.62));
+  for(let i=0;i<h.length;i++){
+    const x=px(i), y=yb(h[i].ben);
+    g.fillStyle=h[i].ben>=0?'#2c7a41':'#c0392b';
+    const y0=Math.min(y,zero), y1=Math.max(y,zero);
+    g.fillRect(x-larg/2,y0,larg,Math.max(1.5,y1-y0));
+  }
+  /* la caisse */
+  g.strokeStyle='#f2b229'; g.lineWidth=2; g.lineJoin='round';
+  g.beginPath();
+  for(let i=0;i<h.length;i++){ const x=px(i), y=ya(h[i].arg);
+    i?g.lineTo(x,y):g.moveTo(x,y); }
+  g.stroke();
+  const dx=px(h.length-1), dy=ya(h[h.length-1].arg);
+  g.fillStyle='#f2b229'; g.beginPath(); g.arc(dx,dy,3.2,0,TAU); g.fill();
+  /* les repères : le plus haut de la caisse, et les étés en bas */
+  g.fillStyle='#7d8c9c'; g.textAlign='left';
+  g.fillText(eur(A1),L+2,HAUT+2);
+  g.textAlign='center';
+  for(let e=0;e<ETES;e++){
+    const x=L+(R-L)*(e*JOURS+JOURS/2)/N;
+    g.fillStyle=e<Math.ceil(h.length/JOURS)?'#3c4f63':'#c3ccd4';
+    g.fillText('ÉTÉ '+(e+1),x,H-6);
+  }
+}
+
+/* ==========================================================================
+   LES ÉCRANS DE CARRIÈRE
+   ==========================================================================
+   Une partie dure quatre étés et se termine ; la carrière, elle, ne se termine
+   jamais. C'est elle qui donne une raison de relancer après une faillite : les
+   jetons décrochés restent, la boutique rend la prochaine partie un peu moins
+   raide, et le rang monte partie après partie. */
+function avatarDe(){ return AVATARS[SAVE.avatar||0]||AVATARS[0]; }
+function nomDe(){ return (SAVE.nom||'').trim().toUpperCase()||'FORAIN SANS NOM'; }
+function succesN(){ return SUCCES.filter(x=>succesFait(x.id)).length; }
+
+function enteteCarriere(){
+  const xp=SAVE.xpCarriere||0, rg=rangDe(xp), su=rangSuivant(xp), av=avatarDe();
+  const u=su?clamp((xp-rg.s)/Math.max(1,su.s-rg.s),0,1):1;
+  return '<div class="entete">'
+    +'<span class="av" style="background:'+av.col+'">'+av.ico+'</span>'
+    +'<div class="id"><h2>'+nomDe()+'</h2>'
+    +'<p style="color:'+av.col+'">'+rg.ico+' '+rg.nom+'</p>'
+    +'<div class="barre" style="margin-top:6px"><i style="width:'+Math.round(u*100)
+      +'%;background:'+av.col+'"></i></div>'
+    +'<p style="color:var(--gris);letter-spacing:.04em;margin-top:5px">'
+    +(su?nb(su.s-xp)+' points de carrière avant '+su.nom:'Plus haut rang atteint. '+rg.d)
+    +'</p></div>'
+    +'<div class="je"><b>'+nb(SAVE.jetons||0)+'</b><span>JETONS</span></div></div>';
+}
+
+function montrerProfil(){
+  $('proTete').innerHTML=enteteCarriere()
+    +'<div class="txt" style="font-size:10.5px;line-height:1.7;color:var(--encre2);margin-top:10px">'
+    +rangDe(SAVE.xpCarriere||0).d
+    +' Les points de carrière se gagnent en jouant : une partie en rapporte une part,'
+    +' une victoire en rapporte davantage.</div>';
+  $('proNom').value=(SAVE.nom||'');
+  $('proAvs').innerHTML=AVATARS.map((a,i)=>
+    '<button data-i="'+i+'" class="'+(i===(SAVE.avatar||0)?'on':'')
+    +'" style="background:'+a.col+'22">'+a.ico+'</button>').join('');
+  Array.prototype.forEach.call($('proAvs').children,el=>{
+    el.onclick=()=>{ SAVE.avatar=+el.getAttribute('data-i'); sauver(); SND.clic();
+      montrerProfil(); majMenu(); };
+  });
+  const c=(t,v,col)=>'<div class="cell"><span>'+t+'</span><b'+(col?' style="color:'+col+'"':'')
+    +'>'+v+'</b></div>';
+  $('proGrille').innerHTML=
+     c('PARTIES JOUÉES',nb(SAVE.parties||0))
+    +c('PARCS SAUVÉS',nb(SAVE.victoires||0),'#2c7a41')
+    +c('MEILLEURE SAISON',(SAVE.meilleur||0)+' j','#e0503e')
+    +c('NIVEAU MAXIMUM',(SAVE.meilleurNiveau||0)+' / '+NIV_MAX,'#8e6bbf')
+    +c('MEILLEURE RÉPUTATION',clamp(Math.floor((SAVE.meilleureRep||0)/100*5.9),0,5)+' ★','#f2b229')
+    +c('VISITEURS ACCUEILLIS',nb(SAVE.totalVis||0),'#2e86c1')
+    +c('TOURS VENDUS',nb(SAVE.totalTours||0),'#8e6bbf')
+    +c('RECETTE DE CARRIÈRE',eur(SAVE.totalRecette||0),'#2c7a41')
+    +c('PLUS GROSSE CAISSE',eur(SAVE.meilleureCaisse||0),'#2c7a41')
+    +c('SUCCÈS',succesN()+' / '+SUCCES.length,'#f2b229');
+  const l=Object.keys(AMELIORATIONS).filter(k=>AM(k)>0);
+  $('proAmel').innerHTML=l.length
+    ? l.map(k=>{ const a=AMELIORATIONS[k], n=AM(k);
+        return '<div class="rl"><span class="re">'+a.ico+'</span><div class="rt">'
+          +'<b style="color:#8e6bbf">'+a.nom+'</b><span>'+a.d(n)+'</span></div>'
+          +'<span class="rv" style="color:#8e6bbf">'+n+'/'+a.max+'</span></div>'; }).join('')
+    : '<div class="rl"><span class="re">🪙</span><div class="rt">'
+      +'<b>RIEN ENCORE</b><span>Décroche des succès pour gagner des jetons, '
+      +'puis dépense-les à la boutique. Ce qui y est acheté vaut pour toutes '
+      +'les parties suivantes.</span></div></div>';
+  ecranActif='profil'; ecrans('profil');
+}
+
+function montrerBoutique(){
+  $('bouTete').innerHTML=enteteCarriere()
+    +'<div class="txt" style="font-size:10.5px;line-height:1.7;color:var(--encre2);margin-top:10px">'
+    +'Tout ce qui s\'achète ici est <b>définitif</b> et s\'applique dès la partie suivante.'
+    +' Les jetons viennent des succès et de la fin de chaque partie — même perdue.</div>';
+  majBoutique();
+  ecranActif='boutique'; ecrans('boutique');
+}
+function majBoutique(){
+  const je=SAVE.jetons||0;
+  $('bouListe').innerHTML=Object.keys(AMELIORATIONS).map(k=>{
+    const a=AMELIORATIONS[k], n=AM(k), plein=n>=a.max;
+    const cout=plein?0:a.cout(n+1);
+    const pts=[];
+    for(let i=1;i<=a.max;i++) pts.push('<i class="'+(i<=n?'on':'')+'"></i>');
+    return '<div class="art'+(plein?' plein':'')+'">'
+      +'<span class="ai">'+a.ico+'</span>'
+      +'<div class="ac"><h4>'+a.nom+'</h4>'
+      +'<p>'+(plein?'<b style="color:#2c7a41">Au maximum · '+a.d(n)+'</b>'
+        :(n?'Actuel : '+a.d(n)+'<br>':'')+'Prochain : '+a.d(n+1))+'</p>'
+      +'<div class="pts">'+pts.join('')+'</div></div>'
+      +'<button class="achat" data-k="'+k+'"'+((plein||cout>je)?' disabled':'')+'>'
+      +(plein?'ACQUIS':'<b>🪙 '+cout+'</b>ACHETER')+'</button></div>';
+  }).join('');
+  Array.prototype.forEach.call($('bouListe').querySelectorAll('.achat'),el=>{
+    el.onclick=()=>acheterAmelioration(el.getAttribute('data-k'));
+  });
+}
+function acheterAmelioration(k){
+  const a=AMELIORATIONS[k]; if(!a) return;
+  const n=AM(k);
+  if(n>=a.max) return;
+  const cout=a.cout(n+1);
+  if((SAVE.jetons||0)<cout){ SND.erreur(); return; }
+  SAVE.jetons-=cout;
+  SAVE.ameliorations=SAVE.ameliorations||{};
+  SAVE.ameliorations[k]=n+1;
+  sauver(); SND.cloche();
+  flash(a.nom+' · NIVEAU '+(n+1),'bon');
+  majBoutique(); majMenu();
+  $('bouTete').innerHTML=$('bouTete').innerHTML.replace(
+    /<div class="je"><b>[^<]*<\/b>/, '<div class="je"><b>'+nb(SAVE.jetons||0)+'</b>');
+}
+
+function montrerSucces(){
+  const n=succesN(), tot=SUCCES.reduce((a,x)=>a+x.j,0);
+  const eus=SUCCES.filter(x=>succesFait(x.id)).reduce((a,x)=>a+x.j,0);
+  $('sucTete').innerHTML=enteteCarriere()
+    +'<div class="ligne" style="margin-top:10px"><span>Succès décrochés</span><b>'
+      +n+' / '+SUCCES.length+'</b></div>'
+    +'<div class="barre" style="margin-top:8px"><i style="width:'
+      +Math.round(n/SUCCES.length*100)+'%;background:#f2b229"></i></div>'
+    +'<div class="ligne" style="margin-top:10px"><span>Jetons gagnés en succès</span>'
+      +'<b style="color:#b8791a">'+eus+' / '+tot+'</b></div>';
+  $('sucListe').innerHTML=SUCCES.map(x=>{
+    const ok=succesFait(x.id);
+    return '<div class="suc'+(ok?' ok':'')+'"><em>🪙 '+x.j+'</em>'
+      +'<b>'+(ok?'✓ ':'')+x.nom+'</b><span>'+x.d+'</span></div>';
+  }).join('');
+  ecranActif='succes'; ecrans('succes');
 }
 
 function majMenu(){
+  const xp=SAVE.xpCarriere||0, rg=rangDe(xp), su=rangSuivant(xp), av=avatarDe();
+  const u=su?clamp((xp-rg.s)/Math.max(1,su.s-rg.s),0,1):1;
+  $('menuProfil').innerHTML='<div class="mprof">'
+    +'<span class="av" style="background:'+av.col+'">'+av.ico+'</span>'
+    +'<div class="mid"><b>'+nomDe()+'</b>'
+    +'<span>'+rg.ico+' '+rg.nom+(su?' · '+nb(su.s-xp)+' pts avant '+su.nom:' · au sommet')+'</span>'
+    +'<div class="barre" style="margin-top:5px"><i style="width:'+Math.round(u*100)
+      +'%;background:'+av.col+'"></i></div></div>'
+    +'<span class="mje">🪙 '+nb(SAVE.jetons||0)+'</span></div>';
+  const pa=SAVE.partie, rb=$('reprendre');
+  if(pa&&pa.sol){
+    rb.style.display='';
+    rb.textContent='REPRENDRE · ÉTÉ '+pa.ete+' · JOUR '+pa.jour;
+    $('jouer').textContent='NOUVEAU PARC';
+    $('jouer').className='btn ghost';
+  } else {
+    rb.style.display='none';
+    $('jouer').textContent='OUVRIR LE PARC';
+    $('jouer').className='btn';
+  }
   const r=[];
   if(SAVE.meilleur) r.push('MEILLEURE SAISON : <b style="color:#c0392b">'+SAVE.meilleur
     +' journée'+(SAVE.meilleur>1?'s':'')+' tenue'+(SAVE.meilleur>1?'s':'')+'</b>');
@@ -3338,7 +4094,11 @@ function cabler(){
     ecranActif='reglages'; };
   $('jArg').onclick=()=>{ catOuverte='parc'; majCats(); fichePark(); };
 
+  $('reprendre').onclick=()=>{ SND.init(); SND.reprendre(); SND.clic(); reprendrePartie(); };
   $('jouer').onclick=()=>{ SND.init(); SND.reprendre(); SND.clic();
+    if(SAVE.partie&&!confirm('Une saison est en cours (été '+SAVE.partie.ete+', journée '
+      +SAVE.partie.jour+'). Elle sera perdue. Commencer un nouveau parc ?')) return;
+    SAVE.partie=null; sauver();
     nouvellePartie(); ecranActif='jeu'; ecrans(null);
     construireCats(); catOuverte=null; majCats(); $('palette').innerHTML='';
     aide('Commence par tracer une <b>allée</b> depuis le portail, puis pose un manège à côté.');
@@ -3353,6 +4113,25 @@ function cabler(){
     if(P&&!P.fini){ ecranActif='jeu'; ecrans(null); }
     else { ecranActif='menu'; majMenu(); ecrans('menu'); }
   };
+  const auMenu=()=>{ ecranActif='menu'; majMenu(); ecrans('menu'); SND.clic(); };
+  $('ouvrirProfil').onclick=()=>{ SND.init(); SND.clic(); montrerProfil(); };
+  $('ouvrirBoutique').onclick=()=>{ SND.init(); SND.clic(); montrerBoutique(); };
+  $('ouvrirSucces').onclick=()=>{ SND.init(); SND.clic(); montrerSucces(); };
+  $('fermerProfil').onclick=auMenu;
+  $('fermerBoutique').onclick=auMenu;
+  $('fermerSucces').onclick=auMenu;
+  $('proNom').oninput=e=>{
+    SAVE.nom=e.target.value.toUpperCase().slice(0,16);
+    if(e.target.value!==SAVE.nom) e.target.value=SAVE.nom;
+    sauver(); majMenu();
+    const h=$('proTete').querySelector('h2'); if(h) h.textContent=nomDe();
+  };
+  $('quitter').onclick=()=>{
+    SND.clic();
+    if(P&&!P.fini&&!confirm('Retour au menu ? La saison reprendra au matin de la journée '
+      +P.jour+'.')) return;
+    P=null; ecranActif='menu'; majMenu(); ecrans('menu'); parcDemo();
+  };
   $('diffBtn').onclick=()=>{
     const l=Object.keys(DIFFS);
     SAVE.diff=l[(l.indexOf(SAVE.diff)+1)%l.length]; sauver(); majReglages(); SND.clic();
@@ -3363,8 +4142,10 @@ function cabler(){
   $('volIn').oninput=e=>{ SAVE.volume=+e.target.value/100; SND.vol(SAVE.volume);
     $('volVal').textContent=Math.round(SAVE.volume*100)+' %'; sauver(); };
   $('effacer').onclick=()=>{
-    if(!confirm('Effacer records et réglages ?')) return;
-    SAVE=Object.assign({},SAVE_DEF); sauver(); majMenu(); majReglages();
+    if(!confirm('Effacer la carrière, les succès, la boutique et la saison en cours ?')) return;
+    SAVE=Object.assign({},SAVE_DEF,{succes:{},ameliorations:{},partie:null});
+    sauver(); majMenu(); majReglages();
+    if(P&&!P.fini){ P=null; ecranActif='menu'; ecrans('menu'); parcDemo(); }
   };
   document.addEventListener('visibilitychange',()=>{
     if(document.hidden&&ecranActif==='jeu'){ enPause=true; majVitesse(); }
