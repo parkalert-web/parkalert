@@ -1093,7 +1093,12 @@ function nouveauVisiteur(){
     col:pick(HABITS), peau:pick(PEAUX), taille:rnd(.88,1.12), ph:rnd(0,TAU),
     besoins:{frisson:rnd(.35,.75), faim:rnd(0,.30), soif:rnd(.05,.35),
              vessie:rnd(0,.20), fatigue:rnd(0,.15)},
-    argent:Math.round(rnd(26,74)*dif.bourse*(1+P.rep*.5)),
+    /* On ne vient pas avec la même somme dans la poche pour un pré avec deux
+       manèges et pour un parc de quinze attractions : on prévoit la journée.
+       Sans ce terme, le prix d'entrée « accepté » grandissait avec le parc mais
+       pas les portefeuilles, et un tiers des visiteurs franchissaient le
+       portail sans plus rien pour monter dans quoi que ce soit. */
+    argent:Math.round(rnd(26,74)*dif.bourse*(1+P.rep*.5)*(P.richesse||1)),
     depart:0, bonheur:.62, patience:rnd(.7,1.35)*dif.patience,
     etat:'entre', cible:null, lieu:null, tx:0, ty:0, avance:0,
     vus:{}, tours:0, achats:0, ennui:0, t:0, place:0, cri:0,
@@ -1112,6 +1117,14 @@ function nouveauVisiteur(){
 /* ---------------------------------------------------------------- l'affluence
    Combien de monde se présente au portail aujourd'hui. C'est le seul endroit
    où la réputation agit — mais elle agit sur tout le reste par ricochet. */
+/* ce qu'un visiteur type apporte, une fois le parc pris en compte */
+function bourseMoyenne(){
+  return 50*DIF().bourse*(1+P.rep*.5)*(P.richesse||1);
+}
+function majRichesse(){
+  const n=P.batis.filter(b=>b.cat==='attraction'&&b.relie).length;
+  P.richesse=1+n*.055;
+}
 function affluencePrevue(){
   const dif=DIF(), m=METEOS[P.meteo];
   const attractions=P.batis.filter(b=>b.cat==='attraction'&&b.relie).length;
@@ -1137,6 +1150,14 @@ function faireEntrer(){
   const v=nouveauVisiteur();
   const seuil=prixAcceptable();
   if(P.prixEntree>seuil*rnd(.85,1.2)){
+    P.refus++; P.jt.refus=(P.jt.refus||0)+1;
+    return;
+  }
+  /* On ne paie pas un billet qui ne laisse pas de quoi monter deux fois : on
+     regarde l'affiche et on fait demi-tour. Le joueur voit alors les
+     demi-tours grimper, ce qui est le bon signal — au lieu d'un parc plein de
+     gens sans un sou qui repartent en disant « on n'a rien fait ». */
+  if(v.argent-P.prixEntree < 9){
     P.refus++; P.jt.refus=(P.jt.refus||0)+1;
     return;
   }
@@ -1509,6 +1530,7 @@ let NORMA=1;                                   // intégrale de la courbe d'arri
 function ouvrirJournee(){
   P.t=0; P.ouvert=true; P.heure=OUVERTURE;
   P.meteo=pick(urneMeteo(P.jour));
+  majRichesse();
   P.prevu=affluencePrevue();
   P.spawnAcc=0; P.grace=0;
   P.jt={entrees:0, tours:0, ventes:0, recEntree:0, recTours:0, recVentes:0,
@@ -2433,12 +2455,19 @@ function fichePark(){
   +'<div class="ligne"><span>Propreté</span><b>'+Math.round((1-saleteMoyenne())*100)+' %</b></div>'
   +'<button class="bt" id="pFerme">FERMER</button>';
   const maj=()=>{
-    const s=prixAcceptable();
+    const s=prixAcceptable(), b=bourseMoyenne();
     const t=$('pEntT');
-    if(P.prixEntree<=s*.6) t.innerHTML='Personne ne trouvera ça cher. Tu laisses de l\'argent sur la table.';
-    else if(P.prixEntree<=s) t.innerHTML='Prix accepté par à peu près tout le monde.';
-    else if(P.prixEntree<=s*1.25) t.innerHTML='<b class="danger">Une partie fait demi-tour au portail.</b>';
-    else t.innerHTML='<b class="danger">Beaucoup trop cher pour ce que le parc propose.</b>';
+    const reste=Math.round(b-P.prixEntree);
+    let txt;
+    if(P.prixEntree>s*1.25) txt='<b class="danger">Beaucoup trop cher pour ce que le parc propose.</b>';
+    else if(P.prixEntree>s) txt='<b class="danger">Une partie fait demi-tour au portail.</b>';
+    else if(P.prixEntree<=s*.6) txt='Personne ne trouvera ça cher. Tu laisses de l\'argent sur la table.';
+    else txt='Prix accepté par à peu près tout le monde.';
+    /* le billet ne doit pas manger la journée : c'est le piège du jeu */
+    if(reste<14) txt+=' <b class="danger">Il ne leur restera qu\'environ '+reste
+      +' € pour les manèges et les boutiques.</b>';
+    else txt+=' Il leur restera environ '+reste+' € à dépenser dedans.';
+    t.innerHTML=txt;
   };
   $('pEnt').oninput=e=>{ P.prixEntree=+e.target.value; $('pEntV').textContent=P.prixEntree+' €'; maj(); };
   $('pFerme').onclick=()=>{ fermerFiche(); catOuverte=null; majCats(); };

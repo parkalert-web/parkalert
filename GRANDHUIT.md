@@ -56,6 +56,30 @@ Chaque terme est un levier de jeu, et un seul :
 | **attente** | doubler une attraction populaire, monter son prix, embaucher un animateur |
 | **prix** | l'entrée, chaque manège, chaque boutique, réglables un par un |
 
+### Le piège du billet d'entrée
+
+Le dernier terme est le plus vicieux, et il a fallu une campagne complète pour
+le voir. Le prix qu'un visiteur accepte à l'entrée monte avec la taille du parc
+— seize attractions valent bien trente-six euros. Mais un porte-monnaie ne
+montait pas, lui. Résultat mesuré : à trente-six euros le billet, la moitié des
+visiteurs entraient avec seize euros en poche, un tiers avec moins de six, et
+certains **en négatif**. Ils ne pouvaient plus rien s'offrir, alors ils
+repartaient en disant « on n'a rien fait » — et le jeu accusait le parc au lieu
+d'accuser la caisse. Sur la partie de référence, quatre journées consécutives
+se sont soldées par **zéro tour de manège avec treize attractions ouvertes**.
+
+Deux règles ont réparé ça :
+
+- **on vient avec de quoi passer la journée** : la bourse suit le nombre
+  d'attractions raccordées, comme le prix acceptable ;
+- **personne ne paie son dernier euro pour une affiche** : si le billet ne laisse
+  pas de quoi monter deux fois, on fait demi-tour au portail.
+
+La deuxième est la plus importante pour le joueur : le compteur de demi-tours
+grimpe visiblement au lieu de remplir le parc de gens sans un sou. Et le
+panneau du parc annonce désormais, sous le curseur du prix, ce qu'il leur
+restera à dépenser dedans.
+
 Le coefficient de distance a été mesuré, pas choisi. À deux centièmes par case,
 un visiteur refusait tout ce qui se trouvait à plus de vingt cases : un parc qui
 grandissait devenait un parc où plus personne ne montait, et le reproche
@@ -195,7 +219,10 @@ C'est ce relevé qui a mis en évidence, dans l'ordre :
   d'échelle correcte ;
 - une **saleté ingérable** — un balayeur qui traitait une case à la fois puis
   retraversait le parc ne tenait pas deux cents visiteurs ;
-- des **orages précoces** qui coulaient un parc sans faute de jeu.
+- des **orages précoces** qui coulaient un parc sans faute de jeu ;
+- et, tout à la fin, le **piège du billet d'entrée** décrit plus haut : quatre
+  journées d'affilée à zéro tour de manège, sans une panne ni une fermeture,
+  simplement parce que les visiteurs entraient sans un sou.
 
 Le relevé de la partie de référence, en difficulté normale, trente-deux
 journées jouées d'affilée sans une erreur :
