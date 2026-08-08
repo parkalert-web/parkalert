@@ -229,19 +229,21 @@ journées jouées d'affilée sans une erreur :
 
 | | Été 1 | Été 2 | Été 3 | Été 4 |
 |---|---|---|---|---|
-| Visiteurs le meilleur jour | 139 | 197 | 236 | 259 |
-| Recette du meilleur jour | 3 197 € | 5 839 € | 7 223 € | 8 859 € |
-| Attractions en fin d'été | 5 | 8 | 11 | 11 |
-| Étoiles | 3 | 4 | 3 | 4 |
+| Visiteurs le meilleur jour | 157 | 215 | 227 | 221 |
+| Tours vendus ce jour-là | 142 | 200 | 214 | 209 |
+| Recette du meilleur jour | 3 805 € | 6 849 € | 7 760 € | 7 805 € |
+| Attractions en fin d'été | 5 | 9 | 12 | 13 |
+| Étoiles | 4 | 3 | 3 | 4 |
 | Loyer payé | 3 800 € | 10 000 € | 19 000 € | 31 000 € |
-| En caisse après le loyer | 2 300 € | 4 413 € | 2 323 € | **8 240 €** |
+| En caisse après le loyer | 3 986 € | 7 147 € | 13 127 € | **14 038 €** |
 
-Le motif qui revient chaque été est celui qu'on veut voir dans un jeu de
-gestion : les jours de grand soleil remplissent le parc, la satisfaction tombe
-à 50 % avec « les files sont interminables » et « pas une buvette, en plein
-soleil », la réputation baisse, l'affluence se corrige d'elle-même le lendemain.
-Le parc se régule ; c'est au joueur de casser cette limite en doublant ce qui
-sature.
+Le nombre de tours suit le nombre d'entrées tout du long — c'est le signe que
+la boucle tourne. Le motif qui revient chaque été est celui qu'on veut voir dans
+un jeu de gestion : les jours de grand soleil remplissent le parc, la
+satisfaction tombe à 60 % avec « les files sont interminables » et « pas une
+buvette, en plein soleil », la réputation baisse d'une étoile, l'affluence se
+corrige d'elle-même le lendemain. Le parc se régule ; c'est au joueur de casser
+cette limite en doublant ce qui sature.
 
 Le coût du rendu, mesuré à part, avec le pire cas fabriqué à la main —
 soixante-quatorze bâtiments, quatre cent seize visiteurs dans la journée,
