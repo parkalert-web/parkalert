@@ -298,29 +298,36 @@ journées jouées d'affilée sans une erreur :
 
 | | Été 1 | Été 2 | Été 3 | Été 4 |
 |---|---|---|---|---|
-| Visiteurs le meilleur jour | 157 | 215 | 227 | 221 |
-| Tours vendus ce jour-là | 142 | 200 | 214 | 209 |
-| Recette du meilleur jour | 3 805 € | 6 849 € | 7 760 € | 7 805 € |
-| Attractions en fin d'été | 5 | 9 | 12 | 13 |
-| Étoiles | 4 | 3 | 3 | 4 |
-| Loyer payé | 3 800 € | 10 000 € | 19 000 € | 31 000 € |
-| En caisse après le loyer | 3 986 € | 7 147 € | 13 127 € | **14 038 €** |
+| Visiteurs le meilleur jour | 212 | 327 | 381 | 400 |
+| Tours vendus ce jour-là | 239 | 439 | 508 | 483 |
+| Recette du meilleur jour | 8 335 € | 14 476 € | 18 718 € | 19 957 € |
+| Attractions en fin d'été | 8 | 16 | 24 | 28 |
+| Niveau de licence | 9 | 17 | 20 | 20 |
+| Étoiles | 4 | 5 | 4 | 4 |
+| Loyer payé | 5 000 € | 13 000 € | 24 000 € | 40 000 € |
+| En caisse après le loyer | 8 879 € | 16 403 € | 31 320 € | **32 939 €** |
 
 Le nombre de tours suit le nombre d'entrées tout du long — c'est le signe que
-la boucle tourne. Le motif qui revient chaque été est celui qu'on veut voir dans
-un jeu de gestion : les jours de grand soleil remplissent le parc, la
-satisfaction tombe à 60 % avec « les files sont interminables » et « pas une
-buvette, en plein soleil », la réputation baisse d'une étoile, l'affluence se
-corrige d'elle-même le lendemain. Le parc se régule ; c'est au joueur de casser
-cette limite en doublant ce qui sature.
+la boucle tourne. La recette plafonne autour de vingt mille euros par jour au
+lieu de grimper indéfiniment, et le billet d'entrée se stabilise à trente-neuf
+euros : c'est la saturation qui fait son travail. Le motif qui revient chaque
+été est celui qu'on veut voir dans un jeu de gestion : les canicules remplissent
+le parc, la satisfaction tombe à 77 % avec « j'ai eu soif toute la journée », la
+réputation perd une étoile, l'affluence se corrige d'elle-même le lendemain. Le
+parc se régule ; c'est au joueur de casser cette limite en doublant ce qui
+sature.
 
-Le coût du rendu, mesuré à part, avec le pire cas fabriqué à la main —
-soixante-quatorze bâtiments, quatre cent seize visiteurs dans la journée,
-en 1280 × 800 :
+Le coût du rendu, mesuré à part, avec le pire cas fabriqué à la main sur le
+grand terrain — **deux cent soixante-trois bâtiments, cinq cent vingt cases
+d'allée, huit cent quatre-vingt-dix-sept visiteurs et neuf cent soixante-dix-
+huit tours dans la journée**, en 1280 × 800 :
 
 | Images/s | Pire image | Images > 20 ms |
 |---|---|---|
-| 59 | 33 ms | 1 |
+| 60 | 67 ms | 3 |
+
+C'est ce chiffre-là qui justifie le sol en morceaux et le champ de beauté : sans
+eux, la même scène passait sous les vingt images par seconde.
 
 Comme pour les autres jeux du dépôt, c'est du rendu **logiciel**, sans carte
 graphique : un plancher, pas une mesure.
