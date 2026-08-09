@@ -184,6 +184,11 @@ présent dans les allées**, et c'est le joueur qui l'envoie travailler. L'outil
 | un **papier par terre** | il va le ramasser (et ceux qu'il croise en chemin partent tout seuls) |
 | **le sol** | il s'y rend, tout simplement |
 
+Cliquer un deuxième rayon pendant qu'il en remplit un ne l'interrompt pas : ça
+l'**enchaîne**. La file de tâches monte à douze, le bandeau la compte, et le
+bouton STOP la vide. C'est ce qui rend le travail manuel jouable sur un magasin
+de vingt rayons sans devenir du clic frénétique.
+
 C'est le vrai départ d'un petit commerce : tant qu'on ne peut pas payer un hôte
 de caisse à 70 € la journée, on tient la caisse soi-même. Et l'arbitrage est
 chiffré — **une caisse laissée à elle-même avance deux fois moins vite qu'avec
@@ -215,9 +220,17 @@ réellement de l'argent en ce moment :
 - la réserve pleine — la prochaine livraison sera refusée ;
 - le magasin sale.
 
-Quand il n'y a rien, il l'écrit aussi. Et le bilan du soir ne dit pas seulement
-combien de points d'agrément il reste : il dit **combien de journées ça
-représente au rythme actuel**, et **ce que le palier suivant ouvrira**.
+Quand il n'y a rien, il l'écrit aussi. La barre du haut porte en permanence le
+nombre de **rayons en rupture**, en rouge dès qu'il y en a un, et un clic dessus
+amène la vue sur le premier. Un client sur le point de lâcher son caddie porte
+un point d'exclamation rouge au-dessus de la tête, qui s'intensifie à mesure
+qu'il craque — la perte la plus chère du jeu se voit avant d'arriver.
+
+Le bilan du soir ne dit pas seulement combien de points d'agrément il reste : il
+dit **combien de journées ça représente au rythme actuel**, et **ce que le palier
+suivant ouvrira**, licences comprises. Il porte aussi un palmarès — *ce qui
+rapporte, ce qui dort* — qui classe les références par marge du jour et désigne
+celles qui prennent du linéaire sans rien vendre.
 
 ## La semaine
 
@@ -398,9 +411,13 @@ derrière le titre.
 ## Commandes
 
 - **Clic** pose · **clic droit** ou `Échap` lâche l'outil.
-- Outil **TRAVAILLER** : clic sur un rayon, une caisse, un papier ou le sol pour
-  y envoyer le patron. Derrière une caisse, `Espace` scanne un article.
+- Outil **TRAVAILLER** (`T`) : clic sur un rayon, une caisse, un papier ou le sol
+  pour y envoyer le patron ; un clic de plus enchaîne les tâches. Derrière une
+  caisse, `Espace` scanne un article.
 - Un papier par terre se ramasse d'un clic même sans outil en main.
+- `C` ouvre le bureau, `M` le panneau du magasin.
+- Le compteur **RUPTURES** de la barre du haut est cliquable : il amène la vue
+  sur le premier rayon vide. Le bandeau du patron recentre la vue sur lui.
 - Sans outil, **glisser** déplace la vue et **clic** ouvre la fiche de ce qu'on a
   sous le curseur.
 - **Molette** ou `+` `−` zoome · `Espace` met en pause (ou scanne si le patron
