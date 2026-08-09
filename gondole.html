@@ -1009,7 +1009,7 @@ const CAISSES={
 
 /* ---- la logistique ---- */
 const LOGIS={
- rack:{nom:'RACK DE RÉSERVE',   w:2,h:2, prix:420,  ent:2, niv:1, cap:420, col:'#a89880',
+ rack:{nom:'RACK DE RÉSERVE',   w:2,h:2, prix:420,  ent:2, niv:1, cap:520, col:'#a89880',
    d:'Ce que la camionnette décharge dort ici en attendant de monter en rayon.'},
  caddies:{nom:'PARC À CADDIES',  w:2,h:1, prix:560,  ent:3, niv:3, col:'#b0b6bb', caddie:1,
    d:'Un client avec un grand caddie remplit plus qu\'un client avec un panier.'},
@@ -1162,7 +1162,7 @@ const OUVERTURE=8, FERMETURE=20;          // heures affichées
 const SECONDES_JOUR=720;                  // une journée à vitesse 1 : douze minutes
 const HEURES_JOUR=FERMETURE-OUVERTURE;
 const VIT_BASE=16;                        // un client, en pixels par seconde
-const CAP_RESERVE_BASE=340;
+const CAP_RESERVE_BASE=520;
 const DELAI_LIVRAISON=2.5;                // heures de magasin entre la commande et le camion
 
 function etoilesDe(rep){ return clamp(Math.floor(rep*5.9),0,5); }
@@ -1734,8 +1734,11 @@ function suggestion(k){
   const demain=JOURS_SEM[P.jour%JOURS]||JOURS_SEM[0];
   const auj=JOURS_SEM[P.jour-1];
   const prevu=dem*(reste + demain.affl/Math.max(.4,auj.affl))*1.05;
-  let cible=Math.ceil(prevu*(d.peri&&d.peri<=2?1.02:1.25));
-  cible=Math.min(cible, place+Math.ceil(prevu*.6));
+  let cible=Math.ceil(prevu*(d.peri&&d.peri<=2?1.02:1.45));
+  /* Le plafond tient compte de la réserve : ce qui ne tient pas en rayon y
+     attend, et le rayonniste fait la navette toute la journée. Sans ça, un
+     samedi à trois cents clients partait avec mille ventes ratées. */
+  cible=Math.min(cible, place+Math.ceil(prevu*1.3));
   return Math.max(0,Math.round(cible-stockTotal(k)-enRoute(k)));
 }
 /* ce qui est déjà commandé et pas encore déchargé */
