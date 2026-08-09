@@ -64,6 +64,11 @@ Et trois fuites, qu'il faut tenir toutes les trois :
   **repose son caddie plein et s'en va**. Toute la marchandise retourne en rayon,
   la vente est annulée, et la réputation encaisse.
 
+Et une quatrième, qui n'en est pas une : **le temps du patron**. Chaque minute
+passée derrière une caisse est une minute qu'on ne passe pas à monter des
+palettes, et réciproquement. C'est la seule ressource du jeu qui ne s'achète
+pas — sauf en embauchant.
+
 ## Le client
 
 Il entre avec un caddie ou un panier, un budget, une patience, et une **liste de
@@ -164,6 +169,38 @@ rentre ni dans la caisse ni dans la réserve.
 
 **La commande est payée à la commande**, pas à la livraison. C'est ce qui fait
 qu'un gérant peut se retrouver à sec un vendredi soir avec un camion en route.
+
+## Le patron travaille
+
+Un jeu de gestion où l'on passe une commande puis où l'on regarde n'est pas un
+jeu, c'est un tableur avec une animation. Le patron est donc **un personnage
+présent dans les allées**, et c'est le joueur qui l'envoie travailler. L'outil
+**TRAVAILLER** transforme le clic :
+
+| Ce qu'on clique | Ce qu'il fait |
+|---|---|
+| un **rayon** | il descend en réserve, charge une palette et remonte, autant de fois qu'il faut pour le remplir |
+| une **caisse sans hôte** | il se met derrière et **tu scannes** : `Espace` ou le bouton, un article par coup |
+| un **papier par terre** | il va le ramasser (et ceux qu'il croise en chemin partent tout seuls) |
+| **le sol** | il s'y rend, tout simplement |
+
+C'est le vrai départ d'un petit commerce : tant qu'on ne peut pas payer un hôte
+de caisse à 70 € la journée, on tient la caisse soi-même. Et l'arbitrage est
+chiffré — **une caisse laissée à elle-même avance deux fois moins vite qu'avec
+un hôte, mais chaque coup de scanner du joueur reprend l'avance d'un article
+entier.** Un patron attentif encaisse plus vite qu'un salarié ; un patron
+distrait encaisse moins vite. Le salaire achète de l'attention, pas de la
+vitesse.
+
+Le travail manuel rapporte de l'expérience : environ deux points par palette
+montée, un demi-point par article scanné, deux points par déchet ramassé. Sur
+une journée pleine, un patron actif avance d'un bon tiers plus vite qu'un
+patron assis — ce qui est exactement le rapport qu'on veut entre jouer et
+regarder.
+
+Deux bandeaux suivent tout ça : en bas à gauche **ce que fait le patron en ce
+moment**, au centre **la caisse qu'il tient**, avec le client en cours, ce qu'il
+y a à encaisser et combien attendent derrière.
 
 ## Ce que le jeu dit tout seul
 
@@ -361,10 +398,13 @@ derrière le titre.
 ## Commandes
 
 - **Clic** pose · **clic droit** ou `Échap` lâche l'outil.
+- Outil **TRAVAILLER** : clic sur un rayon, une caisse, un papier ou le sol pour
+  y envoyer le patron. Derrière une caisse, `Espace` scanne un article.
+- Un papier par terre se ramasse d'un clic même sans outil en main.
 - Sans outil, **glisser** déplace la vue et **clic** ouvre la fiche de ce qu'on a
   sous le curseur.
-- **Molette** ou `+` `−` zoome · `Espace` met en pause · `1` `2` `3` règlent la
-  vitesse.
+- **Molette** ou `+` `−` zoome · `Espace` met en pause (ou scanne si le patron
+  tient une caisse) · `1` `2` règlent la vitesse.
 - Au doigt : un doigt déplace, deux doigts zooment, appui pose. Portrait et
   paysage.
 

@@ -126,6 +126,47 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 .prods button.on{background:var(--vert);border-color:#1f7a3d;color:#fff}
 .prods button:disabled{opacity:.42;cursor:default}
 
+/* ---------------- le patron au travail ---------------- */
+#caisseHud{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 116px);
+  transform:translateX(-50%);z-index:21;display:none;align-items:center;gap:10px;
+  padding:9px 11px;border:2px solid #c99a10;border-radius:13px;
+  background:linear-gradient(180deg,#fffdf3,#f8eecf);box-shadow:var(--ombre);
+  max-width:min(96vw,540px)}
+#caisseHud.on{display:flex}
+#caisseHud .chi{font-size:24px;flex:0 0 auto}
+#caisseHud .chc{flex:1;min-width:110px}
+#caisseHud .chc b{display:block;font:700 10.5px/1.2 var(--mono);letter-spacing:.12em}
+#caisseHud .chc span{display:block;font-size:9.5px;color:var(--gris);margin-top:2px}
+#caisseHud .barre{margin-top:5px}
+#caisseHud .barre i{background:var(--jaune)}
+#caisseHud button{flex:0 0 auto;padding:10px 14px;border:2px solid #c99a10;border-radius:10px;
+  background:var(--jaune);font:700 12px/1.1 var(--mono);color:#4a3608;cursor:pointer;
+  letter-spacing:.08em}
+#caisseHud button:active{transform:translateY(2px)}
+#caisseHud button em{display:block;font-style:normal;font-size:7.5px;opacity:.7;margin-top:3px}
+#caisseHud button.gris{background:var(--creme2);border-color:var(--bord);color:var(--encre2)}
+#patronHud{position:fixed;left:8px;bottom:calc(env(safe-area-inset-bottom) + 116px);
+  z-index:21;display:none;align-items:center;gap:8px;padding:7px 9px;
+  border:2px solid var(--bord);border-radius:12px;background:var(--creme);
+  box-shadow:var(--ombre);max-width:230px}
+#patronHud.on{display:flex}
+#patronHud .pi{font-size:19px;flex:0 0 auto}
+#patronHud .pc{flex:1;min-width:0}
+#patronHud .pc b{display:block;font:700 9.5px/1.2 var(--mono);letter-spacing:.1em}
+#patronHud .pc span{display:block;font-size:9px;color:var(--gris);margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#patronHud button{flex:0 0 auto;padding:6px 9px;border:2px solid var(--bord);
+  border-radius:8px;background:var(--creme2);font:700 9px/1 var(--mono);
+  color:var(--encre2);cursor:pointer}
+body:not(.enJeu) #caisseHud,
+body:not(.enJeu) #patronHud{display:none !important}
+@media (max-width:560px){
+  #caisseHud{bottom:calc(env(safe-area-inset-bottom) + 108px);gap:7px;padding:7px 8px}
+  #caisseHud .chi{display:none}
+  #caisseHud button{padding:9px 10px;font-size:11px}
+  #patronHud{display:none !important}
+}
+
 /* ---------------- messages ---------------- */
 #flash{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 62px);transform:translateX(-50%);
   z-index:22;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:5px}
@@ -360,6 +401,21 @@ body:not(.enJeu) #flash{display:none !important}
 
 <div id="flash"></div>
 <div id="aide"></div>
+<div id="caisseHud">
+  <div class="chi">🧾</div>
+  <div class="chc">
+    <b id="chNom">TU TIENS LA CAISSE</b>
+    <span id="chTxt">personne à encaisser</span>
+    <div class="barre"><i id="chBar" style="width:0%"></i></div>
+  </div>
+  <button id="chScan">SCANNER<em>ESPACE</em></button>
+  <button id="chLacher" class="gris">LÂCHER</button>
+</div>
+<div id="patronHud">
+  <span class="pi" id="phIco">🧤</span>
+  <div class="pc"><b id="phNom">LE PATRON</b><span id="phTxt">au repos</span></div>
+  <button id="phStop">STOP</button>
+</div>
 <div id="panneau"></div>
 
 <div id="construire">
@@ -484,8 +540,13 @@ body:not(.enJeu) #flash{display:none !important}
       <b>Le client arrive avec une liste.</b> Trois à dix lignes, tirées selon le jour de
       la semaine. Il fait le tour, prend ce qu'il trouve, renonce à ce qui est trop cher,
       puis va en caisse. Ce qu'il n'a pas trouvé, il te le dit en sortant.<br>
-      <b>Le stock ne se remplit pas tout seul.</b> Tu commandes le soir, la camionnette
-      livre le matin dans la réserve, et un employé monte les palettes en rayon.<br>
+      <b>Le stock ne se remplit pas tout seul.</b> Tu commandes au bureau quand tu veux,
+      le camion met deux heures et demie, et il faut ensuite monter les palettes de la
+      réserve au rayon.<br>
+      <b>Et c'est toi qui le fais.</b> Avec l'outil <kbd>TRAVAILLER</kbd> : clique un rayon
+      pour aller le remplir, une caisse pour l'ouvrir et scanner toi-même (<kbd>Espace</kbd>),
+      un papier par terre pour le ramasser. Chaque geste rapporte de l'expérience. Un hôte
+      de caisse ou un rayonniste le feront à ta place — quand tu pourras les payer.<br>
       <b>Trois façons de perdre de l'argent</b> : la <b>rupture</b> (une vente que tu ne
       fais pas), la <b>casse</b> (un périssable commandé en trop et jeté), la <b>file</b>
       (un client qui abandonne son plein caddie devant les caisses).<br>
@@ -1096,7 +1157,7 @@ function bailDe(niv){
 const SEMAINES=10, JOURS=6;
 /* Le loyer tombe chaque samedi soir et grimpe vite : c'est lui qui empêche de
    se contenter d'un petit magasin qui tourne. */
-const LOYERS=[1800,2600,3800,5200,7000,9200,12000,15500,20000,26000];
+const LOYERS=[1300,1900,2700,3700,5000,6600,8600,11000,14000,18000];
 const OUVERTURE=8, FERMETURE=20;          // heures affichées
 const SECONDES_JOUR=720;                  // une journée à vitesse 1 : douze minutes
 const HEURES_JOUR=FERMETURE-OUVERTURE;
@@ -1179,10 +1240,12 @@ function nouvellePartie(){
     contrats:[], histoire:[], pub:null,
     entres:0, refus:0, fini:false, gagne:false, idBati:1,
     jt:journalNeuf(), st:{clients:0,ca:0,marge:0}, total:{clients:0,ca:0,articles:0},
-    porte:[], bail:null
+    porte:[], bail:null,
+    patron:null, dechets:[]
   };
   for(const k in PRODUITS) P.prix[k]=PRODUITS[k].ref;
   appliquerBail(bailDe(1),true);
+  placerPatron();
   P.contrats=tirerContrats();
   refaireChamps();
   cam.x=GX*TUILE/2; cam.y=(GY-9)*TUILE; cam.z=clamp(1.35,ZMIN,2.4); cam.zc=cam.z;
@@ -1331,6 +1394,81 @@ function demolir(x,y){
   flotte((b.x+b.w/2)*TUILE,b.y*TUILE-6,'+'+eur(rendu),'#1f7a3d');
   retirerBati(n);
   SND.pose();
+}
+
+/* ==========================================================================
+   LE PATRON
+   ==========================================================================
+   Il est dans le magasin, et il travaille. Tant qu'on n'a pas les moyens d'un
+   hôte de caisse, c'est lui qui encaisse ; tant qu'on n'a pas de rayonniste,
+   c'est lui qui monte les palettes. C'est le vrai départ d'un petit commerce,
+   et c'est ce qui donne au joueur quelque chose à faire pendant les douze
+   minutes d'une journée. */
+function placerPatron(){
+  const t=P.porte.length?P.porte[0]:idx(Math.floor(GX/2),GY-3);
+  P.patron={x:(t%GX+.5)*TUILE, y:((t/GX|0)+.5)*TUILE, tx:t%GX, ty:(t/GX|0),
+    dx:0, dy:0, vx:0, vy:-1, t:0, ph:0,
+    tache:null, cible:null, champ:null, charge:0, prodCharge:null, lots:null,
+    reste:0, trajets:0, scans:0, ramasses:0};
+}
+function capPatron(){
+  return Math.round(18*(1+.35*AM('logistique'))
+    *(P.meubles.some(b=>b.k==='quai')?1.6:1));
+}
+/* le petit gain d'expérience du travail manuel : il compte, sans écraser le
+   reste — un patron actif avance d'un bon tiers plus vite qu'un patron assis */
+function xpTravail(q){
+  P.xp+=q;
+  P.jt.travail=(P.jt.travail||0)+q;
+}
+function lacherTache(){
+  if(!P.patron) return;
+  const b=P.patron.cible;
+  if(b&&b.cat==='caisse'){ b.patron=false; majCaisses(); }
+  P.patron.tache=null; P.patron.cible=null; P.patron.champ=null;
+  majCaisseHud();
+}
+function envoyerPatron(gx,gy){
+  if(!P.patron||!dedans(gx,gy)) return false;
+  /* un déchet sous le curseur : on le ramasse */
+  for(const d of P.dechets){
+    if(Math.abs(d.x/TUILE-(gx+.5))<.9&&Math.abs(d.y/TUILE-(gy+.5))<.9){
+      lacherTache();
+      P.patron.tache='ramasser'; P.patron.cible=d;
+      P.patron.champ=champDepuis([idx(clamp(Math.floor(d.x/TUILE),0,GX-1),
+        clamp(Math.floor(d.y/TUILE),0,GY-1))]);
+      return true;
+    }
+  }
+  const n=P.occ[idx(gx,gy)];
+  if(n>=0){
+    const b=P.meubles[n];
+    if(b.cat==='caisse'){
+      if(b.hote){ flash('Un hôte tient déjà cette caisse',''); return false; }
+      lacherTache();
+      P.patron.tache='caisse'; P.patron.cible=b; P.patron.champ=b.champ;
+      aide('Va derrière la caisse. Ensuite <b>ESPACE</b> ou le bouton SCANNER '
+        +'passe un article : plus tu scannes vite, plus la file avance.');
+      setTimeout(()=>aide(null),7000);
+      return true;
+    }
+    if(b.cat==='meuble'&&b.prod){
+      if(!stockReserve(b.prod)){ flash('Rien de ce produit en réserve','mal');
+        SND.erreur(); return false; }
+      lacherTache();
+      P.patron.tache='remplir'; P.patron.cible=b; P.patron.champ=null;
+      P.patron.prodCharge=b.prod;
+      return true;
+    }
+    return false;
+  }
+  if(marchable(idx(gx,gy))){
+    lacherTache();
+    P.patron.tache='aller'; P.patron.cible={t:idx(gx,gy)};
+    P.patron.champ=champDepuis([idx(gx,gy)]);
+    return true;
+  }
+  return false;
 }
 
 /* ---- les produits d'un meuble ---- */
@@ -1776,7 +1914,7 @@ function noterManque(k,q){
 /* la démarque inconnue : ce qui sort sans passer en caisse */
 function demarque(){
   const vig=P.employes.some(e=>e.k==='vigile')?.30:1;
-  const taux=.006*vig*(1-.25*AM('securite'));
+  const taux=.0035*vig*(1-.25*AM('securite'));
   let perte=0;
   for(const b of P.meubles){
     if(b.cat!=='meuble'||!b.stock) continue;
@@ -1863,7 +2001,11 @@ function tirerListe(n){
     let r=Math.random()*tot, ch=p[0][0];
     for(const [f,w] of p){ r-=w; if(r<=0){ ch=f; break; } }
     pris[ch]=1;
-    l.push({fam:ch, q:ri(1,PRODUITS[produitsDe(ch)[0]].peri?2:3), fait:0});
+    /* Le panier était trop maigre : sept euros par ticket là où un vrai
+       passage en caisse en fait vingt. On ne prend pas une boîte de conserve,
+       on en prend trois — et deux yaourts, pas un. */
+    const per=PRODUITS[produitsDe(ch)[0]].peri;
+    l.push({fam:ch, q:ri(per?1:2, per?3:5), fait:0});
   }
   return l;
 }
@@ -1878,8 +2020,8 @@ function nouveauClient(){
     col:pick(HABITS), peau:pick(PEAUX), ph:rnd(0,TAU), t:0, dec:0,
     grand, liste:tirerListe(n), i:0,
     panier:[], articles:0, depense:0,
-    budget:Math.round((16+offreUtile()*2.4+P.rep*20)*j.panier*dif.budget*rnd(.55,1.7)
-      *(grand?1.35:.8)),
+    budget:Math.round((22+offreUtile()*3.4+P.rep*26)*j.panier*dif.budget*rnd(.6,1.8)
+      *(grand?1.4:.8)),
     patience:rnd(.55,1.35)*dif.patience*(1+.15*AM('confort')),
     humeur:clamp(.70+beauteAutour(t%GX,(t/GX|0))*.10,0,1),
     etat:'cherche', cible:null, cibleVide:null, caisse:null, place:0,
@@ -1996,6 +2138,13 @@ function pasClient(c,dt,heures){
   c.saleCum+=sale*heures;
   c.humeur=clamp(c.humeur - sale*.10*heures + beauteAutour(c.tx,c.ty)*.05*heures,0,1);
   if(Math.random()<heures*.20) salir(c.x,c.y,.10);
+  /* de temps en temps, ce n'est pas de la saleté diffuse : c'est un papier
+     par terre, et celui-là se ramasse à la main */
+  if(Math.random()<heures*.17&&P.dechets.length<56){
+    const t=idx(clamp(c.tx,0,GX-1),clamp(c.ty,0,GY-1));
+    if(marchable(t)) P.dechets.push({x:c.x+rnd(-6,6), y:c.y+rnd(-6,6),
+      k:ri(0,2), a:rnd(0,TAU)});
+  }
   impulsion(c,dt);
 
   switch(c.etat){
@@ -2140,7 +2289,7 @@ function majCaisses(){
     if(b.cat!=='caisse') continue;
     if(!b.d.hote){ b.ouverte=!!b.servi; b.hote=null; continue; }
     if(i<hotes.length&&b.servi){ b.ouverte=true; b.hote=hotes[i]; hotes[i].caisse=b; i++; }
-    else { b.ouverte=false; b.hote=null; }
+    else { b.hote=null; b.ouverte=!!(b.patron&&b.servi); }
   }
 }
 function pasCaisse(b,dt){
@@ -2158,10 +2307,15 @@ function pasCaisse(b,dt){
     b.reste=Math.max(1,b.sert.articles)*CADENCE_BASE*b.d.cadence
       *(1-.14*AM('cadence'));
     b.bipT=0;
+    majCaisseHud();
   }
-  b.reste-=dt;
+  /* Sans hôte, c'est le patron : le tapis avance deux fois moins vite tout
+     seul, et chaque coup de scanner du joueur reprend l'avance. Tenir une
+     caisse à la main vaut donc mieux qu'un hôte — c'est ce qui rend le travail
+     manuel rentable tant qu'on ne peut pas se payer quelqu'un. */
+  b.reste-=dt*(b.hote?1:.5);
   b.bipT-=dt;
-  if(b.bipT<=0&&b.reste>0){ b.bipT=CADENCE_BASE*b.d.cadence; SND.bip(); }
+  if(b.bipT<=0&&b.reste>0&&b.hote){ b.bipT=CADENCE_BASE*b.d.cadence; SND.bip(); }
   if(b.reste<=0){
     const c=b.sert;
     const i=b.file.indexOf(c);
@@ -2171,9 +2325,119 @@ function pasCaisse(b,dt){
       c.etat='part'; c.raison=null;
       b.jourVentes+=c.articles; b.jourRecette+=c.depense;
       P.jt.paniers=(P.jt.paniers||0)+1;
+      if(b.patron&&!b.hote) xpTravail(1.2);
       if(Math.random()<.35) SND.tiroir();
     }
+    majCaisseHud();
   }
+}
+
+/* ---- le patron, pas à pas ---- */
+function pasPatron(dt,heures){
+  const e=P.patron;
+  if(!e) return;
+  e.t+=dt;
+  const vit=VIT_BASE*1.25;
+  const allerA=(champ)=>{
+    if(!champ) return false;
+    const cx=(e.tx+.5)*TUILE+e.dx, cy=(e.ty+.5)*TUILE+e.dy;
+    const dx=cx-e.x, dy=cy-e.y, d=Math.hypot(dx,dy);
+    if(d>2){ e.x+=dx/d*vit*dt; e.y+=dy/d*vit*dt; e.vx=dx/d; e.vy=dy/d; return false; }
+    const p=pasVers(champ,e.tx,e.ty);
+    if(!p) return true;
+    e.tx=p[0]; e.ty=p[1]; e.dx=rnd(-4,4); e.dy=rnd(-4,4);
+    return false;
+  };
+  /* les déchets à portée de main partent tout seuls quand on passe dessus */
+  if(e.tache!=='caisse'){
+    for(let i=P.dechets.length-1;i>=0;i--){
+      const d=P.dechets[i];
+      if(Math.hypot(d.x-e.x,d.y-e.y)<15){
+        P.dechets.splice(i,1);
+        salir(d.x,d.y,-.25);
+        e.ramasses++;
+        xpTravail(2);
+        P.parts.push({x:d.x,y:d.y,vx:0,vy:-20,g:0,vie:.4,col:'#7f8fd6',r:2});
+      }
+    }
+  }
+  switch(e.tache){
+    case 'aller': {
+      if(allerA(e.champ)){ e.tache=null; e.cible=null; e.champ=null; }
+      break;
+    }
+    case 'ramasser': {
+      const d=e.cible;
+      if(!d||P.dechets.indexOf(d)<0){ e.tache=null; e.cible=null; break; }
+      if(allerA(e.champ)){ e.tache=null; e.cible=null; }
+      break;
+    }
+    case 'remplir': {
+      const b=e.cible;
+      if(!b||b.cat!=='meuble'||!b.prod){ e.tache=null; e.cible=null; break; }
+      if(e.charge<=0){
+        /* on descend chercher une palette : au rack s'il y en a un, sinon
+           par la porte de derrière */
+        const r=rackLePlusProche(e);
+        const ch=r?r.champ:P.champSortie;
+        if(!ch){ e.tache=null; break; }
+        if(allerA(ch)){
+          const q=Math.min(capPatron(),stockReserve(b.prod),deficit(b));
+          if(q<=0){ flash('Rien à monter en rayon',''); e.tache=null; e.cible=null; break; }
+          e.lots=prendreReserve(b.prod,q); e.charge=q; e.prodCharge=b.prod;
+          SND.pose();
+        }
+        break;
+      }
+      if(allerA(b.champ)){
+        const q=Math.min(e.charge,deficit(b));
+        const pris=prendreLots(e.lots,q);
+        for(const x of pris) b.lots.push(x);
+        fusionner(b.lots);
+        b.stock=totalLots(b.lots);
+        const monte=totalLots(pris);
+        e.charge=totalLots(e.lots);
+        e.trajets++;
+        xpTravail(Math.max(2,Math.round(monte*.22)));
+        flotte((b.x+b.w/2)*TUILE,b.y*TUILE-6,'+'+monte,'#1f7a3d');
+        SND.pose();
+        if(e.charge>0){ versReserve(e.prodCharge,e.lots); e.charge=0; e.lots=null; }
+        /* on continue tant que le rayon n'est pas plein et qu'il reste du stock */
+        if(deficit(b)<4||!stockReserve(b.prod)){ e.tache=null; e.cible=null; }
+      }
+      break;
+    }
+    case 'caisse': {
+      const b=e.cible;
+      if(!b||b.cat!=='caisse'){ lacherTache(); break; }
+      const cx=(b.x+b.w/2)*TUILE, cy=(b.y+.42)*TUILE;
+      if(Math.hypot(cx-e.x,cy-e.y)>4&&!b.patron){
+        if(allerA(b.champ)){ b.patron=true; majCaisses(); }
+        break;
+      }
+      b.patron=true;
+      e.x=lerp(e.x,cx,Math.min(1,dt*3)); e.y=lerp(e.y,cy,Math.min(1,dt*3));
+      e.tx=b.x; e.ty=b.y; e.vx=0; e.vy=1;
+      break;
+    }
+    default: {
+      /* au repos, il retourne doucement vers la porte */
+      if(P.champSortie&&(e.tx!==P.porte[0]%GX)) allerA(P.champSortie);
+    }
+  }
+}
+/* un coup de scanner : c'est le geste du joueur, et il vaut mieux que
+   l'automatisme de la caisse laissée à elle-même */
+function scanner(){
+  const e=P.patron;
+  if(!e||e.tache!=='caisse') return false;
+  const b=e.cible;
+  if(!b||!b.sert||b.reste<=0) return false;
+  b.reste-=CADENCE_BASE*b.d.cadence*1.15;
+  e.scans++;
+  xpTravail(.45);
+  SND.bip();
+  return true;
 }
 
 function embaucher(k,muet){
@@ -2343,6 +2607,8 @@ function ouvrirJournee(){
   P.jt.achats=achatsHier;
   for(const b of P.meubles){ b.jourVentes=0; b.jourRecette=0; b.jourManque=0; }
   P.ventes={}; P.manques={};
+  P.dechets.length=0;
+  if(!P.patron) placerPatron();
   majCaisses();
   SND.tempo=(P.jour>=5)?1.12:1;
   SND.musiqueVol(.24);
@@ -2381,6 +2647,9 @@ function pasJournee(dt){
     if(c.etat==='sorti'){ sortir(c); P.clients.splice(i,1); }
   }
   for(const e of P.employes) pasEmploye(e,dt,heures);
+  pasPatron(dt,heures);
+  /* un papier par terre salit autour de lui tant qu'il est là */
+  for(const d of P.dechets) if(Math.random()<heures*.5) salir(d.x,d.y,.02);
 
   for(let i=P.parts.length-1;i>=0;i--){
     const q=P.parts[i]; q.vie-=dt;
@@ -2671,6 +2940,7 @@ function dessiner(dt){
 
   dessinerSol(x0,y0,x1,y1);
   dessinerSalete(x0,y0,x1,y1);
+  dessinerDechets();
 
   const T=horloge;
   /* du fond vers l'avant : les meubles d'abord, puis ce qui bouge */
@@ -2689,9 +2959,11 @@ function dessiner(dt){
     gens.push(c);
   }
   for(const e of P.employes) gens.push(e);
+  if(P.patron) gens.push(P.patron);
   gens.sort((a,b)=>a.y-b.y);
   for(const g of gens){
-    if(g.d&&g.k&&METIERS[g.k]) dessinerEmploye(g,T);
+    if(g===P.patron) dessinerPatron(g,T);
+    else if(g.d&&g.k&&METIERS[g.k]) dessinerEmploye(g,T);
     else dessinerClient(g,T);
   }
 
@@ -3104,10 +3376,100 @@ function dessinerEmploye(e,T){
   }
 }
 
+/* Les papiers par terre : ils se voient, ils salissent autour d'eux, et ils se
+   ramassent d'un clic. C'est le petit travail continu du magasin. */
+function dessinerDechets(){
+  if(cam.z<.35) return;
+  for(const d of P.dechets){
+    const [sx,sy]=ecran(d.x,d.y);
+    if(sx<-20||sx>VW+20||sy<-20||sy>VH+20) continue;
+    ctx.save();
+    ctx.translate(sx,sy);
+    ctx.rotate(d.a);
+    if(d.k===0){                       // un papier froissé
+      ctx.fillStyle='#f2ece0';
+      ctx.beginPath();
+      ctx.moveTo(-4*cam.z,-2*cam.z); ctx.lineTo(1*cam.z,-4*cam.z);
+      ctx.lineTo(4*cam.z,1*cam.z); ctx.lineTo(-1*cam.z,3*cam.z);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle='rgba(0,0,0,.14)'; ctx.fillRect(-2*cam.z,-1*cam.z,3*cam.z,1*cam.z);
+    } else if(d.k===1){                // une canette
+      ctx.fillStyle='#9fb4c4';
+      arrondi(-4*cam.z,-2*cam.z,8*cam.z,4*cam.z,1.4*cam.z); ctx.fill();
+      ctx.fillStyle='#e23b2e'; ctx.fillRect(-2*cam.z,-2*cam.z,2*cam.z,4*cam.z);
+    } else {                           // un ticket de caisse
+      ctx.fillStyle='#fffdf5';
+      ctx.fillRect(-2*cam.z,-4*cam.z,4*cam.z,8*cam.z);
+      ctx.fillStyle='rgba(0,0,0,.16)';
+      for(let i=0;i<3;i++) ctx.fillRect(-1.4*cam.z,(-3+i*2.4)*cam.z,2.8*cam.z,.7*cam.z);
+    }
+    ctx.restore();
+  }
+}
+/* Le patron : même silhouette que les autres, mais un tablier, un liseré doré
+   et une caisse sur l'épaule quand il porte une palette. */
+function dessinerPatron(e,T){
+  const [sx,sy]=ecran(e.x,e.y);
+  if(sx<-40||sx>VW+40||sy<-40||sy>VH+40) return;
+  /* l'anneau qui le distingue au premier coup d'œil */
+  ctx.strokeStyle='rgba(255,198,30,'+(.55+Math.sin(T*3)*.18)+')';
+  ctx.lineWidth=1.8*cam.z;
+  ctx.beginPath(); ctx.ellipse(sx,sy+4.6*cam.z,6.2*cam.z,2.6*cam.z,0,0,TAU); ctx.stroke();
+  corps(sx,sy,'#26221e','#e0ac82',e.t,e.ph,e.vx,e.vy,1.12);
+  ctx.fillStyle='#ffc61e';
+  ctx.fillRect(sx-3.4*cam.z,sy-.2*cam.z,6.8*cam.z,2*cam.z);
+  if(e.charge>0){
+    ctx.fillStyle='#c9a06a';
+    ctx.fillRect(sx-4*cam.z,sy-9.4*cam.z,8*cam.z,4.8*cam.z);
+    ctx.fillStyle='rgba(120,80,40,.5)';
+    ctx.fillRect(sx-4*cam.z,sy-7.2*cam.z,8*cam.z,1.1*cam.z);
+    if(cam.z>.7){
+      ctx.fillStyle='#fff'; ctx.font='700 '+Math.round(5*cam.z)+'px '+FONT;
+      ctx.textAlign='center'; ctx.fillText(String(e.charge),sx,sy-6.1*cam.z);
+    }
+  }
+  /* le fil qui relie le patron à ce qu'il est en train de faire */
+  if(e.cible&&e.tache&&e.tache!=='aller'&&cam.z>.45){
+    const c=e.cible;
+    const cx=(c.x!=null&&c.w!=null)?((c.x+c.w/2)*TUILE):(c.x||0);
+    const cy=(c.y!=null&&c.h!=null)?((c.y+c.h/2)*TUILE):(c.y||0);
+    const [tx,ty]=ecran(cx,cy);
+    ctx.strokeStyle='rgba(255,198,30,.45)';
+    ctx.lineWidth=1.4*cam.z; ctx.setLineDash([4,4]);
+    ctx.lineDashOffset=-T*18;
+    ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(tx,ty); ctx.stroke();
+    ctx.setLineDash([]); ctx.lineDashOffset=0;
+  }
+}
+
 /* ---- le fantôme de pose et la sélection ---- */
 function dessinerFantome(){
   if(!outil||ecranActif!=='jeu') return;
   const [gx,gy]=souris.g;
+  if(outil.cat==='travail'){
+    const [gx,gy]=souris.g;
+    if(!dedans(gx,gy)) return;
+    const [sx,sy]=ecran(gx*TUILE,gy*TUILE);
+    let quoi=null, col='rgba(255,198,30,.35)';
+    for(const d of P.dechets)
+      if(Math.abs(d.x/TUILE-(gx+.5))<.9&&Math.abs(d.y/TUILE-(gy+.5))<.9) quoi='RAMASSER';
+    const n=P.occ[idx(gx,gy)];
+    if(!quoi&&n>=0){
+      const b=P.meubles[n];
+      if(b.cat==='caisse'&&!b.hote) quoi=b.patron?'TU Y ES':'TENIR LA CAISSE';
+      else if(b.cat==='meuble'&&b.prod){
+        const q=Math.min(capPatron(),stockReserve(b.prod),deficit(b));
+        quoi=q>0?('MONTER '+q+' EN RAYON'):'RIEN À MONTER';
+        if(q<=0) col='rgba(226,59,46,.30)';
+      }
+    }
+    if(!quoi&&marchable(idx(gx,gy))) quoi='ALLER LÀ';
+    if(!quoi) return;
+    ctx.fillStyle=col;
+    ctx.fillRect(sx,sy,TUILE*cam.z,TUILE*cam.z);
+    if(cam.z>.5) bulle(sx+TUILE*cam.z/2,sy-2*cam.z,quoi,'#ffd964');
+    return;
+  }
   if(outil.cat==='demolir'){
     if(!dedans(gx,gy)) return;
     const n=P.occ[idx(gx,gy)];
@@ -3209,6 +3571,7 @@ const CATS=[
  {id:'logis',    nom:'RÉSERVE',     ico:'📦'},
  {id:'decor',    nom:'AMBIANCE',    ico:'🪴'},
  {id:'personnel',nom:'PERSONNEL',   ico:'🧑‍💼'},
+ {id:'travail',  nom:'TRAVAILLER',  ico:'🧤'},
  {id:'commande', nom:'COMMANDER',   ico:'🚚'},
  {id:'contrats', nom:'CONTRATS',    ico:'📋'},
  {id:'magasin',  nom:'LE MAGASIN',  ico:'🏪'},
@@ -3227,7 +3590,11 @@ function ouvrirCat(id){
     majCats(); aide(null); fermerFiche(); return; }
   catOuverte=id;
   fermerFiche();
-  if(id==='demolir'){ outil={cat:'demolir'}; $('palette').innerHTML='';
+  if(id==='travail'){ outil={cat:'travail'}; $('palette').innerHTML='';
+    aide('<b>Clique un rayon</b> pour aller le remplir depuis la réserve · '
+      +'<b>une caisse</b> pour l\'ouvrir et scanner toi-même · '
+      +'<b>un papier par terre</b> pour le ramasser.'); }
+  else if(id==='demolir'){ outil={cat:'demolir'}; $('palette').innerHTML='';
     aide('Clique sur un meuble pour le retirer. On récupère <b>45 %</b> du prix, et le stock repart en réserve.'); }
   else if(id==='personnel'){ outil=null; palettePersonnel(); aide(null); }
   else if(id==='magasin'){ outil=null; $('palette').innerHTML=''; aide(null); ficheMagasin(); }
@@ -3457,6 +3824,12 @@ function ficheBati(b){
         +'<div class="ligne" style="border:0"><span>Marge</span><b id="bMg" style="color:'
           +(marge<.12?'#e23b2e':'#1f7a3d')+'">'+Math.round(marge*100)+' %</b></div>';
     }
+    if(b.prod&&stockReserve(b.prod)>0&&deficit(b)>0)
+      h+='<button class="bt vert" id="bRemplir">MONTER '
+        +nb(Math.min(capPatron(),stockReserve(b.prod),deficit(b)))
+        +' EN RAYON</button>'
+        +'<div class="txt">Le patron descend en réserve et remplit ce rayon '
+        +'lui-même. Un rayonniste le ferait à ta place, en continu.</div>';
     if(!b.servi) h+='<div class="txt"><b class="danger">Aucune allée n\'y mène : '
       +'personne ne peut se servir.</b></div>';
   } else if(b.cat==='caisse'){
@@ -3466,10 +3839,14 @@ function ficheBati(b){
       +'<div class="ligne"><span>Passages du jour</span><b>'+nb(b.jourVentes)+'</b></div>'
       +'<div class="ligne" style="border:0"><span>Cadence</span><b>'
         +Math.round(3600/Math.max(.01,CADENCE_BASE*d.cadence*60*12))+' clients/h</b></div>'
-      +(d.hote?'<div class="txt">'+(b.ouverte
-        ?'Un hôte est derrière. Elle tourne.'
-        :'<b class="danger">Il manque un hôte de caisse.</b> Embauche-le dans PERSONNEL.')
-        +'</div>':'<div class="txt">Automatique : elle tourne sans personne.</div>');
+      +(d.hote?'<div class="txt">'+(b.hote
+        ?'Un hôte est derrière. Elle tourne toute seule.'
+        :(b.patron?'<b>Tu la tiens toi-même.</b> Scanne pour faire avancer la file.'
+          :'<b class="danger">Personne derrière.</b> Embauche un hôte, ou tiens-la '
+           +'toi-même le temps de pouvoir le payer.'))
+        +'</div>':'<div class="txt">Automatique : elle tourne sans personne.</div>')
+      +(d.hote&&!b.hote?'<button class="bt vert" id="bTenir">'
+        +(b.patron?'LÂCHER LA CAISSE':'TENIR CETTE CAISSE')+'</button>':'');
   } else if(b.cat==='logis'){
     h+='<div class="ligne"><span>Apport de réserve</span><b>+'+nb(d.cap||0)+'</b></div>'
       +'<div class="ligne" style="border:0"><span>Réserve totale</span><b>'
@@ -3512,8 +3889,59 @@ function ficheBati(b){
     };
     px.oninput=maj; maj();
   }
+  const rp=$('bRemplir');
+  if(rp) rp.onclick=()=>{ envoyerPatron(b.x,b.y); SND.clic(); ficheBati(b); };
+  const tn=$('bTenir');
+  if(tn) tn.onclick=()=>{
+    if(b.patron) lacherTache();
+    else envoyerPatron(b.x,b.y);
+    SND.clic(); ficheBati(b);
+  };
   $('bDem').onclick=()=>{ demolir(b.x,b.y); fermerFiche(); };
   $('bFer').onclick=fermerFiche;
+}
+
+/* ---- les deux bandeaux du travail manuel ---- */
+function majCaisseHud(){
+  const e=P&&P.patron;
+  const el=$('caisseHud');
+  if(!el) return;
+  const b=(e&&e.tache==='caisse')?e.cible:null;
+  el.classList.toggle('on',!!b&&ecranActif==='jeu');
+  if(!b) return;
+  const c=b.sert;
+  if(c){
+    const tot=Math.max(1,c.articles)*CADENCE_BASE*b.d.cadence;
+    const fait=clamp(1-b.reste/tot,0,1);
+    $('chNom').textContent='CLIENT · '+nb(c.articles)+' ARTICLE'+(c.articles>1?'S':'');
+    $('chTxt').textContent=eur(Math.round(c.depense))+' à encaisser · '
+      +b.file.length+' derrière';
+    $('chBar').style.width=Math.round(fait*100)+'%';
+  } else {
+    $('chNom').textContent='TU TIENS LA CAISSE';
+    $('chTxt').textContent=b.file.length?nb(b.file.length)+' client(s) qui arrivent'
+      :'personne à encaisser pour l\'instant';
+    $('chBar').style.width='0%';
+  }
+}
+function majPatronHud(){
+  const e=P&&P.patron;
+  const el=$('patronHud');
+  if(!el) return;
+  el.classList.toggle('on',!!e&&ecranActif==='jeu');
+  if(!e) return;
+  const t=e.tache;
+  const ico={remplir:'📦', caisse:'🧾', ramasser:'🧹', aller:'🚶'}[t]||'🧤';
+  const txt=t==='remplir'
+    ? (e.charge?'monte '+nb(e.charge)+' × '+PRODUITS[e.prodCharge].nom
+       :'descend chercher '+PRODUITS[e.cible&&e.cible.prod?e.cible.prod:e.prodCharge].nom)
+    : t==='caisse' ? 'à la caisse'
+    : t==='ramasser' ? 'ramasse ce qui traîne'
+    : t==='aller' ? 'se déplace'
+    : (P.dechets.length?P.dechets.length+' papier(s) par terre':'au repos');
+  $('phIco').textContent=ico;
+  $('phTxt').textContent=txt;
+  $('phNom').textContent=t?'AU TRAVAIL':'LE PATRON';
 }
 
 function avanceeContrat(c){
@@ -3559,6 +3987,7 @@ function majBarre(){
   const x0=xpPour(P.niveau), x1=xpPour(P.niveau+1);
   const u=P.niveau>=NIV_MAX?1:clamp((P.xp-x0)/Math.max(1,x1-x0),0,1);
   $('xpFill').style.width=Math.round(u*100)+'%';
+  majCaisseHud(); majPatronHud();
   const t=TEMPS[P.temps];
   set('tIco',t.ico);
   set('tTxt',t.nom+' · '+Math.floor(P.heure)+'h'
@@ -3601,6 +4030,12 @@ function montrerSoir(){
     res>=0?'#1f7a3d':'#c0392b');
   L+=li('📊','MARGE BRUTE','Ce que rapportent les articles vendus, avant les frais',
     eur(j.marge),'#8257bd');
+  if(j.travail) L+=li('🧤','TON TRAVAIL',
+    (P.patron.scans?nb(P.patron.scans)+' articles scannés':'')
+    +(P.patron.trajets?(P.patron.scans?' · ':'')+nb(P.patron.trajets)+' palettes montées':'')
+    +(P.patron.ramasses?' · '+nb(P.patron.ramasses)+' déchets ramassés':'')
+    ||'du temps passé en magasin',
+    '+'+nb(Math.round(j.travail))+' pts','#c9930f');
   if(pubActive()) L+=li(PUBS[P.pub.k].ico,'CAMPAGNE EN COURS',PUBS[P.pub.k].nom
     +' — le monde qu\'elle amène est déjà compté','+'
     +Math.round(PUBS[P.pub.k].boost*100)+' %','#e0559b');
@@ -4455,6 +4890,7 @@ function majMenu(){
    ========================================================================== */
 function poserIci(gx,gy){
   if(!outil) return;
+  if(outil.cat==='travail'){ if(envoyerPatron(gx,gy)) SND.clic(); return; }
   if(outil.cat==='demolir'){ demolir(gx,gy); return; }
   const b=poser(outil.cat,outil.k,gx,gy);
   if(b){
@@ -4467,6 +4903,13 @@ function cliquerCarte(sx,sy){
   const [gx,gy]=caseSous(sx,sy);
   if(outil){ poserIci(gx,gy); return; }
   if(!dedans(gx,gy)){ fermerFiche(); return; }
+  /* un papier par terre se ramasse toujours, outil ou pas : c'est le geste le
+     plus fréquent de la journée, il ne doit pas demander de menu */
+  for(const d of P.dechets){
+    if(Math.abs(d.x/TUILE-(gx+.5))<.9&&Math.abs(d.y/TUILE-(gy+.5))<.9){
+      envoyerPatron(gx,gy); SND.clic(); return;
+    }
+  }
   const t=idx(gx,gy);
   if(P.sol[t]===PORTE){ catOuverte='magasin'; majCats(); ficheMagasin(); return; }
   const n=P.occ[t];
@@ -4558,7 +5001,13 @@ function cabler(){
     if(e.code==='Escape'){ outil=null; catOuverte=null; majCats(); $('palette').innerHTML='';
       aide(null); fermerFiche(); return; }
     if(ecranActif!=='jeu') return;
-    if(e.code==='Space'){ e.preventDefault(); enPause=!enPause; majVitesse(); return; }
+    if(e.code==='Space'){
+      e.preventDefault();
+      /* derrière une caisse, la barre d'espace scanne ; ailleurs elle met en
+         pause. C'est la touche qu'on a sous le pouce dans les deux cas. */
+      if(P&&P.patron&&P.patron.tache==='caisse'){ scanner(); majCaisseHud(); return; }
+      enPause=!enPause; majVitesse(); return;
+    }
     if(e.code==='Digit1'){ vitesse=1; enPause=false; majVitesse(); }
     if(e.code==='Digit2'){ vitesse=2; enPause=false; majVitesse(); }
     if(e.key==='+'||e.key==='='){ zoomer(1.16,VW/2,VH/2); }
@@ -4572,6 +5021,9 @@ function cabler(){
       if(v==='0') enPause=true; else { enPause=false; vitesse=+v; }
       majVitesse(); };
   });
+  $('chScan').onclick=()=>{ scanner(); majCaisseHud(); };
+  $('chLacher').onclick=()=>{ SND.clic(); lacherTache(); };
+  $('phStop').onclick=()=>{ SND.clic(); lacherTache(); majPatronHud(); };
   $('btnRegl').onclick=()=>{ majReglages(); ecrans('reglages'); ecranActif='reglages'; };
   $('jArg').onclick=()=>{ catOuverte='magasin'; majCats(); ficheMagasin(); };
 
@@ -4584,9 +5036,11 @@ function cabler(){
       +JOURS_SEM[SAVE.partie.jour-1].nom+'). Elle sera perdue. Recommencer ?')) return;
     SAVE.partie=null; sauver();
     nouvellePartie(); demarrer();
-    aide('Pose un <b>rayon</b>, choisis ce que tu mets dedans, ajoute une <b>caisse</b> '
-      +'et embauche un <b>hôte</b> — sans lui, elle reste fermée.');
-    setTimeout(()=>aide(null),11000);
+    aide('Pose un <b>rayon</b>, choisis ce que tu mets dedans, ajoute une <b>caisse</b>. '
+      +'Puis prends l\'outil <b>TRAVAILLER</b> : tu tiens la caisse toi-même, tu montes '
+      +'les palettes en rayon et tu ramasses ce qui traîne — tant que tu ne peux pas '
+      +'payer quelqu\'un pour le faire.');
+    setTimeout(()=>aide(null),15000);
     /* Le stock de départ du repreneur : quatre palettes d'épicerie sèche et de
        quoi tenir la première journée. Tout le reste s'achète — licence par
        licence, référence par référence. */
