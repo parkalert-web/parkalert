@@ -353,8 +353,7 @@ body:not(.enJeu) #flash{display:none !important}
   <div id="vit">
     <button data-v="0">❚❚</button>
     <button data-v="1" class="on">▶</button>
-    <button data-v="3">▶▶</button>
-    <button data-v="10">▶▶▶</button>
+    <button data-v="2">▶▶</button>
     <button id="btnRegl">⚙</button>
   </div>
 </div>
@@ -409,15 +408,18 @@ body:not(.enJeu) #flash{display:none !important}
 </div>
 
 <div class="screen" id="commande">
-  <div class="eyebrow" id="cEye">LIVRAISON DEMAIN MATIN</div>
-  <h1 style="font-size:var(--t2)" class="plat">LA COMMANDE</h1>
+  <div class="btnHaut"><button id="cRetour">RETOUR AU MAGASIN</button></div>
+  <div class="eyebrow" id="cEye">LA CENTRALE D'ACHAT</div>
+  <h1 style="font-size:var(--t2)" class="plat">COMMANDER</h1>
   <div class="carte" id="cAide"></div>
+  <div class="carte" id="cLic"><div class="sur">LES LICENCES — CE QU'ON A LE DROIT DE VENDRE</div>
+    <div id="cLicL"></div></div>
   <div class="cmdL" id="cListe"></div>
   <div class="total"><span id="cTotT">TOTAL DE LA COMMANDE</span><b id="cTot">0 €</b></div>
   <div class="relance">
     <button class="btn ghost" id="cAuto">REMPLIR AU MIEUX</button>
-    <button class="btn ghost" id="cVide">TOUT REMETTRE À ZÉRO</button>
-    <button class="btn" id="cValider">VALIDER ET OUVRIR DEMAIN</button>
+    <button class="btn ghost" id="cVide">VIDER</button>
+    <button class="btn" id="cValider">COMMANDER</button>
   </div>
 </div>
 
@@ -497,7 +499,8 @@ body:not(.enJeu) #flash{display:none !important}
       <kbd>clic</kbd> pose · <kbd>clic droit</kbd> ou <kbd>Échap</kbd> lâche l'outil<br>
       Sans outil : <kbd>glisser</kbd> déplace la vue, <kbd>clic</kbd> ouvre une fiche<br>
       <kbd>molette</kbd> ou <kbd>+</kbd> <kbd>−</kbd> zoome · <kbd>Espace</kbd> pause ·
-      <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> vitesse<br>
+      <kbd>1</kbd> <kbd>2</kbd> vitesse (×2 au maximum : une journée se joue, elle
+      ne se saute pas)<br>
       Au doigt : un doigt déplace la vue, deux doigts zooment, appui pose.
     </div>
   </div>
@@ -757,190 +760,259 @@ const SND={
 /* ==========================================================================
    3. LE CATALOGUE
    ==========================================================================
-   Neuf familles, trente-cinq références, dix meubles, trois caisses.
+   Onze familles, cinquante-sept références, dix meubles, trois caisses.
 
-   La règle qui tient tout : UN MEUBLE PORTE UNE SEULE RÉFÉRENCE. C'est ce qui
-   rend le magasin lisible d'un coup d'œil — on voit quel rayon se vide — et
-   c'est ce qui fait de l'implantation une vraie décision : la place au sol est
-   comptée, et chaque mètre donné aux pâtes est un mètre retiré au fromage. */
+   Deux règles tiennent tout :
+
+   1. UN MEUBLE PORTE UNE SEULE RÉFÉRENCE. C'est ce qui rend le magasin lisible
+      d'un coup d'œil — on voit quel rayon se vide — et ce qui fait de
+      l'implantation une vraie décision : chaque mètre donné aux pâtes est un
+      mètre retiré au fromage.
+
+   2. ON NE COMMANDE QUE CE POUR QUOI ON A LA LICENCE. Au départ on n'a que
+      l'épicerie sèche : pâtes, riz, farine, conserves. Le reste s'achète
+      famille par famille, à la centrale, quand l'agrément le permet. C'est ce
+      qui fait qu'on commence avec quatre références et qu'on finit avec
+      cinquante-sept. */
 
 const FAMILLES={
- epicerie:{nom:'ÉPICERIE',    ico:'🥫', col:'#c98a3c'},
- frais:{nom:'CRÉMERIE',       ico:'🧀', col:'#f0c04a'},
- fruits:{nom:'FRUITS ET LÉGUMES', ico:'🍎', col:'#4caf50'},
- boucherie:{nom:'BOUCHERIE',  ico:'🥩', col:'#d1596a'},
- boulangerie:{nom:'BOULANGERIE', ico:'🥖', col:'#d9a24e'},
- boissons:{nom:'BOISSONS',    ico:'🥤', col:'#3d8fd1'},
- surgeles:{nom:'SURGELÉS',    ico:'🧊', col:'#7ec8e3'},
- entretien:{nom:'ENTRETIEN',  ico:'🧼', col:'#7f8fd6'},
- impulsion:{nom:'CAISSE ET GOÛTER', ico:'🍫', col:'#b3673c'}
+ sec:{nom:'ÉPICERIE SÈCHE', ico:'🍝', col:'#c98a3c', niv:1,  lic:0,
+   d:'Pâtes, riz, farine, conserves. Ça ne périme pas, ça se vend tous les jours.'},
+ entretien:{nom:'ENTRETIEN', ico:'🧼', col:'#7f8fd6', niv:1,  lic:800,
+   d:'Papier, lessive, éponges. Grosses marges, gros volumes.'},
+ boissons:{nom:'BOISSONS',   ico:'🥤', col:'#3d8fd1', niv:2,  lic:1200,
+   d:'Eau, sodas, bière, vin. Lourd à manipuler, très rentable l\'été.'},
+ sucre:{nom:'PETIT-DÉJEUNER',ico:'🍫', col:'#b3673c', niv:3,  lic:1700,
+   d:'Céréales, biscuits, café, chocolat. C\'est ce qu\'on prend en passant.'},
+ frais:{nom:'CRÉMERIE',      ico:'🧀', col:'#f0c04a', niv:4,  lic:2700,
+   d:'Lait, œufs, yaourts, fromage. Il faut du froid, et ça périme.'},
+ fruits:{nom:'FRUITS ET LÉGUMES', ico:'🍎', col:'#4caf50', niv:5, lic:2300,
+   d:'Ce que le client voit en entrant. Très périssable, très regardé.'},
+ hygiene:{nom:'HYGIÈNE',     ico:'🧴', col:'#5fb8c4', niv:6,  lic:2100,
+   d:'Savon, dentifrice, couches. Le rayon qu\'on oublie et qui rapporte.'},
+ surgeles:{nom:'SURGELÉS',   ico:'🧊', col:'#7ec8e3', niv:7,  lic:4400,
+   d:'Rien ne périme dedans, mais l\'armoire coûte cher tous les jours.'},
+ boulangerie:{nom:'BOULANGERIE', ico:'🥖', col:'#d9a24e', niv:8, lic:4200,
+   d:'Il faut un fournil et un boulanger. La baguette périme en un jour.'},
+ divers:{nom:'BAZAR',        ico:'🔋', col:'#8b8377', niv:9,  lic:2700,
+   d:'Piles, ampoules, magazines, croquettes. Le fourre-tout à forte marge.'},
+ boucherie:{nom:'BOUCHERIE', ico:'🥩', col:'#d1596a', niv:10, lic:6500,
+   d:'Il faut une vitrine et un boucher. Le plus gros panier du magasin.'}
 };
+const CLES_FAMILLES=Object.keys(FAMILLES);
 
-/* achat : ce qu'on paie au fournisseur · ref : le prix qu'un client trouve
+/* achat : ce qu'on paie à la centrale · ref : le prix qu'un client trouve
    normal · dem : le poids de la référence dans sa famille · peri : le nombre
-   de journées avant que ça parte à la benne (0 = ça ne périme pas) */
+   de journées avant la benne (0 = ça ne périme pas) · niv : l'agrément qui
+   l'ouvre, une fois la licence de la famille achetée */
 const PRODUITS={
- pates:{nom:'PÂTES',            fam:'epicerie', achat:.62, ref:1.15, dem:1.00, peri:0,  niv:1},
- conserve:{nom:'CONSERVES',     fam:'epicerie', achat:.72, ref:1.35, dem:.86,  peri:0,  niv:1},
- riz:{nom:'RIZ',                fam:'epicerie', achat:.95, ref:1.75, dem:.74,  peri:0,  niv:2},
- biscuits:{nom:'BISCUITS',      fam:'epicerie', achat:1.10,ref:2.10, dem:.92,  peri:0,  niv:3},
- cafe:{nom:'CAFÉ',              fam:'epicerie', achat:2.60,ref:4.60, dem:.70,  peri:0,  niv:5},
- huile:{nom:'HUILE',            fam:'epicerie', achat:2.20,ref:3.90, dem:.56,  peri:0,  niv:8},
+ /* --- épicerie sèche --- */
+ pates:{nom:'PÂTES',           fam:'sec', achat:.62, ref:1.15, dem:1.00, peri:0,  niv:1},
+ riz:{nom:'RIZ',               fam:'sec', achat:.95, ref:1.75, dem:.82,  peri:0,  niv:1},
+ farine:{nom:'FARINE',         fam:'sec', achat:.55, ref:1.05, dem:.76,  peri:0,  niv:1},
+ conserve:{nom:'CONSERVES',    fam:'sec', achat:.72, ref:1.35, dem:.88,  peri:0,  niv:1},
+ sucrepd:{nom:'SUCRE',         fam:'sec', achat:.70, ref:1.30, dem:.64,  peri:0,  niv:2},
+ sel:{nom:'SEL',               fam:'sec', achat:.32, ref:.75,  dem:.48,  peri:0,  niv:3},
+ huile:{nom:'HUILE',           fam:'sec', achat:2.20,ref:3.90, dem:.60,  peri:0,  niv:4},
 
- lait:{nom:'LAIT',              fam:'frais',    achat:.68, ref:1.15, dem:1.00, peri:6,  niv:2},
- yaourts:{nom:'YAOURTS',        fam:'frais',    achat:1.30,ref:2.30, dem:.90,  peri:8,  niv:2},
- beurre:{nom:'BEURRE',          fam:'frais',    achat:1.60,ref:2.70, dem:.72,  peri:12, niv:4},
- fromage:{nom:'FROMAGE',        fam:'frais',    achat:2.90,ref:4.90, dem:.84,  peri:10, niv:6},
+ /* --- entretien --- */
+ papier:{nom:'PAPIER TOILETTE',fam:'entretien', achat:2.10,ref:3.80, dem:1.00, peri:0, niv:1},
+ vaisselle:{nom:'LIQUIDE VAISSELLE',fam:'entretien',achat:1.30,ref:2.40,dem:.78, peri:0, niv:2},
+ eponges:{nom:'ÉPONGES',       fam:'entretien', achat:.75, ref:1.60, dem:.62, peri:0, niv:2},
+ sacs:{nom:'SACS POUBELLE',    fam:'entretien', achat:1.20,ref:2.30, dem:.70, peri:0, niv:3},
+ lessive:{nom:'LESSIVE',       fam:'entretien', achat:3.80,ref:6.50, dem:.86, peri:0, niv:5},
 
- pommes:{nom:'POMMES',          fam:'fruits',   achat:1.10,ref:2.20, dem:.94,  peri:5,  niv:2},
- bananes:{nom:'BANANES',        fam:'fruits',   achat:.85, ref:1.70, dem:1.00, peri:4,  niv:2},
- salade:{nom:'SALADE',          fam:'fruits',   achat:.55, ref:1.10, dem:.76,  peri:3,  niv:3},
- tomates:{nom:'TOMATES',        fam:'fruits',   achat:1.20,ref:2.40, dem:.88,  peri:4,  niv:5},
+ /* --- boissons --- */
+ eau:{nom:'EAU',               fam:'boissons', achat:.22, ref:.60,  dem:1.00, peri:0, niv:2},
+ soda:{nom:'SODA',             fam:'boissons', achat:.70, ref:1.50, dem:.94,  peri:0, niv:2},
+ jus:{nom:'JUS DE FRUITS',     fam:'boissons', achat:1.05,ref:2.10, dem:.80,  peri:20,niv:3},
+ biere:{nom:'BIÈRE',           fam:'boissons', achat:.85, ref:1.85, dem:.78,  peri:0, niv:5},
+ vin:{nom:'VIN',               fam:'boissons', achat:3.10,ref:5.80, dem:.66,  peri:0, niv:7},
 
- jambon:{nom:'JAMBON',          fam:'boucherie',achat:2.60,ref:4.40, dem:.94,  peri:5,  niv:7},
- poulet:{nom:'POULET',          fam:'boucherie',achat:4.20,ref:7.20, dem:.88,  peri:3,  niv:7},
- steak:{nom:'STEAK',            fam:'boucherie',achat:7.50,ref:12.50,dem:.72,  peri:3,  niv:9},
+ /* --- petit-déjeuner et goûter --- */
+ cereales:{nom:'CÉRÉALES',     fam:'sucre', achat:1.80,ref:3.20, dem:.90, peri:0, niv:3},
+ biscuits:{nom:'BISCUITS',     fam:'sucre', achat:1.10,ref:2.10, dem:1.00,peri:0, niv:3},
+ chocolat:{nom:'CHOCOLAT',     fam:'sucre', achat:.90, ref:1.80, dem:.96, peri:0, niv:3},
+ confiture:{nom:'CONFITURE',   fam:'sucre', achat:1.35,ref:2.45, dem:.66, peri:0, niv:4},
+ cafe:{nom:'CAFÉ',             fam:'sucre', achat:2.60,ref:4.60, dem:.84, peri:0, niv:5},
+ the:{nom:'THÉ',               fam:'sucre', achat:1.50,ref:2.80, dem:.54, peri:0, niv:6},
 
- baguette:{nom:'BAGUETTE',      fam:'boulangerie',achat:.28,ref:.95, dem:1.00, peri:1,  niv:4},
- croissants:{nom:'CROISSANTS',  fam:'boulangerie',achat:1.40,ref:2.80,dem:.80,  peri:1,  niv:4},
- painmie:{nom:'PAIN DE MIE',    fam:'boulangerie',achat:1.05,ref:1.85,dem:.70,  peri:6,  niv:6},
+ /* --- crémerie --- */
+ lait:{nom:'LAIT',             fam:'frais', achat:.68, ref:1.15, dem:1.00,peri:6, niv:4},
+ oeufs:{nom:'ŒUFS',            fam:'frais', achat:1.40,ref:2.50, dem:.92, peri:10,niv:4},
+ yaourts:{nom:'YAOURTS',       fam:'frais', achat:1.30,ref:2.30, dem:.90, peri:8, niv:4},
+ beurre:{nom:'BEURRE',         fam:'frais', achat:1.60,ref:2.70, dem:.74, peri:12,niv:5},
+ fromage:{nom:'FROMAGE',       fam:'frais', achat:2.90,ref:4.90, dem:.86, peri:10,niv:6},
+ creme:{nom:'CRÈME FRAÎCHE',   fam:'frais', achat:.95, ref:1.70, dem:.62, peri:7, niv:7},
 
- eau:{nom:'EAU',                fam:'boissons', achat:.22, ref:.60,  dem:1.00, peri:0,  niv:1},
- soda:{nom:'SODA',              fam:'boissons', achat:.70, ref:1.50, dem:.94,  peri:0,  niv:3},
- jus:{nom:'JUS DE FRUITS',      fam:'boissons', achat:1.05,ref:2.10, dem:.80,  peri:20, niv:5},
- biere:{nom:'BIÈRE',            fam:'boissons', achat:.85, ref:1.85, dem:.78,  peri:0,  niv:8},
- vin:{nom:'VIN',                fam:'boissons', achat:3.10,ref:5.80, dem:.66,  peri:0,  niv:10},
+ /* --- fruits et légumes --- */
+ bananes:{nom:'BANANES',       fam:'fruits', achat:.85, ref:1.70, dem:1.00,peri:4, niv:5},
+ pommes:{nom:'POMMES',         fam:'fruits', achat:1.10,ref:2.20, dem:.94, peri:5, niv:5},
+ carottes:{nom:'CAROTTES',     fam:'fruits', achat:.60, ref:1.20, dem:.72, peri:6, niv:5},
+ salade:{nom:'SALADE',         fam:'fruits', achat:.55, ref:1.10, dem:.76, peri:3, niv:6},
+ tomates:{nom:'TOMATES',       fam:'fruits', achat:1.20,ref:2.40, dem:.88, peri:4, niv:7},
+ oranges:{nom:'ORANGES',       fam:'fruits', achat:1.05,ref:2.00, dem:.70, peri:6, niv:8},
 
- pizza:{nom:'PIZZA SURGELÉE',   fam:'surgeles', achat:1.90,ref:3.60, dem:.96,  peri:0,  niv:6},
- legumesS:{nom:'LÉGUMES SURGELÉS',fam:'surgeles',achat:1.30,ref:2.40,dem:.76,  peri:0,  niv:6},
- glace:{nom:'GLACES',           fam:'surgeles', achat:2.20,ref:4.20, dem:.84,  peri:0,  niv:9},
+ /* --- hygiène --- */
+ savon:{nom:'SAVON',           fam:'hygiene', achat:.95, ref:1.90, dem:.88, peri:0, niv:6},
+ dentifrice:{nom:'DENTIFRICE', fam:'hygiene', achat:1.30,ref:2.50, dem:1.00,peri:0, niv:6},
+ mouchoirs:{nom:'MOUCHOIRS',   fam:'hygiene', achat:.85, ref:1.70, dem:.74, peri:0, niv:7},
+ shampoing:{nom:'SHAMPOING',   fam:'hygiene', achat:1.85,ref:3.40, dem:.80, peri:0, niv:7},
+ couches:{nom:'COUCHES',       fam:'hygiene', achat:6.50,ref:10.90,dem:.58, peri:0, niv:9},
 
- papier:{nom:'PAPIER TOILETTE', fam:'entretien',achat:2.10,ref:3.80, dem:1.00, peri:0,  niv:1},
- vaisselle:{nom:'LIQUIDE VAISSELLE',fam:'entretien',achat:1.30,ref:2.40,dem:.80,peri:0, niv:3},
- lessive:{nom:'LESSIVE',        fam:'entretien',achat:3.80,ref:6.50, dem:.86,  peri:0,  niv:7},
+ /* --- surgelés --- */
+ pizza:{nom:'PIZZA SURGELÉE',  fam:'surgeles', achat:1.90,ref:3.60, dem:1.00,peri:0, niv:7},
+ legumesS:{nom:'LÉGUMES SURGELÉS',fam:'surgeles',achat:1.30,ref:2.40,dem:.76,peri:0, niv:7},
+ poisson:{nom:'POISSON PANÉ',  fam:'surgeles', achat:2.80,ref:4.90, dem:.70, peri:0, niv:8},
+ glace:{nom:'GLACES',          fam:'surgeles', achat:2.20,ref:4.20, dem:.88, peri:0, niv:9},
 
- chewing:{nom:'CHEWING-GUM',    fam:'impulsion',achat:.45, ref:1.10, dem:.90,  peri:0,  niv:5},
- chocolat:{nom:'CHOCOLAT',      fam:'impulsion',achat:.90, ref:1.80, dem:1.00, peri:0,  niv:5},
- magazine:{nom:'MAGAZINES',     fam:'impulsion',achat:1.60,ref:3.20, dem:.64,  peri:0,  niv:8},
- piles:{nom:'PILES',            fam:'impulsion',achat:1.90,ref:4.20, dem:.52,  peri:0,  niv:11}
+ /* --- boulangerie --- */
+ baguette:{nom:'BAGUETTE',     fam:'boulangerie', achat:.28,ref:.95, dem:1.00,peri:1, niv:8},
+ croissants:{nom:'CROISSANTS', fam:'boulangerie', achat:1.40,ref:2.80,dem:.82,peri:1, niv:8},
+ painmie:{nom:'PAIN DE MIE',   fam:'boulangerie', achat:1.05,ref:1.85,dem:.72,peri:6, niv:9},
+ brioche:{nom:'BRIOCHE',       fam:'boulangerie', achat:1.60,ref:2.90,dem:.60,peri:3, niv:10},
+
+ /* --- bazar --- */
+ chewing:{nom:'CHEWING-GUM',   fam:'divers', achat:.45, ref:1.10, dem:.94, peri:0, niv:9},
+ piles:{nom:'PILES',           fam:'divers', achat:1.90,ref:4.20, dem:.72, peri:0, niv:9},
+ ampoules:{nom:'AMPOULES',     fam:'divers', achat:1.70,ref:3.50, dem:.56, peri:0, niv:9},
+ magazines:{nom:'MAGAZINES',   fam:'divers', achat:1.60,ref:3.20, dem:.66, peri:0, niv:10},
+ croquettes:{nom:'CROQUETTES', fam:'divers', achat:4.20,ref:7.40, dem:.80, peri:0, niv:11},
+
+ /* --- boucherie --- */
+ jambon:{nom:'JAMBON',         fam:'boucherie', achat:2.60,ref:4.40, dem:1.00,peri:5, niv:10},
+ poulet:{nom:'POULET',         fam:'boucherie', achat:4.20,ref:7.20, dem:.88, peri:3, niv:10},
+ saucisses:{nom:'SAUCISSES',   fam:'boucherie', achat:2.30,ref:4.10, dem:.76, peri:4, niv:11},
+ steak:{nom:'STEAK',           fam:'boucherie', achat:7.50,ref:12.50,dem:.70, peri:3, niv:11}
 };
 const CLES_PRODUITS=Object.keys(PRODUITS);
 function produitsDe(fam){ return CLES_PRODUITS.filter(k=>PRODUITS[k].fam===fam); }
+/* ce qu'on a le droit de commander : licence achetée ET agrément atteint */
+function aLicence(f){ return !!(P&&P.licences&&P.licences[f]); }
+function produitOuvert(k){
+  const d=PRODUITS[k];
+  return aLicence(d.fam)&&d.niv<=P.niveau;
+}
+function produitsOuverts(){ return CLES_PRODUITS.filter(produitOuvert); }
 
 /* ---- les meubles : ce qui porte la marchandise ----
    cap : le nombre d'unités que le meuble tient en rayon. C'est la vraie
-   monnaie du magasin — la place. */
+   monnaie du magasin — la place au sol. */
 const MEUBLES={
- gondole:{nom:'GONDOLE',        w:3,h:1, cap:90,  prix:900,  ent:8,  niv:1, col:'#b9b0a0',
-   fams:['epicerie','entretien','boissons'],
+ gondole:{nom:'GONDOLE',        w:3,h:1, cap:90,  prix:640,  ent:3,  niv:1, col:'#b9b0a0',
+   fams:['sec','entretien','boissons','sucre','hygiene','divers'],
    d:'Le meuble de base. Trois mètres de linéaire pour une référence sèche.'},
- casier:{nom:'CASIER BOISSONS', w:2,h:2, cap:160, prix:1300, ent:11, niv:3, col:'#9fb4c4',
+ casier:{nom:'CASIER BOISSONS', w:2,h:2, cap:170, prix:920,  ent:6,  niv:2, col:'#9fb4c4',
    fams:['boissons'],
-   d:'Des packs empilés sur palette. Beaucoup d\'unités, peu de place.'},
- gondoleL:{nom:'GONDOLE LONGUE',w:5,h:1, cap:175, prix:1600, ent:13, niv:4, col:'#b9b0a0',
-   fams:['epicerie','entretien','boissons'],
+   d:'Des packs empilés sur palette. Beaucoup d\'unités, peu de place au sol.'},
+ gondoleL:{nom:'GONDOLE LONGUE',w:5,h:1, cap:175, prix:1150, ent:8,  niv:3, col:'#b9b0a0',
+   fams:['sec','entretien','boissons','sucre','hygiene','divers'],
    d:'Le double de linéaire pour une seule référence. Un rayon qui ne tombe jamais.'},
- etal:{nom:'ÉTAL FRUITS',       w:3,h:2, cap:120, prix:1700, ent:15, niv:2, col:'#8fbf6a',
+ tete:{nom:'TÊTE DE GONDOLE',   w:2,h:1, cap:50,  prix:660,  ent:4,  niv:4, col:'#e0b64a',
+   impulse:.55, fams:['sucre','divers','boissons','sec','entretien'],
+   d:'Le bout d\'allée. On n\'y va pas, on tombe dessus — et on prend quand même.'},
+ bac:{nom:'BAC RÉFRIGÉRÉ',      w:3,h:1, cap:110, prix:2200, ent:19, niv:4, col:'#a8c8d6',
+   froid:1, fams:['frais'],
+   d:'Le linéaire du frais. Du froid vingt-quatre heures sur vingt-quatre : ça se paie.'},
+ etal:{nom:'ÉTAL FRUITS',       w:3,h:2, cap:120, prix:1400, ent:9,  niv:5, col:'#8fbf6a',
    fams:['fruits'],
    d:'Cagettes en bois et brumisateur. Ce que le client voit en entrant.'},
- bac:{nom:'BAC RÉFRIGÉRÉ',      w:3,h:1, cap:110, prix:2600, ent:27, niv:2, col:'#a8c8d6', froid:1,
-   fams:['frais'],
-   d:'Le linéaire du frais. L\'entretien coûte cher : c\'est du froid vingt-quatre heures sur vingt-quatre.'},
- tete:{nom:'TÊTE DE GONDOLE',   w:2,h:1, cap:50,  prix:800,  ent:7,  niv:5, col:'#e0b64a', impulse:.55,
-   fams:['impulsion','epicerie','boissons','entretien'],
-   d:'Le bout d\'allée. On n\'y va pas, on tombe dessus — et on prend quand même.'},
- four:{nom:'FOURNIL',           w:3,h:2, cap:80,  prix:3900, ent:37, niv:4, col:'#d9a24e', metier:'boulanger',
-   fams:['boulangerie'],
-   d:'Il faut un boulanger pour qu\'il tourne. L\'odeur fait le reste.'},
- armoire:{nom:'ARMOIRE SURGELÉS',w:2,h:2,cap:130, prix:3500, ent:35, niv:6, col:'#8fd2ea', froid:1,
-   fams:['surgeles'],
+ presentoir:{nom:'PRÉSENTOIR CAISSE',w:1,h:1,cap:30,prix:380, ent:2,  niv:6, col:'#e0b64a',
+   impulse:1.15, fams:['sucre','divers'], pres:1,
+   d:'À coller contre une caisse. Le dernier mètre avant de payer est le plus rentable.'},
+ armoire:{nom:'ARMOIRE SURGELÉS',w:2,h:2,cap:130, prix:2900, ent:24, niv:7, col:'#8fd2ea',
+   froid:1, fams:['surgeles'],
    d:'Portes vitrées et givre. Rien ne périme dedans, mais la facture court.'},
- vitrine:{nom:'VITRINE BOUCHERIE',w:4,h:2,cap:95, prix:4400, ent:42, niv:7, col:'#d1596a', froid:1,
-   metier:'boucher', fams:['boucherie'],
-   d:'Il faut un boucher derrière. Grosse marge, produit fragile.'},
- presentoir:{nom:'PRÉSENTOIR CAISSE',w:1,h:1,cap:30,prix:450, ent:4,  niv:8, col:'#e0b64a', impulse:1.15,
-   fams:['impulsion'], pres:1,
-   d:'À coller contre une caisse. Le dernier mètre avant de payer est le plus rentable du magasin.'}
+ four:{nom:'FOURNIL',           w:3,h:2, cap:80,  prix:3400, ent:26, niv:8, col:'#d9a24e',
+   metier:'boulanger', fams:['boulangerie'],
+   d:'Il faut un boulanger pour qu\'il tourne. Il fabrique sur place, sans réserve.'},
+ vitrine:{nom:'VITRINE BOUCHERIE',w:4,h:2,cap:95, prix:3900, ent:30, niv:10,col:'#d1596a',
+   froid:1, metier:'boucher', fams:['boucherie'],
+   d:'Il faut un boucher derrière. Grosse marge, produit fragile.'}
 };
 
 /* ---- les caisses ----
    Une caisse ne s'ouvre que si quelqu'un est derrière : c'est le vrai coût.
-   L'automatique se passe d'hôte mais scanne deux fois moins vite. */
+   L'automatique se passe d'hôte mais scanne bien plus lentement. */
 const CAISSES={
- caisse:{nom:'CAISSE',          w:2,h:2, prix:3400, ent:23, niv:1, cadence:1.05, hote:1, col:'#d8d2c4',
+ caisse:{nom:'CAISSE',          w:2,h:2, prix:2400, ent:8,  niv:1, cadence:1.05, hote:1,
+   col:'#d8d2c4',
    d:'Un tapis, un hôte, un tiroir. Sans personne dessus, elle ne sert à rien.'},
- rapide:{nom:'CAISSE RAPIDE',   w:2,h:2, prix:3800, ent:25, niv:6, cadence:.62, hote:1, maxArt:12,
-   col:'#f0d78a',
+ rapide:{nom:'CAISSE RAPIDE',   w:2,h:2, prix:3000, ent:14, niv:6, cadence:.62, hote:1,
+   maxArt:12, col:'#f0d78a',
    d:'Douze articles maximum, mais deux fois plus vite. Elle désengorge les petits paniers.'},
- auto:{nom:'CAISSE AUTOMATIQUE',w:1,h:2, prix:5600, ent:32, niv:11,cadence:1.75, hote:0, col:'#a9c9b6',
+ auto:{nom:'CAISSE AUTOMATIQUE',w:1,h:2, prix:4800, ent:20, niv:11,cadence:1.75, hote:0,
+   col:'#a9c9b6',
    d:'Pas d\'hôte à payer. Lente, et les clients pressés la boudent un peu.'}
 };
 
 /* ---- la logistique ---- */
 const LOGIS={
- rack:{nom:'RACK DE RÉSERVE',   w:2,h:2, prix:600,  ent:4, niv:1, cap:420, col:'#a89880',
+ rack:{nom:'RACK DE RÉSERVE',   w:2,h:2, prix:420,  ent:2, niv:1, cap:420, col:'#a89880',
    d:'Ce que la camionnette décharge dort ici en attendant de monter en rayon.'},
- quai:{nom:'QUAI DE LIVRAISON', w:3,h:2, prix:2400, ent:16,niv:9, cap:700, quai:1, col:'#8d8577',
-   d:'Un hayon et un transpalette : les palettes montent en rayon deux fois plus vite.'},
- caddies:{nom:'PARC À CADDIES',  w:2,h:1, prix:700,  ent:5, niv:3, col:'#b0b6bb', caddie:1,
-   d:'Un client avec un grand caddie remplit plus qu\'un client avec un panier. C\'est mesuré.'}
+ caddies:{nom:'PARC À CADDIES',  w:2,h:1, prix:560,  ent:3, niv:3, col:'#b0b6bb', caddie:1,
+   d:'Un client avec un grand caddie remplit plus qu\'un client avec un panier.'},
+ quai:{nom:'QUAI DE LIVRAISON', w:3,h:2, prix:2000, ent:9, niv:9, cap:700, quai:1,
+   col:'#8d8577',
+   d:'Un hayon et un transpalette : les palettes montent en rayon deux fois plus vite.'}
 };
 
-/* ---- l'ambiance ----
-   Elle ne se voit pas dans les ventes tout de suite, mais elle décide de
-   l'humeur, et l'humeur décide de l'achat non prévu. */
+/* ---- l'ambiance ---- */
 const DECORS={
- plante:{nom:'PLANTE VERTE',    w:1,h:1, prix:110, ent:1, niv:1, beau:.5,  col:'#4caf50',
+ plante:{nom:'PLANTE VERTE',    w:1,h:1, prix:90,  ent:1, niv:1, beau:.5,  col:'#4caf50',
    d:'Ça ne se vend pas et ça change tout.'},
- pancarte:{nom:'PANNEAU DE RAYON',w:1,h:1,prix:180, ent:1, niv:2, beau:.2, guide:1, col:'#3d8fd1',
+ pancarte:{nom:'PANNEAU DE RAYON',w:1,h:1,prix:150, ent:1, niv:2, beau:.2, guide:1,
+   col:'#3d8fd1',
    d:'Un client qui voit où il va marche moins et râle moins.'},
- tapis:{nom:'TAPIS D\'ENTRÉE',  w:2,h:1, prix:220, ent:2, niv:3, beau:.6,  col:'#8a5a3c',
+ tapis:{nom:'TAPIS D\'ENTRÉE',  w:2,h:1, prix:180, ent:1, niv:3, beau:.6,  col:'#8a5a3c',
    d:'Le sol du sas. Ça donne le ton avant même la première allée.'},
- affiche:{nom:'AFFICHE PROMO',  w:1,h:1, prix:130, ent:1, niv:4, beau:.4,  promo:1, col:'#e23b2e',
+ affiche:{nom:'AFFICHE PROMO',  w:1,h:1, prix:110, ent:1, niv:3, beau:.4,  promo:1,
+   col:'#e23b2e',
    d:'« −30 % ». Les clients qui passent devant achètent un peu plus.'},
- plafonnier:{nom:'ÉCLAIRAGE NÉON',w:1,h:1,prix:260, ent:3, niv:5, beau:.9, col:'#fff3c4',
+ plafonnier:{nom:'ÉCLAIRAGE NÉON',w:1,h:1,prix:220, ent:2, niv:4, beau:.9, col:'#fff3c4',
    d:'La lumière franche des grandes surfaces. Ça flatte les étiquettes.'},
- vitrophanie:{nom:'VITROPHANIE',w:1,h:1, prix:200, ent:2, niv:7, beau:.7,  col:'#ffc61e',
+ vitrophanie:{nom:'VITROPHANIE',w:1,h:1, prix:170, ent:1, niv:6, beau:.7,  col:'#ffc61e',
    d:'Des lettres collées sur la vitrine. Le passant devient client.'},
- borne:{nom:'BORNE DE PRIX',    w:1,h:1, prix:520, ent:5, niv:10,beau:.5, guide:1.6, col:'#7f8fd6',
+ borne:{nom:'BORNE DE PRIX',    w:1,h:1, prix:440, ent:4, niv:8, beau:.5, guide:1.6,
+   col:'#7f8fd6',
    d:'On y scanne son article pour vérifier l\'étiquette. Ça calme les reproches sur les prix.'}
 };
 
 /* ---- le personnel ---- */
 const METIERS={
- hote:{nom:'HÔTE DE CAISSE',    paie:92,  niv:1, ico:'🧑‍💼', col:'#3d8fd1',
+ hote:{nom:'HÔTE DE CAISSE',    paie:70,  niv:1, ico:'🧑‍💼', col:'#3d8fd1',
    d:'Ouvre une caisse. Sans lui, le tapis ne bouge pas.'},
- rayonniste:{nom:'RAYONNISTE',  paie:84,  niv:1, ico:'📦', col:'#c98a3c',
+ rayonniste:{nom:'RAYONNISTE',  paie:64,  niv:1, ico:'📦', col:'#c98a3c',
    d:'Descend en réserve, remonte les palettes, remplit le rayon le plus vide.'},
- entretien:{nom:'AGENT D\'ENTRETIEN',paie:74,niv:2, ico:'🧹', col:'#7f8fd6',
+ entretien:{nom:'AGENT D\'ENTRETIEN',paie:58,niv:2, ico:'🧹', col:'#7f8fd6',
    d:'Passe la mono-brosse. Un magasin sale se voit dans les avis avant les comptes.'},
- boulanger:{nom:'BOULANGER',    paie:118, niv:4, ico:'👨‍🍳', col:'#d9a24e',
+ boulanger:{nom:'BOULANGER',    paie:105, niv:8, ico:'👨‍🍳', col:'#d9a24e',
    d:'Fait tourner le fournil et sort une fournée toutes les heures.'},
- boucher:{nom:'BOUCHER',        paie:132, niv:7, ico:'🔪', col:'#d1596a',
-   d:'Tient la vitrine. Sans lui, elle reste éteinte.'},
- vigile:{nom:'VIGILE',          paie:104, niv:10,ico:'🛡', col:'#8b8377',
-   d:'Divise par trois la démarque inconnue — ce qui sort sans passer en caisse.'}
+ vigile:{nom:'VIGILE',          paie:92,  niv:9, ico:'🛡', col:'#8b8377',
+   d:'Divise par trois la démarque inconnue — ce qui sort sans passer en caisse.'},
+ boucher:{nom:'BOUCHER',        paie:118, niv:10,ico:'🔪', col:'#d1596a',
+   d:'Tient la vitrine. Sans lui, elle reste éteinte.'}
 };
 
 /* ==========================================================================
    LA SEMAINE
    ==========================================================================
    Six journées, et elles ne se ressemblent pas. C'est ce qui remplace la météo
-   d'un parc : le lundi est mort, le samedi déborde, et un magasin réglé pour
-   le lundi se fait démolir le samedi. */
+   d'un parc : un magasin réglé pour le lundi se fait démolir le samedi. */
 const JOURS_SEM=[
  {nom:'LUNDI',    court:'LUN', affl:.70, panier:.88, ico:'🌥',
   biais:{}, d:'Personne. On range, on nettoie, on prépare.'},
  {nom:'MARDI',    court:'MAR', affl:.80, panier:.92, ico:'🌤',
   biais:{frais:1.15}, d:'Le rythme de croisière.'},
  {nom:'MERCREDI', court:'MER', affl:.98, panier:1.02, ico:'🧒',
-  biais:{impulsion:1.7, boulangerie:1.4}, d:'Les enfants ne sont pas à l\'école. Goûter et bonbons.'},
+  biais:{sucre:1.7, boulangerie:1.4, divers:1.2},
+  d:'Les enfants ne sont pas à l\'école. Goûter et bonbons.'},
  {nom:'JEUDI',    court:'JEU', affl:.90, panier:.98, ico:'🌤',
-  biais:{entretien:1.35}, d:'Une journée sans caractère.'},
+  biais:{entretien:1.35, hygiene:1.3}, d:'Une journée sans caractère.'},
  {nom:'VENDREDI', court:'VEN', affl:1.28, panier:1.24, ico:'🛒',
   biais:{boissons:1.4, boucherie:1.35}, d:'On fait les courses du week-end. Gros paniers.'},
  {nom:'SAMEDI',   court:'SAM', affl:1.62, panier:1.34, ico:'👨‍👩‍👧',
-  biais:{boucherie:1.3, boulangerie:1.5, surgeles:1.2},
+  biais:{boucherie:1.3, boulangerie:1.5, surgeles:1.2, fruits:1.2},
   d:'La journée qui paie le loyer — et celle où les caisses cassent.'}
 ];
 
@@ -949,11 +1021,11 @@ const TEMPS={
    biais:{boissons:1.55, surgeles:1.35, fruits:1.15}},
  gris:{nom:'CIEL COUVERT',   ico:'☁', affl:1.00, col:'#cfd4d8', biais:{}},
  pluie:{nom:'PLUIE',         ico:'🌧', affl:.78, col:'#9fb0bd',
-   biais:{surgeles:1.2, epicerie:1.1}},
+   biais:{surgeles:1.2, sec:1.1}},
  canicule:{nom:'CANICULE',   ico:'🔥', affl:.90, col:'#ffbf7a',
    biais:{boissons:2.4, surgeles:1.9, boucherie:.7}},
  froid:{nom:'GRAND FROID',   ico:'❄', affl:.86, col:'#cfe6f2',
-   biais:{surgeles:1.5, epicerie:1.3, boissons:.7}}
+   biais:{surgeles:1.5, sec:1.3, boissons:.7}}
 };
 function urneTemps(jour){
   const u=['soleil','soleil','gris','gris','pluie'];
@@ -962,29 +1034,32 @@ function urneTemps(jour){
 }
 
 const DIFFS={
- facile:{nom:'TRANQUILLE', affl:1.25, budget:1.2,  loyer:.75, patience:1.3, xp:1.2, casse:.7,
+ facile:{nom:'TRANQUILLE', affl:1.25, budget:1.2,  loyer:.75, patience:1.3, xp:1.25, casse:.7,
    d:'Plus de monde, des budgets larges, un bailleur compréhensif.'},
  normale:{nom:'NORMALE',   affl:1,    budget:1,    loyer:1,   patience:1,   xp:1,   casse:1,
-   d:'Le jeu tel qu\'il est pensé. Quatre samedis, ça arrive vite.'},
- dure:{nom:'MARGE NULLE',  affl:.87,  budget:.84,  loyer:1.35,patience:.8,  xp:.9,  casse:1.35,
+   d:'Le jeu tel qu\'il est pensé. Dix semaines, et le loyer double tous les quinze jours.'},
+ dure:{nom:'MARGE NULLE',  affl:.87,  budget:.84,  loyer:1.35,patience:.8,  xp:.85, casse:1.35,
    d:'Moins de clients, des budgets serrés, un loyer qui étrangle et de la casse partout.'}
 };
 function DIF(){ return DIFFS[SAVE.diff]||DIFFS.normale; }
 
 /* ==========================================================================
-   L'AGRÉMENT — les niveaux
+   L'AGRÉMENT COMMERCIAL — les niveaux
    ==========================================================================
-   Vingt paliers. Ils s'obtiennent en faisant tourner le magasin : les articles
-   qui passent en caisse, les clients servis, la satisfaction, la marge. Chaque
-   palier ouvre des références, du matériel, des métiers — et quatre d'entre eux
-   agrandissent le bail. */
-const NIV_MAX=20;
-function xpPour(n){ return Math.round(43*Math.pow(Math.max(1,n-1),2.43)); }
+   Douze paliers, et ils se méritent : il faut environ CINQ JOURNÉES pleines
+   pour en passer un, du premier au dernier. C'est volontaire — un magasin qui
+   ouvre tout son catalogue en une semaine n'a plus rien à raconter ensuite.
+
+   L'expérience vient de ce qui passe en caisse : les tickets, les articles, la
+   satisfaction des clients et la marge dégagée. Ni la construction ni l'argent
+   dépensé n'en donnent : on ne monte pas de niveau en achetant des meubles. */
+const NIV_MAX=12;
+function xpPour(n){ return Math.round(520*Math.pow(Math.max(1,n-1),1.90)); }
 function xpDuJour(j,moy,marge){
-  return Math.round((j.clients*2 + j.articles + moy*70 + Math.max(0,marge)/55)
+  return Math.round(((j.paniers||0)*3 + j.articles*.35 + moy*45 + Math.max(0,marge)/55)
     * DIF().xp * (1+.10*AM('ecole')));
 }
-function subventionDe(n){ return 140+n*70; }
+function subventionDe(n){ return 300+n*260; }
 
 /* ce que chaque palier ouvre, construit une fois à partir des tables */
 let DEBLOCAGES=null;
@@ -996,17 +1071,21 @@ function construireDeblocages(){
   for(const k in LOGIS)   ajoute(LOGIS[k].niv,LOGIS[k].nom);
   for(const k in DECORS)  ajoute(DECORS[k].niv,DECORS[k].nom);
   for(const k in METIERS) ajoute(METIERS[k].niv,METIERS[k].nom);
-  for(const k in PRODUITS)ajoute(PRODUITS[k].niv,PRODUITS[k].nom);
+  for(const f in FAMILLES) if(FAMILLES[f].lic) ajoute(FAMILLES[f].niv,'LICENCE '+FAMILLES[f].nom);
   for(const e of BAUX) if(e.niv>1) ajoute(e.niv,'AGRANDISSEMENT DU BAIL');
+}
+/* ce que le palier ouvre côté références, une fois la licence en poche */
+function refsDuNiveau(n){
+  return CLES_PRODUITS.filter(k=>PRODUITS[k].niv===n).map(k=>PRODUITS[k].nom);
 }
 
 /* ---- le bail : le rectangle loué, qui pousse par paliers ---- */
 const BAUX=[
  {niv:1,  w:21, h:14},
- {niv:4,  w:27, h:18},
- {niv:8,  w:35, h:22},
- {niv:13, w:44, h:28},
- {niv:18, w:54, h:36}
+ {niv:3,  w:26, h:17},
+ {niv:5,  w:32, h:21},
+ {niv:8,  w:40, h:26},
+ {niv:11, w:50, h:33}
 ];
 function bailDe(niv){
   let b=BAUX[0];
@@ -1014,19 +1093,20 @@ function bailDe(niv){
   return b;
 }
 
-const SEMAINES=4, JOURS=6;
-const LOYERS=[3600,9600,19000,32000];
+const SEMAINES=10, JOURS=6;
+/* Le loyer tombe chaque samedi soir et grimpe vite : c'est lui qui empêche de
+   se contenter d'un petit magasin qui tourne. */
+const LOYERS=[1800,2600,3800,5200,7000,9200,12000,15500,20000,26000];
 const OUVERTURE=8, FERMETURE=20;          // heures affichées
 const SECONDES_JOUR=720;                  // une journée à vitesse 1 : douze minutes
 const HEURES_JOUR=FERMETURE-OUVERTURE;
 const VIT_BASE=16;                        // un client, en pixels par seconde
-const CAP_RESERVE_BASE=380;
+const CAP_RESERVE_BASE=340;
+const DELAI_LIVRAISON=2.5;                // heures de magasin entre la commande et le camion
 
 function etoilesDe(rep){ return clamp(Math.floor(rep*5.9),0,5); }
 
-/* ---- ce qu'ils disent en sortant ----
-   Comme dans un vrai magasin, personne ne dit « satisfaction 62 % » : on dit
-   ce qui a coincé. Chaque avis est tiré dans la cause dominante du client. */
+/* ---- ce qu'ils disent en sortant ---- */
 const PLAINTES={
  rupture:{nom:'de la marchandise', ph:['Il manquait la moitié de ma liste.',
    'Rayon vide, encore une fois.','Je n\'ai pas trouvé ce pour quoi je venais.',
@@ -1087,7 +1167,8 @@ function coutJour(b){ return b.d.ent||0; }
 function nouvellePartie(){
   P={
     sem:1, jour:1, jourNum:1, t:0, heure:OUVERTURE, ouvert:true,
-    argent:26000+5000*AM('tresorerie'),
+    argent:18000+4000*AM('tresorerie'),
+    licences:{sec:1}, livraisons:[],
     sol:new Uint8Array(GX*GY), occ:new Int16Array(GX*GY).fill(-1),
     salete:new Float32Array(GX*GY),
     meubles:[], employes:[], clients:[], parts:[], flottants:[],
@@ -1253,10 +1334,28 @@ function demolir(x,y){
 }
 
 /* ---- les produits d'un meuble ---- */
+/* Ce qu'on peut mettre dans un meuble : la famille doit lui aller, la licence
+   doit être achetée, et l'agrément atteint. C'est ce triple filtre qui fait
+   qu'on démarre avec quatre références et pas cinquante-sept. */
 function produitsPossibles(b){
   if(b.cat!=='meuble') return [];
-  return CLES_PRODUITS.filter(k=>b.d.fams.indexOf(PRODUITS[k].fam)>=0
-    && PRODUITS[k].niv<=P.niveau);
+  return CLES_PRODUITS.filter(k=>b.d.fams.indexOf(PRODUITS[k].fam)>=0 && produitOuvert(k));
+}
+/* les licences, achetées à la centrale */
+function coutLicence(f){
+  return Math.round(FAMILLES[f].lic*(1-.06*AM('negoce')));
+}
+function acheterLicence(f){
+  const d=FAMILLES[f];
+  if(!d||aLicence(f)) return false;
+  if(d.niv>P.niveau){ flash('Agrément '+d.niv+' requis','mal'); SND.erreur(); return false; }
+  const c=coutLicence(f);
+  if(P.argent<c){ flash('Pas assez d\'argent','mal'); SND.erreur(); return false; }
+  P.argent-=c;
+  P.licences[f]=1;
+  SND.cloche(); flash('LICENCE '+d.nom+' ACHETÉE','bon');
+  verifierSucces(false);
+  return true;
 }
 function affecter(b,k){
   if(b.prod===k) return;
@@ -1484,20 +1583,28 @@ function placeRayon(k){
   return c;
 }
 /* Ce qu'un gérant raisonnable commanderait : la demande d'hier, les ventes
-   qu'on a ratées faute de stock, un coussin pour demain — et jamais plus que
-   ce qui rentre en rayon plus une réserve d'un jour. */
+   qu'on a ratées faute de stock, la part de journée qu'il reste à tenir — et
+   jamais plus que ce qui rentre en rayon plus une réserve d'une journée. */
 function suggestion(k){
   const d=PRODUITS[k];
+  const place=placeRayon(k);
+  if(!place) return 0;
   const v=(P.ventes[k]||0), m=(P.manques[k]||0);
-  const dem=Math.max(v+m, placeRayon(k)*.34);
-  /* À l'heure où l'on commande, P.jour est déjà la journée à venir : la
-     référence à comparer est donc celle qui vient de s'écouler. */
-  const aVenir=JOURS_SEM[P.jour-1];
-  const ecoule=JOURS_SEM[(P.jour-2+JOURS)%JOURS];
-  const prevu=dem*(aVenir.affl/Math.max(.4,ecoule.affl))*1.12;
-  let cible=Math.ceil(prevu*(d.peri&&d.peri<=2?1.05:1.55));
-  cible=Math.min(cible, placeRayon(k)+Math.ceil(prevu));
-  return Math.max(0,Math.round(cible-stockTotal(k)));
+  const dem=Math.max(v+m, place*.34);
+  /* ce qui reste de la journée en cours, plus la suivante */
+  const reste=clamp(1-(P.t||0)/SECONDES_JOUR,0,1);
+  const demain=JOURS_SEM[P.jour%JOURS]||JOURS_SEM[0];
+  const auj=JOURS_SEM[P.jour-1];
+  const prevu=dem*(reste + demain.affl/Math.max(.4,auj.affl))*1.05;
+  let cible=Math.ceil(prevu*(d.peri&&d.peri<=2?1.02:1.25));
+  cible=Math.min(cible, place+Math.ceil(prevu*.6));
+  return Math.max(0,Math.round(cible-stockTotal(k)-enRoute(k)));
+}
+/* ce qui est déjà commandé et pas encore déchargé */
+function enRoute(k){
+  let s=0;
+  for(const l of (P.livraisons||[])) s+=(l.lignes[k]||0);
+  return s;
 }
 function prixAchat(k){
   return PRODUITS[k].achat*(1-.05*AM('negoce'))*(1-(P.remise||0));
@@ -1514,7 +1621,7 @@ function volumeCommande(){
 }
 function commandeAuto(){
   P.commande={};
-  for(const k of referencees()){
+  for(const k of referencees().filter(produitOuvert)){
     const q=suggestion(k);
     if(q>0) P.commande[k]=q;
   }
@@ -1531,28 +1638,65 @@ function commandeAuto(){
     if(!P.commande[pire]) delete P.commande[pire];
   }
 }
-/* la camionnette arrive avant l'ouverture */
-function livrer(){
-  let cout=0, recu=0, refuse=0;
-  const place=capaciteReserve()-occupationReserve();
-  for(const k in P.commande){
-    let q=P.commande[k]||0;
+/* ==========================================================================
+   LA COMMANDE PASSÉE EN PLEINE JOURNÉE
+   ==========================================================================
+   On commande quand on veut, depuis le bureau, et on paie tout de suite. Le
+   camion met deux heures et demie de magasin à arriver. Commandé après dix-sept
+   heures trente, il ne passera que le lendemain matin — c'est ce qui punit le
+   gérant qui découvre sa rupture à la fermeture au lieu de la voir à midi. */
+function heureLivraison(){
+  const h=(P.heure||OUVERTURE)+DELAI_LIVRAISON;
+  if(h<=FERMETURE-.4) return {jn:P.jourNum, h};
+  return {jn:P.jourNum+1, h:OUVERTURE+.6};
+}
+function passerCommande(){
+  const cout=coutCommande(), vol=volumeCommande();
+  if(vol<=0) return false;
+  if(cout>P.argent){ flash('La caisse ne suffit pas','mal'); SND.erreur(); return false; }
+  const q=heureLivraison();
+  P.argent-=cout;
+  P.jt.achats=(P.jt.achats||0)+cout;
+  P.livraisons.push({jn:q.jn, h:q.h, lignes:Object.assign({},P.commande), cout, vol});
+  P.commande={};
+  SND.tiroir();
+  flash('COMMANDE PASSÉE · '+nb(vol)+' ARTICLES · '+eur(cout),'bon');
+  return true;
+}
+function livraisonDue(l){
+  return P.jourNum>l.jn || (P.jourNum===l.jn && P.heure>=l.h);
+}
+function decharger(l){
+  let recu=0, refuse=0;
+  for(const k in l.lignes){
+    let q=l.lignes[k]||0;
     if(q<=0) continue;
-    const dispo=Math.max(0,place-recu);
-    if(q>dispo){ refuse+=q-dispo; q=dispo; }
-    if(q<=0) continue;
+    const place=capaciteReserve()-occupationReserve();
+    if(q>place){ refuse+=q-place; q=place; }
+    if(q<=0){ refuse+=l.lignes[k]; continue; }
     versReserve(k,[{q,age:0}]);
-    cout+=q*prixAchat(k);
     recu+=q;
   }
-  P.commande={};
-  cout=Math.round(cout);
-  P.argent-=cout;
-  P.jt.achats=cout;
-  P.jt.livre=recu;
-  if(refuse>0) flash(refuse+' COLIS REFUSÉS · RÉSERVE PLEINE','mal');
-  if(recu>0){ SND.carillon(); flash('LIVRAISON · '+nb(recu)+' ARTICLES','bon'); }
-  return cout;
+  P.jt.livre=(P.jt.livre||0)+recu;
+  if(refuse>0) flash(nb(refuse)+' ARTICLES REFUSÉS · RÉSERVE PLEINE','mal');
+  if(recu>0){ SND.carillon(); flash('LIVRAISON · '+nb(recu)+' ARTICLES EN RÉSERVE','bon'); }
+}
+function pasLivraisons(){
+  if(!P.livraisons||!P.livraisons.length) return;
+  for(let i=P.livraisons.length-1;i>=0;i--){
+    if(!livraisonDue(P.livraisons[i])) continue;
+    decharger(P.livraisons[i]);
+    P.livraisons.splice(i,1);
+  }
+}
+function prochaineLivraison(){
+  if(!P.livraisons||!P.livraisons.length) return null;
+  let m=null;
+  for(const l of P.livraisons) if(!m||l.jn<m.jn||(l.jn===m.jn&&l.h<m.h)) m=l;
+  return m;
+}
+function heureTxt(h){
+  return Math.floor(h)+'h'+String(Math.floor((h%1)*60)).padStart(2,'0');
 }
 /* la nuit : tout vieillit d'un jour, et ce qui a dépassé la date part à la benne */
 function perimer(){
@@ -1675,8 +1819,8 @@ function offreUtile(){
 }
 function affluencePrevue(){
   const j=JOURS_SEM[P.jour-1], t=TEMPS[P.temps], dif=DIF();
-  const base=14 + offreUtile()*7 + P.rep*130;
-  const bouche=.50+P.rep*1.20;
+  const base=28 + offreUtile()*8 + P.rep*140;
+  const bouche=.58+P.rep*1.10;
   return Math.max(6,Math.round(base*bouche*j.affl*t.affl*dif.affl
     *(1+boostPub())*(1+.07*AM('enseigne'))*(1+(P.sem-1)*.05)));
 }
@@ -2194,7 +2338,9 @@ function ouvrirJournee(){
   P.temps=pick(urneTemps(P.jour));
   P.prevu=affluencePrevue();
   P.spawnAcc=0; P.grace=0;
+  const achatsHier=0;
   P.jt=journalNeuf();
+  P.jt.achats=achatsHier;
   for(const b of P.meubles){ b.jourVentes=0; b.jourRecette=0; b.jourManque=0; }
   P.ventes={}; P.manques={};
   majCaisses();
@@ -2225,6 +2371,7 @@ function pasJournee(dt){
   P.saleT=(P.saleT||0)-dt;
   if(P.sale && P.saleT<=0){ refaireChamps(); P.saleT=.25; }
 
+  pasLivraisons();
   reassortPatron(dt);
   for(const b of P.meubles) pasCaisse(b,dt);
   for(let i=P.clients.length-1;i>=0;i--){
@@ -2361,20 +2508,15 @@ function apresSoir(){
     if(!P.pub.reste){ flash('LA CAMPAGNE '+PUBS[P.pub.k].nom+' EST TERMINÉE',''); P.pub=null; }
   }
   sauver();
-  commandeAuto();
-  ecranActif='commande';
-  montrerCommande();
-}
-/* La commande validée : on ouvre d'abord — c'est ouvrirJournee qui remet le
-   journal à neuf — et la camionnette décharge ensuite, sinon le montant de la
-   livraison s'inscrivait dans un journal effacé une ligne plus loin et le
-   bilan du soir annonçait zéro euro d'achats tous les jours. */
-function validerCommande(){
   ecranActif='jeu';
   ecrans(null);
   ouvrirJournee();
-  livrer();
-  instantane();
+}
+/* on referme le bureau et on retourne dans le magasin */
+function fermerCommande(){
+  ecranActif='jeu';
+  ecrans(null);
+  catOuverte=null; majCats();
 }
 
 function finPartie(gagne,txt){
@@ -3067,6 +3209,7 @@ const CATS=[
  {id:'logis',    nom:'RÉSERVE',     ico:'📦'},
  {id:'decor',    nom:'AMBIANCE',    ico:'🪴'},
  {id:'personnel',nom:'PERSONNEL',   ico:'🧑‍💼'},
+ {id:'commande', nom:'COMMANDER',   ico:'🚚'},
  {id:'contrats', nom:'CONTRATS',    ico:'📋'},
  {id:'magasin',  nom:'LE MAGASIN',  ico:'🏪'},
  {id:'demolir',  nom:'RETIRER',     ico:'⛏', sup:1}
@@ -3089,6 +3232,8 @@ function ouvrirCat(id){
   else if(id==='personnel'){ outil=null; palettePersonnel(); aide(null); }
   else if(id==='magasin'){ outil=null; $('palette').innerHTML=''; aide(null); ficheMagasin(); }
   else if(id==='contrats'){ outil=null; $('palette').innerHTML=''; aide(null); ficheContrats(); }
+  else if(id==='commande'){ outil=null; $('palette').innerHTML=''; aide(null);
+    fermerFiche(); ouvrirBureau(); }
   else { outil=null; paletteObjets(id); aide(null); }
   majCats();
 }
@@ -3176,6 +3321,7 @@ function ficheMagasin(){
   const res=occupationReserve(), cap=capaciteReserve();
   let h='<h3>LE MAGASIN</h3><div class="sous">SEMAINE '+P.sem+' · '+j.nom+'</div>'
     +'<div class="txt">'+j.d+' <b>'+t.ico+' '+t.nom+'</b></div>'
+    +alertes()
     +'<div class="ligne"><span>Références en rayon</span><b>'+referencees().length+'</b></div>'
     +'<div class="ligne"><span>Caisses ouvertes</span><b>'
       +P.meubles.filter(b=>b.cat==='caisse'&&b.ouverte).length+' / '
@@ -3186,6 +3332,9 @@ function ficheMagasin(){
       +eur(loyerProchain())+'</b></div>'
     +'<div class="ligne"><span>Attendus aujourd\'hui</span><b>'+nb(P.prevu||0)+'</b></div>'
     +'<div class="ligne"><span>Propreté</span><b>'+Math.round((1-saleteMoyenne())*100)+' %</b></div>'
+    +(prochaineLivraison()?'<div class="ligne"><span>Livraison en route</span>'
+      +'<b style="color:#2b7bbf">'+nb(P.livraisons.reduce((a,l)=>a+l.vol,0))+' art. à '
+      +heureTxt(prochaineLivraison().h)+'</b></div>':'')
     +'<div class="ligne" style="border:0"><span>Réserve</span><b>'+nb(res)+' / '+nb(cap)+'</b></div>'
     +'<div class="barre'+(res/cap>.9?' ba':(res/cap>.7?' us':''))+'"><i style="width:'
       +Math.round(clamp(res/cap,0,1)*100)+'%"></i></div>'
@@ -3217,6 +3366,42 @@ function ficheMagasin(){
   };
   $('mFer').onclick=()=>{ fermerFiche(); catOuverte=null; majCats(); };
 }
+/* ==========================================================================
+   LES ALERTES
+   ==========================================================================
+   Un jeu de gestion doit dire ce qui cloche, pas laisser deviner. Ces cinq
+   lignes sont exactement les cinq façons de perdre de l'argent sans s'en
+   rendre compte, et elles s'affichent en haut du panneau du magasin. */
+function alertes(){
+  const l=[];
+  const caisses=P.meubles.filter(b=>b.cat==='caisse');
+  const ouvertes=caisses.filter(b=>b.ouverte).length;
+  if(!caisses.length) l.push(['🧾','AUCUNE CAISSE','Personne ne peut payer. Pose-en une.']);
+  else if(!ouvertes) l.push(['🧾','AUCUNE CAISSE OUVERTE',
+    'Il manque un hôte de caisse : embauche-le dans PERSONNEL.']);
+  const vides=P.meubles.filter(b=>b.cat==='meuble'&&b.prod&&b.servi&&b.stock<=0);
+  if(vides.length) l.push(['🥫',vides.length+' RAYON'+(vides.length>1?'S':'')+' EN RUPTURE',
+    vides.map(b=>PRODUITS[b.prod].nom).slice(0,3).join(', ')
+    +(vides.length>3?'…':'')+'. Commande, ou attends la livraison.']);
+  const aRemplir=P.meubles.filter(b=>b.cat==='meuble'&&b.prod&&b.servi
+    &&deficit(b)>b.cap*.4&&stockReserve(b.prod)>0);
+  if(aRemplir.length&&!P.employes.some(e=>e.k==='rayonniste'))
+    l.push(['📦','LA MARCHANDISE DORT EN RÉSERVE',
+      'Sans rayonniste, les palettes ne montent presque pas en rayon.']);
+  const isole=P.meubles.filter(b=>b.cat!=='decor'&&!b.servi);
+  if(isole.length) l.push(['🚧',isole.length+' MEUBLE'+(isole.length>1?'S':'')+' INACCESSIBLE'
+    +(isole.length>1?'S':''),'Aucune allée n\'y mène : dégage un passage.']);
+  if(occupationReserve()>capaciteReserve()*.92)
+    l.push(['🏗','RÉSERVE PLEINE','La prochaine livraison sera refusée. Pose un rack.']);
+  if((1-saleteMoyenne())<.72)
+    l.push(['🧹','LE MAGASIN EST SALE','Ça se voit dans les avis avant de se voir dans les comptes.']);
+  if(!l.length) return '<div class="txt" style="color:#1f7a3d"><b>Tout est en ordre.</b></div>';
+  return '<div class="sous" style="margin-top:10px">À RÉGLER</div>'
+    +l.map(x=>'<div class="rl" style="padding:6px 0"><span class="re">'+x[0]+'</span>'
+      +'<div class="rt"><b style="color:#c0392b;font-size:10px">'+x[1]+'</b>'
+      +'<span>'+x[2]+'</span></div></div>').join('');
+}
+
 /* la marge générale : un seul curseur qui pousse toutes les étiquettes */
 function margeGlobale(){
   const l=referencees();
@@ -3261,8 +3446,10 @@ function ficheBati(b){
           +'"><i style="width:'+Math.round(fraicheur(b)*100)+'%"></i></div>':'')
         +'<div class="ligne"><span>Vendu aujourd\'hui</span><b>'+nb(b.jourVentes)+'</b></div>'
         +'<div class="ligne"><span>Encaissé</span><b>'+eur(b.jourRecette)+'</b></div>'
-        +'<div class="ligne" style="border:0"><span>Achat fournisseur</span><b>'
-          +cts(p.achat)+'</b></div>'
+        +'<div class="ligne"><span>Achat à la centrale</span><b>'+cts(prixAchat(b.prod))
+          +'</b></div>'
+        +'<div class="ligne" style="border:0"><span>Prix du marché</span>'
+          +'<b style="color:#2b7bbf">'+cts(p.ref)+'</b></div>'
         +'<div class="pxl"><input type="range" id="bPx" min="'
           +Math.round(p.achat*60)+'" max="'+Math.round(p.ref*220)+'" step="1" value="'
           +Math.round(px*100)+'"><b id="bPxV">'+cts(px)+'</b></div>'
@@ -3445,7 +3632,11 @@ function montrerSoir(){
     +'<div class="rl"><span class="re">⭐</span><div class="rt">'
     +'<b style="color:#8257bd">NIVEAU '+P.niveau+(P.niveau>=NIV_MAX?' — LE MAXIMUM':'')+'</b>'
     +'<span>'+(P.niveau>=NIV_MAX?'Tout est ouvert.'
-      :(nb(Math.max(0,x1-P.xp))+' points avant le niveau '+(P.niveau+1)))+'</span>'
+      :(nb(Math.max(0,x1-P.xp))+' points avant le niveau '+(P.niveau+1)
+        +(j.xp?' — environ '+Math.max(1,Math.ceil((x1-P.xp)/Math.max(1,j.xp)))
+          +' journée'+(Math.ceil((x1-P.xp)/Math.max(1,j.xp))>1?'s':'')+' à ce rythme':'')
+        +'. Ouvre alors : '+((DEBLOCAGES[P.niveau+1]||[]).concat(refsDuNiveau(P.niveau+1))
+          .slice(0,4).join(', ')||'rien de neuf')))+'</span>'
     +'<div class="barre" style="margin-top:5px"><i style="width:'+Math.round(pu*100)
     +'%;background:#8257bd"></i></div></div>'
     +'<span class="rv" style="color:#8257bd">+'+nb(j.xp||0)+'</span></div>';
@@ -3539,7 +3730,7 @@ function montrerSoir(){
   dessinerHistoire($('sGraph'));
   $('sSuite').textContent=P.jour>=JOURS
     ? (P.sem>=SEMAINES?'DERNIER COMPTE':'PAYER LE LOYER · '+eur(loy))
-    : 'PASSER LA COMMANDE';
+    : 'OUVRIR DEMAIN';
   ecrans('soir');
 }
 
@@ -3549,31 +3740,79 @@ function montrerSoir(){
    L'écran qui décide de la journée du lendemain. On y voit, pour chaque
    référence : ce qui s'est vendu hier, ce qu'on n'a PAS pu vendre faute de
    stock, ce qui reste, et la place disponible en rayon. */
+/* Le bureau : on y va quand on veut, en pleine journée. Le magasin est en
+   pause pendant ce temps — c'est la tablette du gérant, pas une machine à
+   remonter le temps. */
+function ouvrirBureau(){
+  ecranActif='commande';
+  montrerCommande();
+}
 function montrerCommande(){
   const j=JOURS_SEM[P.jour-1];
-  $('cEye').textContent='SEMAINE '+P.sem+' · POUR '+j.nom+' — '+j.d;
-  $('cAide').innerHTML='<div class="sur">CE QUE LA CAMIONNETTE APPORTERA DEMAIN MATIN</div>'
-    +'<div class="rl"><span class="re">'+j.ico+'</span><div class="rt">'
-    +'<b>'+j.nom+'</b><span>'+j.d+' Affluence attendue : environ '
-    +Math.round(JOURS_SEM[P.jour-1].affl*100)+' % d\'une journée ordinaire.</span></div></div>'
+  const q=heureLivraison();
+  const dem=q.jn>P.jourNum;
+  $('cEye').textContent='SEMAINE '+P.sem+' · '+j.nom+' · '+heureTxt(P.heure);
+  const pro=prochaineLivraison();
+  $('cAide').innerHTML='<div class="sur">LA CENTRALE LIVRE DANS LA JOURNÉE</div>'
+    +'<div class="rl"><span class="re">🚚</span><div class="rt">'
+    +'<b'+(dem?' style="color:#c0392b"':'')+'>LIVRAISON '
+      +(dem?'DEMAIN MATIN À '+heureTxt(q.h):'AUJOURD\'HUI À '+heureTxt(q.h))+'</b>'
+    +'<span>Le camion met deux heures et demie. '
+    +(dem?'Il est trop tard pour être livré aujourd\'hui : ce que tu commandes '
+      +'maintenant arrivera demain.'
+      :'Ce que tu commandes maintenant sera en réserve à '+heureTxt(q.h)+'.')
+    +'</span></div></div>'
+    +(pro?'<div class="rl"><span class="re">⏳</span><div class="rt">'
+      +'<b>UNE LIVRAISON EST DÉJÀ EN ROUTE</b><span>'
+      +nb(P.livraisons.reduce((a,l)=>a+l.vol,0))+' articles attendus'
+      +(pro.jn>P.jourNum?' demain':'')+' à partir de '+heureTxt(pro.h)
+      +'. Ils sont déjà déduits des quantités proposées.</span></div></div>':'')
     +'<div class="rl"><span class="re">📦</span><div class="rt"><b>RÉSERVE</b>'
     +'<span>'+nb(occupationReserve())+' articles sur '+nb(capaciteReserve())
-    +' de capacité. Ce qui ne rentre pas est refusé au déchargement.</span></div>'
+    +' de capacité. Ce qui ne rentre pas au déchargement est refusé — pose des '
+    +'racks avant de commander gros.</span></div>'
     +'<span class="rv">'+Math.round(occupationReserve()/capaciteReserve()*100)+' %</span></div>'
     +'<div class="rl"><span class="re">💰</span><div class="rt"><b>EN CAISSE</b>'
-    +'<span>La commande est payée à la livraison, avant la première vente.</span></div>'
+    +'<span>La commande est payée tout de suite, à la commande.</span></div>'
     +'<span class="rv" style="color:'+(P.argent<0?'#c0392b':'#1f7a3d')+'">'
     +eur(P.argent)+'</span></div>';
+  majLicences();
   majCommande();
   ecrans('commande');
 }
+/* les licences : ce qu'on a le droit de vendre, famille par famille */
+function majLicences(){
+  const el=$('cLicL');
+  el.innerHTML=CLES_FAMILLES.map(f=>{
+    const d=FAMILLES[f];
+    const eue=aLicence(f);
+    const bloque=d.niv>P.niveau;
+    const cout=coutLicence(f);
+    const refs=produitsDe(f).filter(k=>PRODUITS[k].niv<=P.niveau).length;
+    const tot=produitsDe(f).length;
+    return '<div class="rl"><span class="re">'+d.ico+'</span><div class="rt">'
+      +'<b style="color:'+(eue?d.col:(bloque?'#b3aca0':'#453f37'))+'">'+d.nom
+        +(eue?' ✓':'')+'</b>'
+      +'<span>'+d.d+(eue?' — <b>'+refs+' référence'+(refs>1?'s':'')+' sur '+tot
+        +' ouverte'+(refs>1?'s':'')+'</b> à cet agrément.':'')+'</span></div>'
+      +(eue?'<span class="rv" style="color:'+d.col+'">ACQUISE</span>'
+        :'<button class="achat" data-lic="'+f+'"'
+          +((bloque||cout>P.argent)?' disabled':'')+'>'
+          +(bloque?'AGRÉMENT '+d.niv:'<b>'+eur(cout)+'</b>ACHETER')+'</button>')
+      +'</div>';
+  }).join('');
+  Array.prototype.forEach.call(el.querySelectorAll('[data-lic]'),b=>{
+    b.onclick=()=>{ if(acheterLicence(b.getAttribute('data-lic'))){
+      majLicences(); majCommande(); montrerCommande(); } };
+  });
+}
 function majCommande(){
-  const l=referencees();
+  const l=produitsOuverts();
   const el=$('cListe');
   if(!l.length){
     el.innerHTML='<div class="carte"><div class="rl"><span class="re">🤷</span>'
-      +'<div class="rt"><b>AUCUNE RÉFÉRENCE</b><span>Pose des rayons et choisis ce que'
-      +' tu mets dedans — sans ça il n\'y a rien à commander.</span></div></div></div>';
+      +'<div class="rt"><b>AUCUNE LICENCE</b><span>Achète au moins une licence '
+      +'ci-dessus pour avoir le droit de commander quelque chose.</span></div></div></div>';
     majTotalCommande();
     return;
   }
@@ -3586,22 +3825,25 @@ function majCommande(){
         +'margin:10px 0 2px 4px">'+FAMILLES[fam].ico+' '+FAMILLES[fam].nom+'</div>';
     }
     const v=P.ventes[k]||0, m=P.manques[k]||0, s=stockTotal(k), cap=placeRayon(k);
+    const route=enRoute(k);
     const q=P.commande[k]||0;
-    const cls=m>0?' rupt':((p.peri&&s>cap*1.3)?' casse':'');
+    const cls=m>0?' rupt':((p.peri&&cap&&s>cap*1.3)?' casse':'');
     h+='<div class="cmd'+cls+'" data-k="'+k+'">'
       +'<span class="ci">'+FAMILLES[p.fam].ico+'</span>'
       +'<div class="cc"><b>'+p.nom+'</b><span>'
-      +'vendu '+nb(v)+(m?' · <b style="color:#c0392b">manqué '+nb(m)+'</b>':'')
-      +' · reste '+nb(s)+' · place '+nb(cap)
-      +(p.peri?' · périme en '+p.peri+' j':'')
-      +' · achat '+cts(prixAchat(k))+'</span></div>'
+      +(cap?'vendu '+nb(v)+(m?' · <b style="color:#c0392b">manqué '+nb(m)+'</b>':'')
+        +' · reste '+nb(s)+' · place en rayon '+nb(cap)
+        :'<b style="color:#c9930f">aucun rayon ne le porte</b> · en réserve '+nb(s))
+      +(route?' · <b style="color:#2b7bbf">'+nb(route)+' en route</b>':'')
+      +(p.peri?' · périme en '+p.peri+' j':' · ne périme pas')
+      +' · achat '+cts(prixAchat(k))+' · vente '+cts(P.prix[k]||p.ref)+'</span></div>'
       +'<div class="cq"><button data-m="'+k+'">−</button>'
       +'<input type="text" inputmode="numeric" data-i="'+k+'" value="'+q+'">'
       +'<button data-p="'+k+'">+</button></div>'
       +'<span class="cp" data-c="'+k+'">'+eur(Math.round(q*prixAchat(k)))+'</span></div>';
   }
   el.innerHTML=h;
-  const pas=k=>Math.max(1,Math.round(placeRayon(k)*.12)||5);
+  const pas=k=>Math.max(1,Math.round(placeRayon(k)*.12)||10);
   Array.prototype.forEach.call(el.querySelectorAll('[data-m]'),b=>{
     const k=b.getAttribute('data-m');
     b.onclick=()=>{ P.commande[k]=Math.max(0,(P.commande[k]||0)-pas(k));
@@ -3631,13 +3873,16 @@ function majLigne(k,sansInput){
 }
 function majTotalCommande(){
   const t=coutCommande(), v=volumeCommande();
-  const place=capaciteReserve()-occupationReserve();
+  const enR=(P.livraisons||[]).reduce((a,l)=>a+l.vol,0);
+  const place=capaciteReserve()-occupationReserve()-enR;
   const trop=t>P.argent||v>place;
   $('cTot').textContent=eur(t);
   $('cTot').className=trop?'trop':'';
   $('cTotT').textContent=nb(v)+' ARTICLES · '
     +(v>place?'DÉPASSE LA RÉSERVE DE '+nb(v-place):'PLACE RESTANTE '+nb(place-v))
     +(t>P.argent?' · CAISSE INSUFFISANTE':'');
+  const b=$('cValider');
+  if(b) b.textContent=v?('COMMANDER · '+eur(t)):'RIEN À COMMANDER';
 }
 
 /* ---------------------------------------------------------------- la fin */
@@ -3755,21 +4000,22 @@ const SUCCES=[
  {id:'cinqcent', nom:'SAMEDI HISTORIQUE',d:'Cinq cents clients en une journée',            j:13},
  {id:'etoile3',  nom:'TROIS ÉTOILES',    d:'Atteindre trois étoiles de réputation',        j:3},
  {id:'etoile5',  nom:'CINQ ÉTOILES',     d:'Atteindre cinq étoiles de réputation',         j:14},
- {id:'niveau10', nom:'MOITIÉ DU CHEMIN', d:'Atteindre l\'agrément 10',                     j:7},
- {id:'niveau20', nom:'AGRÉMENT COMPLET', d:'Atteindre l\'agrément 20',                     j:30},
+ {id:'niveau6',  nom:'MOITIÉ DU CHEMIN', d:'Atteindre l\'agrément 6',                      j:7},
+ {id:'niveau12', nom:'AGRÉMENT COMPLET', d:'Atteindre l\'agrément 12',                     j:30},
  {id:'plein',    nom:'RAYONS PLEINS',    d:'Finir une journée sans une seule rupture',     j:11},
  {id:'zerocasse',nom:'RIEN À LA BENNE',  d:'Une journée avec du frais et zéro casse',      j:9},
  {id:'boucherie',nom:'À LA COUPE',       d:'Ouvrir la vitrine boucherie avec son boucher', j:8},
  {id:'fournil',  nom:'ODEUR DE PAIN',    d:'Faire tourner le fournil',                     j:7},
- {id:'complet',  nom:'TOUT LE CATALOGUE',d:'Avoir les neuf familles en rayon en même temps',j:20},
- {id:'trentecinq',nom:'CENTRALE',        d:'Référencer les trente-cinq produits',          j:24},
+ {id:'licences', nom:'TOUTES LES LICENCES',d:'Acheter les onze licences de la centrale',  j:22},
+ {id:'complet',  nom:'TOUT LE CATALOGUE',d:'Avoir les onze familles en rayon en même temps',j:20},
+ {id:'cinquante',nom:'CINQUANTE RÉFÉRENCES',d:'Cinquante références différentes en rayon',  j:26},
  {id:'sansfile', nom:'AUCUNE ATTENTE',   d:'Une journée sans un seul caddie abandonné',    j:9},
  {id:'magot',    nom:'LE MAGOT',         d:'Cent mille euros en caisse',                   j:14},
  {id:'marge',    nom:'GROSSE MARGE',     d:'Huit mille euros de marge brute en une journée',j:10},
  {id:'satisfait',nom:'TOUT LE MONDE SOURIT',d:'Une journée à plus de 90 % de satisfaction',j:11},
  {id:'revision', nom:'LINÉAIRE',         d:'Poser vingt rayons dans un même magasin',      j:7},
  {id:'vedette',  nom:'PASSAGE À LA TÉLÉ',d:'Payer un spot régional',                       j:6},
- {id:'gagne',    nom:'QUATRE SEMAINES',  d:'Payer les quatre loyers',                      j:35},
+ {id:'gagne',    nom:'DIX SEMAINES',     d:'Payer les dix loyers',                         j:35},
  {id:'gagnedur', nom:'MARGE NULLE',      d:'Gagner en difficulté MARGE NULLE',             j:60}
 ];
 function succesFait(id){ return !!(SAVE.succes&&SAVE.succes[id]); }
@@ -3793,8 +4039,9 @@ function verifierSucces(fin){
   const et=etoilesDe(P.rep);
   if(et>=3) decrocher('etoile3');
   if(et>=5) decrocher('etoile5');
-  if(P.niveau>=10) decrocher('niveau10');
-  if(P.niveau>=20) decrocher('niveau20');
+  if(P.niveau>=6) decrocher('niveau6');
+  if(P.niveau>=12) decrocher('niveau12');
+  if(CLES_FAMILLES.every(f=>aLicence(f))) decrocher('licences');
   if(P.argent>=100000) decrocher('magot');
   if(P.meubles.filter(b=>b.cat==='meuble').length>=20) decrocher('revision');
   if(P.meubles.some(b=>b.k==='vitrine'&&b.prod)&&P.employes.some(e=>e.k==='boucher'))
@@ -3804,7 +4051,7 @@ function verifierSucces(fin){
   const fams={};
   for(const b of P.meubles) if(b.cat==='meuble'&&b.prod&&b.servi) fams[PRODUITS[b.prod].fam]=1;
   if(Object.keys(fams).length>=Object.keys(FAMILLES).length) decrocher('complet');
-  if(referencees().length>=CLES_PRODUITS.length) decrocher('trentecinq');
+  if(referencees().length>=50) decrocher('cinquante');
   if(fin){
     const n=j.bonheur?j.bonheur.length:0;
     if(n>=25&&!Object.keys(j.manques||{}).length&&!Object.keys(j.manquesFam||{}).length)
@@ -3919,6 +4166,7 @@ function serialiserPartie(){
     xp:Math.round(P.xp), temps:P.temps,
     st:P.st, total:P.total, contrats:P.contrats, histoire:P.histoire, pub:P.pub,
     prix:P.prix, commande:P.commande, ventes:P.ventes, manques:P.manques,
+    licences:P.licences, livraisons:P.livraisons,
     reserve:res, sal,
     meubles:P.meubles.map(b=>[b.cat,b.k,b.x,b.y,b.prod,
       b.lots.map(x=>[x.q,x.age]), b.ventes|0, Math.round(b.recette||0)]),
@@ -3935,6 +4183,7 @@ function restaurerPartie(d){
     if(d.diff&&DIFFS[d.diff]) SAVE.diff=d.diff;
     nouvellePartie();
     P.niveau=d.niveau;
+    P.licences=d.licences||{sec:1};
     appliquerBail(bailDe(P.niveau),true);
     P.meubles=[]; P.idBati=1;
     for(const a of d.meubles){
@@ -3958,6 +4207,9 @@ function restaurerPartie(d){
     P.xp=d.xp; P.temps=d.temps||'gris';
     P.st=d.st||P.st; P.total=d.total||P.total;
     P.contrats=d.contrats||[]; P.histoire=d.histoire||[]; P.pub=d.pub||null;
+    P.licences=d.licences||{sec:1};
+    P.livraisons=(d.livraisons||[]).map(l=>({jn:l.jn,h:l.h,cout:l.cout,vol:l.vol,
+      lignes:Object.assign({},l.lignes)}));
     P.prix=Object.assign({},P.prix,d.prix||{});
     P.commande=d.commande||{};
     P.ventes=d.ventes||{}; P.manques=d.manques||{};
@@ -4308,8 +4560,7 @@ function cabler(){
     if(ecranActif!=='jeu') return;
     if(e.code==='Space'){ e.preventDefault(); enPause=!enPause; majVitesse(); return; }
     if(e.code==='Digit1'){ vitesse=1; enPause=false; majVitesse(); }
-    if(e.code==='Digit2'){ vitesse=3; enPause=false; majVitesse(); }
-    if(e.code==='Digit3'){ vitesse=10; enPause=false; majVitesse(); }
+    if(e.code==='Digit2'){ vitesse=2; enPause=false; majVitesse(); }
     if(e.key==='+'||e.key==='='){ zoomer(1.16,VW/2,VH/2); }
     if(e.key==='-'||e.key==='_'){ zoomer(1/1.16,VW/2,VH/2); }
   });
@@ -4336,23 +4587,27 @@ function cabler(){
     aide('Pose un <b>rayon</b>, choisis ce que tu mets dedans, ajoute une <b>caisse</b> '
       +'et embauche un <b>hôte</b> — sans lui, elle reste fermée.');
     setTimeout(()=>aide(null),11000);
-    /* on offre le premier plein : sans marchandise, la première journée est
-       vide, et il faut l'offrir AVANT l'ouverture pour qu'il entre dans
-       l'instantané du premier matin */
-    for(const k of ['pates','eau','papier','conserve']) P.reserve[k]=[{q:120,age:0}];
+    /* Le stock de départ du repreneur : quatre palettes d'épicerie sèche et de
+       quoi tenir la première journée. Tout le reste s'achète — licence par
+       licence, référence par référence. */
+    for(const k of ['pates','riz','farine','conserve','papier'])
+      P.reserve[k]=[{q:90,age:0}];
     ouvrirJournee();
   };
   $('reprendre').onclick=()=>{ SND.init(); SND.reprendre(); SND.clic(); reprendrePartie(); };
   $('sSuite').onclick=()=>{ SND.clic(); apresSoir(); };
   $('cValider').onclick=()=>{
-    const v=volumeCommande(), place=capaciteReserve()-occupationReserve();
-    if(coutCommande()>P.argent){ flash('La caisse ne suffit pas','mal'); SND.erreur(); return; }
+    const v=volumeCommande();
+    if(!v){ flash('La commande est vide','mal'); SND.erreur(); return; }
+    const enR=(P.livraisons||[]).reduce((a,l)=>a+l.vol,0);
+    const place=capaciteReserve()-occupationReserve()-enR;
     if(v>place&&!confirm('La commande dépasse la réserve de '+nb(v-place)
-      +' articles : le surplus sera refusé au déchargement. Valider quand même ?')) return;
-    SND.clic(); validerCommande();
+      +' articles : le surplus sera refusé au déchargement. Commander quand même ?')) return;
+    if(passerCommande()){ majCommande(); montrerCommande(); }
   };
   $('cAuto').onclick=()=>{ SND.clic(); commandeAuto(); majCommande(); };
   $('cVide').onclick=()=>{ SND.clic(); P.commande={}; majCommande(); };
+  $('cRetour').onclick=()=>{ SND.clic(); fermerCommande(); };
   $('fRejouer').onclick=()=>{ SND.clic(); nouvellePartie(); demarrer(); ouvrirJournee(); };
   $('fMenu').onclick=()=>{ P=null; ecranActif='menu'; majMenu(); ecrans('menu'); magasinDemo(); };
   $('ouvrirRegl').onclick=()=>{ majReglages(); ecrans('reglages'); ecranActif='reglages'; };
@@ -4409,6 +4664,7 @@ function magasinDemo(){
   nouvellePartie();
   P.demo=true;
   P.niveau=NIV_MAX; P.argent=9999999;
+  for(const f of CLES_FAMILLES) P.licences[f]=1;
   appliquerBail(BAUX[BAUX.length-1],true);
   const z=P.zone;
   const p=(cat,k,x,y)=>{ if(peutPoser(cat,k,x,y).ok){ const b=poserBrut(cat,k,x,y);
@@ -4416,38 +4672,38 @@ function magasinDemo(){
     return b; } return null; };
 
   /* le mur du frais, en haut */
-  const fam=(b,f)=>{ if(!b) return; const l=produitsDe(f).filter(k=>PRODUITS[k].niv<=NIV_MAX);
+  const fam=(b,f)=>{ if(!b) return; const l=produitsDe(f);
     if(l.length) affecter(b,pick(l)); };
-  for(let i=0;i<9;i++) fam(p('meuble','bac',z.x0+4+i*4,z.y0+2),'frais');
-  for(let i=0;i<4;i++) fam(p('meuble','armoire',z.x0+42+i*3,z.y0+2),'surgeles');
-  for(let i=0;i<3;i++) fam(p('meuble','etal',z.x0+5+i*4,z.y0+5),'fruits');
-  fam(p('meuble','vitrine',z.x0+20,z.y0+5),'boucherie');
-  fam(p('meuble','four',z.x0+27,z.y0+5),'boulangerie');
-  for(let i=0;i<3;i++) fam(p('meuble','casier',z.x0+34+i*3,z.y0+5),'boissons');
+  for(let i=0;i<8;i++) fam(p('meuble','bac',z.x0+3+i*4,z.y0+2),'frais');
+  for(let i=0;i<4;i++) fam(p('meuble','armoire',z.x0+38+i*3,z.y0+2),'surgeles');
+  for(let i=0;i<3;i++) fam(p('meuble','etal',z.x0+4+i*4,z.y0+5),'fruits');
+  fam(p('meuble','vitrine',z.x0+18,z.y0+5),'boucherie');
+  fam(p('meuble','four',z.x0+25,z.y0+5),'boulangerie');
+  for(let i=0;i<3;i++) fam(p('meuble','casier',z.x0+31+i*3,z.y0+5),'boissons');
 
   /* les allées centrales */
-  const rangees=[z.y0+9,z.y0+13,z.y0+17,z.y0+21,z.y0+25,z.y0+29];
+  const rangees=[z.y0+9,z.y0+13,z.y0+17,z.y0+21,z.y0+25];
+  const fams=['sec','entretien','boissons','sucre','hygiene','divers'];
   for(const y of rangees){
-    for(let i=0;i<7;i++){
-      const x=z.x0+4+i*7;
+    for(let i=0;i<6;i++){
+      const x=z.x0+3+i*7;
       const b=p('meuble','gondoleL',x,y);
-      if(b){ const f=pick(['epicerie','entretien','boissons']); fam(b,f); }
+      if(b) fam(b,pick(fams));
     }
-    /* une tête de gondole au bout de chaque allée */
-    fam(p('meuble','tete',z.x0+51,y),'impulsion');
+    fam(p('meuble','tete',z.x0+45,y),pick(['sucre','divers']));
   }
 
   /* les caisses en bas, de part et d'autre de la sortie */
   const yc=z.y1-4;
-  for(let i=0;i<5;i++) p('caisse','caisse',z.x0+6+i*3,yc);
-  for(let i=0;i<4;i++) p('caisse','caisse',z.x0+36+i*3,yc);
-  p('caisse','rapide',z.x0+48,yc);
-  for(let i=0;i<6;i++) fam(p('meuble','presentoir',z.x0+8+i*3,yc+2),'impulsion');
+  for(let i=0;i<5;i++) p('caisse','caisse',z.x0+5+i*3,yc);
+  for(let i=0;i<3;i++) p('caisse','caisse',z.x0+33+i*3,yc);
+  p('caisse','rapide',z.x0+43,yc);
+  for(let i=0;i<6;i++) fam(p('meuble','presentoir',z.x0+7+i*3,yc+2),pick(['sucre','divers']));
 
   /* la réserve, dans un coin */
   for(let i=0;i<4;i++) p('logis','rack',z.x0+1,z.y0+10+i*3);
-  p('logis','caddies',z.x0+25,z.y1-2);
-  p('logis','caddies',z.x0+29,z.y1-2);
+  p('logis','caddies',z.x0+22,z.y1-2);
+  p('logis','caddies',z.x0+26,z.y1-2);
 
   /* l'ambiance */
   for(let i=0;i<10;i++) p('decor','plante',ri(z.x0+2,z.x1-2),ri(z.y0+2,z.y1-2));
@@ -4466,7 +4722,7 @@ function magasinDemo(){
   for(const k of CLES_PRODUITS) P.reserve[k]=[{q:60,age:0}];
 
   P.sale=true; refaireChamps();
-  for(let i=0;i<9;i++) embaucher('hote',true);
+  for(let i=0;i<10;i++) embaucher('hote',true);
   for(let i=0;i<3;i++) embaucher('rayonniste',true);
   embaucher('entretien',true); embaucher('boulanger',true); embaucher('boucher',true);
   majCaisses();

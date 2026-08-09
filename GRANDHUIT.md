@@ -466,24 +466,30 @@ l'économie de base :
 
 | | Été 1 | Été 2 | Été 3 | Été 4 |
 |---|---|---|---|---|
-| Visiteurs le meilleur jour | 212 | 327 | 381 | 400 |
-| Tours vendus ce jour-là | 239 | 439 | 508 | 483 |
-| Recette du meilleur jour | 8 335 € | 14 476 € | 18 718 € | 19 957 € |
+| Visiteurs le meilleur jour | 277 | 341 | 337 | 424 |
+| Tours vendus ce jour-là | 312 | 461 | 548 | 525 |
+| Recette du meilleur jour | 10 771 € | 15 997 € | 16 862 € | 21 180 € |
 | Attractions en fin d'été | 8 | 16 | 24 | 28 |
-| Niveau de licence | 9 | 17 | 20 | 20 |
-| Étoiles | 4 | 5 | 4 | 4 |
+| Niveau de licence | 8 | 13 | 16 | **18** |
+| Étoiles | 4 | 4 | 4 | 5 |
 | Loyer payé | 5 000 € | 13 000 € | 24 000 € | 40 000 € |
-| En caisse après le loyer | 8 879 € | 16 403 € | 31 320 € | **32 939 €** |
+| En caisse avant le loyer | 17 928 € | 30 045 € | 49 121 € | **61 588 €** |
+
+**La courbe redressée fait exactement ce qu'on lui demandait.** Le Grand Huit,
+qui exige le niveau 13, est posé au **dix-neuvième jour** sur trente-deux ; le
+Looping, niveau 16, au **vingt-sixième** ; et la partie se termine au **niveau
+18** — le maximum n'est pas atteint. Avec l'ancienne courbe, la même partie
+plafonnait au niveau 20 dès le vingtième jour et la seconde moitié de la
+campagne n'ouvrait plus rien du tout.
 
 Le nombre de tours suit le nombre d'entrées tout du long — c'est le signe que
 la boucle tourne. La recette plafonne autour de vingt mille euros par jour au
 lieu de grimper indéfiniment, et le billet d'entrée se stabilise à trente-neuf
 euros : c'est la saturation qui fait son travail. Le motif qui revient chaque
 été est celui qu'on veut voir dans un jeu de gestion : les canicules remplissent
-le parc, la satisfaction tombe à 77 % avec « j'ai eu soif toute la journée », la
-réputation perd une étoile, l'affluence se corrige d'elle-même le lendemain. Le
-parc se régule ; c'est au joueur de casser cette limite en doublant ce qui
-sature.
+le parc, la satisfaction tombe avec « j'ai eu soif toute la journée », la
+réputation bouge, l'affluence se corrige d'elle-même le lendemain. Le parc se
+régule ; c'est au joueur de casser cette limite en doublant ce qui sature.
 
 Le coût du rendu, mesuré à part, avec le pire cas fabriqué à la main sur le
 grand terrain — **deux cent soixante-trois bâtiments, cinq cent vingt cases

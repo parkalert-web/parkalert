@@ -6,14 +6,21 @@ la musique d'ambiance sont synthétisés note par note.
 
 ## L'idée
 
-Un local nu en zone commerciale, un découvert autorisé, et **quatre semaines de
-six jours** pour en faire un supermarché qui tient. Un loyer commercial tombe
-chaque samedi soir, et il augmente. On monte les rayons, on choisit ce qu'on met
-dedans, on commande le stock, on fixe les prix, on ouvre des caisses.
+Un local nu en zone commerciale, dix-huit mille euros, et **dix semaines de six
+jours** — soixante journées — pour en faire un supermarché qui tient. Un loyer
+commercial tombe chaque samedi soir, et il passe de mille huit cents à
+vingt-six mille euros. On monte les rayons, on choisit ce qu'on met dedans, on
+commande le stock, on fixe les prix, on ouvre des caisses.
 
 **Une journée dure douze minutes**, de huit heures à vingt heures, avec deux
-coups de feu — la fin de matinée et la sortie du travail. Les commandes de
-vitesse montent jusqu'à ×10.
+coups de feu — la fin de matinée et la sortie du travail. La vitesse monte à
+**×2 et pas plus** : une journée se joue, elle ne se saute pas. C'est un choix,
+pas une limite technique — à ×10 on ne voit plus la file se former, on ne voit
+plus le rayon se vider, et le jeu se réduit à un tableur.
+
+On commence avec **quatre références** — pâtes, riz, farine, conserves — et une
+seule licence. On finit, si tout va bien, avec **cinquante-sept références et
+onze licences**.
 
 ## Ce que ce jeu n'est pas
 
@@ -25,22 +32,23 @@ différente au point d'inverser le sens du jeu.
 |---|---|---|
 | Ce que fait le visiteur | il **choisit** la plus belle chose à faire | il **exécute une liste** de courses |
 | Ce que vend le joueur | une expérience, en stock infini | de la **marchandise**, qui s'épuise |
-| Quand on décide | pendant la journée : construire, tarifer | **la veille au soir**, devant le bon de commande |
+| Quand on décide | pendant la journée : construire, tarifer | **au bureau, en pleine journée**, devant le bon de commande |
 | Le goulot | la file de chaque attraction | la **file unique des caisses**, à la sortie |
 | On perd de l'argent en | payant le loyer | **rupture**, **casse** et **caddies abandonnés** |
 | Ce qui se voit à l'écran | des manèges qui tournent | des **rayons qui se vident** |
 | Palette | plein soleil, pelouse | **lino, néon, bitume** |
 
-Le décalage d'une journée entre la décision et son effet est le ressort du jeu.
-Quand le samedi arrive et que le rayon est vide, il est déjà trop tard : c'est
-jeudi soir qu'il fallait commander.
+Le décalage entre la décision et son effet est le ressort du jeu. On commande
+quand on veut, mais **le camion met deux heures et demie**, et passé dix-sept
+heures trente il ne passera plus avant le lendemain matin. Voir sa rupture à
+midi et la voir à la fermeture ne coûte pas la même chose.
 
 ## La boucle
 
 ```
-commande du soir → livraison du matin → mise en rayon par un employé →
-le client prend → passage en caisse → marge → réputation →
-combien de monde se présente demain
+licence achetée → commande passée au bureau → camion deux heures et demie plus
+tard → réserve → mise en rayon par un employé → le client prend → passage en
+caisse → marge → réputation → combien de monde se présente demain
 ```
 
 Et trois fuites, qu'il faut tenir toutes les trois :
@@ -59,7 +67,7 @@ Et trois fuites, qu'il faut tenir toutes les trois :
 ## Le client
 
 Il entre avec un caddie ou un panier, un budget, une patience, et une **liste de
-trois à dix familles** tirée selon le jour et le temps qu'il fait. Il fait le
+deux à douze familles** tirée selon le jour et le temps qu'il fait. Il fait le
 tour, ligne après ligne, en allant toujours au rayon le plus proche qui porte ce
 qu'il cherche. Sur chaque ligne, trois questions :
 
@@ -93,17 +101,28 @@ dans l'ordre où ils sont arrivés, exactement comme dans un magasin : le plus
 vieux part en premier, ce qui limite la casse. Quand un lot atteint la
 durée de conservation de son produit, il part à la benne — payé, jamais vendu.
 
-| Famille | Meuble | Conservation |
-|---|---|---|
-| 🥫 Épicerie | gondole, gondole longue | ne périme pas |
-| 🧀 Crémerie | bac réfrigéré | 6 à 12 jours |
-| 🍎 Fruits et légumes | étal | 3 à 5 jours |
-| 🥩 Boucherie | vitrine (il faut un boucher) | 3 à 5 jours |
-| 🥖 Boulangerie | fournil (il faut un boulanger) | **1 jour** |
-| 🥤 Boissons | casier, gondole | ne périme pas |
-| 🧊 Surgelés | armoire | ne périme pas |
-| 🧼 Entretien | gondole | ne périme pas |
-| 🍫 Caisse et goûter | tête de gondole, présentoir | ne périme pas |
+| Famille | Licence | Agrément | Références | Meuble |
+|---|---|---|---|---|
+| 🍝 Épicerie sèche | offerte | 1 | 7 | gondole |
+| 🧼 Entretien | 800 € | 1 | 5 | gondole |
+| 🥤 Boissons | 1 200 € | 2 | 5 | casier |
+| 🍫 Petit-déjeuner | 1 700 € | 3 | 6 | gondole, tête de gondole |
+| 🧀 Crémerie | 2 700 € | 4 | 6 | bac réfrigéré |
+| 🍎 Fruits et légumes | 2 300 € | 5 | 6 | étal |
+| 🧴 Hygiène | 2 100 € | 6 | 5 | gondole |
+| 🧊 Surgelés | 4 400 € | 7 | 4 | armoire |
+| 🥖 Boulangerie | 4 200 € | 8 | 4 | fournil + boulanger |
+| 🔋 Bazar | 2 700 € | 9 | 5 | gondole, présentoir |
+| 🥩 Boucherie | 6 500 € | 10 | 4 | vitrine + boucher |
+
+Une licence ne suffit pas : **chaque référence a en plus son propre agrément**.
+La licence Crémerie s'achète au niveau 4 et donne lait, œufs et yaourts ; le
+beurre attend le 5, le fromage le 6, la crème le 7. C'est ce qui fait qu'un
+rayon acheté tôt continue de s'enrichir longtemps après.
+
+Et une durée de conservation par référence : la baguette périme en **un jour**,
+la salade en trois, le steak en trois, le lait en six, le beurre en douze, et
+tout ce qui est sec ou surgelé ne périme jamais.
 
 Le **fournil** est à part : il ne consomme pas de réserve, il fabrique sur place
 tant que le boulanger est là — au prix de la matière première. C'est la
@@ -114,23 +133,54 @@ posés. Ce qui ne rentre pas au déchargement est refusé. Un **rayonniste** fai
 navette entre le rack et le rayon le plus vide ; sans lui, le patron s'en occupe,
 mais à la vitesse où un rayon se vide un lundi.
 
-## Le bon de commande
+## Le bureau
 
-Le seul écran du jeu où l'on décide vraiment. Pour chaque référence :
+On y va quand on veut, en pleine journée, depuis la barre du bas. Le magasin se
+met en pause pendant ce temps : c'est la tablette du gérant, pas une machine à
+remonter le temps.
+
+Il porte deux choses. En haut, **les licences** — les onze familles, ce qu'elles
+coûtent, l'agrément qu'elles réclament, et combien de leurs références sont déjà
+ouvertes. C'est le vrai arbre de progression du jeu, et il est entièrement
+visible dès la première minute : on sait tout de suite ce qu'on pourra vendre et
+dans quel ordre.
+
+En dessous, **le bon de commande**. Pour chaque référence :
 
 - **vendu** hier — la demande réelle ;
 - **manqué** hier — les ventes qu'on n'a *pas* faites faute de stock, en rouge.
   C'est le chiffre qui n'existe dans aucun tableau de bord classique et qui dit
   exactement quoi commander ;
 - **reste** — réserve plus rayon ;
-- **place** — ce que le linéaire peut absorber ;
-- la **durée de conservation** et le **prix d'achat**.
+- **place** — ce que le linéaire peut absorber, ou *aucun rayon ne le porte* ;
+- ce qui est **déjà en route** et pas encore déchargé ;
+- la **durée de conservation**, le **prix d'achat** et le **prix de vente**.
 
 Le bandeau du bas tient le total, le volume, la place restante en réserve et
 prévient quand la caisse ne suit pas. Un bouton **REMPLIR AU MIEUX** propose une
-commande raisonnable — couverture d'environ une journée et demie pour le sec,
-au plus juste pour le frais — et la rogne tant qu'elle ne rentre ni dans la
-caisse ni dans la réserve.
+commande raisonnable — la fin de la journée en cours plus la suivante, corrigée
+du jour de la semaine, au plus juste pour le frais — et la rogne tant qu'elle ne
+rentre ni dans la caisse ni dans la réserve.
+
+**La commande est payée à la commande**, pas à la livraison. C'est ce qui fait
+qu'un gérant peut se retrouver à sec un vendredi soir avec un camion en route.
+
+## Ce que le jeu dit tout seul
+
+Un jeu de gestion doit dire ce qui cloche, pas laisser deviner. Le panneau du
+magasin ouvre sur une liste **À RÉGLER** qui n'affiche que ce qui coûte
+réellement de l'argent en ce moment :
+
+- aucune caisse, ou aucune caisse ouverte faute d'hôte ;
+- les rayons en rupture, nommés ;
+- la marchandise qui dort en réserve faute de rayonniste ;
+- les meubles devenus inaccessibles ;
+- la réserve pleine — la prochaine livraison sera refusée ;
+- le magasin sale.
+
+Quand il n'y a rien, il l'écrit aussi. Et le bilan du soir ne dit pas seulement
+combien de points d'agrément il reste : il dit **combien de journées ça
+représente au rythme actuel**, et **ce que le palier suivant ouvrira**.
 
 ## La semaine
 
@@ -196,23 +246,27 @@ déplacent tout seuls et l'ancien mur devient du sol.
 | Agrément | Surface |
 |---|---|
 | 1 | 21 × 14 |
-| 4 | 27 × 18 |
-| 8 | 35 × 22 |
-| 13 | 44 × 28 |
-| 18 | 54 × 36 |
+| 3 | 26 × 17 |
+| 5 | 32 × 21 |
+| 8 | 40 × 26 |
+| 11 | 50 × 33 |
 
 ## L'agrément commercial — les niveaux
 
-Vingt paliers, gagnés en faisant tourner le magasin : les clients encaissés, les
-articles qui passent en caisse, la satisfaction, la marge.
+Douze paliers, et ils se méritent : **environ cinq journées pleines par palier**,
+du premier au dernier. Soixante journées de campagne pour douze niveaux — c'est
+volontaire, un magasin qui ouvre tout son catalogue en une semaine n'a plus rien
+à raconter ensuite.
 
 ```js
-xpPour(n) = 43 × (n − 1)^2,43
+xpPour(n) = 520 × (n − 1)^1,90
 ```
 
-La même courbe que *Grand Huit* après son redressement : le vingtième palier
-n'est pas garanti par une partie simplement correcte. Chaque palier ouvre des
-références, du matériel, des métiers, et quatre d'entre eux agrandissent le bail.
+L'expérience vient **uniquement de ce qui passe en caisse** : les tickets, les
+articles, la satisfaction des clients, la marge dégagée. Ni la construction ni
+l'argent dépensé n'en donnent — on ne monte pas de niveau en achetant des
+meubles, on en monte en vendant. Chaque palier ouvre des licences, des
+références, du matériel, des métiers, et cinq d'entre eux agrandissent le bail.
 
 ## Le soir
 
@@ -236,7 +290,7 @@ combien il manque encore.
 
 ## La carrière — ce qui survit à la partie
 
-Vingt-quatre journées de douze minutes, et une faillite possible au dernier
+Soixante journées de douze minutes, et une faillite possible au dernier
 samedi. Tout ce qui suit existe pour que ce ne soit jamais une soirée pour rien.
 
 **Le profil** : un nom d'enseigne, un portrait parmi six, et six rangs qui montent
@@ -259,13 +313,13 @@ d'achat), bail négocié, enseigne connue, bonne entente, entrepôt, logistique,
 formation caisse, merchandising, sécurité, confort d'achat, école de commerce,
 carnet d'adresses.
 
-**Vingt-deux succès**, dont plusieurs qui n'ont de sens que dans un supermarché :
+**Vingt-trois succès**, dont plusieurs qui n'ont de sens que dans un supermarché :
 finir une journée sans une seule rupture, une journée avec du frais et zéro
-casse, une journée sans un seul caddie abandonné, référencer les trente-cinq
-produits.
+casse, une journée sans un seul caddie abandonné, acheter les onze licences,
+tenir cinquante références en rayon.
 
 **Les contrats** : deux par semaine (trois avec le carnet), tirés parmi huit
-types et calibrés sur la semaine en cours. Deux d'entre eux portent directement
+types et recalibrés chaque semaine. Deux d'entre eux portent directement
 sur les fuites — *au plus tant de ventes ratées*, *moins de tant d'euros de
 casse* —, ce qui en fait le meilleur tutoriel du jeu.
 
@@ -318,23 +372,28 @@ derrière le titre.
 
 ```js
 const GX=58, GY=42, TUILE=26;                 // le local, 2 436 parcelles
-const SEMAINES=4, JOURS=6;                    // la campagne, vingt-quatre journées
-const LOYERS=[3600,9600,19000,32000];         // ce que le bailleur prend
+const SEMAINES=10, JOURS=6;                   // la campagne, soixante journées
+const LOYERS=[1800,2600,3800,5200,7000,       // ce que le bailleur prend,
+              9200,12000,15500,20000,26000];  //   chaque samedi soir
 const OUVERTURE=8, FERMETURE=20;
 const SECONDES_JOUR=720;                      // une journée à vitesse 1
+const DELAI_LIVRAISON=2.5;                    // heures entre la commande et le camion
 const VIT_BASE=16;                            // un client, en pixels/seconde
 const CADENCE_BASE=.19;                       // secondes par article en caisse
-const CAP_RESERVE_BASE=380;
-const NIV_MAX=20;
-xpPour(n) = 43 × (n−1)^2,43
+const CAP_RESERVE_BASE=340;
+const NIV_MAX=12;                             // douze paliers, cinq journées chacun
+xpPour(n) = 520 × (n−1)^1,90
+argent de départ : 18 000 €
 ```
 
 ## Comment ça a été vérifié
 
-Un robot gérant joue les quatre semaines dans un Chromium sans interface. Il
-ouvre ses caisses avant tout le reste, ajoute une référence par famille dans
-l'ordre où l'agrément les débloque, double le rayon le plus en rupture de la
-veille, embauche un rayonniste tous les six rayons, et valide chaque soir la
-commande proposée. Il sort une ligne par journée : clients, tickets, articles,
+Un robot gérant joue les dix semaines dans un Chromium sans interface. Il achète
+chaque matin la licence la moins chère qu'il peut s'offrir en gardant de quoi
+acheter le meuble et la marchandise qui vont avec, ouvre ses caisses avant tout
+le reste, pose un rayon pour la référence ouverte la plus demandée qui n'en a
+pas, double le rayon le plus en rupture de la veille, embauche un rayonniste
+tous les six rayons — et **passe deux commandes par jour**, une à l'ouverture et
+une vers quatorze heures, comme un vrai gérant qui voit son rayon se vider. Il sort une ligne par journée : clients, tickets, articles,
 chiffre d'affaires, achats, casse, charges, résultat, caisse, étoiles,
 satisfaction, ruptures, caddies abandonnés, et les deux reproches dominants.
