@@ -1,0 +1,4200 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>SOUS LA VILLE — trois descentes, un jeu de cartes</title>
+<meta name="description" content="Un roguelike de cartes dans les galeries sous la ville. Trois descentes, un deck à construire, et ce qui vit en dessous.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230e1116'/%3E%3Cpath d='M32 12c-9 0-16 7-16 16v24h32V28c0-9-7-16-16-16z' fill='%23242c37'/%3E%3Ccircle cx='32' cy='30' r='7' fill='%23ffc46b'/%3E%3C/svg%3E">
+<style>
+:root{
+  --nuit:#0e1116; --nuit2:#161b23; --pierre:#242c37; --pierre2:#2f3a48;
+  --os:#e8e0cd; --os2:#c7bda4; --gris:#8b8f99; --gris2:#5c626e;
+  --bougie:#ffc46b; --bougie2:#ffdca8; --flamme:#ff8a3c;
+  --sang:#c8434a; --sang2:#e35b62; --vert:#5fae72; --bleu:#5f97d6;
+  --violet:#9b7bd4; --or:#e3b23c;
+  --att:#c8434a; --def:#5f97d6; --pou:#9b7bd4; --ruse:#5fae72;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
+  --titre:"Arial Black","Arial Bold",Impact,system-ui,sans-serif;
+  --t1:clamp(32px,9vw,68px); --t2:clamp(20px,5.2vw,36px);
+  --ombre:0 3px 0 rgba(0,0,0,.45),0 10px 26px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--nuit)}
+body{font-family:var(--mono);color:var(--os);
+  -webkit-user-select:none;user-select:none;touch-action:manipulation}
+canvas#fond{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
+input[type=text]{-webkit-user-select:text;user-select:text}
+button{font-family:var(--mono)}
+
+/* ---------------- barre du haut ---------------- */
+#barre{position:fixed;top:0;left:0;right:0;z-index:30;display:none;align-items:center;
+  gap:6px;padding:calc(env(safe-area-inset-top) + 7px) 10px 7px;
+  background:linear-gradient(180deg,rgba(14,17,22,.96),rgba(14,17,22,.72) 72%,rgba(14,17,22,0))}
+body.enRun #barre{display:flex}
+.jg{display:flex;flex-direction:column;justify-content:center;min-width:0}
+.jg span{font-size:8px;letter-spacing:.18em;color:var(--gris);font-weight:700;white-space:nowrap}
+.jg b{font-family:var(--titre);font-size:clamp(14px,3.2vw,19px);line-height:1.1;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.jg.pv b{color:var(--sang2)} .jg.or b{color:var(--or)} .jg.et b{color:var(--os)}
+.pvb{display:block;height:5px;border-radius:3px;background:rgba(200,67,74,.22);margin-top:3px;
+  overflow:hidden;width:72px}
+.pvb u{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#c8434a,#e35b62);
+  text-decoration:none;transition:width .25s}
+#barre .pousse{flex:1}
+#reliq{display:flex;gap:3px;align-items:center;flex-wrap:nowrap;overflow:hidden;max-width:38vw}
+.rlq{width:26px;height:26px;border-radius:7px;background:var(--pierre);border:1px solid var(--pierre2);
+  display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;flex:0 0 auto}
+.btop{padding:8px 11px;border:1px solid var(--pierre2);border-radius:9px;background:var(--pierre);
+  color:var(--os2);font:700 10px/1 var(--mono);letter-spacing:.12em;cursor:pointer}
+.btop:hover{background:var(--pierre2);color:var(--os)}
+
+/* ---------------- écrans ---------------- */
+.ec{position:fixed;inset:0;z-index:20;display:none;flex-direction:column;align-items:center;
+  padding:calc(env(safe-area-inset-top) + 58px) 14px 20px;overflow-y:auto}
+.ec.on{display:flex}
+#menu{padding-top:calc(env(safe-area-inset-top) + 20px);justify-content:center}
+h1{font-family:var(--titre);font-size:var(--t1);line-height:.92;text-align:center;color:var(--os);
+  text-shadow:0 0 30px rgba(255,196,107,.35),0 4px 0 #000}
+h1 u{text-decoration:none;color:var(--bougie)}
+.eyebrow{font-size:9.5px;letter-spacing:.34em;color:var(--gris);margin-bottom:9px;font-weight:700;
+  text-align:center}
+.note{font-size:11.5px;line-height:1.9;color:var(--os2);max-width:600px;text-align:center;
+  margin-top:14px;background:rgba(36,44,55,.72);border:1px solid var(--pierre2);
+  padding:13px 18px;border-radius:12px}
+.btn{margin-top:16px;padding:15px 38px;background:linear-gradient(180deg,#c8434a,#a33338);
+  color:#fff;border:0;border-radius:10px;font-family:var(--titre);font-size:18px;
+  letter-spacing:.04em;cursor:pointer;box-shadow:0 5px 0 #6d2226,0 10px 26px rgba(0,0,0,.5);
+  transition:transform .1s,box-shadow .1s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 7px 0 #6d2226,0 12px 30px rgba(0,0,0,.5)}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #6d2226}
+.btn.ghost{background:linear-gradient(180deg,#2f3a48,#242c37);color:var(--os2);
+  box-shadow:0 4px 0 #161b23;font-size:13px;padding:12px 24px;margin-top:9px}
+.btn.or{background:linear-gradient(180deg,#e3b23c,#b98c22);color:#2a2008;box-shadow:0 5px 0 #7d5d12}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.lien{background:none;border:0;color:var(--gris);font:700 10.5px/1 var(--mono);letter-spacing:.16em;
+  cursor:pointer;padding:9px 5px;text-decoration:underline;text-underline-offset:4px}
+.lien:hover{color:var(--bougie)}
+.liens{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;margin-top:12px;
+  background:rgba(22,27,35,.9);border:1px solid var(--pierre2);border-radius:11px;padding:2px 6px}
+.carte{width:100%;max-width:640px;background:rgba(36,44,55,.82);border:1px solid var(--pierre2);
+  border-radius:13px;padding:15px 17px;margin-top:12px;box-shadow:var(--ombre)}
+.carte .sur{font-size:9px;letter-spacing:.22em;color:var(--gris);font-weight:700;margin-bottom:9px}
+.rl{display:flex;align-items:center;gap:11px;padding:8px 0;border-bottom:1px solid rgba(92,98,110,.25)}
+.rl:last-child{border-bottom:0}
+.rl .re{font-size:19px;flex:0 0 auto;width:26px;text-align:center}
+.rl .rt{flex:1;min-width:0}
+.rl .rt b{display:block;font-size:11px;letter-spacing:.1em}
+.rl .rt span{display:block;font-size:10px;color:var(--gris);line-height:1.5;margin-top:2px}
+.rl .rv{font-family:var(--titre);font-size:16px;flex:0 0 auto}
+.grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;
+  margin-top:12px;width:100%;max-width:640px}
+.cel{padding:9px 11px;border:1px solid var(--pierre2);border-radius:9px;background:rgba(22,27,35,.8)}
+.cel span{display:block;font-size:8px;letter-spacing:.18em;color:var(--gris);font-weight:700}
+.cel b{display:block;font-family:var(--titre);font-size:18px;margin-top:2px}
+.btnHaut{position:sticky;top:-4px;align-self:flex-start;z-index:5;padding:2px 0 8px}
+.btnHaut button{background:var(--pierre);border:1px solid var(--pierre2);color:var(--os2);
+  font:700 10px/1 var(--mono);letter-spacing:.2em;padding:10px 15px;cursor:pointer;border-radius:9px}
+
+/* ---------------- la carte de la descente ---------------- */
+#planZone{position:relative;width:100%;max-width:760px;flex:1;min-height:340px;
+  overflow:auto;-webkit-overflow-scrolling:touch}
+#plan{position:relative;margin:0 auto}
+#plan svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.nd{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;
+  border:2px solid var(--pierre2);background:var(--nuit2);display:flex;align-items:center;
+  justify-content:center;font-size:20px;cursor:default;transition:transform .12s,box-shadow .12s}
+.nd.dispo{border-color:var(--bougie);cursor:pointer;
+  box-shadow:0 0 0 3px rgba(255,196,107,.18),0 0 22px rgba(255,196,107,.35)}
+.nd.dispo:hover{transform:scale(1.12)}
+.nd.fait{opacity:.42;border-color:var(--gris2)}
+.nd.ici{border-color:var(--os);box-shadow:0 0 0 3px rgba(232,224,205,.25)}
+.nd em{position:absolute;bottom:-15px;font-style:normal;font-size:7.5px;letter-spacing:.1em;
+  color:var(--gris);white-space:nowrap}
+
+/* ---------------- le combat ---------------- */
+#combat{padding:calc(env(safe-area-inset-top) + 52px) 8px 6px;justify-content:flex-start}
+#ennemis{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap;
+  min-height:150px;width:100%;margin-top:4px;flex:1}
+.enn{width:118px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;
+  position:relative;padding:5px;border-radius:12px;border:2px solid transparent}
+.enn.viz{border-color:rgba(255,196,107,.5);background:rgba(255,196,107,.06)}
+.enn.mort{opacity:0;transform:scale(.8);transition:opacity .3s,transform .3s;pointer-events:none}
+.enn .por{width:96px;height:96px;display:block;filter:drop-shadow(0 6px 10px rgba(0,0,0,.6))}
+.enn .nom{font-size:9px;letter-spacing:.1em;color:var(--os2);text-align:center}
+.enn .pvl{width:100%;height:9px;border-radius:5px;background:rgba(0,0,0,.5);overflow:hidden;
+  border:1px solid var(--pierre2);position:relative}
+.enn .pvl i{display:block;height:100%;background:linear-gradient(90deg,#a33338,#c8434a)}
+.enn .pvt{font-size:8.5px;color:var(--os2);font-variant-numeric:tabular-nums}
+.inten{display:flex;align-items:center;gap:4px;background:rgba(14,17,22,.9);
+  border:1px solid var(--pierre2);border-radius:9px;padding:3px 8px;font-size:11px;
+  font-weight:700;min-height:22px}
+.inten b{font-family:var(--titre);font-size:13px}
+.inten.att{color:var(--sang2);border-color:rgba(200,67,74,.5)}
+.inten.def{color:var(--bleu);border-color:rgba(95,151,214,.5)}
+.inten.buf{color:var(--violet);border-color:rgba(155,123,212,.5)}
+.inten.deb{color:var(--bougie);border-color:rgba(255,196,107,.5)}
+.stats{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;min-height:16px}
+.st{display:flex;align-items:center;gap:2px;background:rgba(14,17,22,.85);
+  border:1px solid var(--pierre2);border-radius:6px;padding:1px 5px;font-size:9px;font-weight:700;
+  cursor:help}
+.arm{background:rgba(95,151,214,.18);border-color:rgba(95,151,214,.6);color:#bcd8f7}
+
+#zoneHero{display:flex;align-items:center;gap:12px;width:100%;max-width:760px;margin-top:auto;
+  padding:6px 4px}
+#heroPor{width:74px;height:74px;flex:0 0 auto;filter:drop-shadow(0 6px 10px rgba(0,0,0,.6))}
+#heroInfo{flex:1;min-width:0}
+#heroInfo .nomh{font-family:var(--titre);font-size:14px;letter-spacing:.04em}
+#heroInfo .pvl{width:100%;height:13px;border-radius:7px;background:rgba(0,0,0,.5);
+  border:1px solid var(--pierre2);overflow:hidden;margin-top:4px}
+#heroInfo .pvl i{display:block;height:100%;background:linear-gradient(90deg,#a33338,#e35b62)}
+#heroInfo .pvt{font-size:10px;color:var(--os2);margin-top:3px;font-variant-numeric:tabular-nums}
+
+#barreBas{display:flex;align-items:flex-end;gap:8px;width:100%;max-width:900px;
+  padding:4px 2px calc(env(safe-area-inset-bottom) + 4px)}
+.pile{width:52px;flex:0 0 auto;text-align:center;cursor:pointer}
+.pile .cc{height:44px;border-radius:8px;border:2px solid var(--pierre2);background:var(--pierre);
+  display:flex;align-items:center;justify-content:center;font-family:var(--titre);font-size:17px;
+  color:var(--os2)}
+.pile span{display:block;font-size:7.5px;letter-spacing:.14em;color:var(--gris);margin-top:3px;
+  font-weight:700}
+#energie{width:62px;height:62px;flex:0 0 auto;border-radius:50%;
+  background:radial-gradient(circle at 38% 32%,#ffe0a8,#e3b23c 55%,#8a6414);
+  border:2px solid #ffdca8;display:flex;align-items:center;justify-content:center;
+  font-family:var(--titre);font-size:21px;color:#3a2b06;
+  box-shadow:0 0 24px rgba(227,178,60,.45)}
+#finTour{flex:1;padding:16px 10px;border-radius:11px;border:0;
+  background:linear-gradient(180deg,#c8434a,#a33338);color:#fff;font-family:var(--titre);
+  font-size:15px;letter-spacing:.06em;cursor:pointer;box-shadow:0 4px 0 #6d2226}
+#finTour:disabled{opacity:.45;cursor:default}
+#finTour.att{background:linear-gradient(180deg,#5f97d6,#3d6ca3);box-shadow:0 4px 0 #274a72}
+
+/* ---------------- les cartes ---------------- */
+#main{display:flex;justify-content:center;align-items:flex-end;gap:6px;width:100%;
+  min-height:186px;padding:0 4px;flex-wrap:nowrap}
+.crt{width:124px;height:178px;flex:0 0 auto;border-radius:11px;position:relative;cursor:pointer;
+  background:linear-gradient(170deg,#2c3644,#1b222c);border:2px solid var(--pierre2);
+  box-shadow:0 5px 14px rgba(0,0,0,.55);padding:9px 8px 8px;display:flex;flex-direction:column;
+  transition:transform .13s,box-shadow .13s,border-color .13s}
+.crt:hover,.crt.sel{transform:translateY(-16px) scale(1.04);border-color:var(--bougie);
+  box-shadow:0 14px 26px rgba(0,0,0,.6),0 0 0 2px rgba(255,196,107,.3)}
+.crt.pasjouable{opacity:.5}
+.crt.pasjouable:hover{transform:none;border-color:var(--pierre2)}
+.crt .cou{position:absolute;top:-9px;left:-7px;width:28px;height:28px;border-radius:50%;
+  background:radial-gradient(circle at 38% 32%,#ffe0a8,#e3b23c 60%,#8a6414);color:#3a2b06;
+  display:flex;align-items:center;justify-content:center;font-family:var(--titre);font-size:14px;
+  border:2px solid #10141a}
+.crt .ct{font-size:9.5px;letter-spacing:.06em;font-weight:700;text-align:center;min-height:24px;
+  display:flex;align-items:center;justify-content:center;line-height:1.25;color:var(--os)}
+.crt .cimg{height:44px;margin:4px 0;display:flex;align-items:center;justify-content:center;
+  font-size:26px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))}
+.crt .cd{font-size:8.5px;line-height:1.45;color:var(--os2);text-align:center;flex:1}
+.crt .cd b{color:var(--bougie2)}
+.crt .cty{position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:7px;
+  letter-spacing:.2em;color:var(--gris)}
+.crt.att{border-top:3px solid var(--att)} .crt.def{border-top:3px solid var(--def)}
+.crt.pou{border-top:3px solid var(--pou)} .crt.ruse{border-top:3px solid var(--ruse)}
+.crt.amelio .ct{color:var(--bougie)}
+.crt.petite{width:96px;height:140px;padding:7px 6px}
+.crt.petite .ct{font-size:8.5px;min-height:20px}
+.crt.petite .cimg{height:32px;font-size:20px}
+.crt.petite .cd{font-size:7.5px}
+.crt.petite .cou{width:23px;height:23px;font-size:12px}
+#cibleAide{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 52px);
+  transform:translateX(-50%);z-index:31;background:rgba(255,196,107,.92);color:#241a06;
+  font:700 11px/1 var(--mono);letter-spacing:.1em;padding:8px 14px;border-radius:18px;display:none}
+#cibleAide.on{display:block}
+
+/* ---------------- la grille de cartes (deck, récompense, marché) ---------------- */
+.grilleC{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;width:100%;max-width:760px;
+  margin-top:12px}
+.achatC{position:relative}
+.achatC .prix{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);
+  background:var(--or);color:#2a2008;font:700 10px/1 var(--mono);padding:4px 9px;border-radius:9px;
+  border:2px solid #10141a;white-space:nowrap}
+.achatC.trop .prix{background:var(--gris2);color:#1b222c}
+
+/* ---------------- flottants et messages ---------------- */
+#flash{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 88px);transform:translateX(-50%);
+  z-index:40;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:5px}
+.msg{padding:8px 15px;border-radius:20px;background:rgba(36,44,55,.95);color:var(--os);
+  border:1px solid var(--pierre2);font:700 11px/1 var(--mono);letter-spacing:.06em;
+  animation:pop .3s both;white-space:nowrap}
+.msg.bon{background:rgba(95,174,114,.94);color:#08210f;border-color:#5fae72}
+.msg.mal{background:rgba(200,67,74,.94);color:#fff;border-color:#e35b62}
+@keyframes pop{0%{opacity:0;transform:translateY(-8px) scale(.94)}100%{opacity:1;transform:none}}
+.flo{position:fixed;z-index:41;pointer-events:none;font-family:var(--titre);font-size:22px;
+  text-shadow:0 2px 6px rgba(0,0,0,.8);animation:mont 1s ease-out forwards}
+@keyframes mont{0%{opacity:1;transform:translateY(0) scale(.8)}
+  20%{transform:translateY(-10px) scale(1.15)}100%{opacity:0;transform:translateY(-46px) scale(1)}}
+@keyframes secousse{0%,100%{transform:translate(0,0)}25%{transform:translate(-5px,2px)}
+  50%{transform:translate(4px,-2px)}75%{transform:translate(-3px,-1px)}}
+.secoue{animation:secousse .26s}
+
+/* ---------------- le passe de combat ---------------- */
+.pisteP{width:100%;max-width:820px;overflow-x:auto;padding:6px 2px 14px;margin-top:10px}
+.railP{display:flex;gap:8px;min-width:min-content}
+.plr{width:104px;flex:0 0 auto;display:flex;flex-direction:column;gap:6px;align-items:center}
+.plr .num{font:700 9px/1 var(--mono);letter-spacing:.14em;color:var(--gris)}
+.plr.atteint .num{color:var(--bougie)}
+.rcp{width:100%;min-height:76px;border-radius:11px;border:1px solid var(--pierre2);
+  background:rgba(22,27,35,.85);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;padding:7px 5px;text-align:center;position:relative}
+.rcp .ri{font-size:21px}
+.rcp .rn{font-size:8px;letter-spacing:.06em;color:var(--os2);line-height:1.3}
+.rcp.pris{border-color:var(--vert);background:rgba(95,174,114,.14)}
+.rcp.pret{border-color:var(--bougie);box-shadow:0 0 0 2px rgba(255,196,107,.22);cursor:pointer}
+.rcp.pret:hover{background:rgba(255,196,107,.12)}
+.rcp.verrou{opacity:.42}
+.rcp .coche{position:absolute;top:4px;right:5px;font-size:10px;color:var(--vert)}
+.voieT{display:flex;align-items:center;gap:8px;font:700 9px/1 var(--mono);letter-spacing:.16em;
+  color:var(--gris);margin:8px 0 2px}
+.voieT.pres{color:var(--or)}
+.barP{height:9px;border-radius:5px;background:rgba(0,0,0,.45);overflow:hidden;
+  border:1px solid var(--pierre2);margin-top:6px}
+.barP i{display:block;height:100%;background:linear-gradient(90deg,#e3b23c,#ffdca8)}
+
+/* ---------------- divers ---------------- */
+.qt{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(92,98,110,.25)}
+.qt:last-child{border-bottom:0}
+.qt .qi{font-size:18px;width:24px;text-align:center}
+.qt .qc{flex:1;min-width:0}
+.qt .qc b{display:block;font-size:10.5px;letter-spacing:.08em}
+.qt .qc .barP{margin-top:5px}
+.qt .qv{font:700 10px/1 var(--mono);color:var(--or);white-space:nowrap}
+.qt.fini .qc b{color:var(--vert)}
+.avs{display:flex;gap:7px;flex-wrap:wrap}
+.avs button{width:48px;height:48px;border-radius:13px;border:2px solid var(--pierre2);
+  font-size:24px;cursor:pointer;background:var(--pierre)}
+.avs button.on{border-color:var(--bougie);box-shadow:0 0 0 3px rgba(255,196,107,.3)}
+.nomL input{width:100%;padding:11px 13px;border:1px solid var(--pierre2);border-radius:9px;
+  background:var(--nuit2);font:700 14px var(--mono);color:var(--os);letter-spacing:.1em;
+  text-transform:uppercase;outline:none}
+.nomL input:focus{border-color:var(--bougie)}
+.art{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:11px;
+  background:rgba(22,27,35,.85);border:1px solid var(--pierre2);margin-top:7px}
+.art .ai{font-size:23px;width:30px;text-align:center;flex:0 0 auto}
+.art .ac{flex:1;min-width:0}
+.art .ac h4{font-size:10.5px;letter-spacing:.1em}
+.art .ac p{font-size:9.5px;color:var(--gris);line-height:1.55;margin-top:3px}
+.pts{display:flex;gap:3px;margin-top:5px}
+.pts i{width:15px;height:4px;border-radius:2px;background:rgba(139,143,153,.28)}
+.pts i.on{background:var(--violet)}
+.achat{flex:0 0 auto;padding:9px 11px;border:1px solid #b98c22;border-radius:9px;
+  background:linear-gradient(180deg,#e3b23c,#b98c22);font:700 10.5px/1.3 var(--mono);color:#2a2008;
+  cursor:pointer;white-space:nowrap;text-align:center}
+.achat b{display:block;font-size:11.5px}
+.achat:disabled{background:var(--pierre);border-color:var(--pierre2);color:var(--gris);cursor:default}
+.sucG{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:8px;
+  width:100%;max-width:640px;margin-top:12px}
+.suc{padding:10px 12px;border-radius:10px;background:rgba(22,27,35,.85);
+  border-left:4px solid var(--pierre2);border-top:1px solid var(--pierre2);
+  border-right:1px solid var(--pierre2);border-bottom:1px solid var(--pierre2);opacity:.6}
+.suc.ok{opacity:1;border-left-color:var(--vert)}
+.suc b{display:block;font-size:10px;letter-spacing:.08em}
+.suc em{float:right;font-style:normal;font-weight:700;color:var(--or);font-size:9.5px}
+.suc span{display:block;font-size:9px;color:var(--gris);margin-top:4px;line-height:1.5}
+.chx{display:flex;flex-direction:column;gap:8px;width:100%;max-width:600px;margin-top:12px}
+.chx button{text-align:left;padding:13px 15px;border-radius:11px;border:1px solid var(--pierre2);
+  background:rgba(22,27,35,.85);color:var(--os);cursor:pointer;font:400 11px/1.6 var(--mono)}
+.chx button:hover{border-color:var(--bougie);background:rgba(255,196,107,.08)}
+.chx button b{display:block;font-size:11.5px;letter-spacing:.08em;margin-bottom:3px;
+  color:var(--bougie)}
+.chx button:disabled{opacity:.4;cursor:default}
+.tabs{display:flex;gap:4px;margin-top:10px;flex-wrap:wrap;justify-content:center}
+.tabs button{padding:8px 13px;border-radius:9px;border:1px solid var(--pierre2);
+  background:var(--pierre);color:var(--os2);font:700 9.5px/1 var(--mono);letter-spacing:.12em;
+  cursor:pointer}
+.tabs button.on{background:var(--bougie);color:#241a06;border-color:var(--bougie)}
+.perso{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+.pcard{width:186px;padding:14px 12px;border-radius:13px;border:1px solid var(--pierre2);
+  background:rgba(22,27,35,.88);cursor:pointer;text-align:center}
+.pcard:hover{border-color:var(--bougie)}
+.pcard.on{border-color:var(--bougie);box-shadow:0 0 0 2px rgba(255,196,107,.25)}
+.pcard.verrou{opacity:.45;cursor:not-allowed}
+.pcard .pi{font-size:34px}
+.pcard h3{font-family:var(--titre);font-size:15px;margin-top:6px}
+.pcard p{font-size:9.5px;color:var(--gris);line-height:1.55;margin-top:6px}
+.pcard .mec{font-size:9px;color:var(--bougie);margin-top:7px;letter-spacing:.06em}
+
+@media (max-width:700px){
+  .crt{width:96px;height:140px;padding:7px 6px}
+  .crt .ct{font-size:8.5px;min-height:20px}
+  .crt .cimg{height:32px;font-size:20px}
+  .crt .cd{font-size:7.5px}
+  .crt .cou{width:24px;height:24px;font-size:12px}
+  #main{min-height:150px;gap:3px}
+  .enn{width:98px}
+  .enn .por{width:78px;height:78px}
+  #energie{width:52px;height:52px;font-size:18px}
+  #finTour{font-size:13px;padding:13px 8px}
+  .pile{width:44px}
+  .jg b{font-size:13px}
+  .pvb{width:56px}
+  #reliq{max-width:26vw}
+}
+@media (max-width:430px){
+  .crt{width:78px;height:118px;padding:5px 4px;border-radius:9px}
+  .crt .ct{font-size:7px;min-height:17px}
+  .crt .cimg{height:24px;font-size:16px;margin:2px 0}
+  .crt .cd{font-size:6.5px;line-height:1.35}
+  .crt .cty{display:none}
+  .crt .cou{width:21px;height:21px;font-size:11px;top:-7px;left:-5px}
+  #main{min-height:126px;gap:2px}
+  .enn{width:84px;padding:3px}
+  .enn .por{width:66px;height:66px}
+  .nd{width:40px;height:40px;margin:-20px 0 0 -20px;font-size:17px}
+}
+</style>
+</head>
+<body>
+<canvas id="fond"></canvas>
+
+<div id="barre">
+  <div class="jg pv"><span id="jNom">L'ÉGOUTIER</span><b id="jPv">60/60</b>
+    <i class="pvb"><u id="jPvB"></u></i></div>
+  <div class="jg or"><span>PIÈCES</span><b id="jOr">0</b></div>
+  <div class="jg et"><span>ÉTAGE</span><b id="jEt">1-1</b></div>
+  <div id="reliq"></div>
+  <div class="pousse"></div>
+  <button class="btop" id="bDeck">DECK</button>
+  <button class="btop" id="bMenu">☰</button>
+</div>
+
+<div id="flash"></div>
+<div id="cibleAide">CHOISIS UNE CIBLE</div>
+
+<div class="ec on" id="menu">
+  <h1>SOUS LA <u>VILLE</u></h1>
+  <div class="eyebrow" style="margin-top:10px">TROIS DESCENTES · UN JEU DE CARTES · CE QUI VIT EN DESSOUS</div>
+  <div id="menuProfil"></div>
+  <div class="note">
+    Sous les pavés, les galeries. Tu descends avec dix cartes et une lampe.<br>
+    Chaque salle ajoute, retire ou améliore quelque chose dans ton deck.<br>
+    Ce qui t'attend en bas annonce toujours son coup à l'avance — à toi de lire.
+  </div>
+  <button class="btn" id="bReprendre" style="display:none">REPRENDRE LA DESCENTE</button>
+  <button class="btn" id="bJouer">DESCENDRE</button>
+  <div class="liens">
+    <button class="lien" id="bProfil">PROFIL</button>
+    <button class="lien" id="bPasse">CARNET DE ROUTE</button>
+    <button class="lien" id="bBoutique">BOUTIQUE</button>
+    <button class="lien" id="bSucces">SUCCÈS</button>
+    <button class="lien" id="bRegles">RÈGLES</button>
+  </div>
+</div>
+
+<div class="ec" id="choixPerso">
+  <div class="btnHaut"><button id="cpRetour">RETOUR</button></div>
+  <div class="eyebrow">QUI DESCEND ?</div>
+  <h1 style="font-size:var(--t2)">LE PERSONNAGE</h1>
+  <div class="perso" id="cpListe"></div>
+  <div class="carte" id="cpDetail"></div>
+  <button class="btn" id="cpGo">DESCENDRE</button>
+</div>
+
+<div class="ec" id="plan1">
+  <div class="eyebrow" id="plTitre">PREMIÈRE DESCENTE</div>
+  <div id="planZone"><div id="plan"></div></div>
+</div>
+
+<div class="ec" id="combat">
+  <div id="ennemis"></div>
+  <div id="zoneHero">
+    <canvas id="heroPor" width="148" height="148"></canvas>
+    <div id="heroInfo">
+      <div class="nomh" id="hNom">L'ÉGOUTIER</div>
+      <div class="pvl"><i id="hPvB"></i></div>
+      <div class="pvt" id="hPvT">60 / 60</div>
+      <div class="stats" id="hStats"></div>
+    </div>
+  </div>
+  <div id="main"></div>
+  <div id="barreBas">
+    <div class="pile" id="pPioche"><div class="cc" id="nPioche">0</div><span>PIOCHE</span></div>
+    <div id="energie">3/3</div>
+    <button id="finTour">FIN DU TOUR</button>
+    <div class="pile" id="pDefausse"><div class="cc" id="nDefausse">0</div><span>DÉFAUSSE</span></div>
+  </div>
+</div>
+
+<div class="ec" id="recompense">
+  <div class="eyebrow" id="rcEye">SALLE NETTOYÉE</div>
+  <h1 style="font-size:var(--t2)" id="rcTitre">BUTIN</h1>
+  <div class="carte" id="rcGain"></div>
+  <div id="rcCartes" style="width:100%;display:flex;flex-direction:column;align-items:center"></div>
+  <button class="btn ghost" id="rcPasser">CONTINUER SANS PRENDRE</button>
+</div>
+
+<div class="ec" id="marche">
+  <div class="eyebrow">UNE LANTERNE, UNE BÂCHE, UN TYPE QUI VEND</div>
+  <h1 style="font-size:var(--t2)">LE FOUINEUR</h1>
+  <div class="carte" id="mcTete"></div>
+  <div class="grilleC" id="mcCartes"></div>
+  <div class="carte" id="mcAutres"></div>
+  <button class="btn" id="mcSortir">REPRENDRE LA DESCENTE</button>
+</div>
+
+<div class="ec" id="feu">
+  <div class="eyebrow">UN FEU, DU TEMPS, ET RIEN QUI BOUGE</div>
+  <h1 style="font-size:var(--t2)">LE BIVOUAC</h1>
+  <div class="chx" id="feuChoix"></div>
+  <div id="feuCartes" style="width:100%;display:flex;flex-direction:column;align-items:center"></div>
+</div>
+
+<div class="ec" id="evenement">
+  <div class="eyebrow" id="evEye">DANS LE NOIR</div>
+  <h1 style="font-size:var(--t2)" id="evTitre">?</h1>
+  <div class="carte" id="evTexte"></div>
+  <div class="chx" id="evChoix"></div>
+</div>
+
+<div class="ec" id="deck">
+  <div class="btnHaut"><button id="dkRetour">RETOUR</button></div>
+  <div class="eyebrow" id="dkEye">TON DECK</div>
+  <h1 style="font-size:var(--t2)" id="dkTitre">30 CARTES</h1>
+  <div class="carte" id="dkInfo" style="display:none"></div>
+  <div class="grilleC" id="dkListe"></div>
+</div>
+
+<div class="ec" id="fin">
+  <div class="eyebrow" id="fnEye"></div>
+  <h1 style="font-size:var(--t2)" id="fnTitre">FIN</h1>
+  <div class="grille" id="fnGrille"></div>
+  <div class="carte"><div class="sur">CE QUE LA DESCENTE A RAPPORTÉ</div><div id="fnGain"></div></div>
+  <div class="carte" id="fnQuetes"><div class="sur">CONTRATS DU JOUR</div><div id="fnQ"></div></div>
+  <button class="btn" id="fnRejouer">REDESCENDRE</button>
+  <button class="btn ghost" id="fnMenu">MENU</button>
+</div>
+
+<div class="ec" id="profil">
+  <div class="btnHaut"><button id="pfRetour">RETOUR</button></div>
+  <div class="eyebrow">FICHE</div>
+  <h1 style="font-size:var(--t2)">TON PARCOURS</h1>
+  <div class="carte" id="pfTete"></div>
+  <div class="carte">
+    <div class="sur">TON NOM</div>
+    <div class="nomL"><input type="text" id="pfNom" maxlength="14" placeholder="SANS NOM"></div>
+    <div class="sur" style="margin:14px 0 8px">TA MARQUE</div>
+    <div class="avs" id="pfAvs"></div>
+  </div>
+  <div class="grille" id="pfGrille"></div>
+  <div class="carte"><div class="sur">CONTRATS DU JOUR</div><div id="pfQuetes"></div></div>
+  <div class="carte"><div class="sur">CE QUI EST ACQUIS</div><div id="pfAmel"></div></div>
+</div>
+
+<div class="ec" id="passe">
+  <div class="btnHaut"><button id="psRetour">RETOUR</button></div>
+  <div class="eyebrow" id="psEye">SAISON I · LES GALERIES BASSES</div>
+  <h1 style="font-size:var(--t2)">CARNET DE ROUTE</h1>
+  <div class="carte" id="psTete"></div>
+  <div class="voieT">VOIE LIBRE — pour tout le monde</div>
+  <div class="pisteP"><div class="railP" id="psLibre"></div></div>
+  <div class="voieT pres">VOIE DE PRESTIGE — 250 ⚜️ une fois pour toute la saison</div>
+  <div class="pisteP"><div class="railP" id="psPres"></div></div>
+  <div class="carte" id="psQuetes"><div class="sur">CONTRATS DU JOUR</div><div id="psQ"></div></div>
+</div>
+
+<div class="ec" id="boutique">
+  <div class="btnHaut"><button id="btRetour">RETOUR</button></div>
+  <div class="eyebrow">CE QUE L'ON GARDE D'UNE DESCENTE À L'AUTRE</div>
+  <h1 style="font-size:var(--t2)">BOUTIQUE</h1>
+  <div class="carte" id="btTete"></div>
+  <div id="btListe" style="width:100%;max-width:640px"></div>
+</div>
+
+<div class="ec" id="succes">
+  <div class="btnHaut"><button id="scRetour">RETOUR</button></div>
+  <div class="eyebrow">TABLEAU DE CHASSE</div>
+  <h1 style="font-size:var(--t2)">SUCCÈS</h1>
+  <div class="carte" id="scTete"></div>
+  <div class="sucG" id="scListe"></div>
+</div>
+
+<div class="ec" id="regles">
+  <div class="btnHaut"><button id="rgRetour">RETOUR</button></div>
+  <div class="eyebrow">MODE D'EMPLOI</div>
+  <h1 style="font-size:var(--t2)">COMMENT ÇA MARCHE</h1>
+  <div class="carte">
+    <div class="sur">LE TOUR</div>
+    <div style="font-size:11px;line-height:1.95;color:var(--os2)">
+      Tu pioches cinq cartes et tu as <b>trois points d'énergie</b>. Chaque carte en coûte.
+      Quand tu n'as plus rien à jouer, tu finis ton tour : ta main part à la défausse
+      et ce qui est en face frappe. <b>Ton armure te protège pendant ce coup-là</b>,
+      puis elle retombe à zéro au début de ton tour suivant.<br>
+      Quand la pioche est vide, la défausse est remélangée dedans.
+    </div>
+  </div>
+  <div class="carte">
+    <div class="sur">LIRE L'INTENTION</div>
+    <div style="font-size:11px;line-height:1.95;color:var(--os2)">
+      Au-dessus de chaque ennemi, une pastille dit ce qu'il fera <b>à la fin de ton tour</b> :
+      un chiffre rouge, c'est des dégâts ; un bouclier bleu, il se protège ; un symbole violet,
+      il se renforce ; un jaune, il t'affaiblit. Tout est annoncé — un coup encaissé est
+      un coup qu'on a choisi d'encaisser.
+    </div>
+  </div>
+  <div class="carte">
+    <div class="sur">LES ÉTATS</div>
+    <div id="rgEtats" style="font-size:11px;line-height:1.9;color:var(--os2)"></div>
+  </div>
+  <div class="carte">
+    <div class="sur">LA DESCENTE</div>
+    <div style="font-size:11px;line-height:1.95;color:var(--os2)">
+      Trois descentes, chacune une carte de salles à embranchements. Tu choisis ton chemin :
+      combat, élite, bivouac, marché, trouvaille, et le gardien tout en bas. Ce que tu prends
+      en chemin s'ajoute à ton deck — et <b>un deck qui grossit trop pioche mal</b>.
+    </div>
+  </div>
+  <div class="carte">
+    <div class="sur">COMMANDES</div>
+    <div style="font-size:11px;line-height:2;color:var(--os2)">
+      <kbd>clic</kbd> sur une carte pour la jouer · <kbd>clic</kbd> sur un ennemi pour cibler ·
+      <kbd>clic droit</kbd> ou <kbd>Échap</kbd> annule<br>
+      <kbd>1</kbd>…<kbd>9</kbd> jouent la carte correspondante · <kbd>E</kbd> ou
+      <kbd>Espace</kbd> finit le tour · <kbd>D</kbd> ouvre le deck
+    </div>
+  </div>
+  <div class="carte">
+    <div class="sur">RÉGLAGES</div>
+    <div class="rl"><span class="re">🔊</span><div class="rt"><b>SON</b>
+      <span>Gouttes, os, lame et bourdon.</span></div>
+      <button class="btop" id="rgSon">SON : ACTIVÉ</button></div>
+    <div class="rl"><span class="re">🎚</span><div class="rt"><b>VOLUME</b><span></span></div>
+      <input type="range" id="rgVol" min="0" max="100" step="5" style="width:120px"></div>
+    <div class="rl"><span class="re">⏩</span><div class="rt"><b>ANIMATIONS</b>
+      <span>La vitesse à laquelle les ennemis exécutent leur tour.</span></div>
+      <button class="btop" id="rgAnim">NORMALES</button></div>
+    <div class="rl"><span class="re">💀</span><div class="rt"><b>DIFFICULTÉ</b>
+      <span id="rgDiffT"></span></div>
+      <button class="btop" id="rgDiff">NORMALE</button></div>
+    <div class="rl"><span class="re">🗑</span><div class="rt"><b class="danger" style="color:var(--sang2)">TOUT EFFACER</b>
+      <span>Profil, passe, boutique, succès et descente en cours.</span></div>
+      <button class="btop" id="rgEffacer" style="border-color:var(--sang);color:var(--sang2)">EFFACER</button></div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   SOUS LA VILLE — un roguelike de cartes dans les galeries
+   ==========================================================================
+   Un seul fichier, aucune dépendance, aucune image ni son téléchargé. Les
+   monstres sont peints au canvas, les bruits sont synthétisés.
+
+   C'est le cinquième jeu du dépôt et le premier qui ne simule rien en temps
+   réel : tout est au tour par tour, et tout est annoncé. Un ennemi affiche ce
+   qu'il fera à la fin de ton tour AVANT que tu joues — un coup encaissé est
+   donc toujours un coup qu'on a choisi d'encaisser. Le jeu n'est jamais une
+   question de réflexes, c'est une question d'arithmétique et d'ordre.
+
+   La boucle :
+
+     descendre une salle → un combat, un marché, un feu ou une trouvaille
+       → ce qu'on y gagne entre dans le deck
+         → le deck décide du combat suivant
+           → et un deck qui grossit trop finit par mal piocher.
+
+   Autour, ce qui survit à la mort du personnage : un profil, un rang, des
+   pièces, une boutique d'acquis définitifs, des succès, des contrats du jour
+   et un carnet de route saisonnier à deux voies. */
+
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const TAU=Math.PI*2;
+const FONT='ui-monospace,"SF Mono",Menlo,Consolas,monospace';
+const nb=n=>{
+  n=Math.round(n);
+  const s=Math.abs(n).toString();
+  let o='';
+  for(let i=0;i<s.length;i++) o+=(i&&(s.length-i)%3===0?' ':'')+s[i];
+  return (n<0?'−':'')+o;
+};
+
+/* ==========================================================================
+   LE HASARD, MAIS REPRODUCTIBLE
+   ==========================================================================
+   Une descente est engendrée par une graine. C'est ce qui permet de la
+   reprendre après avoir fermé l'onglet sans avoir à sauvegarder la carte, les
+   butins proposés ou l'ordre des ennemis : on rejoue la même suite de tirages.
+   Le mélange du deck, lui, garde son propre générateur — sinon reprendre une
+   partie donnerait une main différente selon l'endroit où on l'a quittée. */
+function graineur(a){
+  return function(){
+    a|=0; a=(a+0x6D2B79F5)|0;
+    let t=Math.imul(a^(a>>>15),1|a);
+    t=(t+Math.imul(t^(t>>>7),61|t))^t;
+    return ((t^(t>>>14))>>>0)/4294967296;
+  };
+}
+let RNG=graineur(Date.now()&0xffffffff);
+const al=()=>RNG();
+const ri=(a,b)=>a+Math.floor(al()*(b-a+1));
+const rnd=(a,b)=>a+al()*(b-a);
+const pick=t=>t[Math.floor(al()*t.length)];
+function melanger(t){
+  for(let i=t.length-1;i>0;i--){
+    const j=Math.floor(al()*(i+1));
+    const x=t[i]; t[i]=t[j]; t[j]=x;
+  }
+  return t;
+}
+/* n éléments distincts, pondérés ou non */
+function tirerN(source,n){
+  const c=source.slice();
+  const o=[];
+  while(o.length<n&&c.length) o.push(c.splice(Math.floor(al()*c.length),1)[0]);
+  return o;
+}
+
+/* ---------------------------------------------------------------- écrans */
+let ecranActif='menu';
+const ECRANS=['menu','choixPerso','plan1','combat','recompense','marche','feu','evenement',
+  'deck','fin','profil','passe','boutique','succes','regles'];
+function ecrans(id){
+  ecranActif=id;
+  for(const k of ECRANS){ const e=$(k); if(e) e.classList.toggle('on',k===id); }
+  document.body.classList.toggle('enRun',!!R&&!R.fini&&
+    (id==='plan1'||id==='combat'||id==='recompense'||id==='marche'||id==='feu'
+     ||id==='evenement'||id==='deck'));
+  if(document.activeElement&&document.activeElement.blur) document.activeElement.blur();
+}
+function flash(txt,type){
+  const d=document.createElement('div');
+  d.className='msg'+(type?' '+type:'');
+  d.textContent=txt;
+  $('flash').appendChild(d);
+  setTimeout(()=>{ d.style.transition='opacity .4s'; d.style.opacity='0';
+    setTimeout(()=>d.remove(),420); },1800);
+  while($('flash').children.length>4) $('flash').firstChild.remove();
+}
+/* un chiffre qui monte au-dessus de quelque chose : c'est tout le retour
+   visuel d'un jeu de cartes, il vaut mieux qu'il soit franc */
+function flotte(el,txt,col){
+  if(!el) return;
+  const r=el.getBoundingClientRect();
+  const d=document.createElement('div');
+  d.className='flo';
+  d.textContent=txt;
+  d.style.color=col||'#e8e0cd';
+  d.style.left=(r.left+r.width/2)+'px';
+  d.style.top=(r.top+r.height*.35)+'px';
+  d.style.transform='translateX(-50%)';
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(),1000);
+}
+function secouer(el){
+  if(!el) return;
+  el.classList.remove('secoue');
+  void el.offsetWidth;
+  el.classList.add('secoue');
+}
+
+/* ---------------------------------------------------------------- stockage */
+const CLE='souslaville:v1';
+const Store={
+  mem:{},
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return this.mem[k]||null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){ this.mem[k]=v; } }
+};
+
+let R=null;              // la descente en cours
+let C=null;              // le combat en cours
+
+
+/* ==========================================================================
+   LE SON
+   ==========================================================================
+   Une cave a une signature sonore : la goutte qui tombe dans le noir, le
+   bourdon sourd des salles vides, le frottement d'une carte, le choc mat d'un
+   coup et le craquement d'un os. Tout est synthétisé — aucun fichier. */
+const mid=m=>440*Math.pow(2,(m-69)/12);
+
+const SND={
+  ctx:null, maitre:null, fond:null, fondG:null, on:true, volume:.6, gouT:0,
+  init(){
+    if(this.ctx) return;
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC) return;
+    this.ctx=new AC();
+    this.maitre=this.ctx.createGain();
+    this.maitre.gain.value=this.volume;
+    const comp=this.ctx.createDynamicsCompressor();
+    comp.threshold.value=-18; comp.ratio.value=8;
+    this.maitre.connect(comp); comp.connect(this.ctx.destination);
+    /* le bourdon de la galerie : deux basses désaccordées, très filtrées */
+    this.fondG=this.ctx.createGain(); this.fondG.gain.value=0;
+    this.fondG.connect(this.maitre);
+    const f=this.ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=220;
+    f.connect(this.fondG);
+    for(const d of [0,.6]){
+      const o=this.ctx.createOscillator();
+      o.type='sawtooth'; o.frequency.value=48+d;
+      const g=this.ctx.createGain(); g.gain.value=.09;
+      o.connect(g); g.connect(f); o.start();
+    }
+    this.fond=true;
+  },
+  reprendre(){ if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume(); },
+  vol(v){ this.volume=v; if(this.maitre) this.maitre.gain.value=v; },
+  ambiance(v){
+    if(!this.fondG||!this.ctx) return;
+    this.fondG.gain.setTargetAtTime(this.on?v:0,this.ctx.currentTime,.7);
+  },
+  silence(){ this.ambiance(0); },
+  note(f,t0,dur,type,g,dest){
+    if(!this.on||!this.ctx) return;
+    const o=this.ctx.createOscillator(), a=this.ctx.createGain();
+    o.type=type||'sine'; o.frequency.value=f;
+    a.gain.setValueAtTime(0,t0);
+    a.gain.linearRampToValueAtTime(g||.1,t0+.01);
+    a.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+    o.connect(a); a.connect(dest||this.maitre);
+    o.start(t0); o.stop(t0+dur+.02);
+  },
+  bruit(t0,dur,freq,g,q){
+    if(!this.on||!this.ctx) return;
+    const n=this.ctx.createBufferSource();
+    const len=Math.max(1,Math.floor(this.ctx.sampleRate*dur));
+    const b=this.ctx.createBuffer(1,len,this.ctx.sampleRate);
+    const d=b.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,1.6);
+    n.buffer=b;
+    const f=this.ctx.createBiquadFilter();
+    f.type='bandpass'; f.frequency.value=freq||1400; f.Q.value=q||1;
+    const a=this.ctx.createGain(); a.gain.value=g||.1;
+    n.connect(f); f.connect(a); a.connect(this.maitre);
+    n.start(t0);
+  },
+  /* --- les gestes --- */
+  carte(){ if(this.ctx) this.bruit(this.ctx.currentTime,.09,2600,.055,.7); },
+  clic(){ if(this.ctx) this.note(880,this.ctx.currentTime,.05,'square',.05); },
+  coup(f){                        // le choc d'une attaque, f = force 0..1
+    if(!this.ctx) return;
+    const t=this.ctx.currentTime, p=clamp(f||.5,0,1);
+    this.bruit(t,.10+p*.12,220+p*260,.16+p*.14,.9);
+    this.note(90-p*24,t,.16,'triangle',.14);
+  },
+  garde(){                        // on lève l'armure
+    if(!this.ctx) return;
+    const t=this.ctx.currentTime;
+    this.bruit(t,.09,900,.07,2.4);
+    this.note(mid(64),t,.16,'triangle',.07);
+    this.note(mid(71),t+.04,.18,'triangle',.05);
+  },
+  os(){                           // un ennemi tombe
+    if(!this.ctx) return;
+    const t=this.ctx.currentTime;
+    for(let i=0;i<4;i++) this.bruit(t+i*.045,.07,500+i*260,.07,3);
+    this.note(70,t,.3,'triangle',.1);
+  },
+  soin(){ if(this.ctx){ const t=this.ctx.currentTime;
+    [0,4,7,12].forEach((k,i)=>this.note(mid(69+k),t+i*.06,.3,'sine',.07)); } },
+  piece(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(1750,t,.07,'square',.05); this.note(2300,t+.05,.1,'square',.04); } },
+  erreur(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(150,t,.12,'sawtooth',.07); this.note(112,t+.09,.18,'sawtooth',.07); } },
+  bien(){ if(this.ctx){ const t=this.ctx.currentTime;
+    [0,5,9,12,16].forEach((k,i)=>this.note(mid(60+k),t+i*.08,.4,'triangle',.08)); } },
+  mal(){ if(this.ctx){ const t=this.ctx.currentTime;
+    [0,-2,-5,-9].forEach((k,i)=>this.note(mid(55+k),t+i*.16,.5,'sawtooth',.08)); } },
+  cloche(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(mid(84),t,.5,'sine',.09); this.note(mid(91),t+.03,.4,'sine',.045); } },
+  /* la goutte qui tombe : le seul son qui se déclenche tout seul */
+  goutte(){
+    if(!this.ctx||!this.on) return;
+    const t=this.ctx.currentTime;
+    const o=this.ctx.createOscillator(), g=this.ctx.createGain();
+    o.type='sine';
+    o.frequency.setValueAtTime(1500+Math.random()*700,t);
+    o.frequency.exponentialRampToValueAtTime(380,t+.10);
+    g.gain.setValueAtTime(.055,t);
+    g.gain.exponentialRampToValueAtTime(.0001,t+.16);
+    o.connect(g); g.connect(this.maitre);
+    o.start(t); o.stop(t+.2);
+  },
+  pas(dt){
+    if(!this.ctx||!this.on) return;
+    this.gouT-=dt;
+    if(this.gouT<=0){ this.gouT=1.6+Math.random()*4.5; this.goutte(); }
+  }
+};
+
+
+/* ==========================================================================
+   LES ÉTATS
+   ==========================================================================
+   Onze états, et pas un de plus. Chacun se lit sur une pastille, chacun se
+   comporte de façon prévisible, et aucun n'a d'effet caché. Un jeu de cartes
+   ne se joue bien que si l'on peut calculer son tour de tête. */
+const ETATS={
+ force:{nom:'FORCE', ico:'💪', col:'#e35b62', tour:0,
+   d:n=>'Tes attaques infligent '+n+' dégâts de plus.'},
+ faiblesse:{nom:'FAIBLESSE', ico:'🥀', col:'#9b7bd4', tour:1,
+   d:n=>'Attaques réduites d\'un quart. Baisse de 1 à chaque tour ('+n+').'},
+ vulnerable:{nom:'VULNÉRABLE', ico:'🎯', col:'#ffc46b', tour:1,
+   d:n=>'Reçoit la moitié de dégâts en plus. Baisse de 1 à chaque tour ('+n+').'},
+ saignement:{nom:'SAIGNEMENT', ico:'🩸', col:'#c8434a', tour:1,
+   d:n=>'Perd '+n+' points de vie au début de son tour, puis 1 de moins.'},
+ epines:{nom:'ÉPINES', ico:'🌵', col:'#5fae72', tour:0,
+   d:n=>'Renvoie '+n+' dégâts à qui frappe au corps à corps.'},
+ regen:{nom:'RÉGÉNÉRATION', ico:'🍃', col:'#5fae72', tour:1,
+   d:n=>'Récupère '+n+' points de vie au début du tour, puis 1 de moins.'},
+ parade:{nom:'PARADE', ico:'🛡️', col:'#5f97d6', tour:1,
+   d:n=>'L\'armure n\'est plus effacée au début de ton tour, pendant '+n+' tour(s).'},
+ brume:{nom:'BRUME', ico:'🌫️', col:'#8b8f99', tour:0,
+   d:n=>'Les '+n+' prochaine(s) attaque(s) reçue(s) sont esquivées entièrement, '
+     +'armure comprise.'},
+ marque:{nom:'REPÈRE', ico:'📍', col:'#5f97d6', tour:0,
+   d:n=>'Certaines cartes frappent bien plus fort une cible repérée. '+n+' repère(s).'},
+ cierge:{nom:'CIERGE', ico:'🕯️', col:'#ffc46b', tour:0,
+   d:n=>'Lumière accumulée : '+n+'. Certaines cartes la dépensent d\'un coup.'},
+ boue:{nom:'BOUE', ico:'🪣', col:'#c9a06a', tour:1,
+   d:n=>'Chaque attaque de cette créature perd '+n+' dégâts. Baisse de 1 par tour.'}
+};
+
+/* ==========================================================================
+   LES PERSONNAGES
+   ==========================================================================
+   Trois façons de descendre. Chacun a un deck de départ de dix cartes, un
+   réservoir de cartes qui n'apparaissent que pour lui, et un état qui n'existe
+   que dans ses mains. Les deux derniers s'ouvrent au carnet de route. */
+const PERSOS={
+ egoutier:{nom:'L\'ÉGOUTIER', ico:'🪣', pv:72, or:60, col:'#c9a06a',
+   d:'Il connaît les galeries mieux que personne. Il encaisse, il salit, et il '
+     +'finit par avoir raison de tout ce qui bouge.',
+   mec:'BOUE — chaque tas de boue retire un dégât à toutes les attaques de la cible.',
+   depart:['pelle','pelle','pelle','pelle','pelle','bache','bache','bache','bache','seau'],
+   ouvert:1},
+ carto:{nom:'LA CARTOGRAPHE', ico:'📐', pv:62, or:80, col:'#5f97d6',
+   d:'Elle est descendue pour relever le plan, pas pour se battre. Elle repère, '
+     +'elle enchaîne, et elle est déjà repartie quand ça s\'effondre.',
+   mec:'REPÈRE — les cartes de précision frappent une cible repérée deux fois plus fort.',
+   depart:['sec','sec','sec','sec','sec','releve','releve','releve','releve','reperage'],
+   ouvert:0, palier:6},
+ thaumaturge:{nom:'LE THAUMATURGE', ico:'🕯️', pv:56, or:100, col:'#ffc46b',
+   d:'Il descend allumer des cierges là où personne n\'en allume. La lumière '
+     +'s\'accumule, et quand elle part, elle part d\'un coup.',
+   mec:'CIERGE — la lumière s\'accumule de tour en tour et se dépense d\'un seul coup.',
+   depart:['baton','baton','baton','baton','priere','priere','priere','priere',
+     'meche','meche'],
+   ouvert:0, palier:14}
+};
+
+/* ==========================================================================
+   LES CARTES
+   ==========================================================================
+   cout · type · per (à qui elle appartient, vide = tout le monde) · cible (1 si
+   elle vise un ennemi) · v et v2 (les valeurs avant et après amélioration).
+
+   Le texte de la carte est écrit à partir des valeurs : une carte améliorée
+   affiche donc ses vrais chiffres, jamais « +3 dégâts » à côté du texte. */
+const CARTES={
+ /* ---------------- l'égoutier ---------------- */
+ pelle:{nom:'COUP DE PELLE', cout:1, type:'att', img:'🥄', cible:1, per:'egoutier',
+   rare:'base', v:{deg:7}, v2:{deg:10},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts.',
+   ef:(v,x)=>degats(x.src,x.cible,v.deg)},
+ bache:{img:'🧥', nom:'BÂCHE', cout:1, type:'def', per:'egoutier',
+   rare:'base', v:{arm:6}, v2:{arm:9},
+   d:v=>'Gagne <b>'+v.arm+'</b> d\'armure.',
+   ef:(v,x)=>armure(x.src,v.arm)},
+ seau:{img:'🪣', nom:'SEAU DE BOUE', cout:1, type:'ruse', cible:1, per:'egoutier',
+   rare:'base', v:{n:2}, v2:{n:3},
+   d:v=>'Applique <b>'+v.n+'</b> boue.',
+   ef:(v,x)=>etat(x.cible,'boue',v.n)},
+ raclette:{img:'🧹', nom:'RACLETTE', cout:1, type:'att', cible:1, per:'egoutier',
+   rare:'commune', v:{deg:4,n:1}, v2:{deg:6,n:2},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts et applique <b>'+v.n+'</b> boue.',
+   ef:(v,x)=>{ degats(x.src,x.cible,v.deg); etat(x.cible,'boue',v.n); }},
+ bottes:{img:'🥾', nom:'BOTTES CLOUTÉES', cout:1, type:'def', per:'egoutier',
+   rare:'commune', v:{arm:4,ep:3}, v2:{arm:6,ep:4},
+   d:v=>'Gagne <b>'+v.arm+'</b> d\'armure et <b>'+v.ep+'</b> épines.',
+   ef:(v,x)=>{ armure(x.src,v.arm); etat(x.src,'epines',v.ep); }},
+ curage:{img:'🌊', nom:'CURAGE', cout:2, type:'att', per:'egoutier',
+   rare:'commune', v:{deg:9}, v2:{deg:14},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts à <b>tous</b> les ennemis.',
+   ef:(v,x)=>tousLesEnnemis(e=>degats(x.src,e,v.deg))},
+ grille:{img:'🔲', nom:'GRILLE D\'ÉGOUT', cout:2, type:'def', per:'egoutier',
+   rare:'commune', v:{arm:13}, v2:{arm:19},
+   d:v=>'Gagne <b>'+v.arm+'</b> d\'armure.',
+   ef:(v,x)=>armure(x.src,v.arm)},
+ enliser:{img:'🕳️', nom:'ENLISER', cout:2, type:'ruse', cible:1, per:'egoutier',
+   rare:'rare', v:{n:3,f:2}, v2:{n:4,f:3},
+   d:v=>'Applique <b>'+v.n+'</b> boue et <b>'+v.f+'</b> faiblesse.',
+   ef:(v,x)=>{ etat(x.cible,'boue',v.n); etat(x.cible,'faiblesse',v.f); }},
+ fange:{img:'💧', nom:'MARÉE DE FANGE', cout:2, type:'ruse', per:'egoutier',
+   rare:'rare', v:{n:2}, v2:{n:3},
+   d:v=>'Applique <b>'+v.n+'</b> boue à <b>tous</b> les ennemis.',
+   ef:(v,x)=>tousLesEnnemis(e=>etat(e,'boue',v.n))},
+ croc:{img:'🪝', nom:'CROC DE FER', cout:1, type:'att', cible:1, per:'egoutier',
+   rare:'rare', v:{m:3}, v2:{m:4},
+   d:v=>'Inflige <b>'+v.m+' dégâts par boue</b> sur la cible.',
+   ef:(v,x)=>degats(x.src,x.cible,v.m*(x.cible.etats.boue||0))},
+ dosLarge:{img:'💪', nom:'DOS LARGE', cout:1, type:'pou', per:'egoutier',
+   rare:'rare', v:{n:3}, v2:{n:4},
+   d:v=>'<b>Pouvoir.</b> Au début de chaque tour, gagne <b>'+v.n+'</b> d\'armure.',
+   ef:(v,x)=>pouvoir(x.src,'garde',v.n)},
+ remonter:{img:'🦾', nom:'REMONTER LES MANCHES', cout:0, type:'pou', per:'egoutier',
+   rare:'epique', v:{n:2}, v2:{n:3},
+   d:v=>'<b>Pouvoir.</b> Gagne <b>'+v.n+'</b> force. Exil.',
+   exil:1, ef:(v,x)=>etat(x.src,'force',v.n)},
+ noyade:{img:'🌀', nom:'NOYADE', cout:3, type:'att', cible:1, per:'egoutier',
+   rare:'epique', v:{deg:12,n:4}, v2:{deg:17,n:6},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts et applique <b>'+v.n+'</b> boue.',
+   ef:(v,x)=>{ degats(x.src,x.cible,v.deg); etat(x.cible,'boue',v.n); }},
+
+ /* ---------------- la cartographe ---------------- */
+ sec:{img:'🗡️', nom:'COUP SEC', cout:1, type:'att', cible:1, per:'carto',
+   rare:'base', v:{deg:6}, v2:{deg:9},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts.',
+   ef:(v,x)=>degats(x.src,x.cible,v.deg)},
+ releve:{img:'📋', nom:'RELEVÉ', cout:1, type:'def', per:'carto',
+   rare:'base', v:{arm:6}, v2:{arm:9},
+   d:v=>'Gagne <b>'+v.arm+'</b> d\'armure.',
+   ef:(v,x)=>armure(x.src,v.arm)},
+ reperage:{img:'📍', nom:'REPÉRAGE', cout:0, type:'ruse', cible:1, per:'carto',
+   rare:'base', v:{n:1}, v2:{n:2},
+   d:v=>'Pose <b>'+v.n+'</b> repère. Pioche 1 carte.',
+   ef:(v,x)=>{ etat(x.cible,'marque',v.n); piocher(1); }},
+ boussole:{img:'🧭', nom:'BOUSSOLE', cout:1, type:'ruse', per:'carto',
+   rare:'commune', v:{n:2}, v2:{n:3},
+   d:v=>'Pioche <b>'+v.n+'</b> cartes.',
+   ef:(v,x)=>piocher(v.n)},
+ mesure:{img:'📏', nom:'PRISE DE MESURE', cout:1, type:'att', cible:1, per:'carto',
+   rare:'commune', v:{deg:4,b:6}, v2:{deg:6,b:9},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts, ou <b>'+v.b+'</b> si la cible est repérée.',
+   ef:(v,x)=>degats(x.src,x.cible,(x.cible.etats.marque||0)?v.b:v.deg)},
+ triangul:{img:'📐', nom:'TRIANGULATION', cout:2, type:'att', cible:1, per:'carto',
+   rare:'commune', v:{deg:5,f:2}, v2:{deg:7,f:2},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts <b>'+v.f+' fois</b>.',
+   ef:(v,x)=>{ for(let i=0;i<v.f;i++) degats(x.src,x.cible,v.deg); }},
+ pas:{img:'👟', nom:'PAS DE CÔTÉ', cout:1, type:'def', per:'carto',
+   rare:'commune', v:{arm:4,n:1}, v2:{arm:6,n:1},
+   d:v=>'Gagne <b>'+v.arm+'</b> d\'armure et <b>'+v.n+'</b> brume.',
+   ef:(v,x)=>{ armure(x.src,v.arm); etat(x.src,'brume',v.n); }},
+ croquis:{img:'✏️', nom:'CROQUIS', cout:0, type:'ruse', per:'carto',
+   rare:'commune', v:{n:2}, v2:{n:3},
+   d:v=>'Pioche <b>'+v.n+'</b> cartes. Défausse 1 carte.',
+   ef:(v,x)=>{ piocher(v.n); defausserChoix(1); }},
+ faille:{img:'⚡', nom:'FAILLE', cout:1, type:'att', cible:1, per:'carto',
+   rare:'rare', v:{deg:9}, v2:{deg:13},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts. <b>Consomme</b> tous les repères : '
+     +'+4 dégâts par repère.',
+   ef:(v,x)=>{ const m=x.cible.etats.marque||0;
+     degats(x.src,x.cible,v.deg+m*4); if(m) x.cible.etats.marque=0; }},
+ quadrillage:{img:'🕸️', nom:'QUADRILLAGE', cout:1, type:'ruse', per:'carto',
+   rare:'rare', v:{n:1}, v2:{n:2},
+   d:v=>'Pose <b>'+v.n+'</b> repère sur <b>tous</b> les ennemis.',
+   ef:(v,x)=>tousLesEnnemis(e=>etat(e,'marque',v.n))},
+ sortie:{img:'🚪', nom:'SORTIE DE SECOURS', cout:1, type:'def', per:'carto',
+   rare:'rare', v:{arm:8,n:1}, v2:{arm:11,n:2},
+   d:v=>'Gagne <b>'+v.arm+'</b> d\'armure et <b>'+v.n+'</b> brume.',
+   ef:(v,x)=>{ armure(x.src,v.arm); etat(x.src,'brume',v.n); }},
+ plan:{img:'🗺️', nom:'LE PLAN COMPLET', cout:1, type:'pou', per:'carto',
+   rare:'epique', v:{n:1}, v2:{n:1},
+   d:v=>'<b>Pouvoir.</b> Pioche <b>'+v.n+'</b> carte de plus chaque tour.'
+     +(v.n>1?'':' Exil.'),
+   exil:1, ef:(v,x)=>pouvoir(x.src,'pioche',v.n)},
+ effondre:{img:'🪨', nom:'EFFONDREMENT', cout:2, type:'att', per:'carto',
+   rare:'epique', v:{deg:8}, v2:{deg:12},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts à tous, <b>doublés</b> sur les cibles repérées.',
+   ef:(v,x)=>tousLesEnnemis(e=>degats(x.src,e,(e.etats.marque||0)?v.deg*2:v.deg))},
+
+ /* ---------------- le thaumaturge ---------------- */
+ baton:{img:'🦯', nom:'COUP DE BÂTON', cout:1, type:'att', cible:1, per:'thaumaturge',
+   rare:'base', v:{deg:6}, v2:{deg:9},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts.',
+   ef:(v,x)=>degats(x.src,x.cible,v.deg)},
+ priere:{img:'🙏', nom:'PRIÈRE', cout:1, type:'def', per:'thaumaturge',
+   rare:'base', v:{arm:6}, v2:{arm:9},
+   d:v=>'Gagne <b>'+v.arm+'</b> d\'armure.',
+   ef:(v,x)=>armure(x.src,v.arm)},
+ meche:{img:'🕯️', nom:'MÈCHE', cout:0, type:'ruse', per:'thaumaturge',
+   rare:'base', v:{n:1}, v2:{n:2},
+   d:v=>'Allume <b>'+v.n+'</b> cierge.',
+   ef:(v,x)=>etat(x.src,'cierge',v.n)},
+ lampe:{img:'🪔', nom:'LAMPE À HUILE', cout:1, type:'ruse', per:'thaumaturge',
+   rare:'commune', v:{n:2}, v2:{n:3},
+   d:v=>'Allume <b>'+v.n+'</b> cierges.',
+   ef:(v,x)=>etat(x.src,'cierge',v.n)},
+ halo:{img:'⭕', nom:'HALO', cout:1, type:'def', per:'thaumaturge',
+   rare:'commune', v:{arm:3}, v2:{arm:4},
+   d:v=>'Gagne <b>'+v.arm+'</b> d\'armure <b>par cierge</b> allumé.',
+   ef:(v,x)=>armure(x.src,v.arm*(x.src.etats.cierge||0))},
+ brulure:{img:'🔥', nom:'BRÛLURE', cout:1, type:'att', cible:1, per:'thaumaturge',
+   rare:'commune', v:{deg:4,n:3}, v2:{deg:6,n:4},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts et <b>'+v.n+'</b> saignement.',
+   ef:(v,x)=>{ degats(x.src,x.cible,v.deg); etat(x.cible,'saignement',v.n); }},
+ veillee:{img:'🛐', nom:'VEILLÉE', cout:1, type:'def', per:'thaumaturge',
+   rare:'commune', v:{arm:5,n:2}, v2:{arm:7,n:3},
+   d:v=>'Gagne <b>'+v.arm+'</b> d\'armure et <b>'+v.n+'</b> régénération.',
+   ef:(v,x)=>{ armure(x.src,v.arm); etat(x.src,'regen',v.n); }},
+ offrande:{img:'🩸', nom:'OFFRANDE', cout:0, type:'ruse', per:'thaumaturge',
+   rare:'commune', v:{pv:3,n:2}, v2:{pv:2,n:3},
+   d:v=>'Perds <b>'+v.pv+'</b> points de vie. Allume <b>'+v.n+'</b> cierges.',
+   ef:(v,x)=>{ blesserDirect(x.src,v.pv); etat(x.src,'cierge',v.n); }},
+ flambee:{img:'💥', nom:'FLAMBÉE', cout:2, type:'att', cible:1, per:'thaumaturge',
+   rare:'rare', v:{m:6}, v2:{m:8},
+   d:v=>'<b>Consomme tous les cierges.</b> Inflige <b>'+v.m+'</b> dégâts par cierge.',
+   ef:(v,x)=>{ const c=x.src.etats.cierge||0;
+     degats(x.src,x.cible,v.m*c); x.src.etats.cierge=0; }},
+ procession:{img:'🔆', nom:'PROCESSION', cout:2, type:'att', per:'thaumaturge',
+   rare:'rare', v:{m:4}, v2:{m:5},
+   d:v=>'Inflige <b>'+v.m+'</b> dégâts <b>par cierge</b> à tous les ennemis. '
+     +'Les cierges restent.',
+   ef:(v,x)=>{ const c=x.src.etats.cierge||0;
+     tousLesEnnemis(e=>degats(x.src,e,v.m*c)); }},
+ sanctuaire:{img:'⛪', nom:'SANCTUAIRE', cout:1, type:'pou', per:'thaumaturge',
+   rare:'rare', v:{n:1}, v2:{n:2},
+   d:v=>'<b>Pouvoir.</b> Allume <b>'+v.n+'</b> cierge au début de chaque tour.',
+   ef:(v,x)=>pouvoir(x.src,'cierge',v.n)},
+ relique:{img:'⚱️', nom:'RELIQUE DE POCHE', cout:1, type:'def', per:'thaumaturge',
+   rare:'rare', v:{n:2}, v2:{n:3},
+   d:v=>'Gagne <b>'+v.n+'</b> tour(s) de parade.',
+   ef:(v,x)=>etat(x.src,'parade',v.n)},
+ embrasement:{img:'☄️', nom:'EMBRASEMENT', cout:3, type:'att', cible:1, per:'thaumaturge',
+   rare:'epique', v:{deg:22,n:3}, v2:{deg:31,n:4},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts. Allume <b>'+v.n+'</b> cierges.',
+   ef:(v,x)=>{ degats(x.src,x.cible,v.deg); etat(x.src,'cierge',v.n); }},
+
+ /* ---------------- pour tout le monde ---------------- */
+ caillou:{img:'🪨', nom:'CAILLOU', cout:0, type:'att', cible:1, rare:'commune',
+   v:{deg:3}, v2:{deg:5},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts.',
+   ef:(v,x)=>degats(x.src,x.cible,v.deg)},
+ corde:{img:'🪢', nom:'CORDE', cout:0, type:'def', rare:'commune',
+   v:{arm:4}, v2:{arm:6},
+   d:v=>'Gagne <b>'+v.arm+'</b> d\'armure.',
+   ef:(v,x)=>armure(x.src,v.arm)},
+ lame:{img:'🗡️', nom:'LAME ÉBRÉCHÉE', cout:1, type:'att', cible:1, rare:'commune',
+   v:{deg:5,n:2}, v2:{deg:7,n:3},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts et <b>'+v.n+'</b> saignement.',
+   ef:(v,x)=>{ degats(x.src,x.cible,v.deg); etat(x.cible,'saignement',v.n); }},
+ cri:{img:'📢', nom:'CRI DANS LE NOIR', cout:1, type:'ruse', rare:'commune',
+   v:{n:2}, v2:{n:3},
+   d:v=>'Applique <b>'+v.n+'</b> faiblesse à tous les ennemis.',
+   ef:(v,x)=>tousLesEnnemis(e=>etat(e,'faiblesse',v.n))},
+ fiole:{img:'🧪', nom:'FIOLE', cout:0, type:'ruse', rare:'commune',
+   v:{pv:6}, v2:{pv:9},
+   d:v=>'Récupère <b>'+v.pv+'</b> points de vie. Exil.',
+   exil:1, ef:(v,x)=>soigner(x.src,v.pv)},
+ pointe:{img:'📌', nom:'POINTE', cout:1, type:'att', cible:1, rare:'commune',
+   v:{deg:6,n:2}, v2:{deg:8,n:3},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts et <b>'+v.n+'</b> vulnérable.',
+   ef:(v,x)=>{ degats(x.src,x.cible,v.deg); etat(x.cible,'vulnerable',v.n); }},
+ souffle:{img:'💨', nom:'SECOND SOUFFLE', cout:1, type:'ruse', rare:'rare',
+   v:{n:1}, v2:{n:2},
+   d:v=>'Gagne <b>'+v.n+'</b> énergie. Pioche 1 carte.',
+   ef:(v,x)=>{ gagnerEnergie(v.n); piocher(1); }},
+ barre:{img:'🔨', nom:'BARRE À MINE', cout:2, type:'att', cible:1, rare:'rare',
+   v:{deg:15}, v2:{deg:22},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts.',
+   ef:(v,x)=>degats(x.src,x.cible,v.deg)},
+ rempart:{img:'🧱', nom:'REMPART', cout:2, type:'def', rare:'rare',
+   v:{arm:12,n:1}, v2:{arm:16,n:2},
+   d:v=>'Gagne <b>'+v.arm+'</b> d\'armure et <b>'+v.n+'</b> tour(s) de parade.',
+   ef:(v,x)=>{ armure(x.src,v.arm); etat(x.src,'parade',v.n); }},
+ rancune:{img:'🌵', nom:'RANCUNE', cout:1, type:'pou', rare:'rare',
+   v:{n:2}, v2:{n:3},
+   d:v=>'<b>Pouvoir.</b> Gagne <b>'+v.n+'</b> épines pour le reste du combat.',
+   ef:(v,x)=>etat(x.src,'epines',v.n)},
+ lanterne:{img:'🏮', nom:'LANTERNE SOURDE', cout:1, type:'ruse', rare:'rare',
+   v:{n:2}, v2:{n:3},
+   d:v=>'Gagne <b>'+v.n+'</b> brume.',
+   ef:(v,x)=>etat(x.src,'brume',v.n)},
+ acharne:{img:'🔁', nom:'ACHARNEMENT', cout:1, type:'att', cible:1, rare:'epique',
+   v:{deg:4}, v2:{deg:6},
+   d:v=>'Inflige <b>'+v.deg+'</b> dégâts. <b>Revient en main</b> quand un ennemi tombe.',
+   ef:(v,x)=>degats(x.src,x.cible,v.deg), retour:1},
+ dernier:{img:'⏳', nom:'DERNIER RECOURS', cout:0, type:'ruse', rare:'epique',
+   v:{n:2}, v2:{n:3},
+   d:v=>'Gagne <b>'+v.n+'</b> énergie. Tu perds 3 points de vie. Exil.',
+   exil:1, ef:(v,x)=>{ gagnerEnergie(v.n); blesserDirect(x.src,3); }},
+ /* les cartes de malédiction : on ne les choisit pas, on les subit */
+ blessure:{img:'🩸', nom:'BLESSURE', cout:0, type:'mal', rare:'mal', injouable:1,
+   v:{}, v2:{},
+   d:()=>'Injouable. Elle occupe ta main jusqu\'à la fin du tour.'},
+ dette:{img:'⛓️', nom:'DETTE', cout:0, type:'mal', rare:'mal', injouable:1,
+   v:{}, v2:{},
+   d:()=>'Injouable. Tu perds 2 points de vie à la fin de ton tour si elle est en main.'}
+};
+const CLES_CARTES=Object.keys(CARTES);
+
+/* ---- fabriquer, lire, améliorer ---- */
+let idCarte=1;
+function faireCarte(k,plus){
+  const d=CARTES[k];
+  if(!d) return null;
+  return {u:idCarte++, k, p:plus?1:0};
+}
+function defCarte(c){ return CARTES[c.k]; }
+function valCarte(c){ const d=CARTES[c.k]; return c.p?d.v2:d.v; }
+function nomCarte(c){ return CARTES[c.k].nom+(c.p?'+':''); }
+function texteCarte(c){ return CARTES[c.k].d(valCarte(c)); }
+function ameliorable(c){
+  const d=CARTES[c.k];
+  return !c.p && d.rare!=='mal' && JSON.stringify(d.v)!==JSON.stringify(d.v2);
+}
+/* le tirage d'un butin : la rareté décide, et le personnage filtre */
+function poolCartes(per){
+  return CLES_CARTES.filter(k=>{
+    const d=CARTES[k];
+    if(d.rare==='mal'||d.rare==='base') return false;
+    if(d.per&&d.per!==per) return false;
+    if(!estDebloquee(k)) return false;
+    return true;
+  });
+}
+const POIDS_RARETE={commune:1, rare:.42, epique:.16};
+function tirerCartes(per,n,biaisRare){
+  const pool=poolCartes(per);
+  const o=[];
+  let garde=0;
+  while(o.length<n&&garde++<400){
+    const k=pool[Math.floor(al()*pool.length)];
+    if(!k||o.indexOf(k)>=0) continue;
+    const p=POIDS_RARETE[CARTES[k].rare]||1;
+    if(al()<p*(biaisRare||1)) o.push(k);
+  }
+  /* si la chance a été mauvaise, on complète sans condition */
+  while(o.length<n&&pool.length>o.length){
+    const k=pool[Math.floor(al()*pool.length)];
+    if(o.indexOf(k)<0) o.push(k);
+  }
+  return o.map(k=>faireCarte(k,0));
+}
+
+
+/* ==========================================================================
+   CE QUI VIT EN DESSOUS
+   ==========================================================================
+   Une créature, c'est trois choses : des points de vie, une forme à peindre, et
+   un plan. Le plan est la partie intéressante : il décide de ce que la bête
+   fera à la fin de ton tour, et cette décision est AFFICHÉE avant que tu joues
+   ta première carte. Rien n'est caché, rien n'est aléatoire au moment où ça
+   frappe — le hasard a déjà eu lieu, tu joues après lui.
+
+   Une intention se lit :
+     t    att | def | buf | deb   (la couleur de la pastille)
+     deg  dégâts de base, f fois
+     arm  armure qu'elle se donne
+     moi  états qu'elle se pose à elle-même
+     toi  états qu'elle te pose
+     fn   le cas particulier (invoquer, se scinder, fuir…)
+
+   Deux façons de planifier : `suite` (un cycle fixe, qu'on peut apprendre par
+   cœur — c'est ce qui rend un ennemi lisible) et `choisir` (une décision qui
+   regarde l'état du combat — c'est ce qui rend un boss vivant). */
+
+const ENNEMIS={
+
+ /* ---------------- premier étage : les égouts hauts ---------------- */
+ rat:{nom:'RAT D\'ÉGOUT', forme:'rat', col:'#8a7a63', pv:[10,14], taille:.78,
+   d:'Il mord, il recule, il remord. Trois rats valent un vrai problème.',
+   suite:[{t:'att',deg:4},{t:'att',deg:4},{t:'deb',deg:3,toi:[{k:'faiblesse',n:1}]}]},
+
+ limace:{nom:'LIMACE DE FANGE', forme:'limace', col:'#6f8a5a', pv:[17,21], taille:.95,
+   d:'Elle avance de dix centimètres par tour et laisse une traînée qui brûle.',
+   suite:[{t:'att',deg:5},{t:'deb',toi:[{k:'faiblesse',n:2}]},{t:'att',deg:7}]},
+
+ veilleur:{nom:'VEILLEUR DE PIERRE', forme:'pierre', col:'#7b8592', pv:[22,26], taille:1,
+   d:'Il ne bouge que d\'un tour sur deux, mais ce tour-là il faut être ailleurs.',
+   suite:[{t:'def',arm:6},{t:'att',deg:8},{t:'def',arm:6},{t:'att',deg:10}]},
+
+ ombre:{nom:'PETITE OMBRE', forme:'ombre', col:'#5b5470', pv:[12,15], taille:.85,
+   d:'Elle ne frappe pas fort. Elle frappe souvent, et elle t\'use.',
+   hasard:1,
+   suite:[{t:'att',deg:3,f:2},{t:'att',deg:3,f:2},{t:'deb',toi:[{k:'vulnerable',n:1}]}]},
+
+ crapaud:{nom:'CRAPAUD BLÊME', forme:'crapaud', col:'#8a9b5e', pv:[24,28], taille:1,
+   d:'Il gonfle, il gonfle, et un tour sur trois il détend tout d\'un coup.',
+   suite:[{t:'buf',moi:[{k:'force',n:2}]},{t:'att',deg:6},{t:'att',deg:6},{t:'att',deg:10}]},
+
+ /* élites du premier étage */
+ troisCrocs:{nom:'TROIS-CROCS', forme:'rat', col:'#b4632f', pv:[40,46], taille:1.15, elite:1,
+   d:'Le rat qui a mangé les autres rats. Il se renforce chaque fois qu\'il mord.',
+   suite:[{t:'att',deg:7,moi:[{k:'force',n:1}]},{t:'att',deg:5,f:2},{t:'def',arm:7,moi:[{k:'force',n:2}]}]},
+
+ gardeBoue:{nom:'LE GARDE-BOUE', forme:'masse', col:'#7d6a4a', pv:[44,50], taille:1.25, elite:1,
+   d:'Une carapace de vase séchée. Tant qu\'elle tient, il prend son temps.',
+   choisir(e,t){
+     if(e.arm<=0&&t>1) return {t:'def',arm:12,moi:[{k:'epines',n:3}]};
+     if(t%3===0) return {t:'attdeb',deg:7,toi:[{k:'vulnerable',n:2}]};
+     return {t:'att',deg:9};
+   }},
+
+ /* gardien du premier étage */
+ pompe:{nom:'LA POMPE', forme:'machine', col:'#9aa2ad', pv:[90,90], taille:1.5, boss:1,
+   d:'Personne ne l\'a allumée. Elle tourne quand même, et elle aspire.',
+   choisir(e,t){
+     const p=e.pv/e.pvm;
+     if(t===1) return {t:'def',arm:9,txt:'MONTE EN PRESSION'};
+     if(p<.4&&t%4===0) return {t:'att',deg:7,f:3,txt:'PURGE'};
+     const c=t%3;
+     if(c===0) return {t:'attdeb',deg:9,toi:[{k:'faiblesse',n:2}]};
+     if(c===1) return {t:'att',deg:13};
+     return {t:'def',arm:8,moi:[{k:'force',n:2}]};
+   }},
+
+ /* ---------------- deuxième étage : les ossuaires ---------------- */
+ tibia:{nom:'TIBIA MONTÉ', forme:'os', col:'#d7cdb4', pv:[28,33], taille:.95,
+   d:'Un tas d\'os qui a trouvé un ordre de montage. Ça frappe sec.',
+   suite:[{t:'att',deg:10},{t:'att',deg:10},{t:'def',arm:8}]},
+
+ moine:{nom:'MOINE SANS TÊTE', forme:'moine', col:'#4e5666', pv:[35,41], taille:1.1,
+   d:'Il psalmodie encore. Ce qu\'il dit te fait mal, on ne sait pas pourquoi.',
+   suite:[{t:'deb',toi:[{k:'faiblesse',n:2},{k:'vulnerable',n:2}]},{t:'att',deg:11},
+     {t:'def',arm:10},{t:'att',deg:8,f:2}]},
+
+ chauve:{nom:'NUÉE BASSE', forme:'aile', col:'#6a5f78', pv:[22,26], taille:.9,
+   d:'Elle passe, elle repasse, et à la fin il manque du sang.',
+   hasard:1,
+   suite:[{t:'att',deg:4,f:3},{t:'attdeb',deg:6,toi:[{k:'saignement',n:3}]},
+     {t:'buf',moi:[{k:'brume',n:1}],txt:'DISPARAÎT'}]},
+
+ puisard:{nom:'GARDIEN DU PUISARD', forme:'pierre', col:'#5f7a86', pv:[40,47], taille:1.15,
+   d:'Il garde un trou dont personne ne connaît le fond.',
+   choisir(e,t){
+     if(e.arm>0) return {t:'att',deg:14};
+     return {t:'def',arm:13,moi:[{k:'epines',n:4}]};
+   }},
+
+ vermine:{nom:'VERMINE GRASSE', forme:'limace', col:'#9b7d4f', pv:[32,37], taille:1.05,
+   d:'Elle mange les morts. Elle n\'est pas regardante sur la fraîcheur.',
+   suite:[{t:'att',deg:8,toi:[{k:'saignement',n:2}]},{t:'buf',moi:[{k:'regen',n:5}]},
+     {t:'att',deg:11}]},
+
+ /* élites du deuxième étage */
+ charnier:{nom:'LE CHARNIER', forme:'masse', col:'#b9a98a', pv:[78,86], taille:1.35, elite:1,
+   d:'Tous les os de la salle, empilés, et quelque chose qui les tient ensemble.',
+   choisir(e,t){
+     if(t%4===0) return {t:'spe',txt:'REMONTE UN OS',
+       fn(e){ invoquerEnnemi('tibia',.55); }};
+     if(t%2===0) return {t:'att',deg:9,f:2};
+     return {t:'attdeb',deg:12,toi:[{k:'vulnerable',n:2}]};
+   }},
+
+ cierge:{nom:'LE PORTE-CIERGE', forme:'moine', col:'#c8a23c', pv:[70,78], taille:1.25, elite:1,
+   d:'Il éclaire la salle. Ce qu\'on y voit ne valait pas la lumière.',
+   choisir(e,t){
+     if(t===1) return {t:'buf',moi:[{k:'force',n:3}],txt:'LÈVE LE CIERGE'};
+     if(t%3===0) return {t:'def',arm:12,moi:[{k:'force',n:2}]};
+     return {t:'att',deg:8,f:2};
+   }},
+
+ /* gardien du deuxième étage */
+ sacristain:{nom:'LE SACRISTAIN', forme:'moine', col:'#8e5f9b', pv:[158,158], taille:1.55, boss:1,
+   d:'Il range les os par taille depuis quatre cents ans. Tu déranges.',
+   choisir(e,t){
+     const p=e.pv/e.pvm;
+     if(t===1) return {t:'deb',toi:[{k:'faiblesse',n:3}],txt:'ORDONNE LE SILENCE'};
+     if(p<.5&&t%5===0) return {t:'spe',txt:'APPELLE SES MORTS',
+       fn(e){ invoquerEnnemi('tibia',.6); invoquerEnnemi('tibia',.6); }};
+     const c=t%4;
+     if(c===0) return {t:'att',deg:8,f:3};
+     if(c===1) return {t:'attdeb',deg:13,toi:[{k:'vulnerable',n:2}]};
+     if(c===2) return {t:'def',arm:15,moi:[{k:'force',n:3}]};
+     return {t:'att',deg:18};
+   }},
+
+ /* ---------------- troisième étage : la nappe ---------------- */
+ noye:{nom:'LE NOYÉ', forme:'noye', col:'#4a6f8a', pv:[48,55], taille:1.1,
+   d:'Il n\'est jamais remonté. Il ne voit pas pourquoi tu remonterais.',
+   suite:[{t:'att',deg:13},{t:'attdeb',deg:9,toi:[{k:'faiblesse',n:2}]},
+     {t:'def',arm:10},{t:'att',deg:17}]},
+
+ statue:{nom:'STATUE DESCELLÉE', forme:'pierre', col:'#8d8778', pv:[58,68], taille:1.25,
+   d:'Deux tonnes de calcaire qui ont décidé de marcher.',
+   choisir(e,t){
+     if(t%3===1) return {t:'def',arm:14,moi:[{k:'epines',n:5}]};
+     return {t:'att',deg:16};
+   }},
+
+ larve:{nom:'LARVE BLANCHE', forme:'limace', col:'#dcd3c0', pv:[38,44], taille:1,
+   d:'Elle grandit à vue d\'œil et rien n\'a l\'air de la déranger.',
+   suite:[{t:'buf',moi:[{k:'force',n:2},{k:'regen',n:4}]},{t:'att',deg:10},
+     {t:'att',deg:10},{t:'att',deg:10}]},
+
+ oeil:{nom:'L\'ŒIL DE LA NAPPE', forme:'oeil', col:'#a34d6e', pv:[44,50], taille:1.05,
+   d:'Il te regarde depuis trois salles. Là, il a fini de regarder.',
+   suite:[{t:'deb',toi:[{k:'vulnerable',n:2}]},{t:'att',deg:18},
+     {t:'buf',moi:[{k:'brume',n:2}],txt:'SE FERME'},{t:'att',deg:11,f:2}]},
+
+ /* élites du troisième étage */
+ puisatier:{nom:'LE PUISATIER', forme:'masse', col:'#5a6b74', pv:[124,136], taille:1.4, elite:1,
+   d:'Il creuse encore. Il a oublié pourquoi, mais il a gardé la pioche.',
+   choisir(e,t){
+     if(t%4===0) return {t:'att',deg:9,f:3,txt:'TROIS COUPS'};
+     if(t%4===2) return {t:'def',arm:16,moi:[{k:'force',n:2}]};
+     return {t:'attdeb',deg:15,toi:[{k:'saignement',n:4}]};
+   }},
+
+ cloche:{nom:'LA CLOCHE FÊLÉE', forme:'machine', col:'#b08b3e', pv:[114,124], taille:1.4, elite:1,
+   d:'Elle sonne dans l\'eau. Chaque coup enlève quelque chose à qui l\'entend.',
+   choisir(e,t){
+     if(t%3===0) return {t:'attdeb',deg:8,f:2,toi:[{k:'faiblesse',n:2},{k:'vulnerable',n:2}]};
+     if(t%3===1) return {t:'def',arm:12,moi:[{k:'parade',n:1}]};
+     return {t:'att',deg:19};
+   }},
+
+ /* le gardien du bas */
+ dort:{nom:'CE QUI DORT', forme:'colosse', col:'#7a3f56', pv:[260,260], taille:1.8, boss:1,
+   d:'La ville est bâtie dessus. On a longtemps cru que c\'était du roc.',
+   choisir(e,t){
+     const p=e.pv/e.pvm;
+     if(t===1) return {t:'buf',moi:[{k:'force',n:2},{k:'epines',n:5}],txt:'S\'ÉVEILLE'};
+     if(p<.35){
+       const c=t%3;
+       if(c===0) return {t:'att',deg:11,f:3,txt:'S\'EFFONDRE'};
+       if(c===1) return {t:'attdeb',deg:16,toi:[{k:'vulnerable',n:2},{k:'faiblesse',n:2}]};
+       return {t:'att',deg:24};
+     }
+     const c=t%5;
+     if(c===0) return {t:'spe',txt:'CRACHE UNE OMBRE',
+       fn(e){ invoquerEnnemi('ombre',1.3); }};
+     if(c===1) return {t:'att',deg:20};
+     if(c===2) return {t:'attdeb',deg:12,toi:[{k:'saignement',n:5}]};
+     if(c===3) return {t:'def',arm:18,moi:[{k:'force',n:2}]};
+     return {t:'att',deg:9,f:3};
+   }}
+};
+
+/* --------------------------------------------------------------------------
+   LES RENCONTRES
+   --------------------------------------------------------------------------
+   Une rencontre est une liste de clés. Les premières salles d'un étage tirent
+   dans `faciles`, les suivantes dans `normales` : c'est ce qui fait qu'un
+   étage monte en pression même quand on prend un chemin court. */
+const RENCONTRES=[
+ {nom:'LES ÉGOUTS HAUTS', sous:'Sous les pavés, l\'eau et ce qui la remonte.',
+  faciles:[['rat','rat'],['limace'],['ombre','rat'],['veilleur']],
+  normales:[['rat','rat','rat'],['limace','ombre'],['veilleur','rat'],['crapaud'],
+    ['ombre','ombre'],['limace','limace']],
+  elites:[['troisCrocs'],['gardeBoue'],['troisCrocs','rat']],
+  boss:[['pompe']]},
+ {nom:'LES OSSUAIRES', sous:'Six millions de gens rangés le long des murs.',
+  faciles:[['tibia'],['chauve','chauve'],['vermine']],
+  normales:[['tibia','tibia'],['moine'],['puisard'],['moine','chauve'],
+    ['vermine','tibia'],['chauve','chauve'],['puisard','chauve']],
+  elites:[['charnier'],['cierge'],['cierge','chauve']],
+  boss:[['sacristain']]},
+ {nom:'LA NAPPE', sous:'Plus bas que les carrières, l\'eau qui ne bouge pas.',
+  faciles:[['noye'],['larve'],['oeil']],
+  normales:[['noye','larve'],['statue'],['oeil','noye'],['larve','larve'],
+    ['statue','larve'],['oeil','larve']],
+  elites:[['puisatier'],['cloche'],['puisatier','larve']],
+  boss:[['dort']]}
+];
+
+/* --------------------------------------------------------------------------
+   MONTER UNE CRÉATURE
+   -------------------------------------------------------------------------- */
+let idEnn=1;
+function faireEnnemi(k,ech){
+  const d=ENNEMIS[k];
+  const m=ech||1;
+  const pv=Math.max(1,Math.round(ri(d.pv[0],d.pv[1])*m*echellePV()));
+  return {
+    id:idEnn++, k, def:d, nom:d.nom, forme:d.forme, col:d.col, taille:d.taille||1,
+    pvm:pv, pv, arm:0, etats:{}, mort:false,
+    tour:0, ihist:[], inten:null, el:null, ph:al()*TAU
+  };
+}
+/* la difficulté touche les points de vie, jamais les dégâts : un combat plus
+   dur doit être plus long à résoudre, pas plus injuste à lire */
+function echellePV(){
+  const d=Prof.diff||1;
+  return d===0?.84:d===2?1.22:1;
+}
+
+/* le plan : on demande à la créature ce qu'elle fera, et on l'affiche */
+function prochaineIntention(e){
+  const d=e.def;
+  let it;
+  if(d.choisir) it=d.choisir(e,e.tour+1);
+  else if(d.hasard){
+    /* jamais trois fois de suite la même : un ennemi qui se répète devient
+       une pièce de décor, un ennemi imprévisible devient injuste */
+    let g=0, i;
+    do{ i=Math.floor(al()*d.suite.length); }
+    while(g++<9&&e.ihist.length>=2&&e.ihist[0]===i&&e.ihist[1]===i);
+    e.ihist.unshift(i); e.ihist.length=Math.min(e.ihist.length,3);
+    it=d.suite[i];
+  } else it=d.suite[e.tour%d.suite.length];
+  e.inten=Object.assign({t:'att',deg:0,f:1,arm:0},it);
+  return e.inten;
+}
+
+/* ce que la pastille affiche : les dégâts VRAIS, force et boue comprises.
+   C'est la promesse du jeu — le chiffre annoncé est le chiffre encaissé. */
+function degatsAnnonces(e,brut){
+  let n=brut;
+  n+=(e.etats.force||0);
+  n-=(e.etats.boue||0);
+  if(e.etats.faiblesse) n=Math.floor(n*.75);
+  n=Math.max(0,n);
+  if(C&&C.h){
+    if(C.h.etats.vulnerable) n=Math.floor(n*1.5);
+  }
+  return n;
+}
+function texteIntention(e){
+  const it=e.inten;
+  if(!it) return {cl:'',txt:'…',ico:''};
+  if(it.t==='spe') return {cl:'buf',txt:it.txt||'?',ico:'✦'};
+  if(it.t==='def'&&!it.deg)
+    return {cl:'def',txt:(it.txt||'SE PROTÈGE'),ico:'🛡️',n:it.arm};
+  if(it.t==='buf') return {cl:'buf',txt:it.txt||'SE RENFORCE',ico:'✷'};
+  if(it.t==='deb'&&!it.deg) return {cl:'deb',txt:it.txt||'T\'AFFAIBLIT',ico:'☯️'};
+  const n=degatsAnnonces(e,it.deg);
+  const cl=it.t==='attdeb'?'deb':'att';
+  return {cl, txt:(it.f>1?(n+'×'+it.f):(''+n)), ico:it.f>1?'⚔️':'🗡️', deg:1};
+}
+
+
+/* ==========================================================================
+   LES RELIQUES
+   ==========================================================================
+   Ce qu'on ramasse en chemin et qui ne se joue pas : ça agit tout seul. Une
+   relique s'accroche à un moment de la partie (le début d'un combat, le début
+   d'un tour, la mort d'un ennemi…) et le combat vient la chercher à ce
+   moment-là. Aucune ne modifie une règle en douce : tout ce qu'elles font
+   passe par les mêmes fonctions que les cartes, et donc s'affiche. */
+const RELIQUES={
+ lampe:{nom:'LAMPE DE MINEUR', ico:'🔦', rare:'commune',
+   d:'Au premier tour de chaque combat, pioche 1 carte de plus.',
+   debut(){ C.piochePremier=(C.piochePremier||0)+1; }},
+ gamelle:{nom:'GAMELLE CABOSSÉE', ico:'🥣', rare:'commune',
+   d:'Au bivouac, tu récupères 8 points de vie de plus.',
+   repos:8},
+ clou:{nom:'CLOU ROUILLÉ', ico:'📌', rare:'commune',
+   d:'Au début de chaque combat, applique 2 saignement à un ennemi au hasard.',
+   debut(){ const v=vivants(); if(v.length) etat(pick(v),'saignement',2); }},
+ semelle:{nom:'SEMELLES DE PLOMB', ico:'🥾', rare:'commune',
+   d:'Au début de chaque combat, gagne 6 d\'armure.',
+   debut(){ armure(C.h,6); }},
+ bougie:{nom:'BOUT DE BOUGIE', ico:'🕯️', rare:'commune',
+   d:'Au début de chaque tour, gagne 1 cierge.',
+   tour(){ etat(C.h,'cierge',1); }},
+ ficelle:{nom:'PELOTE DE FICELLE', ico:'🧵', rare:'commune',
+   d:'Les cartes de ruse coûtent 1 de moins la première fois, chaque combat.',
+   debut(){ C.ruseGratuite=1; }},
+ dent:{nom:'DENT DE RAT', ico:'🦷', rare:'commune',
+   d:'Chaque ennemi qui tombe te rend 3 points de vie.',
+   mort(){ soigner(C.h,3); }},
+ cuiller:{nom:'CUILLER TORDUE', ico:'🥄', rare:'commune',
+   d:'Les récompenses en pièces sont augmentées d\'un tiers.',
+   or:1.34},
+
+ bocal:{nom:'BOCAL SCELLÉ', ico:'🫙', rare:'rare',
+   d:'Au début de chaque combat, gagne 2 force.',
+   debut(){ etat(C.h,'force',2); }},
+ gant:{nom:'GANT DE CUIR', ico:'🧤', rare:'rare',
+   d:'La première carte jouée chaque tour coûte 1 de moins.',
+   tour(){ C.premiereMoins=1; }},
+ chaine:{nom:'CHAÎNE COURTE', ico:'⛓️', rare:'rare',
+   d:'Ton armure n\'est plus effacée qu\'à moitié au début de ton tour.',
+   demiArmure:1},
+ miroir:{nom:'MIROIR PIQUÉ', ico:'🪞', rare:'rare',
+   d:'Au début de chaque combat, gagne 3 épines.',
+   debut(){ etat(C.h,'epines',3); }},
+ sifflet:{nom:'SIFFLET D\'ÉGOUTIER', ico:'📯', rare:'rare',
+   d:'Au début de chaque combat, applique 2 faiblesse à tous les ennemis.',
+   debut(){ tousLesEnnemis(e=>etat(e,'faiblesse',2)); }},
+ boussoleR:{nom:'BOUSSOLE FOLLE', ico:'🧭', rare:'rare',
+   d:'Le marché te propose une carte de plus, et 15 % moins cher.',
+   marche:1},
+ flacon:{nom:'FLACON DE SEL', ico:'🧂', rare:'rare',
+   d:'Une fois par combat, la première blessure reçue est annulée.',
+   debut(){ C.selDispo=1; }},
+ corde2:{nom:'CORDE À NŒUDS', ico:'🪢', rare:'rare',
+   d:'À la fin de chaque salle sans combat, gagne 12 pièces.',
+   salleCalme:12},
+ pierreN:{nom:'PIERRE NOIRE', ico:'🪨', rare:'rare',
+   d:'Ton point de vie maximum monte de 12, et tu les gagnes tout de suite.',
+   pris(){ R.pvm+=12; R.pv+=12; }},
+
+ tambour:{nom:'TAMBOUR SOURD', ico:'🥁', rare:'epique',
+   d:'Au troisième tour de chaque combat, gagne 1 énergie et 3 force.',
+   tour(){ if(C.tour===3){ C.energie++; etat(C.h,'force',3); } }},
+ os3:{nom:'TROIS OS LIÉS', ico:'🦴', rare:'epique',
+   d:'Chaque ennemi qui tombe te donne 2 force jusqu\'à la fin du combat.',
+   mort(){ etat(C.h,'force',2); }},
+ anneau:{nom:'ANNEAU DE FER', ico:'💍', rare:'epique',
+   d:'Tu commences chaque combat avec 1 énergie de plus, mais tu pioches 1 carte de moins.',
+   debut(){ C.energieBonus=(C.energieBonus||0)+1; C.piocheBonus=(C.piocheBonus||0)-1; }},
+ crane:{nom:'CRÂNE POLI', ico:'💀', rare:'epique',
+   d:'Après un combat d\'élite ou un gardien, améliore une carte au hasard.',
+   apresElite:1},
+ lanterneR:{nom:'LANTERNE DE VEILLE', ico:'🏮', rare:'epique',
+   d:'Au début de chaque combat, gagne 1 brume et 8 d\'armure.',
+   debut(){ etat(C.h,'brume',1); armure(C.h,8); }},
+ sceau:{nom:'SCEAU DE LA VILLE', ico:'🔱', rare:'epique', boss:1,
+   d:'Gagne 1 énergie par tour. Ta main est réduite d\'une carte.',
+   debut(){ C.energieBonus=(C.energieBonus||0)+1; C.piocheBonus=(C.piocheBonus||0)-1; }},
+ cleGrille:{nom:'CLÉ DE LA GRILLE', ico:'🗝️', rare:'epique', boss:1,
+   d:'Au début de chaque combat, gagne 3 force. Tu perds 10 points de vie maximum.',
+   debut(){ etat(C.h,'force',3); },
+   pris(){ R.pvm=Math.max(20,R.pvm-10); R.pv=Math.min(R.pv,R.pvm); }},
+ vase:{nom:'VASE DE LA NAPPE', ico:'⚱️', rare:'epique', boss:1,
+   d:'Tu récupères 6 points de vie à la fin de chaque combat.',
+   finCombat:6}
+};
+const CLES_RELIQUES=Object.keys(RELIQUES);
+
+function aRelique(k){ return !!(R&&R.reliques&&R.reliques.indexOf(k)>=0); }
+function donnerRelique(k){
+  if(!R||aRelique(k)) return false;
+  R.reliques.push(k);
+  const d=RELIQUES[k];
+  if(d.pris) d.pris();
+  SND.cloche();
+  flash(d.ico+'  '+d.nom,'bon');
+  compteur('reliques',1);
+  majBarre();
+  return true;
+}
+/* appeler un moment de vie : tous les objets qui savent y répondre répondent */
+function surReliques(quoi,arg){
+  if(!R) return;
+  for(const k of R.reliques){
+    const d=RELIQUES[k];
+    if(d&&typeof d[quoi]==='function') d[quoi](arg);
+  }
+}
+function sommeReliques(champ){
+  let s=0;
+  if(!R) return 0;
+  for(const k of R.reliques){ const v=RELIQUES[k][champ]; if(typeof v==='number') s+=v; }
+  return s;
+}
+function reliqueDispo(rare,boss){
+  const l=CLES_RELIQUES.filter(k=>{
+    const d=RELIQUES[k];
+    if(!!d.boss!==!!boss) return false;
+    if(rare&&d.rare!==rare) return false;
+    return !aRelique(k);
+  });
+  return l.length?pick(l):null;
+}
+function tirerRelique(biais){
+  const r=al();
+  const rare=biais==='boss'?null:(r<.58?'commune':r<.90?'rare':'epique');
+  return reliqueDispo(biais==='boss'?null:rare,biais==='boss')
+      || reliqueDispo(null,biais==='boss')
+      || reliqueDispo(null,false);
+}
+
+/* ==========================================================================
+   LES TROUVAILLES
+   ==========================================================================
+   Une salle sans combat où l'on choisit. Chaque choix a un prix : des points de
+   vie, une carte de malédiction, des pièces, une place dans le deck. Un jeu de
+   cartes sans mauvais choix possible n'est pas un jeu de cartes. */
+const EVENEMENTS=[
+ {k:'niche', titre:'LA NICHE MURÉE', eye:'UN TROU DANS LE MUR',
+  txt:'Quelqu\'un a muré une niche, puis quelqu\'un d\'autre a commencé à la démurer '
+     +'et s\'est arrêté. On voit briller quelque chose au fond, à bout de bras.',
+  choix:[
+   {t:'PASSER LE BRAS', s:'Tu prends ce qu\'il y a. Tu perds 7 points de vie.',
+    go(){ blesserRun(7); const k=tirerRelique(); if(k) donnerRelique(k);
+      else { orRun(70); flash('+70 🪙','bon'); } }},
+   {t:'ÉLARGIR LE TROU', s:'Long, bruyant, mais sans risque. Tu gagnes 55 pièces.',
+    go(){ orRun(55); flash('+55 🪙','bon'); }},
+   {t:'REMURER', s:'Tu remets les pierres. Tu gagnes 12 points de vie maximum.',
+    go(){ R.pvm+=12; R.pv+=12; flash('+12 PV MAX','bon'); }}]},
+
+ {k:'fontaine', titre:'LA FONTAINE BASSE', eye:'DE L\'EAU QUI COURT',
+  txt:'Une source traverse la galerie. L\'eau est claire, ce qui n\'est pas normal '
+     +'à cette profondeur, et elle a un goût de pièce de monnaie.',
+  choix:[
+   {t:'BOIRE', s:'Tu récupères tous tes points de vie.',
+    go(){ R.pv=R.pvm; SND.soin(); flash('SOIF ÉTANCHÉE','bon'); }},
+   {t:'S\'Y LAVER', s:'Retire une carte de ton deck.',
+    go(){ ouvrirRetrait(1,()=>allerSalleSuivante()); return 1; }},
+   {t:'REMPLIR SA GOURDE', s:'Ajoute deux FIOLE à ton deck.',
+    go(){ ajouterCarte('fiole'); ajouterCarte('fiole'); }}]},
+
+ {k:'pendu', titre:'LE PENDU DE SERVICE', eye:'IL EST LÀ DEPUIS LONGTEMPS',
+  txt:'Un ancien ouvrier, encore en tenue, accroché à une échelle de visite. '
+     +'Sa ceinture porte des outils, et ses poches ne sont pas vides.',
+  choix:[
+   {t:'PRENDRE LES OUTILS', s:'Améliore une carte de ton deck.',
+    go(){ ouvrirAmelio(()=>allerSalleSuivante()); return 1; }},
+   {t:'VIDER LES POCHES', s:'Tu gagnes 90 pièces et une carte DETTE.',
+    go(){ orRun(90); ajouterCarte('dette'); flash('+90 🪙','bon'); }},
+   {t:'LE DÉCROCHER', s:'Rien à gagner. Tu gagnes 18 points de vie maximum.',
+    go(){ R.pvm+=18; R.pv+=18; flash('+18 PV MAX','bon'); }}]},
+
+ {k:'jeu', titre:'LE JOUEUR DE DÉS', eye:'IL ATTENDAIT QUELQU\'UN',
+  txt:'Assis sur une caisse, il fait rouler deux dés en os contre le mur. '
+     +'Il ne lève pas la tête. « Un coup ? »',
+  choix:[
+   {t:'MISER 60 PIÈCES', s:'Une chance sur deux de repartir avec une relique.',
+    dispo:()=>R.or>=60,
+    go(){ R.or-=60; if(al()<.5){ const k=tirerRelique('rare'); if(k) donnerRelique(k);
+        else orRun(140); } else { SND.mal(); flash('PERDU','mal'); } }},
+   {t:'MISER SA PEAU', s:'Perds 12 points de vie, gagne 130 pièces.',
+    go(){ blesserRun(12); orRun(130); flash('+130 🪙','bon'); }},
+   {t:'REFUSER', s:'Tu passes ton chemin. Il hausse les épaules.',
+    go(){ }}]},
+
+ {k:'autel', titre:'L\'AUTEL RENVERSÉ', eye:'ON Y A POSÉ DES CHOSES',
+  txt:'Une dalle gravée, retournée face contre terre, et sur son dos des dizaines '
+     +'de marques fraîches. Quelque chose vient encore ici.',
+  choix:[
+   {t:'Y POSER UNE CARTE', s:'Retire une carte et gagne une relique.',
+    go(){ ouvrirRetrait(1,()=>{ const k=tirerRelique(); if(k) donnerRelique(k);
+      else orRun(80); allerSalleSuivante(); }); return 1; }},
+   {t:'GRAVER SA MARQUE', s:'Ajoute une carte au choix parmi trois.',
+    go(){ ouvrirButinCartes(3,()=>allerSalleSuivante()); return 1; }},
+   {t:'LA REDRESSER', s:'Tu gagnes 40 pièces et 10 points de vie.',
+    go(){ orRun(40); soignerRun(10); }}]},
+
+ {k:'grille', titre:'LA GRILLE FORCÉE', eye:'QUELQU\'UN EST PASSÉ AVANT TOI',
+  txt:'Les barreaux ont été écartés à la barre à mine. De l\'autre côté, un raccourci '
+     +'vers l\'étage inférieur — et un courant d\'air qui sent le fer.',
+  choix:[
+   {t:'PRENDRE LE RACCOURCI', s:'Tu sautes la salle suivante, mais tu perds 10 points de vie.',
+    go(){ blesserRun(10); R.raccourci=1; }},
+   {t:'FOUILLER LES ALENTOURS', s:'Tu gagnes 65 pièces.',
+    go(){ orRun(65); flash('+65 🪙','bon'); }},
+   {t:'REFERMER DERRIÈRE TOI', s:'Gagne 10 d\'armure au début des trois prochains combats.',
+    go(){ R.armureAvance=3; flash('GRILLE REFERMÉE','bon'); }}]},
+
+ {k:'champignon', titre:'LE CHAMP DE MOISISSURE', eye:'ÇA POUSSE DANS LE NOIR',
+  txt:'Toute une paroi couverte de champignons pâles, tièdes au toucher. '
+     +'Certains sont sûrement comestibles. Certains.',
+  choix:[
+   {t:'EN MANGER', s:'Une chance sur deux : 25 points de vie, ou une BLESSURE.',
+    go(){ if(al()<.5){ soignerRun(25); } else { ajouterCarte('blessure'); SND.mal();
+      flash('CE N\'ÉTAIT PAS LE BON','mal'); } }},
+   {t:'EN RAMASSER', s:'Ajoute une FIOLE et gagne 30 pièces.',
+    go(){ ajouterCarte('fiole'); orRun(30); }},
+   {t:'BRÛLER LE MUR', s:'Perds 5 points de vie. Améliore une carte.',
+    go(){ blesserRun(5); ouvrirAmelio(()=>allerSalleSuivante()); return 1; }}]},
+
+ {k:'plan', titre:'LE PLAN DE 1878', eye:'ENCORE LISIBLE',
+  txt:'Une plaque émaillée, vissée au mur, qui décrit un réseau qui n\'existe plus. '
+     +'Les corrections manuscrites, elles, ont l\'air récentes.',
+  choix:[
+   {t:'L\'ÉTUDIER', s:'Tu vois le contenu des salles du reste de l\'étage.',
+    go(){ R.voyance=1; flash('L\'ÉTAGE EST LISIBLE','bon'); }},
+   {t:'L\'ARRACHER', s:'Tu gagnes 75 pièces. Le bruit t\'a coûté 6 points de vie.',
+    go(){ orRun(75); blesserRun(6); }},
+   {t:'SUIVRE LES CORRECTIONS', s:'Ajoute une carte rare au choix parmi trois.',
+    go(){ ouvrirButinCartes(3,()=>allerSalleSuivante(),2.4); return 1; }}]}
+];
+
+
+/* ==========================================================================
+   LE COMBAT
+   ==========================================================================
+   Tout le jeu tient dans ce module. Un tour est une suite d'étapes fixes, et
+   c'est justement parce qu'elle est fixe qu'on peut calculer son tour :
+
+     début de ton tour   armure remise à zéro (sauf parade) · saignement et
+                         régénération · pouvoirs · énergie · pioche
+     ton tour            tu joues ce que tu veux tant que tu as l'énergie
+     fin de ton tour     ta main part · tes états d'un tour baissent
+     leur tour           chacun exécute l'intention affichée, l'une après
+                         l'autre, puis annonce la suivante
+
+   Les cartes ne connaissent que six verbes : degats, armure, etat, soigner,
+   piocher, gagnerEnergie. Les reliques n'en connaissent pas d'autres. C'est ce
+   qui garantit qu'une carte améliorée, une relique et un état se combinent
+   toujours de la même façon — et qu'on peut le prévoir.
+
+   Le mélange du deck a son propre hasard, non reproductible : la graine de la
+   descente sert à engendrer les salles et les butins, pas la main. Sinon
+   quitter puis reprendre au bon moment donnerait une meilleure pioche. */
+
+/* le hasard du paquet, séparé de la graine de la descente */
+function melangerPaquet(t){
+  for(let i=t.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    const x=t[i]; t[i]=t[j]; t[j]=x;
+  }
+  return t;
+}
+
+const ENERGIE_BASE=3, MAIN_BASE=5;
+
+/* les temps d'attente entre deux ennemis qui frappent : lisibles par défaut,
+   raccourcis pour qui a déjà fait cent descentes (réglage dans les RÈGLES) */
+function tempo(ms){ return (Prof&&Prof.anim===0)?Math.max(30,Math.round(ms*.3)):ms; }
+
+function commencerCombat(type,cles){
+  const eq=[];
+  for(const k of cles) eq.push(faireEnnemi(k,type==='boss'?1:1));
+  C={
+    type, h:{pv:R.pv, pvm:R.pvm, arm:0, etats:{}, pouvoirs:{}, hero:1, el:null},
+    ennemis:eq, pioche:[], main:[], defausse:[], exil:[],
+    energie:ENERGIE_BASE, energieMax:ENERGIE_BASE, tour:0, fini:0, verrou:1,
+    sel:null, ciblage:0, aDefausser:0, apresDefausse:null,
+    piocheBonus:0, energieBonus:0, joueesTour:0, joueesCombat:0,
+    degatsMax:0, subisCombat:0, cartesJouees:0
+  };
+  /* le deck de combat : une copie du deck de descente, mélangée */
+  C.pioche=melangerPaquet(R.deck.map(c=>({u:c.u,k:c.k,p:c.p})));
+  ecrans('combat');
+  construireEnnemis();
+  /* les reliques parlent avant le premier tour */
+  surReliques('debut');
+  if(R.armureAvance>0){ R.armureAvance--; armure(C.h,10); }
+  C.energieMax=ENERGIE_BASE+(C.energieBonus||0);
+  for(const e of C.ennemis) prochaineIntention(e);
+  SND.ambiance(type==='boss'?.14:.09);
+  debutTourJoueur();
+}
+
+/* ---------------------------------------------------------------- le tour */
+function debutTourJoueur(){
+  if(C.fini) return;
+  C.tour++;
+  C.joueesTour=0;
+  C.premiereMoins=0;
+  /* l'armure tombe au DÉBUT de ton tour : elle t'a donc protégé pendant
+     l'attaque adverse, ce qui est tout l'intérêt d'en poser */
+  if(C.h.etats.parade){ C.h.etats.parade--; if(C.h.etats.parade<=0) delete C.h.etats.parade; }
+  else if(sommeReliques('demiArmure')) C.h.arm=Math.floor(C.h.arm/2);
+  else C.h.arm=0;
+  tickDebut(C.h);
+  if(C.fini) return;
+  /* les pouvoirs posés par les cartes de type « pou » */
+  const p=C.h.pouvoirs;
+  if(p.garde) armure(C.h,p.garde);
+  if(p.cierge) etat(C.h,'cierge',p.cierge);
+  C.energie=C.energieMax;
+  surReliques('tour');
+  const n=MAIN_BASE+(C.piocheBonus||0)+(p.pioche||0)
+    +(C.tour===1?((C.piochePremier||0)+(niveauAch('main')?1:0)):0);
+  piocher(Math.max(1,n));
+  C.verrou=0;
+  rendreCombat();
+}
+
+function finTourJoueur(){
+  if(C.fini||C.verrou||C.aDefausser) return;
+  C.verrou=1;
+  annulerCiblage();
+  /* la DETTE se paie au moment où l'on range sa main */
+  let dettes=0;
+  for(const c of C.main) if(c.k==='dette') dettes++;
+  if(dettes) blesserDirect(C.h,2*dettes);
+  /* la main part, sauf ce qui se garde */
+  for(const c of C.main.slice()) defausserCarte(c);
+  C.main.length=0;
+  tickFin(C.h);
+  rendreCombat();
+  if(C.fini) return;
+  setTimeout(tourEnnemis,tempo(260));
+}
+
+function tourEnnemis(){
+  const file=vivants().slice();
+  const suite=()=>{
+    if(C.fini) return;
+    const e=file.shift();
+    if(!e){ finTourEnnemis(); return; }
+    if(e.mort){ suite(); return; }
+    agirEnnemi(e);
+    rendreCombat();
+    if(C.fini) return;
+    setTimeout(suite,tempo(430));
+  };
+  setTimeout(suite,tempo(120));
+}
+function finTourEnnemis(){
+  for(const e of vivants()){ e.tour++; tickFin(e); }
+  for(const e of vivants()) prochaineIntention(e);
+  rendreCombat();
+  if(C.fini) return;
+  setTimeout(debutTourJoueur,tempo(180));
+}
+
+/* saignement et régénération se règlent au début du tour de qui les porte */
+function tickDebut(q){
+  if(q.etats.saignement){
+    const n=q.etats.saignement;
+    blesserDirect(q,n);
+    q.etats.saignement=n-1;
+    if(q.etats.saignement<=0) delete q.etats.saignement;
+  }
+  if(q.etats.regen){
+    const n=q.etats.regen;
+    soigner(q,n);
+    q.etats.regen=n-1;
+    if(q.etats.regen<=0) delete q.etats.regen;
+  }
+}
+/* les états « d'un tour » baissent quand leur porteur finit son tour */
+function tickFin(q){
+  for(const k in q.etats){
+    const d=ETATS[k];
+    if(!d||!d.tour) continue;
+    if(k==='saignement'||k==='regen'||k==='parade') continue;
+    q.etats[k]--;
+    if(q.etats[k]<=0) delete q.etats[k];
+  }
+  if(q!==C.h&&q.etats.parade){
+    q.etats.parade--; if(q.etats.parade<=0) delete q.etats.parade;
+  } else if(q!==C.h) q.arm=0;
+}
+
+/* ---------------------------------------------------------------- agir */
+function agirEnnemi(e){
+  const it=e.inten||prochaineIntention(e);
+  if(e.el) secouer(e.el);
+  if(it.arm) armure(e,it.arm);
+  if(it.moi) for(const s of it.moi) etat(e,s.k,s.n);
+  if(it.deg){
+    const f=it.f||1;
+    for(let i=0;i<f;i++){
+      if(C.fini) return;
+      degats(e,C.h,it.deg);
+    }
+    SND.coup(clamp(it.deg/24,.2,1));
+  }
+  if(it.toi&&!C.fini) for(const s of it.toi) etat(C.h,s.k,s.n);
+  if(it.fn) it.fn(e);
+  if(!it.deg&&(it.arm||it.moi)) SND.garde();
+}
+
+function invoquerEnnemi(k,ech){
+  if(!C||C.ennemis.length>=5) return;
+  const e=faireEnnemi(k,ech||1);
+  prochaineIntention(e);
+  C.ennemis.push(e);
+  construireEnnemis();
+  flash('UN DE PLUS','mal');
+}
+
+/* ---------------------------------------------------------------- verbes */
+function vivants(){ return C?C.ennemis.filter(e=>!e.mort):[]; }
+function tousLesEnnemis(fn){ for(const e of vivants().slice()) fn(e); }
+
+function degats(src,cible,n,sansEpines){
+  if(!C||C.fini||!cible||cible.mort) return 0;
+  let d=Math.round(n);
+  if(src){
+    d+=(src.etats.force||0);
+    d-=(src.etats.boue||0);
+    if(src.etats.faiblesse) d=Math.floor(d*.75);
+  }
+  if(d<0) d=0;
+  if(cible.etats.vulnerable) d=Math.floor(d*1.5);
+  /* la brume mange l'attaque entière, armure comprise */
+  if(cible.etats.brume>0&&d>0){
+    cible.etats.brume--;
+    if(cible.etats.brume<=0) delete cible.etats.brume;
+    flotte(elDe(cible),'ESQUIVE','#8b8f99');
+    return 0;
+  }
+  if(cible===C.h&&C.selDispo&&d>0){ C.selDispo=0; flotte(elDe(cible),'SEL','#e8e0cd'); return 0; }
+  /* les épines répondent à l'attaque, qu'elle passe l'armure ou non */
+  if(!sansEpines&&src&&src!==cible&&cible.etats.epines)
+    blesserDirect(src,cible.etats.epines);
+  const abs=Math.min(cible.arm,d);
+  cible.arm-=abs;
+  const perdu=d-abs;
+  if(perdu>0){
+    cible.pv-=perdu;
+    if(cible===C.h){ C.subisCombat+=perdu; secouer($('zoneHero')); }
+    else C.degatsMax=Math.max(C.degatsMax,perdu);
+    flotte(elDe(cible),'−'+perdu,'#e35b62');
+  } else if(d>0) flotte(elDe(cible),'−'+d+' 🛡️','#8fb8e8');
+  if(cible!==C.h&&perdu>0) SND.coup(clamp(perdu/22,.2,1));
+  verifierMort(cible);
+  return perdu;
+}
+/* une perte sèche : ni armure, ni épines, ni vulnérable — le poison, la dette,
+   l'offrande. C'est le seul chemin qui ignore la défense, et il est rare. */
+function blesserDirect(qui,n){
+  if(!C||!qui||qui.mort||n<=0) return;
+  qui.pv-=n;
+  if(qui===C.h) C.subisCombat+=n;
+  flotte(elDe(qui),'−'+n,'#c8434a');
+  verifierMort(qui);
+}
+function armure(qui,n){
+  if(!qui||n<=0) return;
+  qui.arm+=n;
+  flotte(elDe(qui),'+'+n+' 🛡️','#8fb8e8');
+  if(qui===C.h) SND.garde();
+}
+function soigner(qui,n){
+  if(!qui||qui.mort||n<=0) return;
+  const av=qui.pv;
+  qui.pv=Math.min(qui.pvm,qui.pv+n);
+  if(qui.pv>av){ flotte(elDe(qui),'+'+(qui.pv-av),'#5fae72'); SND.soin(); }
+}
+function etat(qui,k,n){
+  if(!qui||qui.mort||!n) return;
+  qui.etats[k]=(qui.etats[k]||0)+n;
+  if(qui.etats[k]<=0) delete qui.etats[k];
+  const d=ETATS[k];
+  if(d) flotte(elDe(qui),d.ico+n,d.col);
+}
+function pouvoir(qui,k,n){
+  if(!qui) return;
+  qui.pouvoirs[k]=(qui.pouvoirs[k]||0)+n;
+  flotte(elDe(qui),'♾ +'+n,'#9b7bd4');
+}
+function gagnerEnergie(n){ C.energie+=n; }
+
+function verifierMort(q){
+  if(q.pv>0) return;
+  q.pv=0;
+  if(q===C.h){
+    /* l'acquis « dernier souffle » : une seule fois par descente, et il se voit */
+    if(R.secours){ R.secours=0; q.pv=1; R.pv=1; SND.cloche();
+      flash('DERNIER SOUFFLE','bon'); rendreCombat(); return; }
+    perdreCombat(); return;
+  }
+  q.mort=true;
+  SND.os();
+  if(q.el) q.el.classList.add('mort');
+  surReliques('mort');
+  /* l'ACHARNEMENT revient en main quand quelque chose tombe */
+  for(let i=C.defausse.length-1;i>=0;i--){
+    const c=C.defausse[i];
+    if(CARTES[c.k].retour&&C.main.length<10){ C.defausse.splice(i,1); C.main.push(c); }
+  }
+  if(!vivants().length) setTimeout(gagnerCombat,tempo(520));
+}
+
+/* ---------------------------------------------------------------- le paquet */
+function piocher(n){
+  for(let i=0;i<n;i++){
+    if(!C.pioche.length){
+      if(!C.defausse.length) return;
+      C.pioche=melangerPaquet(C.defausse.splice(0,C.defausse.length));
+      SND.carte();
+    }
+    if(C.main.length>=10){ flash('MAIN PLEINE'); return; }
+    C.main.push(C.pioche.pop());
+  }
+  SND.carte();
+}
+function defausserCarte(c){
+  const i=C.main.indexOf(c);
+  if(i>=0) C.main.splice(i,1);
+  C.defausse.push(c);
+}
+function defausserChoix(n){
+  if(!C.main.length) return;
+  C.aDefausser=Math.min(n,C.main.length);
+  majAide();
+}
+
+function jouable(c){
+  const d=CARTES[c.k];
+  if(d.injouable) return false;
+  return coutCarte(c)<=C.energie;
+}
+function coutCarte(c){
+  const d=CARTES[c.k];
+  let co=d.cout;
+  if(C.premiereMoins&&C.joueesTour===0) co--;
+  if(C.ruseGratuite&&d.type==='ruse') co--;
+  return Math.max(0,co);
+}
+
+function jouerCarte(c,cible){
+  if(C.fini||C.verrou) return;
+  const d=CARTES[c.k];
+  if(d.injouable){ SND.erreur(); flash('CETTE CARTE NE SE JOUE PAS','mal'); return; }
+  const co=coutCarte(c);
+  if(co>C.energie){ SND.erreur(); flash('PAS ASSEZ D\'ÉNERGIE','mal'); return; }
+  if(d.cible&&!cible){ SND.erreur(); return; }
+  if(C.ruseGratuite&&d.type==='ruse') C.ruseGratuite=0;
+  C.energie-=co;
+  C.joueesTour++; C.joueesCombat++; C.cartesJouees++;
+  compteur('cartes',1);
+  const i=C.main.indexOf(c);
+  if(i>=0) C.main.splice(i,1);
+  SND.clic();
+  d.ef(valCarte(c),{src:C.h, cible, carte:c});
+  if(d.exil) C.exil.push(c);
+  else C.defausse.push(c);
+  if(!C.fini) verifierFinAuto();
+  rendreCombat();
+}
+function verifierFinAuto(){
+  if(!vivants().length&&!C.fini) setTimeout(gagnerCombat,tempo(400));
+}
+
+/* ---------------------------------------------------------------- issue */
+function gagnerCombat(){
+  if(!C||C.fini) return;
+  C.fini=1;
+  R.pv=C.h.pv;
+  const g=sommeReliques('finCombat');
+  if(g){ R.pv=Math.min(R.pvm,R.pv+g); }
+  SND.ambiance(.05);
+  SND.bien();
+  R.combats++;
+  compteur('combats',1);
+  if(C.type==='elite') compteur('elites',1);
+  if(C.type==='boss'){
+    compteur('gardiens',1); R.gardiens++;
+    if(R.deck.length<=10) compteur('mince',1);
+  }
+  if(!C.subisCombat) compteur('parfaits',1);
+  R.stat.degMax=Math.max(R.stat.degMax||0,C.degatsMax);
+  if(C.degatsMax>=40) compteur('degatsUn',1);
+  if(C.degatsMax>=80) compteur('degatsUn80',1);
+  if(R.reliques.length>=8) compteur('reliq8',1);
+  if(R.or>=500) compteur('riche',1);
+  majBarre();
+  salleGagnee(C.type,C.subisCombat===0);
+}
+function perdreCombat(){
+  if(!C||C.fini) return;
+  C.fini=1;
+  C.h.pv=0; R.pv=0;
+  SND.ambiance(0);
+  SND.mal();
+  rendreCombat();
+  setTimeout(()=>finDescente(false),tempo(900));
+}
+
+/* ==========================================================================
+   L'AFFICHAGE DU COMBAT
+   ==========================================================================
+   Les portraits sont des canevas peints en continu : on les construit une fois
+   par combat et on ne touche plus au DOM ensuite, sinon la peinture repart de
+   zéro à chaque dégât. Le reste (barres, pastilles, main) se remet à jour. */
+function elDe(q){ return q===C.h?$('heroPor'):(q.el||null); }
+
+function construireEnnemis(){
+  const z=$('ennemis');
+  z.innerHTML='';
+  for(const e of C.ennemis){
+    const d=document.createElement('div');
+    d.className='enn';
+    d.innerHTML='<div class="inten"></div>'
+      +'<canvas class="por" width="128" height="128"></canvas>'
+      +'<div class="nom"></div>'
+      +'<div class="pvl"><i></i></div>'
+      +'<div class="pvt"></div>'
+      +'<div class="stats"></div>';
+    d.querySelector('.nom').textContent=e.nom;
+    d.onclick=()=>cliquerEnnemi(e);
+    e.el=d; e.cv=d.querySelector('.por');
+    if(e.mort) d.classList.add('mort');
+    z.appendChild(d);
+  }
+  majEnnemis();
+}
+
+function pastilles(q){
+  let o='';
+  if(q.arm>0) o+='<span class="st arm" title="ARMURE — absorbe les dégâts, tombe au début de ton tour">🛡️ '+q.arm+'</span>';
+  for(const k in q.etats){
+    const d=ETATS[k]; if(!d) continue;
+    o+='<span class="st" style="color:'+d.col+'" title="'+d.nom+' — '
+      +d.d(q.etats[k]).replace(/"/g,'')+'">'+d.ico+' '+q.etats[k]+'</span>';
+  }
+  return o;
+}
+
+function majEnnemis(){
+  for(const e of C.ennemis){
+    if(!e.el) continue;
+    if(e.mort){ e.el.classList.add('mort'); continue; }
+    const it=texteIntention(e);
+    const ie=e.el.querySelector('.inten');
+    const html='<span>'+it.ico+'</span><b>'+it.txt+'</b>'+(it.n?('<b>'+it.n+'</b>'):'');
+    if(ie.dataset.h!==html+it.cl){ ie.dataset.h=html+it.cl; ie.innerHTML=html;
+      ie.className='inten '+it.cl; }
+    e.el.querySelector('.pvl i').style.width=(100*clamp(e.pv/e.pvm,0,1))+'%';
+    e.el.querySelector('.pvt').textContent=nb(e.pv)+' / '+nb(e.pvm);
+    const s=e.el.querySelector('.stats');
+    const p=pastilles(e);
+    if(s.dataset.h!==p){ s.dataset.h=p; s.innerHTML=p; }
+    e.el.classList.toggle('viz',!!(C.ciblage));
+  }
+}
+
+function majHero(){
+  const h=C.h;
+  $('hNom').textContent=PERSOS[R.per].nom;
+  $('hPvB').style.width=(100*clamp(h.pv/h.pvm,0,1))+'%';
+  $('hPvT').textContent=nb(h.pv)+' / '+nb(h.pvm);
+  const s=$('hStats'), p=pastilles(h);
+  if(s.dataset.h!==p){ s.dataset.h=p; s.innerHTML=p; }
+  $('energie').textContent=C.energie+'/'+C.energieMax;
+  $('nPioche').textContent=C.pioche.length;
+  $('nDefausse').textContent=C.defausse.length;
+  const b=$('finTour');
+  b.disabled=!!C.verrou||!!C.aDefausser;
+  b.textContent=C.verrou?'…':'FIN DU TOUR';
+}
+
+/* une carte en main : on la reconstruit à chaque fois, elles sont dix au plus */
+function elCarte(c,petite,ctx){
+  const d=CARTES[c.k];
+  const e=document.createElement('div');
+  e.className='crt '+d.type+(c.p?' amelio':'')+(petite?' petite':'');
+  const co=ctx==='main'?coutCarte(c):d.cout;
+  e.innerHTML='<div class="cou">'+co+'</div>'
+    +'<div class="ct">'+nomCarte(c)+'</div>'
+    +'<div class="cimg">'+(d.img||ICO_TYPE[d.type]||'✦')+'</div>'
+    +'<div class="cd">'+texteCarte(c)+'</div>'
+    +'<div class="cty">'+NOM_TYPE[d.type]+'</div>';
+  return e;
+}
+const ICO_TYPE={att:'🗡️', def:'🛡️', ruse:'✦', pou:'♾', mal:'⛓️'};
+const NOM_TYPE={att:'ATTAQUE', def:'DÉFENSE', ruse:'RUSE', pou:'POUVOIR', mal:'MALÉDICTION'};
+
+function rendreMain(){
+  const z=$('main');
+  z.innerHTML='';
+  for(const c of C.main){
+    const e=elCarte(c,0,'main');
+    if(!C.aDefausser&&!jouable(c)) e.classList.add('pasjouable');
+    if(C.sel===c) e.classList.add('sel');
+    e.onclick=ev=>{ ev.stopPropagation(); cliquerCarte(c); };
+    e.oncontextmenu=ev=>{ ev.preventDefault(); annulerCiblage(); rendreCombat(); };
+    z.appendChild(e);
+  }
+}
+
+function rendreCombat(){
+  if(!C) return;
+  majEnnemis(); majHero(); rendreMain(); majBarre(); majAide();
+}
+
+function majAide(){
+  const a=$('cibleAide');
+  if(C.aDefausser){ a.textContent='DÉFAUSSE '+C.aDefausser+' CARTE'+(C.aDefausser>1?'S':'');
+    a.classList.add('on'); }
+  else if(C.ciblage){ a.textContent='CHOISIS UNE CIBLE'; a.classList.add('on'); }
+  else a.classList.remove('on');
+}
+
+/* ---------------------------------------------------------------- clics */
+function cliquerCarte(c){
+  if(C.fini||C.verrou) return;
+  if(C.aDefausser){
+    defausserCarte(c);
+    C.aDefausser--;
+    if(!C.main.length) C.aDefausser=0;
+    SND.carte();
+    if(!C.aDefausser&&C.apresDefausse){ const f=C.apresDefausse; C.apresDefausse=null; f(); }
+    rendreCombat();
+    return;
+  }
+  const d=CARTES[c.k];
+  if(!jouable(c)){ SND.erreur();
+    flash(d.injouable?'CETTE CARTE NE SE JOUE PAS':'PAS ASSEZ D\'ÉNERGIE','mal'); return; }
+  if(d.cible){
+    const v=vivants();
+    if(v.length===1){ jouerCarte(c,v[0]); return; }
+    C.sel=c; C.ciblage=1; rendreCombat();
+    return;
+  }
+  jouerCarte(c,null);
+}
+function cliquerEnnemi(e){
+  if(C.fini||C.verrou||e.mort) return;
+  if(!C.ciblage||!C.sel){ montrerEnnemi(e); return; }
+  const c=C.sel;
+  C.sel=null; C.ciblage=0;
+  jouerCarte(c,e);
+}
+function annulerCiblage(){ if(C){ C.sel=null; C.ciblage=0; } }
+function montrerEnnemi(e){
+  flash(e.nom+' — '+(e.def.d||''),'');
+}
+
+/* ---------------------------------------------------------------- clavier */
+function toucheCombat(k){
+  if(ecranActif!=='combat'||!C||C.fini) return false;
+  if(k==='Escape'){ annulerCiblage(); rendreCombat(); return true; }
+  if(k==='e'||k==='E'||k===' '){ finTourJoueur(); return true; }
+  const n=parseInt(k,10);
+  if(n>=1&&n<=9&&C.main[n-1]){ cliquerCarte(C.main[n-1]); return true; }
+  return false;
+}
+
+
+/* ==========================================================================
+   LA DESCENTE
+   ==========================================================================
+   Trois étages, chacun une carte de salles à embranchements. On ne visite
+   jamais tout : choisir un chemin, c'est renoncer à l'autre. C'est le seul
+   vrai levier de difficulté du jeu — un joueur prudent enchaîne les bivouacs
+   et arrive faible mais entier, un joueur pressé enchaîne les élites et arrive
+   riche mais à dix points de vie.
+
+   La carte est engendrée par la graine de la descente : elle n'est donc pas
+   sauvegardée, elle est recalculée à l'identique quand on reprend la partie. */
+
+const TYPES_SALLE={
+ combat:{ico:'⚔️', nom:'COMBAT'},
+ elite:{ico:'💀', nom:'ÉLITE'},
+ feu:{ico:'🔥', nom:'BIVOUAC'},
+ marche:{ico:'🪙', nom:'MARCHÉ'},
+ event:{ico:'❓', nom:'TROUVAILLE'},
+ tresor:{ico:'📦', nom:'COFFRE'},
+ boss:{ico:'👁️', nom:'GARDIEN'}
+};
+const LIGNES_ETAGE=[11,12,13];
+
+function engendrerCarte(etage){
+  /* la carte a son propre hasard, dérivé de la graine de la descente : elle se
+     redessine à l'identique quand on reprend la partie, quel que soit le
+     nombre de tirages qui ont eu lieu entre-temps */
+  const memoire=RNG;
+  RNG=graineur((R.graine+etage*7717+1013)|0);
+  const K=engendrerCarteInterne(etage);
+  RNG=memoire;
+  return K;
+}
+function engendrerCarteInterne(etage){
+  const nl=LIGNES_ETAGE[etage];
+  const lignes=[];
+  for(let r=0;r<nl;r++){
+    const n=r===0?2:(r===nl-1?1:(r===nl-2?2:ri(2,3)));
+    const ligne=[];
+    for(let i=0;i<n;i++) ligne.push({r, i, type:'combat', liens:[], fait:0});
+    lignes.push(ligne);
+  }
+  /* les liens : on ne croise jamais, on ne saute jamais une ligne */
+  for(let r=0;r<nl-1;r++){
+    const a=lignes[r], b=lignes[r+1];
+    for(let i=0;i<a.length;i++){
+      const c=Math.round(i*(b.length-1)/Math.max(1,a.length-1));
+      const cand=[c,c-1,c+1].filter(j=>j>=0&&j<b.length);
+      const k=Math.min(cand.length,al()<.42?2:1);
+      const ch=tirerN(cand,k);
+      for(const j of ch) if(a[i].liens.indexOf(j)<0) a[i].liens.push(j);
+      a[i].liens.sort((x,y)=>x-y);
+    }
+    /* aucun cul-de-sac : toute salle de la ligne suivante a un parent */
+    for(let j=0;j<b.length;j++){
+      if(a.some(s=>s.liens.indexOf(j)>=0)) continue;
+      let best=0, d=99;
+      for(let i=0;i<a.length;i++){
+        const c=Math.round(i*(b.length-1)/Math.max(1,a.length-1));
+        if(Math.abs(c-j)<d){ d=Math.abs(c-j); best=i; }
+      }
+      a[best].liens.push(j); a[best].liens.sort((x,y)=>x-y);
+    }
+  }
+  /* les types : le premier étage apprend, les suivants pressent */
+  for(let r=0;r<nl;r++){
+    for(const s of lignes[r]){
+      if(r===nl-1){ s.type='boss'; continue; }
+      if(r===nl-2){ s.type='feu'; continue; }
+      if(r===0){ s.type='combat'; continue; }
+      if(r===1){ s.type=al()<.5?'combat':'event'; continue; }
+      const x=al();
+      if(r>=3&&x<.14+etage*.03) s.type='elite';
+      else if(x<.28) s.type='event';
+      else if(x<.38) s.type='feu';
+      else if(x<.47) s.type='marche';
+      else if(x<.52) s.type='tresor';
+      else s.type='combat';
+    }
+    /* une ligne entièrement en bivouac casse la tension — sauf celle d'avant
+       le gardien, qui EST un repos garanti et doit le rester */
+    if(r<nl-2&&lignes[r].length>1&&lignes[r].every(s=>s.type==='feu'))
+      lignes[r][0].type='combat';
+  }
+  return {etage, lignes, r:-1, i:-1, enR:-1, enI:-1};
+}
+
+function ouvrirEtage(etage){
+  R.etage=etage;
+  R.carte=engendrerCarte(etage);
+  R.facilesRestantes=2;
+  R.voyance=R.voyanceTotale?1:0;
+  ecrans('plan1');
+  dessinerPlan();
+  majBarre();
+  sauverRun();
+}
+
+/* ---------------------------------------------------------------- dessin */
+function dessinerPlan(){
+  const K=R.carte;
+  $('plTitre').textContent=RENCONTRES[K.etage].nom+' — '+RENCONTRES[K.etage].sous;
+  const z=$('planZone'), p=$('plan');
+  const L=K.lignes.length;
+  const W=Math.max(300,Math.min(700,z.clientWidth-16));
+  const HL=Math.max(74,Math.min(96,(z.clientHeight-40)/8));
+  const H=L*HL+40;
+  p.style.width=W+'px'; p.style.height=H+'px';
+  const pos=(r,i)=>{
+    const n=K.lignes[r].length;
+    const g=graineur(((K.etage+1)*7919+r*131+i*17)|0);
+    return {x:W*(i+1)/(n+1)+(g()-.5)*W*.10, y:26+r*HL};
+  };
+  let svg='<svg viewBox="0 0 '+W+' '+H+'">';
+  for(let r=0;r<L-1;r++) for(let i=0;i<K.lignes[r].length;i++){
+    const a=pos(r,i);
+    for(const j of K.lignes[r][i].liens){
+      const b=pos(r+1,j);
+      const actif=(K.r===r&&K.i===i);
+      svg+='<line x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y
+        +'" stroke="'+(actif?'#ffc46b':'#2f3a48')+'" stroke-width="'+(actif?2.5:2)
+        +'" stroke-dasharray="'+(actif?'0':'5 6')+'"/>';
+    }
+  }
+  svg+='</svg>';
+  let html=svg;
+  for(let r=0;r<L;r++) for(let i=0;i<K.lignes[r].length;i++){
+    const s=K.lignes[r][i], a=pos(r,i);
+    const dispo=(K.r===r-1||(r===0&&K.r<0))&&estDispo(r,i);
+    const fait=s.fait;
+    const ici=(K.r===r&&K.i===i);
+    const t=TYPES_SALLE[s.type];
+    const vu=r<=1||dispo||fait||R.voyance||s.type==='boss'||s.type==='feu';
+    html+='<div class="nd'+(dispo?' dispo':'')+(fait?' fait':'')+(ici?' ici':'')
+      +'" style="left:'+a.x+'px;top:'+a.y+'px" data-r="'+r+'" data-i="'+i+'">'
+      +(vu?t.ico:'·')+'<em>'+(vu?t.nom:'')+'</em></div>';
+  }
+  p.innerHTML=html;
+  p.querySelectorAll('.nd.dispo').forEach(el=>{
+    el.onclick=()=>entrerSalle(+el.dataset.r,+el.dataset.i);
+  });
+  /* on garde la salle courante en vue */
+  const yy=26+Math.max(0,K.r)*HL;
+  z.scrollTop=Math.max(0,yy-z.clientHeight*.45);
+}
+function estDispo(r,i){
+  const K=R.carte;
+  if(K.r<0) return r===0;
+  if(r!==K.r+1) return false;
+  return K.lignes[K.r][K.i].liens.indexOf(i)>=0;
+}
+
+/* ---------------------------------------------------------------- entrer */
+function entrerSalle(r,i){
+  const K=R.carte;
+  if(!estDispo(r,i)&&!(K.enR===r&&K.enI===i)) return;
+  /* on note la salle EN COURS sans avancer la position : si l'onglet se ferme
+     au milieu du combat, la reprise rejoue cette salle depuis son début plutôt
+     que de figer une main de cartes à moitié posée */
+  K.enR=r; K.enI=i;
+  const s=K.lignes[r][i];
+  R.salle=s;
+  SND.clic();
+  sauverRun();
+  switch(s.type){
+    case 'combat': lancerCombat('normal'); break;
+    case 'elite': lancerCombat('elite'); break;
+    case 'boss': lancerCombat('boss'); break;
+    case 'feu': ouvrirFeu(); break;
+    case 'marche': ouvrirMarche(); break;
+    case 'tresor': ouvrirCoffre(); break;
+    default: ouvrirEvenement(); break;
+  }
+}
+function lancerCombat(type){
+  const R2=RENCONTRES[R.etage];
+  let liste;
+  if(type==='boss') liste=pick(R2.boss);
+  else if(type==='elite') liste=pick(R2.elites);
+  else if(R.facilesRestantes>0){ R.facilesRestantes--; liste=pick(R2.faciles); }
+  else liste=pick(R2.normales);
+  commencerCombat(type,liste);
+}
+
+/* la salle est finie : on avance, ou on descend d'un étage */
+function allerSalleSuivante(){
+  const K=R.carte;
+  if(K.enR>=0){ K.r=K.enR; K.i=K.enI; K.enR=-1; K.enI=-1; }
+  if(R.salle) R.salle.fait=1;
+  R.salle=null;
+  if(R.raccourci){ R.raccourci=0; sauterUneLigne(); }
+  if(R.fini) return;
+  if(R.carte.r>=R.carte.lignes.length-1){ descendreEtage(); return; }
+  ecrans('plan1');
+  dessinerPlan();
+  majBarre();
+  sauverRun();
+}
+function sauterUneLigne(){
+  const K=R.carte;
+  if(K.r>=K.lignes.length-2) return;
+  const s=K.lignes[K.r][K.i];
+  const j=s.liens.length?s.liens[0]:0;
+  K.r++; K.i=j;
+  K.lignes[K.r][K.i].fait=1;
+  flash('RACCOURCI','bon');
+}
+function descendreEtage(){
+  if(R.etage>=2){ finDescente(true); return; }
+  R.etage++;
+  compteur('etages',1);
+  flash('TU DESCENDS ENCORE','bon');
+  ouvrirEtage(R.etage);
+}
+
+/* ==========================================================================
+   LES RÉCOMPENSES
+   ========================================================================== */
+function salleGagnee(type,parfait){
+  const mult=1+sommeReliques('or');
+  let or=type==='boss'?ri(85,110):type==='elite'?ri(50,72):ri(22,38);
+  or=Math.round(or*(1+R.etage*.22)*(mult||1));
+  const el=$('rcGain');
+  R.orGagne=or;
+  $('rcEye').textContent=type==='boss'?'LE GARDIEN EST TOMBÉ'
+    :type==='elite'?'L\'ÉLITE EST TOMBÉE':'SALLE NETTOYÉE';
+  $('rcTitre').textContent='BUTIN';
+  let lignes='<div class="rl"><span class="re">🪙</span><div class="rt"><b>PIÈCES</b>'
+    +'<span>Ramassées sur ce qui reste.</span></div><div class="rv" style="color:var(--or)">+'
+    +nb(or)+'</div></div>';
+  orRun(or);
+  if(parfait) lignes+='<div class="rl"><span class="re">✨</span><div class="rt">'
+    +'<b>SANS UNE ÉGRATIGNURE</b><span>Tu n\'as pas perdu un point de vie.</span></div>'
+    +'<div class="rv" style="color:var(--vert)">+15</div></div>', orRun(15);
+  /* la relique : élites et gardiens seulement, et le coffre */
+  if(type==='elite'||type==='boss'){
+    const k=tirerRelique(type==='boss'?'boss':null);
+    if(k){ donnerRelique(k);
+      lignes+='<div class="rl"><span class="re">'+RELIQUES[k].ico+'</span><div class="rt"><b>'
+        +RELIQUES[k].nom+'</b><span>'+RELIQUES[k].d+'</span></div></div>'; }
+    if(sommeReliques('apresElite')){
+      const am=R.deck.filter(c=>ameliorable(c));
+      if(am.length){ const c=pick(am); c.p=1;
+        lignes+='<div class="rl"><span class="re">💀</span><div class="rt"><b>CRÂNE POLI</b>'
+          +'<span>'+nomCarte(c)+' est améliorée.</span></div></div>'; }
+    }
+  }
+  el.innerHTML='<div class="sur">CE QUE TU RAMASSES</div>'+lignes;
+  const n=3+(niveauAch('butin')?1:0);
+  ouvrirButinCartes(n,()=>allerSalleSuivante(),type==='boss'?1.8:type==='elite'?1.4:1);
+  ecrans('recompense');
+  majBarre();
+}
+
+/* le choix de carte : trois propositions, ou rien. Refuser est un vrai coup —
+   un deck mince pioche ses bonnes cartes plus souvent. */
+function ouvrirButinCartes(n,apres,biais){
+  if(R.fini) return;
+  const l=tirerCartes(R.per,n,biais||1);
+  const z=$('rcCartes');
+  $('rcPasser').textContent='CONTINUER SANS PRENDRE';
+  z.innerHTML='<div class="eyebrow" style="margin-top:14px">PRENDS UNE CARTE, OU AUCUNE</div>';
+  const g=document.createElement('div');
+  g.className='grilleC';
+  for(const c of l){
+    const e=elCarte(c,0,'butin');
+    e.onclick=()=>{ ajouterCarteObj(c); SND.carte(); apres(); };
+    g.appendChild(e);
+  }
+  z.appendChild(g);
+  $('rcPasser').onclick=()=>{ SND.clic(); compteur('refus',1); apres(); };
+  ecrans('recompense');
+}
+
+function ajouterCarte(k){ const c=faireCarte(k,0); if(c) R.deck.push(c); return c; }
+function ajouterCarteObj(c){ R.deck.push(c); compteur('cartesPrises',1); flash('+ '+nomCarte(c),'bon'); }
+function retirerCarte(c){
+  const i=R.deck.indexOf(c);
+  if(i>=0) R.deck.splice(i,1);
+}
+
+/* retirer / améliorer : le même écran de deck, avec un mode */
+let modeDeck=null, apresDeck=null, resteDeck=0;
+function ouvrirRetrait(n,apres){
+  if(R.fini) return;
+  modeDeck='retrait'; apresDeck=apres; resteDeck=n;
+  ouvrirDeck();
+}
+function ouvrirAmelio(apres){
+  if(R.fini) return;
+  if(!R.deck.some(c=>ameliorable(c))){ flash('RIEN À AMÉLIORER','mal'); apres(); return; }
+  modeDeck='amelio'; apresDeck=apres; resteDeck=1;
+  ouvrirDeck();
+}
+
+/* ==========================================================================
+   LE BIVOUAC
+   ========================================================================== */
+function ouvrirFeu(){
+  const z=$('feuChoix');
+  $('feuCartes').innerHTML='';
+  const soin=Math.round(R.pvm*.38)+sommeReliques('repos');
+  const opts=[];
+  opts.push({t:'DORMIR', s:'Tu récupères '+soin+' points de vie ('+Math.round(soin/R.pvm*100)+' % de ton maximum).',
+    go(){ soignerRun(soin); compteur('repos',1); allerSalleSuivante(); }});
+  opts.push({t:'AIGUISER', s:'Améliore une carte de ton deck, définitivement pour cette descente.',
+    go(){ ouvrirAmelio(()=>{ compteur('amelio',1); allerSalleSuivante(); }); }});
+  opts.push({t:'BRÛLER UNE CARTE',
+    s:'Retire une carte de ton deck. Un deck mince pioche ses bonnes cartes '
+     +'plus souvent — c\'est souvent le meilleur choix de la salle.',
+    go(){ ouvrirRetrait(1,()=>{ compteur('brule',1); allerSalleSuivante(); }); }});
+  opts.push({t:'FOUILLER LES ALENTOURS',
+    s:'Tu gagnes '+nb(30+R.etage*22)+' pièces et tu perds 4 points de vie.',
+    go(){ orRun(30+R.etage*22); blesserRun(4); allerSalleSuivante(); }});
+  if(R.pv<R.pvm*.4) opts.push({t:'SE FAIRE UN GARROT',
+    s:'Tu récupères 12 points de vie et tu gagnes 12 de maximum.',
+    go(){ R.pvm+=12; soignerRun(24); allerSalleSuivante(); }});
+  z.innerHTML='';
+  for(const o of opts){
+    const b=document.createElement('button');
+    b.innerHTML='<b>'+o.t+'</b>'+o.s;
+    b.onclick=()=>{ SND.clic(); o.go(); };
+    z.appendChild(b);
+  }
+  ecrans('feu');
+  majBarre();
+}
+
+/* ==========================================================================
+   LE MARCHÉ
+   ========================================================================== */
+function ouvrirMarche(){
+  const remise=(sommeReliques('marche')?.85:1)*(1-.10*niveauAch('marche'));
+  const nCartes=5+(sommeReliques('marche')?1:0);
+  const cartes=tirerCartes(R.per,nCartes,1.3);
+  const prixC=c=>Math.round((CARTES[c.k].rare==='epique'?150:CARTES[c.k].rare==='rare'?110:72)
+    *(1+R.etage*.16)*remise);
+  $('mcTete').innerHTML='<div class="sur">IL NE FAIT PAS CRÉDIT</div>'
+    +'<div style="font-size:11px;line-height:1.9;color:var(--os2)">Il a une lanterne, une bâche '
+    +'et tout ce qu\'il a pu prendre à ceux qui ne sont pas remontés. Ce qu\'il vend est vendu.</div>';
+  const g=$('mcCartes');
+  g.innerHTML='';
+  for(const c of cartes){
+    const prix=prixC(c);
+    const w=document.createElement('div');
+    w.className='achatC'+(R.or<prix?' trop':'');
+    const e=elCarte(c,1,'marche');
+    w.appendChild(e);
+    const p=document.createElement('div');
+    p.className='prix'; p.textContent=nb(prix)+' 🪙';
+    w.appendChild(p);
+    w.onclick=()=>{
+      if(w.classList.contains('vendu')) return;
+      if(R.or<prix){ SND.erreur(); flash('PAS ASSEZ DE PIÈCES','mal'); return; }
+      R.or-=prix; ajouterCarteObj(c); SND.piece();
+      w.classList.add('vendu'); w.style.opacity='.3'; w.style.pointerEvents='none';
+      compteur('achats',1);
+      majBarre(); rendreMarcheAutres();
+    };
+    g.appendChild(w);
+  }
+  rendreMarcheAutres();
+  $('mcSortir').onclick=()=>{ SND.clic(); allerSalleSuivante(); };
+  ecrans('marche');
+  majBarre();
+}
+function rendreMarcheAutres(){
+  const z=$('mcAutres');
+  const remise=(sommeReliques('marche')?.85:1)*(1-.10*niveauAch('marche'));
+  if(!R.marcheEtat) R.marcheEtat={};
+  const st=R.marcheEtat;
+  if(!st.rel){ const k=tirerRelique(); st.rel=k||null;
+    st.prixRel=Math.round(ri(190,250)*(1+R.etage*.12)*remise); }
+  if(!st.prixRetrait) st.prixRetrait=Math.round(85*(1+R.etage*.35)*remise);
+  if(!st.prixFiole) st.prixFiole=Math.round(45*remise);
+  let h='<div class="sur">LE RESTE DE L\'ÉTAL</div>';
+  if(st.rel&&!st.relPris){
+    const d=RELIQUES[st.rel];
+    h+='<div class="art"><span class="ai">'+d.ico+'</span><div class="ac"><h4>'+d.nom
+      +'</h4><p>'+d.d+'</p></div><button class="achat" data-a="rel"'
+      +(R.or<st.prixRel?' disabled':'')+'><b>'+nb(st.prixRel)+'</b>🪙</button></div>';
+  }
+  if(!st.retraitPris)
+    h+='<div class="art"><span class="ai">🔥</span><div class="ac"><h4>BRÛLER UNE CARTE</h4>'
+      +'<p>Il jette une de tes cartes au feu. Un deck mince pioche mieux.</p></div>'
+      +'<button class="achat" data-a="ret"'+(R.or<st.prixRetrait?' disabled':'')
+      +'><b>'+nb(st.prixRetrait)+'</b>🪙</button></div>';
+  h+='<div class="art"><span class="ai">🧪</span><div class="ac"><h4>FIOLE</h4>'
+    +'<p>Récupère 6 points de vie. Exil. Il en a plein.</p></div>'
+    +'<button class="achat" data-a="fio"'+(R.or<st.prixFiole?' disabled':'')
+    +'><b>'+nb(st.prixFiole)+'</b>🪙</button></div>';
+  z.innerHTML=h;
+  z.querySelectorAll('button[data-a]').forEach(b=>{
+    b.onclick=()=>{
+      const a=b.dataset.a;
+      if(a==='rel'){ if(R.or<st.prixRel) return; R.or-=st.prixRel; st.relPris=1;
+        donnerRelique(st.rel); compteur('achats',1); }
+      if(a==='fio'){ if(R.or<st.prixFiole) return; R.or-=st.prixFiole; ajouterCarte('fiole');
+        SND.piece(); flash('+ FIOLE','bon'); st.prixFiole=Math.round(st.prixFiole*1.5); }
+      if(a==='ret'){ if(R.or<st.prixRetrait) return; R.or-=st.prixRetrait; st.retraitPris=1;
+        SND.piece(); ouvrirRetrait(1,()=>{ ouvrirMarche(); }); return; }
+      majBarre(); rendreMarcheAutres();
+    };
+  });
+}
+
+/* ==========================================================================
+   LE COFFRE ET LES TROUVAILLES
+   ========================================================================== */
+function ouvrirCoffre(){
+  const or=Math.round(ri(45,80)*(1+R.etage*.3));
+  orRun(or);
+  let h='<div class="sur">DANS LE COFFRE</div>'
+    +'<div class="rl"><span class="re">🪙</span><div class="rt"><b>PIÈCES</b>'
+    +'<span>Encore de la petite monnaie d\'avant-guerre.</span></div>'
+    +'<div class="rv" style="color:var(--or)">+'+nb(or)+'</div></div>';
+  if(al()<.62){
+    const k=tirerRelique();
+    if(k){ donnerRelique(k);
+      h+='<div class="rl"><span class="re">'+RELIQUES[k].ico+'</span><div class="rt"><b>'
+        +RELIQUES[k].nom+'</b><span>'+RELIQUES[k].d+'</span></div></div>'; }
+  } else {
+    ajouterCarte('fiole');
+    h+='<div class="rl"><span class="re">🧪</span><div class="rt"><b>FIOLE</b>'
+      +'<span>Ajoutée à ton deck.</span></div></div>';
+  }
+  $('rcEye').textContent='UN COFFRE, ENCORE FERMÉ';
+  $('rcTitre').textContent='COFFRE';
+  $('rcGain').innerHTML=h;
+  $('rcCartes').innerHTML='';
+  $('rcPasser').textContent='REPRENDRE LA DESCENTE';
+  $('rcPasser').onclick=()=>{ $('rcPasser').textContent='CONTINUER SANS PRENDRE';
+    allerSalleSuivante(); };
+  ecrans('recompense');
+  majBarre();
+}
+
+function ouvrirEvenement(){
+  const vus=R.evVus||[];
+  let l=EVENEMENTS.filter(e=>vus.indexOf(e.k)<0);
+  if(!l.length) l=EVENEMENTS;
+  const ev=pick(l);
+  R.evVus=vus.concat([ev.k]);
+  $('evEye').textContent=ev.eye;
+  $('evTitre').textContent=ev.titre;
+  $('evTexte').innerHTML='<div style="font-size:11.5px;line-height:1.95;color:var(--os2)">'
+    +ev.txt+'</div>';
+  const z=$('evChoix');
+  z.innerHTML='';
+  for(const c of ev.choix){
+    const b=document.createElement('button');
+    b.innerHTML='<b>'+c.t+'</b>'+c.s;
+    if(c.dispo&&!c.dispo()) b.disabled=true;
+    b.onclick=()=>{
+      SND.clic();
+      compteur('trouvailles',1);
+      const garde=c.go();
+      majBarre();
+      if(!garde&&!R.fini) allerSalleSuivante();
+    };
+    z.appendChild(b);
+  }
+  ecrans('evenement');
+  majBarre();
+}
+
+/* ---------------------------------------------------------------- vie */
+function blesserRun(n){
+  R.pv-=n;
+  SND.coup(.5);
+  flash('−'+n+' PV','mal');
+  if(R.pv<=0){ R.pv=0; finDescente(false); }
+}
+function soignerRun(n){
+  R.pv=Math.min(R.pvm,R.pv+n);
+  SND.soin();
+  flash('+'+n+' PV','bon');
+  majBarre();
+}
+function orRun(n){
+  R.or+=n;
+  R.stat.or=(R.stat.or||0)+Math.max(0,n);
+  compteur('or',Math.max(0,n));
+  SND.piece();
+  majBarre();
+}
+
+
+/* ==========================================================================
+   CE QUI SURVIT À LA MORT DU PERSONNAGE
+   ==========================================================================
+   Une descente se perd. Un roguelike ne tient que si perdre laisse quelque
+   chose : ici, des ÉCUS remontés à la surface, de l'expérience de profil, de
+   l'avancement dans le carnet de route saisonnier, et l'avancement des trois
+   contrats du jour. Rien de tout cela ne rend le jeu plus facile tout seul —
+   la boutique, elle, le rend un peu plus facile, et c'est fait exprès : c'est
+   la seule chose qui console d'une mauvaise descente.
+
+   La monnaie de la descente (les PIÈCES 🪙) meurt avec le personnage.
+   La monnaie du profil (les ÉCUS ⚜️) reste. Les deux ne se croisent jamais. */
+
+const RANGS=[
+ {n:1, t:'RAT DE CAVE'},      {n:3, t:'ÉGOUTIER'},
+ {n:5, t:'PORTE-LAMPE'},      {n:8, t:'SONDEUR'},
+ {n:11,t:'CARRIER'},          {n:15,t:'CATAPHILE'},
+ {n:19,t:'VEILLEUR DU BAS'},  {n:24,t:'MAÎTRE DES GALERIES'},
+ {n:30,t:'CE QUI REMONTE'}
+];
+const AVATARS=['🪣','📐','🕯️','💀','🐀','🗝️','🔦','⚜️','👁️','🦴','🪨','🕸'];
+const AVATARS_LIBRES=4;   // les autres s'ouvrent au carnet de route
+
+function xpProfil(n){ return Math.round(180*Math.pow(Math.max(1,n),1.42)); }
+function rangDe(n){ let t=RANGS[0].t; for(const r of RANGS) if(n>=r.n) t=r.t; return t; }
+
+/* ---------------------------------------------------------------- profil */
+let Prof=null;
+function profilVide(){
+  return {
+    nom:'', avatar:'🪣', niv:1, xp:0, ecus:0,
+    diff:1, son:1, vol:.6, anim:1,
+    ach:{}, suc:{}, cpt:{}, debloc:{},
+    passe:{saison:saisonCourante(), niv:1, xp:0, pris:{}, prestige:0},
+    quetes:null,
+    stats:{descentes:0, victoires:0, morts:0, meilleur:0, meilleurEtage:0,
+      tempsTotal:0, or:0, ecusTotal:0}
+  };
+}
+function chargerProfil(){
+  let p=null;
+  try{ p=JSON.parse(Store.get(CLE)||'null'); }catch(e){ p=null; }
+  Prof=Object.assign(profilVide(),p||{});
+  Prof.stats=Object.assign(profilVide().stats,Prof.stats||{});
+  Prof.passe=Object.assign(profilVide().passe,Prof.passe||{});
+  if(!Prof.passe.pris) Prof.passe.pris={};
+  /* changement de saison : le carnet repart à zéro, le reste ne bouge pas */
+  if(Prof.passe.saison!==saisonCourante()){
+    Prof.passe={saison:saisonCourante(), niv:1, xp:0, pris:{}, prestige:0};
+  }
+  verifierQuetes();
+  SND.on=!!Prof.son; SND.volume=Prof.vol;
+}
+function sauverProfil(){ try{ Store.set(CLE,JSON.stringify(Prof)); }catch(e){} }
+
+/* ---------------------------------------------------------------- saison */
+const T0=Date.UTC(2026,0,5);          // un lundi, origine des saisons
+const DUREE_SAISON=28*864e5;
+function saisonCourante(){ return Math.max(0,Math.floor((Date.now()-T0)/DUREE_SAISON)); }
+function joursRestantsSaison(){
+  const fin=T0+(saisonCourante()+1)*DUREE_SAISON;
+  return Math.max(0,Math.ceil((fin-Date.now())/864e5));
+}
+const NOMS_SAISON=['LES GALERIES BASSES','LA CRUE','LE GRAND SILENCE','LES OS BLANCS',
+  'LA NAPPE NOIRE','LE DERNIER ÉTAGE'];
+function nomSaison(){ return NOMS_SAISON[saisonCourante()%NOMS_SAISON.length]; }
+function chiffreRomain(n){
+  const v=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],
+    [40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+  let o='', x=n+1;
+  for(const [a,s] of v) while(x>=a){ o+=s; x-=a; }
+  return o;
+}
+
+/* ==========================================================================
+   LE CARNET DE ROUTE
+   ==========================================================================
+   Trente paliers, deux voies. La voie libre donne de quoi jouer : les deux
+   autres personnages, des cartes qui entrent dans le réservoir de butin, des
+   marques de profil. La voie de prestige s'achète une fois pour la saison avec
+   les écus qu'on a remontés — jamais avec de l'argent réel, il n'y en a pas
+   ici — et double à peu près le rendement. */
+const XP_PALIER=520;
+const PRIX_PRESTIGE=250;
+
+function faireCarnet(){
+  const c=[];
+  const carteLib=['pointe','lame','cri','fiole','corde','caillou','souffle','rempart',
+    'barre','lanterne','rancune','acharne','dernier'];
+  for(let i=1;i<=30;i++){
+    let lib, pres;
+    if(i===6) lib={t:'perso', k:'carto'};
+    else if(i===14) lib={t:'perso', k:'thaumaturge'};
+    else if(i===30) lib={t:'titre', k:'CE QUI REMONTE'};
+    else if(i%5===0) lib={t:'avatar', k:AVATARS[AVATARS_LIBRES+((i/5)|0)%(AVATARS.length-AVATARS_LIBRES)]};
+    else if(i%3===0) lib={t:'carte', k:carteLib[(i/3|0)%carteLib.length]};
+    else lib={t:'ecus', v:25+i*4};
+    if(i%10===0) pres={t:'relique', k:['bocal','tambour','sceau'][(i/10-1)|0]};
+    else if(i%5===0) pres={t:'avatar', k:AVATARS[(AVATARS_LIBRES+2+((i/5)|0))%AVATARS.length]};
+    else if(i%2===0) pres={t:'ecus', v:70+i*9};
+    else pres={t:'carte', k:carteLib[(i*2)%carteLib.length]};
+    c.push({n:i, lib, pres});
+  }
+  return c;
+}
+const CARNET=faireCarnet();
+
+function libRec(r){
+  if(!r) return {ico:'·', nom:'—'};
+  if(r.t==='ecus') return {ico:'⚜️', nom:nb(r.v)+' ÉCUS'};
+  if(r.t==='carte') return {ico:'🃏', nom:CARTES[r.k]?CARTES[r.k].nom:'CARTE'};
+  if(r.t==='perso') return {ico:PERSOS[r.k].ico, nom:PERSOS[r.k].nom};
+  if(r.t==='avatar') return {ico:r.k, nom:'MARQUE'};
+  if(r.t==='relique') return {ico:RELIQUES[r.k].ico, nom:RELIQUES[r.k].nom};
+  if(r.t==='titre') return {ico:'🏅', nom:r.k};
+  return {ico:'·', nom:'—'};
+}
+function donnerRec(r){
+  if(!r) return;
+  if(r.t==='ecus'){ gagnerEcus(r.v); return; }
+  if(r.t==='carte'){ Prof.debloc['c:'+r.k]=1; return; }
+  if(r.t==='perso'){ Prof.debloc['p:'+r.k]=1; return; }
+  if(r.t==='avatar'){ Prof.debloc['a:'+r.k]=1; return; }
+  if(r.t==='relique'){ Prof.debloc['r:'+r.k]=1; return; }
+  if(r.t==='titre'){ Prof.debloc['t:'+r.k]=1; return; }
+}
+function recDispo(n,voie){
+  const p=Prof.passe;
+  if(p.niv<n) return false;
+  if(voie==='pres'&&!p.prestige) return false;
+  return !p.pris[voie+n];
+}
+function prendreRec(n,voie){
+  if(!recDispo(n,voie)) return false;
+  const t=CARNET[n-1];
+  const r=voie==='lib'?t.lib:t.pres;
+  Prof.passe.pris[voie+n]=1;
+  donnerRec(r);
+  SND.bien();
+  const L=libRec(r);
+  flash(L.ico+'  '+L.nom,'bon');
+  sauverProfil();
+  return true;
+}
+function toutPrendre(){
+  let n=0;
+  for(let i=1;i<=30;i++){
+    if(recDispo(i,'lib')&&prendreRec(i,'lib')) n++;
+    if(recDispo(i,'pres')&&prendreRec(i,'pres')) n++;
+  }
+  if(!n) flash('RIEN À RÉCLAMER');
+  return n;
+}
+function gagnerXpPasse(n){
+  const p=Prof.passe;
+  p.xp+=n;
+  while(p.niv<30&&p.xp>=XP_PALIER){ p.xp-=XP_PALIER; p.niv++; }
+  if(p.niv>=30) p.xp=Math.min(p.xp,XP_PALIER);
+}
+function acheterPrestige(){
+  if(Prof.passe.prestige) return false;
+  if(Prof.ecus<PRIX_PRESTIGE){ SND.erreur(); flash('PAS ASSEZ D\'ÉCUS','mal'); return false; }
+  Prof.ecus-=PRIX_PRESTIGE;
+  Prof.passe.prestige=1;
+  SND.cloche();
+  flash('VOIE DE PRESTIGE OUVERTE','bon');
+  sauverProfil();
+  return true;
+}
+
+/* ce qui est ouvert : les cartes verrouillées n'entrent pas dans les butins */
+const CARTES_VERROU={};
+(function(){
+  for(const t of CARNET){
+    if(t.lib&&t.lib.t==='carte') CARTES_VERROU[t.lib.k]=1;
+    if(t.pres&&t.pres.t==='carte') CARTES_VERROU[t.pres.k]=1;
+  }
+})();
+function estDebloquee(k){
+  if(!CARTES_VERROU[k]) return true;
+  return !!(Prof&&Prof.debloc['c:'+k]);
+}
+function persoOuvert(k){
+  const p=PERSOS[k];
+  if(p.ouvert) return true;
+  return !!(Prof&&Prof.debloc['p:'+k]);
+}
+function avatarOuvert(a){
+  if(AVATARS.indexOf(a)<AVATARS_LIBRES) return true;
+  return !!(Prof&&Prof.debloc['a:'+a]);
+}
+
+/* ==========================================================================
+   LA BOUTIQUE
+   ==========================================================================
+   Des acquis définitifs, payés en écus. Chacun coûte plus cher au niveau
+   suivant : c'est ce qui empêche de tout empiler sur une seule ligne. */
+const BOUTIQUE=[
+ {k:'pv', ico:'❤️', nom:'BONNE SANTÉ', max:5, prix:n=>90+n*70,
+  d:n=>'Tu commences chaque descente avec '+(4*(n+1))+' points de vie de plus.',
+  val:n=>4*n},
+ {k:'or', ico:'🪙', nom:'BOURSE DE DÉPART', max:4, prix:n=>80+n*60,
+  d:n=>'Tu commences chaque descente avec '+(30*(n+1))+' pièces de plus.',
+  val:n=>30*n},
+ {k:'butin', ico:'🃏', nom:'ŒIL DU CHINEUR', max:1, prix:()=>240,
+  d:()=>'Les butins de carte te proposent quatre cartes au lieu de trois.'},
+ {k:'fiole', ico:'🧪', nom:'TROUSSE', max:2, prix:n=>120+n*110,
+  d:n=>'Tu commences avec '+(n+1)+' FIOLE'+(n?'S':'')+' dans ton deck.'},
+ {k:'relique', ico:'🎁', nom:'PORTE-BONHEUR', max:1, prix:()=>300,
+  d:()=>'Tu commences chaque descente avec une relique commune au hasard.'},
+ {k:'plan', ico:'🗺️', nom:'LE PLAN À JOUR', max:1, prix:()=>180,
+  d:()=>'Tu vois le contenu de toutes les salles dès ton arrivée à l\'étage.'},
+ {k:'marche', ico:'🤝', nom:'BONNE RÉPUTATION', max:2, prix:n=>150+n*130,
+  d:n=>'Le marché te fait '+(10*(n+1))+' % de remise.'},
+ {k:'secours', ico:'🩹', nom:'DERNIER SOUFFLE', max:1, prix:()=>380,
+  d:()=>'Une fois par descente, un coup fatal te laisse à 1 point de vie.'},
+ {k:'xp', ico:'📖', nom:'CARNET DE NOTES', max:2, prix:n=>160+n*140,
+  d:n=>'Tu gagnes '+(15*(n+1))+' % d\'expérience de profil et de carnet en plus.'},
+ {k:'main', ico:'🖐️', nom:'MAIN SÛRE', max:1, prix:()=>420,
+  d:()=>'Tu piocheras une carte de plus au premier tour de chaque combat.'}
+];
+function niveauAch(k){ return Prof.ach[k]||0; }
+function prixAch(b){ return b.prix(niveauAch(b.k)); }
+function acheterAch(k){
+  const b=BOUTIQUE.find(x=>x.k===k);
+  if(!b) return false;
+  const n=niveauAch(k);
+  if(n>=b.max){ flash('DÉJÀ ACQUIS'); return false; }
+  const p=prixAch(b);
+  if(Prof.ecus<p){ SND.erreur(); flash('PAS ASSEZ D\'ÉCUS','mal'); return false; }
+  Prof.ecus-=p;
+  Prof.ach[k]=n+1;
+  SND.bien();
+  flash(b.ico+'  '+b.nom+(b.max>1?' '+(n+1):''),'bon');
+  sauverProfil();
+  return true;
+}
+function gagnerEcus(n){
+  n=Math.round(n);
+  if(n<=0) return;
+  Prof.ecus+=n;
+  Prof.stats.ecusTotal=(Prof.stats.ecusTotal||0)+n;
+  SND.piece();
+}
+
+/* ==========================================================================
+   LES CONTRATS DU JOUR
+   ==========================================================================
+   Trois par jour, tirés d'après la date : tout le monde a les mêmes, et ils
+   changent à minuit. Ils paient en écus et en avancement de carnet — c'est la
+   raison de rallumer le jeu un mardi soir. */
+const CONTRATS=[
+ {k:'combats', ico:'⚔️', t:n=>'Gagner '+n+' combats', n:[5,8,12]},
+ {k:'elites', ico:'💀', t:n=>'Abattre '+n+' élites', n:[1,2,3]},
+ {k:'gardiens', ico:'👁️', t:n=>'Abattre '+n+' gardien'+(n>1?'s':''), n:[1,1,2]},
+ {k:'cartes', ico:'🃏', t:n=>'Jouer '+n+' cartes', n:[60,100,150]},
+ {k:'or', ico:'🪙', t:n=>'Ramasser '+n+' pièces', n:[300,550,800]},
+ {k:'parfaits', ico:'✨', t:n=>'Gagner '+n+' combats sans perdre un point de vie', n:[2,3,5]},
+ {k:'etages', ico:'⬇️', t:n=>'Descendre de '+n+' étages', n:[2,3,4]},
+ {k:'repos', ico:'🔥', t:n=>'Dormir '+n+' fois au bivouac', n:[2,3,4]},
+ {k:'reliques', ico:'💍', t:n=>'Ramasser '+n+' reliques', n:[3,5,7]},
+ {k:'trouvailles', ico:'❓', t:n=>'Résoudre '+n+' trouvailles', n:[3,4,6]},
+ {k:'amelio', ico:'🔨', t:n=>'Améliorer '+n+' cartes au bivouac', n:[2,3,4]},
+ {k:'achats', ico:'🤝', t:n=>'Acheter '+n+' choses au marché', n:[3,4,6]},
+ {k:'descentes', ico:'🕳️', t:n=>'Terminer '+n+' descentes', n:[2,3,4]},
+ {k:'refus', ico:'🚫', t:n=>'Refuser '+n+' butins de carte', n:[4,6,9]}
+];
+function dateJour(){
+  const d=new Date();
+  return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+}
+function verifierQuetes(){
+  const j=dateJour();
+  if(Prof.quetes&&Prof.quetes.date===j) return;
+  const g=graineur(hachage(j));
+  const idx=[];
+  while(idx.length<3){
+    const i=Math.floor(g()*CONTRATS.length);
+    if(idx.indexOf(i)<0) idx.push(i);
+  }
+  Prof.quetes={date:j, l:idx.map((i,rang)=>{
+    const c=CONTRATS[i];
+    const pal=rang;
+    return {k:c.k, i, obj:c.n[pal], f:0, pris:0, xp:220+pal*140, ecus:35+pal*30};
+  })};
+  sauverProfil();
+}
+function hachage(s){
+  let h=2166136261;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); }
+  return h|0;
+}
+function compteur(k,n){
+  if(!Prof) return;
+  Prof.cpt[k]=(Prof.cpt[k]||0)+n;
+  if(Prof.quetes) for(const q of Prof.quetes.l){
+    if(q.k===k&&q.f<q.obj){
+      q.f=Math.min(q.obj,q.f+n);
+      if(q.f>=q.obj) flash('CONTRAT REMPLI — '+CONTRATS[q.i].t(q.obj),'bon');
+    }
+  }
+  verifierSucces();
+}
+function reclamerQuete(q){
+  if(q.f<q.obj||q.pris) return false;
+  q.pris=1;
+  const b=1+.15*niveauAch('xp');
+  gagnerEcus(q.ecus*b);
+  gagnerXpPasse(Math.round(q.xp*b));
+  gagnerXpProfil(Math.round(q.xp*.5*b));
+  SND.bien();
+  sauverProfil();
+  return true;
+}
+
+/* ==========================================================================
+   LES SUCCÈS
+   ========================================================================== */
+const SUCCES=[
+ {k:'premier', ico:'🕳️', t:'PREMIÈRE DESCENTE', d:'Terminer une descente, d\'une façon ou d\'une autre.',
+  c:()=>Prof.stats.descentes>=1, e:30},
+ {k:'etage1', ico:'⬇️', t:'PLUS BAS', d:'Atteindre le deuxième étage.',
+  c:()=>Prof.stats.meilleurEtage>=1, e:40},
+ {k:'etage2', ico:'⬇️⬇️', t:'ENCORE PLUS BAS', d:'Atteindre la nappe.',
+  c:()=>Prof.stats.meilleurEtage>=2, e:70},
+ {k:'gagne', ico:'🏆', t:'CE QUI DORT', d:'Remonter vivant de la troisième descente.',
+  c:()=>Prof.stats.victoires>=1, e:200},
+ {k:'gagne3', ico:'👑', t:'HABITUÉ', d:'Remonter vivant trois fois.',
+  c:()=>Prof.stats.victoires>=3, e:350},
+ {k:'pompe', ico:'⚙️', t:'ON L\'A ÉTEINTE', d:'Abattre un premier gardien.',
+  c:()=>(Prof.cpt.gardiens||0)>=1, e:60},
+ {k:'gardiens5', ico:'👁️', t:'TROIS PAIRES D\'YEUX', d:'Abattre cinq gardiens en tout.',
+  c:()=>(Prof.cpt.gardiens||0)>=5, e:150},
+ {k:'elite10', ico:'💀', t:'CHASSEUR D\'ÉLITE', d:'Abattre dix élites.',
+  c:()=>(Prof.cpt.elites||0)>=10, e:120},
+ {k:'combats50', ico:'⚔️', t:'CINQUANTE SALLES', d:'Gagner cinquante combats.',
+  c:()=>(Prof.cpt.combats||0)>=50, e:120},
+ {k:'combats200', ico:'⚔️', t:'DEUX CENTS SALLES', d:'Gagner deux cents combats.',
+  c:()=>(Prof.cpt.combats||0)>=200, e:300},
+ {k:'parfait10', ico:'✨', t:'SANS UNE ÉGRATIGNURE', d:'Gagner dix combats sans perdre un point de vie.',
+  c:()=>(Prof.cpt.parfaits||0)>=10, e:130},
+ {k:'coup40', ico:'💥', t:'UN SEUL COUP', d:'Infliger 40 dégâts ou plus avec une seule carte.',
+  c:()=>(Prof.cpt.degatsUn||0)>=1, e:110},
+ {k:'coup80', ico:'☄️', t:'LE COUP DE TROP', d:'Infliger 80 dégâts ou plus avec une seule carte.',
+  c:()=>(Prof.cpt.degatsUn80||0)>=1, e:220},
+ {k:'cartes1000', ico:'🃏', t:'MILLE CARTES', d:'Jouer mille cartes en tout.',
+  c:()=>(Prof.cpt.cartes||0)>=1000, e:150},
+ {k:'reliques20', ico:'💍', t:'COLLECTIONNEUR', d:'Ramasser vingt reliques en tout.',
+  c:()=>(Prof.cpt.reliques||0)>=20, e:110},
+ {k:'reliq8', ico:'🎒', t:'SAC PLEIN', d:'Porter huit reliques dans une seule descente.',
+  c:()=>(Prof.cpt.reliq8||0)>=1, e:160},
+ {k:'mince', ico:'🗡️', t:'DECK DE RASOIR', d:'Battre un gardien avec dix cartes ou moins.',
+  c:()=>(Prof.cpt.mince||0)>=1, e:200},
+ {k:'gros', ico:'📚', t:'BIBLIOTHÈQUE', d:'Terminer une descente avec quarante cartes.',
+  c:()=>(Prof.cpt.gros||0)>=1, e:130},
+ {k:'riche', ico:'🪙', t:'RICHE EN BAS', d:'Avoir 500 pièces sur soi pendant une descente.',
+  c:()=>(Prof.cpt.riche||0)>=1, e:120},
+ {k:'tous3', ico:'🎭', t:'LES TROIS', d:'Terminer une descente avec chacun des trois personnages.',
+  c:()=>(Prof.cpt.p_egoutier||0)>0&&(Prof.cpt.p_carto||0)>0&&(Prof.cpt.p_thaumaturge||0)>0,
+  e:180},
+ {k:'passe15', ico:'📔', t:'CARNET À MOITIÉ', d:'Atteindre le palier 15 du carnet de route.',
+  c:()=>Prof.passe.niv>=15, e:140},
+ {k:'passe30', ico:'📕', t:'CARNET COMPLET', d:'Atteindre le palier 30 du carnet de route.',
+  c:()=>Prof.passe.niv>=30, e:400},
+ {k:'quetes20', ico:'📜', t:'HOMME DE PAROLE', d:'Remplir vingt contrats du jour.',
+  c:()=>(Prof.cpt.quetes||0)>=20, e:170},
+ {k:'niv15', ico:'🏅', t:'CATAPHILE', d:'Atteindre le niveau 15 de profil.',
+  c:()=>Prof.niv>=15, e:200},
+ {k:'dur', ico:'🔥', t:'À LA DURE', d:'Remonter vivant en difficulté ÉPROUVANTE.',
+  c:()=>(Prof.cpt.durGagne||0)>=1, e:320}
+];
+function verifierSucces(){
+  if(!Prof) return;
+  for(const s of SUCCES){
+    if(Prof.suc[s.k]) continue;
+    let ok=false;
+    try{ ok=s.c(); }catch(e){ ok=false; }
+    if(ok){
+      Prof.suc[s.k]=1;
+      gagnerEcus(s.e);
+      gagnerXpProfil(90);
+      SND.cloche();
+      flash('SUCCÈS — '+s.t,'bon');
+    }
+  }
+}
+
+/* ---------------------------------------------------------------- xp */
+function gagnerXpProfil(n){
+  Prof.xp+=Math.round(n);
+  let monte=0;
+  while(Prof.xp>=xpProfil(Prof.niv)){ Prof.xp-=xpProfil(Prof.niv); Prof.niv++; monte++; }
+  if(monte){
+    SND.cloche();
+    flash('NIVEAU '+Prof.niv+' — '+rangDe(Prof.niv),'bon');
+    gagnerEcus(40*monte);
+  }
+}
+
+/* ==========================================================================
+   LA DESCENTE : DÉBUT ET FIN
+   ========================================================================== */
+const DIFFS=[
+ {t:'TRANQUILLE', d:'Les créatures ont un sixième de points de vie en moins.'},
+ {t:'NORMALE', d:'Le jeu tel qu\'il a été réglé.'},
+ {t:'ÉPROUVANTE', d:'Les créatures ont un quart de points de vie en plus, et les écus aussi.'}
+];
+
+function nouvelleDescente(per){
+  const graine=(Date.now()^(Math.random()*0xffffffff))|0;
+  RNG=graineur(graine);
+  const P=PERSOS[per];
+  R={
+    graine, per,
+    pvm:P.pv+4*niveauAch('pv'), pv:0,
+    or:P.or+30*niveauAch('or'),
+    deck:[], reliques:[], etage:0, carte:null, salle:null,
+    combats:0, gardiens:0, evVus:[], marcheEtat:null,
+    raccourci:0, voyance:0, armureAvance:0, facilesRestantes:2,
+    fini:0, debut:Date.now(), orGagne:0, secours:niveauAch('secours')?1:0,
+    stat:{degMax:0, or:0}
+  };
+  R.pv=R.pvm;
+  for(const k of P.depart) ajouterCarte(k);
+  for(let i=0;i<niveauAch('fiole');i++) ajouterCarte('fiole');
+  if(niveauAch('relique')){ const k=reliqueDispo('commune',false); if(k) R.reliques.push(k); }
+  if(niveauAch('plan')) R.voyanceTotale=1;
+  Prof.cpt['p_'+per]=Prof.cpt['p_'+per]||0;
+  ouvrirEtage(0);
+  compteur('descLancees',1);
+  sauverProfil();
+}
+
+function finDescente(gagne){
+  if(!R||R.fini) return;
+  R.fini=1;
+  C=null;
+  SND.ambiance(0);
+  const S=Prof.stats;
+  S.descentes++;
+  if(gagne) S.victoires++; else S.morts++;
+  S.meilleurEtage=Math.max(S.meilleurEtage||0,R.etage);
+  S.meilleur=Math.max(S.meilleur||0,R.etage*100+(R.carte?R.carte.r:0));
+  Prof.cpt['p_'+R.per]=(Prof.cpt['p_'+R.per]||0)+1;
+  if(R.deck.length>=40) compteur('gros',1);
+  if(gagne&&Prof.diff===2) compteur('durGagne',1);
+  compteur('descentes',1);
+
+  /* le butin remonté : les écus dépendent d'où l'on est mort et de ce qu'on a
+     fait en chemin, jamais de la seule victoire */
+  const bx=1+.15*niveauAch('xp');
+  const md=Prof.diff===2?1.25:Prof.diff===0?.8:1;
+  const base=Math.round((22+R.etage*38+R.combats*7+R.gardiens*45+(gagne?110:0))*md*bx);
+  const xpP=Math.round((60+R.etage*90+R.combats*16+R.gardiens*110+(gagne?260:0))*md*bx);
+  const xpC=Math.round((90+R.etage*130+R.combats*22+R.gardiens*160+(gagne?400:0))*md*bx);
+  const avPasse=Prof.passe.niv;
+  gagnerEcus(base);
+  gagnerXpProfil(xpP);
+  gagnerXpPasse(xpC);
+  verifierSucces();
+  sauverProfil();
+  Store.set(CLE+':run','');
+
+  /* l'écran de fin */
+  $('fnEye').textContent=gagne?'TU ES REMONTÉ':'TU N\'ES PAS REMONTÉ';
+  $('fnTitre').textContent=gagne?'LA VILLE EST AU-DESSUS':'FIN DE LA DESCENTE';
+  $('fnGrille').innerHTML=
+    cel('ÉTAGE ATTEINT',(R.etage+1)+' / 3')
+   +cel('COMBATS GAGNÉS',nb(R.combats))
+   +cel('GARDIENS',nb(R.gardiens))
+   +cel('CARTES DANS LE DECK',nb(R.deck.length))
+   +cel('RELIQUES',nb(R.reliques.length))
+   +cel('PIÈCES RAMASSÉES',nb(R.stat.or||0));
+  $('fnGain').innerHTML=
+    ligne('⚜️','ÉCUS REMONTÉS','Ils restent, eux.','+'+nb(base),'var(--or)')
+   +ligne('📖','EXPÉRIENCE DE PROFIL','Niveau '+Prof.niv+' — '+rangDe(Prof.niv),
+      '+'+nb(xpP),'var(--bleu)')
+   +ligne('📔','CARNET DE ROUTE','Palier '+Prof.passe.niv
+      +(Prof.passe.niv>avPasse?' (+'+(Prof.passe.niv-avPasse)+')':''),
+      '+'+nb(xpC),'var(--bougie)');
+  rendreQuetes($('fnQ'),1);
+  ecrans('fin');
+  document.body.classList.remove('enRun');
+  if(gagne) SND.bien(); else SND.mal();
+}
+function cel(t,v){ return '<div class="cel"><span>'+t+'</span><b>'+v+'</b></div>'; }
+function ligne(i,t,s,v,col){
+  return '<div class="rl"><span class="re">'+i+'</span><div class="rt"><b>'+t+'</b><span>'
+    +s+'</span></div><div class="rv" style="color:'+(col||'var(--os)')+'">'+v+'</div></div>';
+}
+
+/* ==========================================================================
+   SAUVEGARDE DE LA DESCENTE
+   ==========================================================================
+   On ne sauvegarde ni la carte ni les butins : la graine les rejoue. On
+   sauvegarde ce que le joueur a fait — son deck, ses reliques, sa position, sa
+   vie. Jamais au milieu d'un combat : la salle en cours est simplement
+   rejouée, ce qui est plus honnête que de figer une main. */
+function sauverRun(){
+  if(!R||R.fini) return;
+  const K=R.carte;
+  const o={
+    g:R.graine, per:R.per, pv:R.pv, pvm:R.pvm, or:R.or,
+    d:R.deck.map(c=>c.k+(c.p?'+':'')), rl:R.reliques.slice(),
+    et:R.etage, r:K?K.r:-1, i:K?K.i:-1,
+    er:K?(K.enR===undefined?-1:K.enR):-1, ei:K?(K.enI===undefined?-1:K.enI):-1,
+    f:K?K.lignes.map(l=>l.map(s=>s.fait?1:0)):null,
+    cb:R.combats, gd:R.gardiens, ev:R.evVus, fr:R.facilesRestantes,
+    vy:R.voyance, aa:R.armureAvance, sc:R.secours, st:R.stat, t:R.debut
+  };
+  try{ Store.set(CLE+':run',JSON.stringify(o)); }catch(e){}
+}
+function runSauvee(){
+  try{ const s=Store.get(CLE+':run'); if(!s) return null; return JSON.parse(s); }
+  catch(e){ return null; }
+}
+function reprendreRun(){
+  const o=runSauvee();
+  if(!o||!PERSOS[o.per]) return false;
+  RNG=graineur(o.g);
+  R={
+    graine:o.g, per:o.per, pv:o.pv, pvm:o.pvm, or:o.or,
+    deck:o.d.map(s=>{ const p=s.slice(-1)==='+'; return faireCarte(p?s.slice(0,-1):s,p?1:0); })
+      .filter(c=>c),
+    reliques:(o.rl||[]).filter(k=>RELIQUES[k]),
+    etage:o.et||0, carte:null, salle:null,
+    combats:o.cb||0, gardiens:o.gd||0, evVus:o.ev||[], marcheEtat:null,
+    raccourci:0, voyance:o.vy||0, armureAvance:o.aa||0,
+    facilesRestantes:o.fr===undefined?2:o.fr,
+    fini:0, debut:o.t||Date.now(), orGagne:0, secours:o.sc||0,
+    stat:o.st||{degMax:0,or:0}
+  };
+  if(niveauAch('plan')) R.voyanceTotale=1;
+  R.carte=engendrerCarte(R.etage);
+  const K=R.carte;
+  K.r=o.r===undefined?-1:o.r;
+  K.i=o.i===undefined?-1:o.i;
+  if(o.f) for(let r=0;r<K.lignes.length&&r<o.f.length;r++)
+    for(let i=0;i<K.lignes[r].length&&i<o.f[r].length;i++) K.lignes[r][i].fait=o.f[r][i];
+  /* la salle où l'on s'est arrêté est rejouée depuis son début */
+  if(o.er>=0&&K.lignes[o.er]&&K.lignes[o.er][o.ei]){
+    ecrans('plan1'); dessinerPlan(); majBarre();
+    setTimeout(()=>entrerSalle(o.er,o.ei),60);
+    return true;
+  }
+  ecrans('plan1');
+  dessinerPlan();
+  majBarre();
+  return true;
+}
+function effacerTout(){
+  Store.set(CLE,'');
+  Store.set(CLE+':run','');
+  Prof=profilVide();
+  verifierQuetes();
+  sauverProfil();
+  R=null; C=null;
+  ecrans('menu');
+  flash('TOUT A ÉTÉ EFFACÉ','mal');
+}
+
+
+/* ==========================================================================
+   LES ÉCRANS
+   ==========================================================================
+   Tout ce qui n'est pas le combat. Un principe : aucun écran ne se met à jour
+   tout seul en boucle — on les redessine quand quelque chose change, et jamais
+   à l'image. Le seul dessin continu du jeu, ce sont les portraits. */
+
+function majBarre(){
+  if(!R){ document.body.classList.remove('enRun'); return; }
+  const P=PERSOS[R.per];
+  $('jNom').textContent=P.nom;
+  const pv=C&&C.h?C.h.pv:R.pv;
+  $('jPv').textContent=nb(pv)+'/'+nb(R.pvm);
+  $('jPvB').style.width=(100*clamp(pv/R.pvm,0,1))+'%';
+  $('jOr').textContent=nb(R.or);
+  const l=R.carte?R.carte.lignes.length:1;
+  const r=R.carte?Math.max(0,(R.carte.enR>=0?R.carte.enR:R.carte.r)+1):0;
+  $('jEt').textContent=(R.etage+1)+'-'+Math.min(r,l);
+  const z=$('reliq');
+  const sig=R.reliques.join(',');
+  if(z.dataset.s!==sig){
+    z.dataset.s=sig;
+    z.innerHTML='';
+    for(const k of R.reliques){
+      const d=RELIQUES[k];
+      const e=document.createElement('div');
+      e.className='rlq'; e.textContent=d.ico; e.title=d.nom+' — '+d.d;
+      e.onclick=()=>flash(d.nom+' : '+d.d);
+      z.appendChild(e);
+    }
+  }
+}
+
+/* ---------------------------------------------------------------- le deck */
+let ecranAvantDeck='menu';
+function ouvrirDeck(){
+  const z=$('dkListe');
+  z.innerHTML='';
+  const tri=R.deck.slice().sort((a,b)=>{
+    const A=CARTES[a.k], B=CARTES[b.k];
+    const o={att:0,def:1,ruse:2,pou:3,mal:4};
+    if(o[A.type]!==o[B.type]) return o[A.type]-o[B.type];
+    if(A.cout!==B.cout) return A.cout-B.cout;
+    return A.nom<B.nom?-1:1;
+  });
+  $('dkTitre').textContent=nb(R.deck.length)+' CARTE'+(R.deck.length>1?'S':'');
+  const inf=$('dkInfo');
+  if(modeDeck==='retrait'){
+    $('dkEye').textContent='CHOISIS LA CARTE À RETIRER';
+    inf.style.display='block';
+    inf.innerHTML='<div class="sur">RETIRER</div><div style="font-size:11px;line-height:1.85;'
+      +'color:var(--os2)">Une carte retirée ne revient pas de la descente. '
+      +'Un deck mince pioche ses bonnes cartes plus souvent : c\'est souvent le meilleur '
+      +'achat du jeu.</div>';
+  } else if(modeDeck==='amelio'){
+    $('dkEye').textContent='CHOISIS LA CARTE À AMÉLIORER';
+    inf.style.display='block';
+    inf.innerHTML='<div class="sur">AMÉLIORER</div><div style="font-size:11px;line-height:1.85;'
+      +'color:var(--os2)">Les cartes déjà améliorées et les malédictions sont grisées. '
+      +'Le texte de la carte affiche directement ses nouveaux chiffres.</div>';
+  } else {
+    $('dkEye').textContent='TON DECK';
+    inf.style.display='block';
+    const parType={};
+    for(const c of R.deck){ const t=CARTES[c.k].type; parType[t]=(parType[t]||0)+1; }
+    let h='<div class="sur">CE QUE TU PIOCHES</div><div class="grille" style="margin:0">';
+    for(const t of ['att','def','ruse','pou','mal'])
+      if(parType[t]) h+=cel(NOM_TYPE[t],nb(parType[t]));
+    const am=R.deck.filter(c=>c.p).length;
+    h+=cel('AMÉLIORÉES',nb(am))+'</div>';
+    inf.innerHTML=h;
+  }
+  for(const c of tri){
+    const e=elCarte(c,1,'deck');
+    if(modeDeck==='amelio'&&!ameliorable(c)) e.classList.add('pasjouable');
+    if(modeDeck){
+      e.onclick=()=>{
+        if(modeDeck==='amelio'){
+          if(!ameliorable(c)){ SND.erreur(); return; }
+          c.p=1; SND.bien(); flash(nomCarte(c)+' AMÉLIORÉE','bon');
+        } else {
+          retirerCarte(c); SND.carte(); flash(nomCarte(c)+' RETIRÉE','bon');
+        }
+        resteDeck--;
+        if(resteDeck<=0){ const f=apresDeck; modeDeck=null; apresDeck=null; sauverRun();
+          if(f) f(); }
+        else ouvrirDeck();
+      };
+    } else e.onclick=()=>flash(nomCarte(c)+' — '+texteCarte(c).replace(/<[^>]+>/g,''));
+    z.appendChild(e);
+  }
+  const b=$('dkRetour');
+  b.textContent=modeDeck?'PASSER':'RETOUR';
+  b.onclick=()=>{
+    if(modeDeck){ const f=apresDeck; modeDeck=null; apresDeck=null; if(f) f(); return; }
+    ecrans(ecranAvantDeck);
+    if(ecranAvantDeck==='combat'&&C) rendreCombat();
+  };
+  ecrans('deck');
+}
+
+/* ---------------------------------------------------------------- menu */
+function rendreMenu(){
+  const p=Prof;
+  const q=p.quetes?p.quetes.l.filter(x=>x.f>=x.obj&&!x.pris).length:0;
+  const dispo=carnetAReclamer();
+  $('menuProfil').innerHTML=
+    '<div class="carte" style="max-width:420px;margin-top:14px">'
+    +'<div class="rl"><span class="re" style="font-size:26px">'+p.avatar+'</span>'
+    +'<div class="rt"><b>'+(p.nom||'SANS NOM')+'</b><span>'+rangDe(p.niv)
+    +' · niveau '+p.niv+' · carnet '+p.passe.niv+'/30</span></div>'
+    +'<div class="rv" style="color:var(--or)">'+nb(p.ecus)+' ⚜️</div></div>'
+    +((q||dispo)?('<div class="rl"><span class="re">🔔</span><div class="rt"><b>À RÉCLAMER</b>'
+      +'<span>'+(q?q+' contrat'+(q>1?'s':'')+' rempli'+(q>1?'s':''):'')
+      +(q&&dispo?' · ':'')+(dispo?dispo+' récompense'+(dispo>1?'s':'')+' de carnet':'')
+      +'</span></div></div>'):'')
+    +'</div>';
+  $('bReprendre').style.display=runSauvee()?'block':'none';
+}
+function carnetAReclamer(){
+  let n=0;
+  for(let i=1;i<=30;i++){ if(recDispo(i,'lib')) n++; if(recDispo(i,'pres')) n++; }
+  return n;
+}
+
+/* ---------------------------------------------------------------- perso */
+let persoChoisi='egoutier';
+function ouvrirChoixPerso(){
+  const z=$('cpListe');
+  z.innerHTML='';
+  for(const k in PERSOS){
+    const P=PERSOS[k], ok=persoOuvert(k);
+    const e=document.createElement('div');
+    e.className='pcard'+(persoChoisi===k?' on':'')+(ok?'':' verrou');
+    e.innerHTML='<div class="pi">'+(ok?P.ico:'🔒')+'</div><h3>'+P.nom+'</h3>'
+      +'<p>'+(ok?P.d:'S\'ouvre au palier '+P.palier+' du carnet de route.')+'</p>'
+      +(ok?'<div class="mec">'+P.mec+'</div>':'');
+    e.onclick=()=>{
+      if(!ok){ SND.erreur(); flash('PALIER '+P.palier+' DU CARNET DE ROUTE','mal'); return; }
+      persoChoisi=k; SND.clic(); ouvrirChoixPerso();
+    };
+    z.appendChild(e);
+  }
+  const P=PERSOS[persoChoisi];
+  const cpt={};
+  for(const k of P.depart) cpt[k]=(cpt[k]||0)+1;
+  let dep='';
+  for(const k in cpt) dep+='<div class="rl"><span class="re">'+(CARTES[k].img||ICO_TYPE[CARTES[k].type])
+    +'</span><div class="rt"><b>'+cpt[k]+' × '+CARTES[k].nom+'</b><span>'
+    +CARTES[k].d(CARTES[k].v).replace(/<[^>]+>/g,'')+'</span></div></div>';
+  $('cpDetail').innerHTML='<div class="sur">TON DECK DE DÉPART — 10 CARTES</div>'+dep
+    +'<div class="grille" style="margin-top:10px">'
+    +cel('POINTS DE VIE',nb(P.pv+4*niveauAch('pv')))
+    +cel('PIÈCES',nb(P.or+30*niveauAch('or')))
+    +cel('DIFFICULTÉ',DIFFS[Prof.diff].t)+'</div>';
+  ecrans('choixPerso');
+}
+
+/* ---------------------------------------------------------------- profil */
+function ouvrirProfil(){
+  const p=Prof;
+  const besoin=xpProfil(p.niv);
+  $('pfTete').innerHTML='<div class="sur">'+rangDe(p.niv)+'</div>'
+    +'<div class="rl"><span class="re" style="font-size:28px">'+p.avatar+'</span>'
+    +'<div class="rt"><b style="font-size:14px">'+(p.nom||'SANS NOM')+'</b>'
+    +'<span>Niveau '+p.niv+' — '+nb(p.xp)+' / '+nb(besoin)+' xp</span>'
+    +'<div class="barP"><i style="width:'+(100*clamp(p.xp/besoin,0,1))+'%"></i></div></div>'
+    +'<div class="rv" style="color:var(--or)">'+nb(p.ecus)+' ⚜️</div></div>';
+  $('pfNom').value=p.nom;
+  $('pfNom').oninput=()=>{ p.nom=$('pfNom').value.toUpperCase().slice(0,14); sauverProfil(); };
+  const av=$('pfAvs');
+  av.innerHTML='';
+  for(const a of AVATARS){
+    const ok=avatarOuvert(a);
+    const b=document.createElement('button');
+    b.textContent=ok?a:'🔒';
+    b.className=(p.avatar===a?'on':'');
+    b.onclick=()=>{
+      if(!ok){ SND.erreur(); flash('S\'OUVRE AU CARNET DE ROUTE','mal'); return; }
+      p.avatar=a; SND.clic(); sauverProfil(); ouvrirProfil(); rendreMenu();
+    };
+    av.appendChild(b);
+  }
+  const S=p.stats;
+  $('pfGrille').innerHTML=
+    cel('DESCENTES',nb(S.descentes))
+   +cel('REMONTÉES VIVANT',nb(S.victoires))
+   +cel('MORTS EN BAS',nb(S.morts))
+   +cel('COMBATS GAGNÉS',nb(p.cpt.combats||0))
+   +cel('GARDIENS ABATTUS',nb(p.cpt.gardiens||0))
+   +cel('CARTES JOUÉES',nb(p.cpt.cartes||0))
+   +cel('RELIQUES TROUVÉES',nb(p.cpt.reliques||0))
+   +cel('ÉCUS GAGNÉS',nb(S.ecusTotal||0))
+   +cel('SUCCÈS',Object.keys(p.suc).length+' / '+SUCCES.length);
+  rendreQuetes($('pfQuetes'),1);
+  let a='';
+  let rien=1;
+  for(const b of BOUTIQUE){
+    const n=niveauAch(b.k);
+    if(!n) continue;
+    rien=0;
+    a+='<div class="rl"><span class="re">'+b.ico+'</span><div class="rt"><b>'+b.nom
+      +(b.max>1?' '+n+'/'+b.max:'')+'</b><span>'+b.d(n-1)+'</span></div></div>';
+  }
+  $('pfAmel').innerHTML=rien
+    ?'<div style="font-size:11px;color:var(--gris);line-height:1.8">Rien encore. '
+     +'La boutique échange les écus remontés contre des avantages définitifs.</div>':a;
+  ecrans('profil');
+}
+
+function rendreQuetes(el,reclamable){
+  verifierQuetes();
+  let h='';
+  for(const q of Prof.quetes.l){
+    const c=CONTRATS[q.i];
+    const fini=q.f>=q.obj;
+    h+='<div class="qt'+(fini?' fini':'')+'"><span class="qi">'+c.ico+'</span>'
+      +'<div class="qc"><b>'+c.t(q.obj)+'</b>'
+      +'<div class="barP"><i style="width:'+(100*clamp(q.f/q.obj,0,1))+'%"></i></div></div>'
+      +(q.pris?'<span class="qv" style="color:var(--vert)">PRIS</span>'
+        :fini&&reclamable?'<button class="achat" data-q="'+q.i+'"><b>+'+q.ecus+' ⚜️</b>'
+          +q.xp+' xp</button>'
+        :'<span class="qv">'+Math.min(q.f,q.obj)+' / '+q.obj+'</span>')
+      +'</div>';
+  }
+  h+='<div style="font-size:9px;letter-spacing:.14em;color:var(--gris);margin-top:10px">'
+    +'NOUVEAUX CONTRATS À MINUIT</div>';
+  el.innerHTML=h;
+  el.querySelectorAll('button[data-q]').forEach(b=>{
+    b.onclick=()=>{
+      const q=Prof.quetes.l.find(x=>x.i===+b.dataset.q);
+      if(q&&reclamerQuete(q)){ compteur('quetes',1); flash('CONTRAT PAYÉ','bon');
+        rendreQuetes(el,reclamable); rendreMenu(); }
+    };
+  });
+}
+
+/* ---------------------------------------------------------------- carnet */
+function ouvrirPasse(){
+  const p=Prof.passe;
+  $('psEye').textContent='SAISON '+chiffreRomain(saisonCourante())+' · '+nomSaison();
+  const pct=p.niv>=30?100:100*clamp(p.xp/XP_PALIER,0,1);
+  $('psTete').innerHTML='<div class="sur">PALIER '+p.niv+' / 30 · '
+    +joursRestantsSaison()+' JOURS RESTANTS</div>'
+    +'<div class="barP"><i style="width:'+pct+'%"></i></div>'
+    +'<div style="font-size:10px;color:var(--gris);margin-top:6px">'
+    +(p.niv>=30?'Carnet terminé pour cette saison.'
+      :nb(p.xp)+' / '+nb(XP_PALIER)+' — l\'expérience de carnet vient des descentes '
+       +'et des contrats du jour.')+'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">'
+    +(p.prestige?'<div class="cel" style="flex:1"><span>VOIE DE PRESTIGE</span><b '
+        +'style="color:var(--or)">OUVERTE</b></div>'
+      :'<button class="btn or" id="psAchat" style="margin:0;font-size:13px;padding:12px 20px">'
+       +'OUVRIR LA VOIE DE PRESTIGE — '+PRIX_PRESTIGE+' ⚜️</button>')
+    +'<button class="btn ghost" id="psTout" style="margin:0">TOUT RÉCLAMER</button></div>'
+    +'<div style="font-size:9.5px;color:var(--gris);margin-top:9px;line-height:1.7">'
+    +'Tu as '+nb(Prof.ecus)+' ⚜️. Les écus se gagnent en descendant, jamais autrement — '
+    +'il n\'y a rien à acheter avec de l\'argent réel dans ce jeu.</div>';
+  const ap=$('psAchat');
+  if(ap) ap.onclick=()=>{ if(acheterPrestige()){ ouvrirPasse(); rendreMenu(); } };
+  $('psTout').onclick=()=>{ if(toutPrendre()){ ouvrirPasse(); rendreMenu(); } };
+  rendrePiste($('psLibre'),'lib');
+  rendrePiste($('psPres'),'pres');
+  rendreQuetes($('psQ'),1);
+  ecrans('passe');
+  /* on amène la piste sur le palier courant */
+  setTimeout(()=>{
+    document.querySelectorAll('.pisteP').forEach(z=>{
+      z.scrollLeft=Math.max(0,(Prof.passe.niv-2)*112);
+    });
+  },30);
+}
+function rendrePiste(el,voie){
+  const p=Prof.passe;
+  let h='';
+  for(let i=1;i<=30;i++){
+    const t=CARNET[i-1];
+    const r=voie==='lib'?t.lib:t.pres;
+    const L=libRec(r);
+    const pris=!!p.pris[voie+i];
+    const pret=recDispo(i,voie);
+    const verrou=(voie==='pres'&&!p.prestige)||p.niv<i;
+    h+='<div class="plr'+(p.niv>=i?' atteint':'')+'"><div class="num">'+i+'</div>'
+      +'<div class="rcp'+(pris?' pris':'')+(pret?' pret':'')+(verrou&&!pris?' verrou':'')
+      +'" data-n="'+i+'" data-v="'+voie+'">'
+      +(pris?'<span class="coche">✓</span>':'')
+      +'<span class="ri">'+L.ico+'</span><span class="rn">'+L.nom+'</span></div></div>';
+  }
+  el.innerHTML=h;
+  el.querySelectorAll('.rcp.pret').forEach(d=>{
+    d.onclick=()=>{ if(prendreRec(+d.dataset.n,d.dataset.v)){ ouvrirPasse(); rendreMenu(); } };
+  });
+}
+
+/* ---------------------------------------------------------------- boutique */
+function ouvrirBoutique(){
+  $('btTete').innerHTML='<div class="sur">TA BOURSE</div>'
+    +'<div class="rl"><span class="re">⚜️</span><div class="rt"><b>ÉCUS</b>'
+    +'<span>Remontés des descentes. Ils ne redescendent pas avec toi : ils '
+    +'achètent ce qui reste.</span></div><div class="rv" style="color:var(--or)">'
+    +nb(Prof.ecus)+'</div></div>';
+  const z=$('btListe');
+  let h='';
+  for(const b of BOUTIQUE){
+    const n=niveauAch(b.k);
+    const max=n>=b.max;
+    const prix=b.prix(n);
+    let pts='';
+    if(b.max>1){ pts='<div class="pts">';
+      for(let i=0;i<b.max;i++) pts+='<i class="'+(i<n?'on':'')+'"></i>';
+      pts+='</div>'; }
+    h+='<div class="art"><span class="ai">'+b.ico+'</span><div class="ac">'
+      +'<h4>'+b.nom+(b.max>1?' — '+n+'/'+b.max:'')+'</h4><p>'+b.d(n)+'</p>'+pts+'</div>'
+      +(max?'<button class="achat" disabled>ACQUIS</button>'
+        :'<button class="achat" data-k="'+b.k+'"'+(Prof.ecus<prix?' disabled':'')
+         +'><b>'+nb(prix)+'</b>⚜️</button>')
+      +'</div>';
+  }
+  z.innerHTML=h;
+  z.querySelectorAll('button[data-k]').forEach(b=>{
+    b.onclick=()=>{ if(acheterAch(b.dataset.k)){ ouvrirBoutique(); rendreMenu(); } };
+  });
+  ecrans('boutique');
+}
+
+/* ---------------------------------------------------------------- succès */
+function ouvrirSucces(){
+  const n=Object.keys(Prof.suc).length;
+  $('scTete').innerHTML='<div class="sur">AVANCEMENT</div>'
+    +'<div class="barP"><i style="width:'+(100*n/SUCCES.length)+'%"></i></div>'
+    +'<div style="font-size:10.5px;color:var(--gris);margin-top:7px">'+n+' sur '
+    +SUCCES.length+' — chacun paie en écus une fois.</div>';
+  let h='';
+  for(const s of SUCCES){
+    const ok=!!Prof.suc[s.k];
+    h+='<div class="suc'+(ok?' ok':'')+'"><em>'+s.e+' ⚜️</em><b>'+s.ico+' '+s.t+'</b>'
+      +'<span>'+s.d+'</span></div>';
+  }
+  $('scListe').innerHTML=h;
+  ecrans('succes');
+}
+
+/* ---------------------------------------------------------------- règles */
+function ouvrirRegles(){
+  let h='';
+  for(const k in ETATS){
+    const e=ETATS[k];
+    h+='<div style="margin:7px 0"><b style="color:'+e.col+'">'+e.ico+' '+e.nom+'</b> — '
+      +e.d('n')+'</div>';
+  }
+  $('rgEtats').innerHTML=h;
+  $('rgSon').textContent='SON : '+(Prof.son?'ACTIVÉ':'COUPÉ');
+  $('rgVol').value=Math.round(Prof.vol*100);
+  $('rgDiff').textContent=DIFFS[Prof.diff].t;
+  $('rgAnim').textContent=Prof.anim===0?'RAPIDES':'NORMALES';
+  $('rgDiffT').textContent=DIFFS[Prof.diff].d;
+  ecrans('regles');
+}
+
+
+/* ==========================================================================
+   LA PEINTURE
+   ==========================================================================
+   Aucune image n'est téléchargée : les galeries et les créatures sont peintes
+   au canevas, à chaque image. Une créature est une silhouette faite de trois
+   ou quatre formes, une couleur, et une respiration — c'est peu, mais un
+   monstre qui respire est un monstre auquel on croit, et surtout un monstre
+   qui n'est pas un carré gris.
+
+   Le fond est peint une fois dans un canevas hors écran (les voûtes ne bougent
+   pas) et seuls les grains de poussière et la lueur de bougie sont redessinés. */
+
+const F={cv:null, ctx:null, w:0, h:0, hors:null, hctx:null, poussiere:[], t:0};
+
+function initFond(){
+  F.cv=$('fond');
+  F.ctx=F.cv.getContext('2d');
+  redimensionner();
+  window.addEventListener('resize',redimensionner);
+}
+function redimensionner(){
+  const d=Math.min(2,window.devicePixelRatio||1);
+  F.w=Math.floor(window.innerWidth), F.h=Math.floor(window.innerHeight);
+  F.cv.width=Math.floor(F.w*d); F.cv.height=Math.floor(F.h*d);
+  F.ctx.setTransform(d,0,0,d,0,0);
+  peindreVoutes();
+  F.poussiere=[];
+  const n=Math.round(F.w*F.h/26000);
+  for(let i=0;i<n;i++) F.poussiere.push({
+    x:Math.random()*F.w, y:Math.random()*F.h,
+    v:6+Math.random()*16, a:.06+Math.random()*.2, r:.6+Math.random()*1.5,
+    ph:Math.random()*TAU});
+  if(R&&ecranActif==='plan1') dessinerPlan();
+}
+
+/* les voûtes : deux rangées d'arcs en plein cintre qui s'enfoncent, et les
+   joints de pierre. Peint une fois, réutilisé tel quel. */
+function peindreVoutes(){
+  const c=document.createElement('canvas');
+  const d=1;
+  c.width=F.w; c.height=F.h;
+  const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,0,F.h);
+  g.addColorStop(0,'#0b0e13'); g.addColorStop(.55,'#12171f'); g.addColorStop(1,'#080a0e');
+  x.fillStyle=g; x.fillRect(0,0,F.w,F.h);
+  const cx=F.w/2, base=F.h*.86;
+  for(let k=5;k>=0;k--){
+    const s=.42+k*.14;
+    const w=F.w*s*.9, hh=F.h*.62*s+F.h*.16;
+    const y=base-hh*.1;
+    x.globalAlpha=.5-k*.055;
+    x.strokeStyle=k%2?'#1c232d':'#222b36';
+    x.lineWidth=2+k*.5;
+    x.beginPath();
+    x.moveTo(cx-w/2,base);
+    x.lineTo(cx-w/2,y-hh*.35);
+    x.quadraticCurveTo(cx,y-hh,cx+w/2,y-hh*.35);
+    x.lineTo(cx+w/2,base);
+    x.stroke();
+  }
+  /* l'appareillage : des pierres irrégulières le long des piédroits */
+  x.globalAlpha=.20;
+  x.strokeStyle='#2b3542'; x.lineWidth=1;
+  const g2=graineur(4242);
+  for(let i=0;i<220;i++){
+    const cote=g2()<.5?-1:1;
+    const px=cx+cote*(F.w*(.16+g2()*.34));
+    const py=F.h*(.10+g2()*.82);
+    const w=14+g2()*26, h=8+g2()*12;
+    x.strokeRect(px-w/2,py-h/2,w,h);
+  }
+  /* le sol mouillé */
+  x.globalAlpha=1;
+  const g3=x.createLinearGradient(0,base,0,F.h);
+  g3.addColorStop(0,'rgba(20,26,34,.9)'); g3.addColorStop(1,'rgba(8,11,15,1)');
+  x.fillStyle=g3; x.fillRect(0,base,F.w,F.h-base);
+  F.hors=c;
+}
+
+function peindreFond(dt){
+  const x=F.ctx;
+  if(!x) return;
+  F.t+=dt;
+  if(F.hors) x.drawImage(F.hors,0,0,F.w,F.h);
+  else { x.fillStyle='#0e1116'; x.fillRect(0,0,F.w,F.h); }
+  /* la lueur : plus chaude en combat, plus froide sur les écrans de méta */
+  const chaud=(ecranActif==='combat'||ecranActif==='feu');
+  const fl=.82+Math.sin(F.t*3.1)*.06+Math.sin(F.t*7.7)*.04;
+  const gy=F.h*(chaud?.72:.5);
+  const g=x.createRadialGradient(F.w/2,gy,10,F.w/2,gy,F.h*.72*fl);
+  g.addColorStop(0,chaud?'rgba(255,168,74,.13)':'rgba(120,150,200,.07)');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle=g; x.fillRect(0,0,F.w,F.h);
+  /* la poussière qui monte */
+  x.fillStyle='#e8e0cd';
+  for(const p of F.poussiere){
+    p.y-=p.v*dt;
+    p.x+=Math.sin(F.t*.6+p.ph)*.28;
+    if(p.y<-4){ p.y=F.h+4; p.x=Math.random()*F.w; }
+    x.globalAlpha=p.a*(.6+.4*Math.sin(F.t*2+p.ph));
+    x.beginPath(); x.arc(p.x,p.y,p.r,0,TAU); x.fill();
+  }
+  x.globalAlpha=1;
+  /* la vignette */
+  const v=x.createRadialGradient(F.w/2,F.h/2,F.h*.35,F.w/2,F.h/2,F.h*.85);
+  v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.62)');
+  x.fillStyle=v; x.fillRect(0,0,F.w,F.h);
+}
+
+/* ==========================================================================
+   LES CRÉATURES
+   ==========================================================================
+   Chaque forme est dessinée dans un carré de 100×100 centré, puis mise à
+   l'échelle. La respiration (`b`) fait varier la hauteur de 4 % : c'est le
+   seul mouvement, et il suffit. */
+function ell(x,cx,cy,rx,ry,col){
+  x.fillStyle=col; x.beginPath(); x.ellipse(cx,cy,rx,ry,0,0,TAU); x.fill();
+}
+function oeilRouge(x,cx,cy,r,lueur){
+  x.fillStyle='rgba(255,150,90,'+(lueur||.9)+')';
+  x.beginPath(); x.arc(cx,cy,r,0,TAU); x.fill();
+  x.fillStyle='#2a0d08';
+  x.beginPath(); x.arc(cx,cy,r*.45,0,TAU); x.fill();
+}
+function eclaircir(c,f){
+  const n=parseInt(c.slice(1),16);
+  const r=Math.min(255,((n>>16)&255)+f), g=Math.min(255,((n>>8)&255)+f),
+        b=Math.min(255,(n&255)+f);
+  return 'rgb('+r+','+g+','+b+')';
+}
+function assombrir(c,f){
+  const n=parseInt(c.slice(1),16);
+  const r=Math.max(0,((n>>16)&255)-f), g=Math.max(0,((n>>8)&255)-f),
+        b=Math.max(0,(n&255)-f);
+  return 'rgb('+r+','+g+','+b+')';
+}
+
+function peindreCreature(cv,forme,col,t,ph,vie){
+  const x=cv.getContext('2d');
+  const S=cv.width;
+  x.clearRect(0,0,S,S);
+  x.save();
+  x.translate(S/2,S/2);
+  x.scale(S/92,S/92);
+  const b=1+Math.sin(t*1.7+ph)*.04;
+  const osc=Math.sin(t*1.1+ph);
+  const clair=eclaircir(col,26), sombre=assombrir(col,42);
+  x.save();
+  x.scale(1,b);
+  switch(forme){
+   case 'rat':{
+     ell(x,0,8,30,20,col);                       // corps
+     ell(x,-4,4,26,15,clair);
+     x.save(); x.translate(24,-4); x.rotate(osc*.08);
+     ell(x,0,0,17,13,col);                       // tête
+     x.fillStyle=sombre;
+     x.beginPath(); x.moveTo(12,-2); x.lineTo(30,2); x.lineTo(12,6); x.fill();
+     ell(x,-8,-12,7,9,sombre);                   // oreille
+     oeilRouge(x,6,-3,3.2);
+     x.restore();
+     x.strokeStyle=sombre; x.lineWidth=3.5; x.lineCap='round';
+     x.beginPath(); x.moveTo(-28,10);
+     x.quadraticCurveTo(-48,4+osc*8,-40,-16+osc*6); x.stroke();
+     for(const dx of [-14,2,16]){ x.strokeStyle=sombre; x.lineWidth=4;
+       x.beginPath(); x.moveTo(dx,24); x.lineTo(dx-2,32); x.stroke(); }
+     break; }
+   case 'limace':{
+     ell(x,0,14,34,17,col);
+     ell(x,-2,6,30,18,clair);
+     ell(x,4,0,22,15,col);
+     for(let i=0;i<5;i++){ x.globalAlpha=.35;
+       ell(x,-24+i*11,10+Math.sin(t*2+i)*2,5,4,eclaircir(col,60)); }
+     x.globalAlpha=1;
+     x.strokeStyle=sombre; x.lineWidth=3; x.lineCap='round';
+     for(const s of [-1,1]){ x.beginPath(); x.moveTo(12*s+8,-8);
+       x.quadraticCurveTo(16*s+10,-24,10*s+12,-30); x.stroke();
+       ell(x,10*s+12,-31,3.5,3.5,'#e8e0cd'); }
+     break; }
+   case 'pierre':{
+     x.fillStyle=col;
+     x.beginPath();
+     x.moveTo(-26,32); x.lineTo(-32,-8); x.lineTo(-14,-30); x.lineTo(16,-32);
+     x.lineTo(30,-6); x.lineTo(24,32); x.closePath(); x.fill();
+     x.fillStyle=sombre;
+     x.beginPath(); x.moveTo(2,-31); x.lineTo(30,-6); x.lineTo(24,32); x.lineTo(4,32);
+     x.closePath(); x.fill();
+     x.strokeStyle=assombrir(col,60); x.lineWidth=1.6;
+     x.beginPath(); x.moveTo(-26,4); x.lineTo(28,-2); x.moveTo(-2,-31); x.lineTo(2,32);
+     x.stroke();
+     oeilRouge(x,-10,-10,3.6,.7+.3*Math.sin(t*2));
+     oeilRouge(x,10,-12,3.6,.7+.3*Math.sin(t*2+1));
+     break; }
+   case 'ombre':{
+     x.globalAlpha=.9;
+     x.fillStyle=col;
+     x.beginPath();
+     x.moveTo(0,-34);
+     for(let i=0;i<=18;i++){
+       const a=-Math.PI/2+TAU*i/18;
+       const r=26+Math.sin(a*3+t*2.2+ph)*6+(a>0?4:0);
+       x.lineTo(Math.cos(a)*r,Math.sin(a)*r*1.15+6);
+     }
+     x.closePath(); x.fill();
+     x.globalAlpha=.5; ell(x,0,2,18,20,assombrir(col,30));
+     x.globalAlpha=1;
+     oeilRouge(x,-7,-6,3.4,.85); oeilRouge(x,7,-6,3.4,.85);
+     break; }
+   case 'crapaud':{
+     const gon=1+Math.sin(t*1.4+ph)*.08;
+     x.save(); x.scale(gon,1/gon);
+     ell(x,0,10,34,26,col);
+     ell(x,0,2,28,18,clair);
+     x.restore();
+     ell(x,-16,-14,12,11,col); ell(x,16,-14,12,11,col);
+     oeilRouge(x,-16,-15,4.4,.9); oeilRouge(x,16,-15,4.4,.9);
+     x.strokeStyle=sombre; x.lineWidth=5; x.lineCap='round';
+     for(const s of [-1,1]){ x.beginPath(); x.moveTo(24*s,20);
+       x.quadraticCurveTo(36*s,26,30*s,34); x.stroke(); }
+     break; }
+   case 'masse':{
+     x.fillStyle=col;
+     x.beginPath();
+     for(let i=0;i<=22;i++){
+       const a=TAU*i/22;
+       const g=graineur((i*977+13)|0);
+       const r=30+g()*10+Math.sin(t*1.3+i)*1.5;
+       const px=Math.cos(a)*r, py=Math.sin(a)*r*.92+4;
+       i?x.lineTo(px,py):x.moveTo(px,py);
+     }
+     x.closePath(); x.fill();
+     x.fillStyle=sombre;
+     for(let i=0;i<7;i++){
+       const g=graineur((i*613+7)|0);
+       ell(x,(g()-.5)*46,(g()-.5)*40+4,5+g()*7,4+g()*6,sombre);
+     }
+     oeilRouge(x,-9,-4,4,.8); oeilRouge(x,11,-8,4,.8);
+     break; }
+   case 'machine':{
+     x.fillStyle=sombre; x.fillRect(-30,-24,60,52);
+     x.fillStyle=col; x.fillRect(-26,-20,44,44);
+     x.strokeStyle=assombrir(col,70); x.lineWidth=2;
+     for(let i=0;i<4;i++){ x.beginPath(); x.moveTo(-26,-14+i*12); x.lineTo(18,-14+i*12);
+       x.stroke(); }
+     x.save(); x.translate(6,2); x.rotate(t*1.3);
+     x.strokeStyle=eclaircir(col,40); x.lineWidth=4;
+     for(let i=0;i<6;i++){ x.beginPath(); x.moveTo(0,0);
+       x.lineTo(Math.cos(TAU*i/6)*16,Math.sin(TAU*i/6)*16); x.stroke(); }
+     x.restore();
+     ell(x,6,2,7,7,'#1a1f27');
+     x.fillStyle='#3a4450'; x.fillRect(20,-30,14,60);
+     oeilRouge(x,-16,-8,3.4,.6+.4*Math.abs(Math.sin(t*3)));
+     break; }
+   case 'os':{
+     x.strokeStyle=col; x.lineWidth=7; x.lineCap='round';
+     x.beginPath(); x.moveTo(0,26); x.lineTo(0,-8); x.stroke();
+     x.save(); x.rotate(osc*.09);
+     x.beginPath(); x.moveTo(-20,-4); x.lineTo(20,-4); x.stroke();
+     x.beginPath(); x.moveTo(-20,-4); x.lineTo(-26,16); x.stroke();
+     x.beginPath(); x.moveTo(20,-4); x.lineTo(26,16); x.stroke();
+     x.restore();
+     x.beginPath(); x.moveTo(-12,26); x.lineTo(0,26); x.lineTo(12,26); x.stroke();
+     ell(x,0,-22,15,14,col);
+     x.fillStyle='#0e1116';
+     ell(x,-5,-24,3.6,4.4,'#0e1116'); ell(x,5,-24,3.6,4.4,'#0e1116');
+     x.fillRect(-4,-14,8,4);
+     break; }
+   case 'moine':{
+     x.fillStyle=col;
+     x.beginPath();
+     x.moveTo(0,-30); x.quadraticCurveTo(-30,-16,-26,34);
+     x.lineTo(26,34); x.quadraticCurveTo(30,-16,0,-30); x.fill();
+     x.fillStyle=sombre;
+     x.beginPath(); x.moveTo(0,-30); x.quadraticCurveTo(14,-10,10,34);
+     x.lineTo(26,34); x.quadraticCurveTo(30,-16,0,-30); x.fill();
+     x.fillStyle='#0a0d12';
+     x.beginPath(); x.ellipse(0,-16,13,15,0,0,TAU); x.fill();
+     oeilLueur(x,t,ph);
+     x.strokeStyle=eclaircir(col,30); x.lineWidth=2.4;
+     x.beginPath(); x.moveTo(-26,16); x.lineTo(26,16); x.stroke();
+     break; }
+   case 'aile':{
+     for(let k=0;k<3;k++){
+       const a=t*2.4+k*2.1+ph;
+       const px=Math.sin(a)*22, py=Math.cos(a*1.3)*16;
+       x.save(); x.translate(px,py); x.rotate(Math.sin(a*2)*.4);
+       ell(x,0,0,8,6,col);
+       x.fillStyle=sombre;
+       const f=Math.abs(Math.sin(a*4))*.8+.2;
+       x.beginPath(); x.moveTo(-6,-1); x.quadraticCurveTo(-20,-12*f,-24,4);
+       x.quadraticCurveTo(-14,2,-6,3); x.fill();
+       x.beginPath(); x.moveTo(6,-1); x.quadraticCurveTo(20,-12*f,24,4);
+       x.quadraticCurveTo(14,2,6,3); x.fill();
+       oeilRouge(x,0,-1,1.8,.9);
+       x.restore();
+     }
+     break; }
+   case 'noye':{
+     ell(x,0,16,24,22,col);
+     x.fillStyle=sombre;
+     x.beginPath(); x.moveTo(-24,10); x.quadraticCurveTo(0,24,24,10);
+     x.lineTo(24,36); x.lineTo(-24,36); x.fill();
+     ell(x,0,-14,16,17,eclaircir(col,18));
+     x.fillStyle='rgba(10,14,20,.9)';
+     ell(x,-6,-16,4,5,'rgba(8,12,18,.95)'); ell(x,6,-16,4,5,'rgba(8,12,18,.95)');
+     x.strokeStyle='rgba(8,12,18,.9)'; x.lineWidth=2;
+     x.beginPath(); x.arc(0,-6,6,.2,Math.PI-.2); x.stroke();
+     x.globalAlpha=.4; x.fillStyle=eclaircir(col,70);
+     for(let i=0;i<5;i++){ const yy=-26+((t*14+i*13)%60);
+       x.beginPath(); x.arc(-14+i*7,yy,1.8,0,TAU); x.fill(); }
+     x.globalAlpha=1;
+     x.strokeStyle=col; x.lineWidth=5; x.lineCap='round';
+     for(const s of [-1,1]){ x.beginPath(); x.moveTo(20*s,6);
+       x.quadraticCurveTo(34*s,14+osc*5,28*s,30); x.stroke(); }
+     break; }
+   case 'oeil':{
+     const dil=1+Math.sin(t*1.6+ph)*.12;
+     ell(x,0,0,34,26*dil,'#e8e0cd');
+     x.save();
+     x.beginPath(); x.ellipse(0,0,34,26*dil,0,0,TAU); x.clip();
+     ell(x,Math.sin(t*.7)*7,Math.cos(t*.9)*4,15,15,col);
+     ell(x,Math.sin(t*.7)*7,Math.cos(t*.9)*4,7,7,'#12070c');
+     x.restore();
+     x.strokeStyle=assombrir(col,40); x.lineWidth=3;
+     x.beginPath(); x.ellipse(0,0,34,26*dil,0,0,TAU); x.stroke();
+     x.strokeStyle=sombre; x.lineWidth=2.4; x.lineCap='round';
+     for(let i=0;i<9;i++){ const a=TAU*i/9+t*.2;
+       x.beginPath(); x.moveTo(Math.cos(a)*34,Math.sin(a)*26);
+       x.lineTo(Math.cos(a)*46,Math.sin(a)*38); x.stroke(); }
+     break; }
+   case 'colosse':{
+     x.fillStyle=sombre;
+     x.beginPath(); x.moveTo(-38,36); x.lineTo(-30,-14); x.lineTo(0,-34);
+     x.lineTo(30,-14); x.lineTo(38,36); x.closePath(); x.fill();
+     x.fillStyle=col;
+     x.beginPath(); x.moveTo(-26,36); x.lineTo(-20,-8); x.lineTo(0,-24);
+     x.lineTo(20,-8); x.lineTo(26,36); x.closePath(); x.fill();
+     x.strokeStyle=eclaircir(col,30); x.lineWidth=2;
+     for(let i=0;i<4;i++){ x.beginPath(); x.moveTo(-24+i*2,10+i*7);
+       x.lineTo(24-i*2,10+i*7); x.stroke(); }
+     for(let i=0;i<5;i++){
+       const a=-2.5+i*.62;
+       oeilRouge(x,Math.cos(a)*17,-12+Math.sin(a)*8,3.6,
+         .5+.5*Math.abs(Math.sin(t*1.7+i)));
+     }
+     x.strokeStyle=sombre; x.lineWidth=7; x.lineCap='round';
+     for(const s of [-1,1]){ x.beginPath(); x.moveTo(28*s,-6);
+       x.quadraticCurveTo(46*s,6+osc*6,40*s,30); x.stroke(); }
+     break; }
+   /* --- les trois personnages --- */
+   case 'egoutier':{
+     ell(x,0,18,24,22,'#3b4450');
+     ell(x,0,-12,15,16,'#c9a06a');
+     x.fillStyle='#2b333d'; x.beginPath();
+     x.ellipse(0,-24,19,8,0,0,TAU); x.fill();
+     x.fillStyle='#ffc46b'; x.beginPath(); x.arc(0,-27,5,0,TAU); x.fill();
+     x.globalAlpha=.22; x.fillStyle='#ffc46b';
+     x.beginPath(); x.moveTo(0,-27); x.lineTo(-30,-52); x.lineTo(30,-52); x.fill();
+     x.globalAlpha=1;
+     x.fillStyle='#0e1116'; ell(x,-5,-12,2.6,3,'#0e1116'); ell(x,5,-12,2.6,3,'#0e1116');
+     x.strokeStyle='#c9a06a'; x.lineWidth=5; x.lineCap='round';
+     x.beginPath(); x.moveTo(22,10); x.lineTo(34,26+osc*3); x.stroke();
+     break; }
+   case 'carto':{
+     ell(x,0,18,22,22,'#3d4a5c');
+     ell(x,0,-12,14,15,'#d8c2a4');
+     x.fillStyle='#5f97d6';
+     x.beginPath(); x.moveTo(-16,-22); x.quadraticCurveTo(0,-34,16,-22);
+     x.quadraticCurveTo(0,-26,-16,-22); x.fill();
+     x.fillStyle='#0e1116'; ell(x,-5,-12,2.6,3,'#0e1116'); ell(x,5,-12,2.6,3,'#0e1116');
+     x.fillStyle='#e8e0cd';
+     x.save(); x.translate(-24,14); x.rotate(osc*.12);
+     x.fillRect(-8,-12,16,22);
+     x.strokeStyle='#5f97d6'; x.lineWidth=1.2;
+     x.beginPath(); x.moveTo(-5,-7); x.lineTo(5,-7); x.moveTo(-5,-2); x.lineTo(3,-2);
+     x.moveTo(-5,3); x.lineTo(5,3); x.stroke();
+     x.restore();
+     break; }
+   case 'thaumaturge':{
+     x.fillStyle='#3a3346';
+     x.beginPath(); x.moveTo(0,-26); x.quadraticCurveTo(-26,-12,-22,36);
+     x.lineTo(22,36); x.quadraticCurveTo(26,-12,0,-26); x.fill();
+     ell(x,0,-16,13,14,'#cbbba6');
+     x.fillStyle='#0e1116'; ell(x,-4,-17,2.4,2.8,'#0e1116'); ell(x,4,-17,2.4,2.8,'#0e1116');
+     x.strokeStyle='#8a7250'; x.lineWidth=4; x.lineCap='round';
+     x.beginPath(); x.moveTo(22,34); x.lineTo(26,-30); x.stroke();
+     const fl=.7+.3*Math.sin(t*8+ph);
+     x.globalAlpha=.3*fl; x.fillStyle='#ffc46b';
+     x.beginPath(); x.arc(26,-34,16,0,TAU); x.fill();
+     x.globalAlpha=1;
+     x.fillStyle='#ffdca8';
+     x.beginPath(); x.ellipse(26,-35,3.4,6*fl,0,0,TAU); x.fill();
+     break; }
+   default:
+     ell(x,0,0,28,28,col);
+  }
+  x.restore();
+  /* la créature blessée pâlit */
+  if(vie!==undefined&&vie<.35){
+    x.globalCompositeOperation='source-atop';
+    x.fillStyle='rgba(200,67,74,'+(0.3*(1-vie/.35))+')';
+    x.fillRect(-60,-60,120,120);
+    x.globalCompositeOperation='source-over';
+  }
+  x.restore();
+}
+/* deux points de lumière au fond d'un capuchon vide */
+function oeilLueur(x,t,ph){
+  const f=.55+.45*Math.sin(t*2.2+ph);
+  x.fillStyle='rgba(255,196,107,'+f+')';
+  x.beginPath(); x.arc(-4,-16,2.4,0,TAU); x.fill();
+  x.beginPath(); x.arc(4,-16,2.4,0,TAU); x.fill();
+}
+
+/* ---------------------------------------------------------------- boucle */
+let dernier=0;
+function boucle(ts){
+  const dt=Math.min(.05,(ts-dernier)/1000||0);
+  dernier=ts;
+  peindreFond(dt);
+  SND.pas(dt);
+  if(ecranActif==='combat'&&C){
+    const t=ts/1000;
+    for(const e of C.ennemis){
+      if(!e.cv||e.mort) continue;
+      peindreCreature(e.cv,e.forme,e.col,t*(e.def.elite||e.def.boss?1.2:1),e.ph,
+        e.pv/e.pvm);
+    }
+    if(R) peindreCreature($('heroPor'),R.per,PERSOS[R.per].col,t,0,C.h.pv/C.h.pvm);
+  }
+  requestAnimationFrame(boucle);
+}
+
+
+/* ==========================================================================
+   LE CÂBLAGE
+   ==========================================================================
+   Les boutons, le clavier, et l'ordre d'allumage. Le son ne démarre qu'au
+   premier geste du joueur : les navigateurs refusent d'ouvrir un contexte
+   audio avant, et une page qui essaie quand même remplit la console d'erreurs
+   pour rien. */
+
+function auMenu(){
+  ecrans('menu');
+  rendreMenu();
+}
+
+function brancher(){
+  $('bJouer').onclick=()=>{ SND.clic(); ouvrirChoixPerso(); };
+  $('bReprendre').onclick=()=>{
+    SND.clic();
+    /* si le combat est encore en mémoire, on y retourne tel quel ; sinon on
+       recharge la descente sauvegardée et on rejoue la salle en cours */
+    if(R&&!R.fini&&C&&!C.fini){ ecrans('combat'); rendreCombat(); return; }
+    if(R&&!R.fini&&R.carte&&R.carte.enR<0){ ecrans('plan1'); dessinerPlan(); majBarre(); return; }
+    if(!reprendreRun()) flash('AUCUNE DESCENTE À REPRENDRE','mal');
+  };
+  $('bProfil').onclick=()=>{ SND.clic(); ouvrirProfil(); };
+  $('bPasse').onclick=()=>{ SND.clic(); ouvrirPasse(); };
+  $('bBoutique').onclick=()=>{ SND.clic(); ouvrirBoutique(); };
+  $('bSucces').onclick=()=>{ SND.clic(); ouvrirSucces(); };
+  $('bRegles').onclick=()=>{ SND.clic(); ouvrirRegles(); };
+
+  $('cpRetour').onclick=()=>{ SND.clic(); auMenu(); };
+  $('cpGo').onclick=()=>{
+    if(!persoOuvert(persoChoisi)){ SND.erreur(); return; }
+    SND.clic();
+    nouvelleDescente(persoChoisi);
+  };
+
+  $('bDeck').onclick=()=>{
+    if(!R) return;
+    SND.clic();
+    ecranAvantDeck=ecranActif;
+    modeDeck=null; apresDeck=null;
+    ouvrirDeck();
+  };
+  $('bMenu').onclick=()=>{ SND.clic(); sauverRun(); auMenu(); };
+
+  $('finTour').onclick=()=>finTourJoueur();
+  $('combat').addEventListener('contextmenu',e=>{
+    e.preventDefault();
+    if(C&&C.ciblage){ annulerCiblage(); rendreCombat(); }
+  });
+  $('ennemis').onclick=e=>{ if(e.target===$('ennemis')&&C&&C.ciblage){
+    annulerCiblage(); rendreCombat(); } };
+  $('pPioche').onclick=()=>{ if(C) flash('PIOCHE : '+C.pioche.length+' CARTES'); };
+  $('pDefausse').onclick=()=>{ if(C) flash('DÉFAUSSE : '+C.defausse.length+' CARTES'
+    +(C.exil.length?' · EXIL : '+C.exil.length:'')); };
+
+  for(const [b,f] of [['pfRetour',auMenu],['psRetour',auMenu],['btRetour',auMenu],
+      ['scRetour',auMenu],['rgRetour',auMenu]]) $(b).onclick=()=>{ SND.clic(); f(); };
+
+  $('fnRejouer').onclick=()=>{ SND.clic(); R=null; C=null; ouvrirChoixPerso(); };
+  $('fnMenu').onclick=()=>{ SND.clic(); R=null; C=null; auMenu(); };
+
+  $('rgSon').onclick=()=>{
+    Prof.son=!Prof.son; SND.on=Prof.son;
+    if(!Prof.son) SND.silence();
+    $('rgSon').textContent='SON : '+(Prof.son?'ACTIVÉ':'COUPÉ');
+    sauverProfil();
+  };
+  $('rgVol').oninput=()=>{ Prof.vol=(+$('rgVol').value)/100; SND.vol(Prof.vol); sauverProfil(); };
+  $('rgAnim').onclick=()=>{
+    Prof.anim=Prof.anim===0?1:0;
+    $('rgAnim').textContent=Prof.anim===0?'RAPIDES':'NORMALES';
+    sauverProfil();
+  };
+  $('rgDiff').onclick=()=>{
+    Prof.diff=(Prof.diff+1)%3;
+    $('rgDiff').textContent=DIFFS[Prof.diff].t;
+    $('rgDiffT').textContent=DIFFS[Prof.diff].d;
+    sauverProfil();
+    if(R&&!R.fini) flash('LA DESCENTE EN COURS NE CHANGE PAS');
+  };
+  let confirme=0;
+  $('rgEffacer').onclick=()=>{
+    if(!confirme){ confirme=1; $('rgEffacer').textContent='SÛR ? CLIQUE ENCORE';
+      setTimeout(()=>{ confirme=0; $('rgEffacer').textContent='EFFACER'; },4000); return; }
+    confirme=0; $('rgEffacer').textContent='EFFACER';
+    effacerTout();
+  };
+
+  document.addEventListener('keydown',e=>{
+    if(e.target&&e.target.tagName==='INPUT') return;
+    if(toucheCombat(e.key)){ e.preventDefault(); return; }
+    if(e.key==='d'||e.key==='D'){
+      if(R&&ecranActif!=='deck'){ ecranAvantDeck=ecranActif; modeDeck=null; apresDeck=null;
+        ouvrirDeck(); }
+      else if(ecranActif==='deck'&&!modeDeck) $('dkRetour').onclick();
+      e.preventDefault(); return;
+    }
+    if(e.key==='Escape'&&['profil','passe','boutique','succes','regles','choixPerso']
+      .indexOf(ecranActif)>=0){ auMenu(); e.preventDefault(); }
+  });
+
+  /* le son attend le premier geste */
+  const reveil=()=>{ SND.init(); SND.reprendre(); SND.vol(Prof.vol);
+    SND.ambiance(ecranActif==='combat'?.1:.05); };
+  document.addEventListener('pointerdown',reveil,{once:true});
+  document.addEventListener('keydown',reveil,{once:true});
+  window.addEventListener('beforeunload',()=>{ sauverRun(); sauverProfil(); });
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){ sauverRun(); sauverProfil(); SND.ambiance(0); }
+    else if(SND.ctx) SND.ambiance(ecranActif==='combat'?.1:.05);
+  });
+}
+
+function demarrer(){
+  chargerProfil();
+  initFond();
+  brancher();
+  verifierSucces();
+  auMenu();
+  requestAnimationFrame(boucle);
+  /* minuit : les contrats du jour changent sans qu'on recharge la page */
+  setInterval(()=>{
+    const av=Prof.quetes?Prof.quetes.date:'';
+    verifierQuetes();
+    if(Prof.quetes.date!==av){ flash('NOUVEAUX CONTRATS DU JOUR','bon'); rendreMenu(); }
+  },60000);
+}
+demarrer();
+
+</script>
+</body>
+</html>
