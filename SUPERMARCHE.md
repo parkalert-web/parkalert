@@ -1,8 +1,13 @@
-# Tête de Gondole
+# Supermarché Tycoon
 
-`gondole.html` — un jeu complet dans un seul fichier, sans dépendance, sans
+`supermarche.html` — un jeu complet dans un seul fichier, sans dépendance, sans
 image ni son téléchargé. Le magasin est peint au canvas, le bip du scanner et
 la musique d'ambiance sont synthétisés note par note.
+
+> Ce jeu s'appelait *Tête de Gondole*. Même magasin, même caisse, nouveau nom —
+> et, depuis, une journée qui commence rideau baissé, des gondoles qui se
+> déplacent, une équipe qu'on forme et qu'on remercie, et une partie qu'on
+> retrouve là où on l'avait laissée.
 
 ## L'idée
 
@@ -28,7 +33,7 @@ C'est le deuxième jeu de gestion du dépôt, après *Grand Huit*, et il aurait 
 facile d'en faire le même avec des caddies. La boucle est volontairement
 différente au point d'inverser le sens du jeu.
 
-| | Grand Huit | Tête de Gondole |
+| | Grand Huit | Supermarché Tycoon |
 |---|---|---|
 | Ce que fait le visiteur | il **choisit** la plus belle chose à faire | il **exécute une liste** de courses |
 | Ce que vend le joueur | une expérience, en stock infini | de la **marchandise**, qui s'épuise |
@@ -42,6 +47,32 @@ Le décalage entre la décision et son effet est le ressort du jeu. On commande
 quand on veut, mais **le camion met deux heures et demie**, et passé dix-sept
 heures trente il ne passera plus avant le lendemain matin. Voir sa rupture à
 midi et la voir à la fermeture ne coûte pas la même chose.
+
+## La journée en deux temps
+
+C'est le geste qui manquait. Une journée ne démarre plus toute seule : elle
+commence **rideau baissé, l'horloge arrêtée sur huit heures**, et rien n'entre
+tant que le joueur n'a pas appuyé sur **OUVRIR LE MAGASIN**.
+
+Pendant cette préparation, tout le reste marche : on passe la commande, on
+déplace les gondoles, on embauche, on forme, on monte les palettes en rayon, on
+ramasse ce qui traîne. Rien ne presse **parce que rien ne tourne** — et le
+camion prévu pour l'après-midi attend l'ouverture, pour qu'on ne puisse pas
+geler le temps en attendant sa livraison.
+
+Un bandeau dit ce qui ne va pas avant qu'il soit trop tard : rayons vides,
+caisses non tenues, réserve pleine d'articles à monter, et surtout **ce qu'il
+faudra sortir ce soir**. Quand tout est vert, on ouvre.
+
+Il porte aussi **TOUT MONTER EN RAYON** (`R`), qui remplit la file de tâches du
+patron avec tous les rayons qui attendent quelque chose, les plus vides
+d'abord. Cliquer quinze gondoles une par une n'est pas une décision, c'est une
+corvée.
+
+On peut aussi ne pas ouvrir du tout. **RESTER FERMÉ AUJOURD'HUI** saute la
+journée : la paie et les charges tombent quand même, la réputation baisse un
+peu, mais on gagne une journée entière de travaux. C'est un vrai coup à jouer
+un lundi, jamais un samedi.
 
 ## La boucle
 
@@ -68,6 +99,62 @@ Et une quatrième, qui n'en est pas une : **le temps du patron**. Chaque minute
 passée derrière une caisse est une minute qu'on ne passe pas à monter des
 palettes, et réciproquement. C'est la seule ressource du jeu qui ne s'achète
 pas — sauf en embauchant.
+
+## Réagencer le magasin
+
+Poser une gondole au mauvais endroit coûtait le prix d'une démolition — 55 % du
+meuble perdus et le stock renvoyé en réserve. C'était la punition la plus bête
+du jeu : **un magasin se réagence, il ne se reconstruit pas.**
+
+L'outil **DÉPLACER** prend un meuble et le repose ailleurs. Il garde tout : sa
+référence, ses lots et leur date, son prix de vente, son compteur de ventes et
+sa recette. Le déplacement est gratuit et se fait à n'importe quel moment, y
+compris en pleine journée — les clients qui visaient ce rayon refont
+simplement leur chemin.
+
+Les mêmes règles qu'à la pose s'appliquent : il faut une allée devant, on ne
+bouche pas le sas d'entrée, et un présentoir reste collé à sa caisse. Le
+fantôme montre l'ancienne place en pointillé et la nouvelle en plein, avec la
+raison du refus quand il y en a une.
+
+## L'équipe
+
+Un employé n'est plus une ligne de dépense interchangeable. Chacun a **un
+prénom, un métier et un échelon** :
+
+| échelon | efficacité | paie |
+|---|---|---|
+| DÉBUTANT | × 1 | × 1 |
+| CONFIRMÉ | × 1,34 | × 1,22 |
+| CHEF DE RAYON | × 1,72 | × 1,48 |
+| BRAS DROIT | × 2,15 | × 1,80 |
+
+Ce que l'échelon change dépend du métier, et ce n'est jamais décoratif : l'hôte
+fait avancer le tapis plus vite, le rayonniste porte de plus grosses palettes,
+l'agent d'entretien nettoie plus fort, le boulanger sort ses fournées plus
+souvent et plus grosses, le vigile laisse filer moins de démarque.
+
+L'arbitrage est net : **former quelqu'un coûte une fois et se paie tous les
+jours jusqu'à la fin de la partie.** Un chef de rayon vaut mieux que deux
+débutants tant qu'on manque de place et de caisses, et moins bien dès qu'on
+manque de bras.
+
+Le panneau **PERSONNEL** liste les gens qu'on paie, avec pour chacun ce qu'il
+coûte, ce qu'il fait, le prix de sa formation et le bouton pour le remercier —
+un départ se solde d'**une journée de paie**, pour que virer quelqu'un le
+samedi soir ne soit pas gratuit.
+
+## Quel jour est chargé
+
+Le jeu disait déjà que le samedi est lourd et que le lundi est vide, mais il le
+disait dans une table de constantes que personne ne voit. Il le **mesure**
+maintenant sur la partie en cours : le panneau **FRÉQUENTATION** donne une barre
+par jour de la semaine — moyenne de clients, chiffre d'affaires moyen, ventes
+parties en rupture, record sur une journée. Le bilan du soir en montre une
+version courte.
+
+C'est le chiffre qui dit quoi commander : on commande le jeudi pour le
+vendredi, en regardant la colonne du vendredi, pas celle de la veille.
 
 ## Le client
 
@@ -408,9 +495,41 @@ Le menu lui-même n'est pas une image : c'est un supermarché complet — soixan
 meubles, dix caisses, cent cinquante clients qui font leurs courses — qui tourne
 derrière le titre.
 
+## Ce qu'on voit sans rien ouvrir
+
+La barre du haut porte maintenant deux blocs de plus :
+
+- une **horloge** : l'heure en gros, la journée en barre de progression, et
+  l'état du rideau — `AVANT OUVERTURE`, `OUVERT`, `RIDEAU BAISSÉ` — avec un
+  cadre qui change de couleur ;
+- **À PAYER CE SOIR** : les charges des meubles plus la masse salariale, et le
+  loyer en plus le samedi. Le bloc passe au rouge dès que la caisse ne couvre
+  plus la somme. C'est le rappel qui manquait : on ne découvre plus le loyer au
+  moment où il tombe.
+
+## La sauvegarde
+
+La partie s'enregistre à l'ouverture de chaque journée, **à chaque geste de
+préparation**, quand l'onglet passe en arrière-plan et quand on le ferme. Et on
+n'a plus à la réclamer : rouvrir le jeu, c'est **se retrouver dans son
+magasin**, au matin du jour qu'on avait laissé, rideau encore baissé, prêt à
+reprendre la préparation là où on l'avait interrompue.
+
+Ce qui est enregistré : le plan complet des meubles avec leur marchandise et
+son âge, la réserve lot par lot, la saleté du sol case par case, l'équipe avec
+les prénoms et les échelons, les livraisons en route, les prix, les licences,
+les contrats, la courbe de la campagne et le relevé de fréquentation.
+
+Ce qui ne l'est pas : une journée à moitié jouée. On repart du matin, rideau
+baissé — c'est plus honnête que de figer quarante clients au milieu d'une
+allée. La reprise automatique se coupe dans les réglages.
+
 ## Commandes
 
 - **Clic** pose · **clic droit** ou `Échap` lâche l'outil.
+- `Espace` ou `Entrée` **ouvre le magasin** quand le rideau est baissé.
+- Outil **DÉPLACER** : clic sur un meuble pour le prendre, clic sur une case
+  pour le reposer. La fiche d'un meuble a le même bouton.
 - Outil **TRAVAILLER** (`T`) : clic sur un rayon, une caisse, un papier ou le sol
   pour y envoyer le patron ; un clic de plus enchaîne les tâches. Derrière une
   caisse, `Espace` scanne un article.
@@ -437,11 +556,35 @@ const SECONDES_JOUR=720;                      // une journée à vitesse 1
 const DELAI_LIVRAISON=2.5;                    // heures entre la commande et le camion
 const VIT_BASE=16;                            // un client, en pixels/seconde
 const CADENCE_BASE=.19;                       // secondes par article en caisse
-const CAP_RESERVE_BASE=340;
+const CAP_RESERVE_BASE=520;
 const NIV_MAX=12;                             // douze paliers, cinq journées chacun
 xpPour(n) = 520 × (n−1)^1,90
 argent de départ : 18 000 €
 ```
+
+## Ce qui a été vérifié en ajoutant tout ça
+
+Un audit automatique retire un meuble sous les pieds du patron, achète une
+licence sans agrément, passe une commande, enregistre, recharge la page et
+recompare tout. Deux choses ont dû changer dans l'audit lui-même, et elles
+disent quelque chose du jeu :
+
+- il cliquait sur **REPRENDRE** après le rechargement. Ce bouton ne sert plus :
+  la partie est déjà là. L'audit vérifie maintenant qu'elle s'est rouverte
+  toute seule, au bon jour, rideau baissé ;
+- il comparait la **réserve** avant et après le rechargement, et trouvait une
+  unité d'écart. Ce n'était pas une fuite : depuis que le magasin vit pendant la
+  préparation, le réassort automatique déplace de la marchandise de la réserve
+  vers les rayons pendant que la page finit de charger. Ce qui doit être
+  identique, c'est la **marchandise totale** — réserve plus rayons — et elle
+  l'est.
+
+Une sonde séparée monte un petit magasin, déplace un rayon plein et vérifie
+qu'il garde sa référence, son stock et ses ventes, que ses nouvelles cases sont
+occupées et les anciennes libérées, qu'un déplacement dans le sas d'entrée est
+refusé ; puis elle forme un rayonniste (64 → 95 €/jour, efficacité × 1,72), le
+remercie, reste fermée une journée entière, et recharge la page pour retrouver
+l'équipe avec ses prénoms et ses échelons.
 
 ## Comment ça a été vérifié
 

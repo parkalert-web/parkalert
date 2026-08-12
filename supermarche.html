@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>TÊTE DE GONDOLE — un supermarché à faire tourner</title>
-<meta name="description" content="Un local vide en zone commerciale, quatre semaines pour en faire un supermarché qui tient. Commande le stock, remplis les rayons, ouvre des caisses.">
+<title>SUPERMARCHÉ TYCOON — un magasin à faire tenir dix semaines</title>
+<meta name="description" content="Un local vide en zone commerciale, quatre semaines pour en faire un supermarché qui tient. Commande le stock, déplace les rayons, forme ton équipe, ouvre le magasin quand tu es prêt.">
 <style>
 :root{
   --sol:#e9e5db; --sol2:#ded9cd; --joint:#cfc8b8;
@@ -52,6 +52,81 @@ input[type=text]{-webkit-user-select:text;user-select:text}
 .jauge.rup b{color:var(--gris)} .jauge.rup.mal b{color:var(--rouge)}
 .jauge.rup{cursor:pointer;min-width:62px}
 #barre .pousse{flex:1}
+.frqL{margin:8px 0 4px}
+.frq{display:flex;align-items:center;gap:7px;padding:4px 0}
+.frq .fj{font:700 9.5px var(--mono);letter-spacing:.1em;color:var(--gris);width:30px;
+  flex:0 0 auto}
+.frq .fb{flex:1;height:11px;border-radius:6px;background:#e6dfd0;overflow:hidden;
+  border:1px solid var(--bord)}
+.frq .fb u{display:block;height:100%;text-decoration:none;
+  background:linear-gradient(90deg,#2b7bbf,#54c9e3)}
+.frq .fv{font:700 12px var(--mono);width:44px;text-align:right;flex:0 0 auto}
+.frq .fe{font-style:normal;font-size:9px;color:var(--gris);width:118px;flex:0 0 auto;
+  text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frq.auj .fj{color:var(--rouge)}
+.frq.auj .fb u{background:linear-gradient(90deg,#e23b2e,#ff9a3c)}
+@media (max-width:640px){ .frq .fe{display:none} }
+
+.emp{border:2px solid var(--bord);border-radius:11px;padding:9px 10px;margin-top:8px;
+  background:var(--creme2)}
+.emp .eh{display:flex;align-items:center;gap:8px}
+.emp .ei{font-size:21px;width:26px;text-align:center;flex:0 0 auto}
+.emp .en{flex:1;min-width:0}
+.emp .en b{display:block;font-family:var(--titre);font-size:13px;letter-spacing:.02em}
+.emp .en span{display:block;font-size:9.5px;color:var(--gris);margin-top:1px}
+.emp .ep{font:700 13px var(--mono);color:var(--rouge);white-space:nowrap}
+.emp .ep em{font-style:normal;font-size:9px;color:var(--gris)}
+.emp .ed{font-size:10px;line-height:1.55;color:var(--gris);margin:6px 0 2px}
+.emp .eb{display:flex;gap:6px}
+.emp .eb .bt{margin:4px 0 0;flex:1;font-size:10.5px;padding:9px 6px}
+.emp .eb .bt[disabled]{opacity:.45}
+.jauge.paie b{color:var(--encre);font-size:clamp(14px,3.2vw,19px)}
+.jauge.paie.mal{background:#ffeceb;border:2px solid var(--rouge)}
+.jauge.paie.mal b{color:var(--rouge)}
+.jauge.paie.loyer b{color:var(--violet)}
+
+/* l'horloge : l'heure en gros, la journée en barre, l'état du rideau */
+#horloge{pointer-events:auto;display:flex;flex-direction:column;justify-content:center;
+  padding:4px 11px;border-radius:11px;border:2px solid var(--bord);background:var(--creme);
+  min-width:92px;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+#horloge b{font-family:var(--titre);font-size:clamp(17px,3.9vw,24px);line-height:1.05;
+  letter-spacing:.02em;font-variant-numeric:tabular-nums;color:var(--encre)}
+#horloge .hbar{display:block;height:5px;border-radius:3px;background:#e3dccd;margin:3px 0 2px;
+  overflow:hidden}
+#horloge .hbar u{display:block;height:100%;width:0%;border-radius:3px;
+  background:linear-gradient(90deg,#ffc61e,#ff9a3c);text-decoration:none;transition:width .3s}
+#horloge span{font-size:8.5px;letter-spacing:.17em;font-weight:700;color:var(--gris);
+  white-space:nowrap}
+@media (max-width:700px){
+  .jauge.paie span{font-size:8px;letter-spacing:.1em}
+  #horloge{min-width:78px;padding:4px 8px}
+  #horloge span{font-size:7.5px;letter-spacing:.1em}
+}
+#horloge.ouvert{border-color:var(--vert)} #horloge.ouvert span{color:var(--vert)}
+#horloge.ferme{border-color:var(--bord)} #horloge.ferme span{color:var(--rouge)}
+#horloge.soir{border-color:var(--violet)} #horloge.soir span{color:var(--violet)}
+
+/* le bandeau de préparation */
+#prepa{position:fixed;left:50%;transform:translateX(-50%);z-index:24;display:none;
+  bottom:calc(env(safe-area-inset-bottom) + 118px);width:min(560px,calc(100vw - 20px));
+  background:var(--creme);border:3px solid var(--encre);border-radius:16px;
+  padding:13px 15px;box-shadow:0 10px 0 rgba(0,0,0,.14),0 18px 40px rgba(0,0,0,.28)}
+#prepa.on{display:block}
+#prepa .pt b{display:block;font-family:var(--titre);font-size:clamp(15px,3.6vw,20px)}
+#prepa .pt span{display:block;font-size:11px;line-height:1.6;color:var(--gris);margin-top:3px}
+#prepa .pl{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0 4px}
+#prepa .pl i{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em;
+  padding:5px 9px;border-radius:8px;background:#f1ece0;border:1px solid var(--bord);
+  color:var(--encre2)}
+#prepa .pl i.mal{background:#ffeceb;border-color:var(--rouge);color:var(--rouge)}
+#prepa .pl i.bon{background:#e9f7ee;border-color:var(--vert);color:#1f7a3d}
+#prepa .pb{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
+#prepa .pb .btn{margin:0;flex:1;min-width:150px;font-size:15px;padding:13px 14px}
+#prepa .pb .btn.ghost{flex:0 1 auto;font-size:11px;padding:11px 13px}
+@media (max-width:640px){
+  #prepa{bottom:calc(env(safe-area-inset-bottom) + 104px)}
+  #prepa .pl{display:none}
+}
 #etoiles{letter-spacing:1px}
 #vit{pointer-events:auto;display:flex;gap:3px;align-items:center}
 #vit button{width:32px;height:32px;border:2px solid var(--bord);background:var(--creme);
@@ -162,6 +237,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
   color:var(--encre2);cursor:pointer}
 body:not(.enJeu) #caisseHud,
 body:not(.enJeu) #patronHud{display:none !important}
+body:not(.enJeu) #prepa{display:none !important}
 @media (max-width:560px){
   #caisseHud{bottom:calc(env(safe-area-inset-bottom) + 108px);gap:7px;padding:7px 8px}
   #caisseHud .chi{display:none}
@@ -390,12 +466,19 @@ body:not(.enJeu) #flash{display:none !important}
 
 <div id="barre">
   <div class="jauge arg" id="jArg"><span>CAISSE</span><b id="jArgV">0 €</b></div>
+  <div id="horloge" class="ferme">
+    <b id="hlH">08:00</b>
+    <i class="hbar"><u id="hlBar"></u></i>
+    <span id="hlEtat">FERMÉ</span>
+  </div>
   <div class="jauge niv" id="jNivBloc"><span>AGRÉMENT</span><b id="jNiv">1</b>
     <i class="xpb"><u id="xpFill"></u></i></div>
-  <div class="jauge"><span>SEMAINE</span><b id="jJour">1 · LUN</b></div>
+  <div class="jauge" id="jJourBloc"><span>SEMAINE</span><b id="jJour">1 · LUN</b></div>
   <div class="jauge cli"><span>EN MAGASIN</span><b id="jCli">0</b></div>
   <div class="jauge rup" id="jRupBloc"><span>RUPTURES</span><b id="jRup">0</b></div>
   <div class="jauge et"><span>RÉPUTATION</span><b id="etoiles">☆☆☆☆☆</b></div>
+  <div class="jauge paie" id="jPaieBloc"><span>À PAYER CE SOIR</span><b id="jPaie">0 €</b></div>
+  
   <div class="pousse"></div>
   <div id="temps"><b id="tIco">☀</b><span id="tTxt">SOLEIL</span></div>
   <div id="vit">
@@ -423,6 +506,19 @@ body:not(.enJeu) #flash{display:none !important}
   <div class="pc"><b id="phNom">LE PATRON</b><span id="phTxt">au repos</span></div>
   <button id="phStop">STOP</button>
 </div>
+<div id="prepa">
+  <div class="pt">
+    <b id="ppJour">LUNDI — SEMAINE 1</b>
+    <span id="ppTxt">Le rideau est baissé. Prépare le magasin, puis ouvre.</span>
+  </div>
+  <div class="pl" id="ppListe"></div>
+  <div class="pb">
+    <button class="btn" id="ppOuvrir">OUVRIR LE MAGASIN</button>
+    <button class="btn ghost" id="ppMonter">TOUT MONTER EN RAYON</button>
+    <button class="btn ghost" id="ppFerme">RESTER FERMÉ</button>
+  </div>
+</div>
+
 <div id="panneau"></div>
 
 <div id="construire">
@@ -431,13 +527,13 @@ body:not(.enJeu) #flash{display:none !important}
 </div>
 
 <div class="screen on" id="menu">
-  <h1>TÊTE DE <u>GONDOLE</u></h1>
-  <div class="eyebrow" style="margin-top:10px">UN LOCAL VIDE · QUATRE SEMAINES · UN LOYER QUI TOMBE</div>
+  <h1>SUPERMARCHÉ <u>TYCOON</u></h1>
+  <div class="eyebrow" style="margin-top:10px">UN LOCAL VIDE · DIX SEMAINES · UN LOYER QUI TOMBE</div>
   <div id="menuProfil"></div>
   <div id="menuRec"></div>
   <div class="note">
     Un local nu en zone commerciale et un découvert autorisé pour le remplir.<br>
-    Monte les rayons, commande le stock chaque soir, fixe tes prix, ouvre des caisses.<br>
+    Monte les rayons, déplace-les, commande le stock, forme ton équipe, ouvre quand tu es prêt.<br>
     Les clients arrivent avec une liste. Ce qu'ils ne trouvent pas, ils ne l'achètent pas.
   </div>
   <button class="btn" id="reprendre" style="display:none">REPRENDRE</button>
@@ -464,6 +560,10 @@ body:not(.enJeu) #flash{display:none !important}
       <span><i style="background:#ffc61e"></i>CAISSE</span>
       <span><i style="background:#8257bd"></i>FIN DE SEMAINE</span></div></div>
   <div class="carte" id="sLoyer" style="display:none"></div>
+  <div class="carte" id="sFreqC"><div class="sur">QUI VIENT, ET QUEL JOUR</div>
+    <div class="frqL" id="sFreq"></div>
+    <div class="txt" id="sFreqT" style="font-size:10.5px;color:var(--gris);line-height:1.6">
+    </div></div>
   <div class="carte" id="sRayonsC"><div class="sur">CE QUI RAPPORTE, CE QUI DORT</div>
     <div id="sRayons"></div></div>
   <div class="carte"><div class="sur">CE QUI A MANQUÉ</div><div id="sManque"></div></div>
@@ -588,6 +688,16 @@ body:not(.enJeu) #flash{display:none !important}
     <div class="reg"><div><h4>QUITTER LA SEMAINE</h4><p>Retour au menu. La partie est gardée
       au matin de la journée en cours et se reprend quand tu veux.</p></div>
       <button class="lien" id="quitter">RETOUR AU MENU</button></div>
+    <div class="reg"><div><h4>LA JOURNÉE</h4>
+      <p>Chaque matin le rideau est baissé et l'horloge arrêtée : on commande, on
+      déplace les gondoles, on forme l'équipe, on monte les palettes. Rien ne
+      tourne tant qu'on n'a pas appuyé sur <b>OUVRIR LE MAGASIN</b>
+      (<b>Espace</b> ou <b>Entrée</b>, <b>R</b> pour tout monter en rayon).</p>
+      </div></div>
+    <div class="reg"><div><h4>REPRISE AUTOMATIQUE</h4>
+      <p>À l'ouverture du jeu, retourner directement dans la partie en cours,
+      au matin du jour qu'on avait laissé.</p></div>
+      <button class="lien" id="repBtn">ACTIVÉE</button></div>
     <div class="reg"><div><h4 class="danger">EFFACER</h4><p>Carrière, succès, boutique et
       partie en cours.</p></div>
       <button class="lien danger" id="effacer">TOUT EFFACER</button></div>
@@ -596,7 +706,7 @@ body:not(.enJeu) #flash{display:none !important}
 
 <script>
 /* ==========================================================================
-   TÊTE DE GONDOLE — un supermarché à faire tenir quatre semaines
+   SUPERMARCHÉ TYCOON — un magasin à faire tenir dix semaines
    ==========================================================================
    Un seul fichier, aucune dépendance, aucune image ni son téléchargé.
 
@@ -1066,6 +1176,33 @@ const METIERS={
 };
 
 /* ==========================================================================
+   LES FORMATIONS
+   ==========================================================================
+   Trois échelons. Chaque échelon rend l'employé environ un tiers plus efficace
+   sur ce qu'il fait — et coûte un cinquième de paie en plus, tous les jours,
+   jusqu'à la fin de la partie. Former quelqu'un vaut donc mieux qu'embaucher
+   quelqu'un tant qu'on manque de place et de caisses, et moins bien dès qu'on
+   manque de bras. C'est tout l'arbitrage. */
+const ECHELONS=[
+ {nom:'DÉBUTANT',  eff:1,    paie:1,    ico:'☆☆☆'},
+ {nom:'CONFIRMÉ',  eff:1.34, paie:1.22, ico:'★☆☆'},
+ {nom:'CHEF DE RAYON', eff:1.72, paie:1.48, ico:'★★☆'},
+ {nom:'BRAS DROIT', eff:2.15, paie:1.80, ico:'★★★'}
+];
+function prixFormation(e){
+  const n=(e.niv||0)+1;
+  if(n>=ECHELONS.length) return 0;
+  return Math.round(e.d.paie*(6+n*4.5));
+}
+/* l'efficacité d'un employé : sa formation, et rien d'autre */
+function ffEmp(e){ return e?ECHELONS[clamp(e.niv||0,0,3)].eff:1; }
+function paieDe(e){ return Math.round(e.d.paie*ECHELONS[clamp(e.niv||0,0,3)].paie); }
+const PRENOMS=['SANDRINE','KARIM','JOCELYNE','MEHDI','PATRICIA','YOUSSEF','NADÈGE',
+ 'BRUNO','FATIMA','GÉRARD','LOUISE','THIERRY','AÏCHA','MARJORIE','SÉBASTIEN','CHANTAL',
+ 'DIMITRI','SOLANGE','RACHID','ÉLODIE','JEAN-MI','MARYSE','TONIO','SABRINA','HERVÉ',
+ 'DJAMILA','FRANCK','VÉRONIQUE','LOÏC','ROSELINE'];
+
+/* ==========================================================================
    LA SEMAINE
    ==========================================================================
    Six journées, et elles ne se ressemblent pas. C'est ce qui remplace la météo
@@ -1248,6 +1385,7 @@ function nouvellePartie(){
     rep:.32, etoilesMax:0, temps:'gris',
     niveau:1, xp:0, beaute:null,
     contrats:[], histoire:[], pub:null,
+    parJour:JOURS_SEM.map(()=>({n:0, cli:0, ca:0, art:0, rate:0, max:0})),
     entres:0, refus:0, fini:false, gagne:false, idBati:1,
     jt:journalNeuf(), st:{clients:0,ca:0,marge:0}, total:{clients:0,ca:0,articles:0},
     porte:[], bail:null,
@@ -1263,7 +1401,7 @@ function nouvellePartie(){
 }
 function journalNeuf(){
   return {clients:0, articles:0, ca:0, achats:0, casse:0, casseQ:0, demarque:0,
-    depEnt:0, depPaie:0, depPub:0, abandons:0, refus:0,
+    depEnt:0, depPaie:0, depPub:0, depForm:0, abandons:0, refus:0, prepa:0, ferme:0,
     avis:[], bonheur:[], causes:{}, manques:{}, ventes:{}, xp:0, niveaux:[]};
 }
 
@@ -1406,6 +1544,77 @@ function rendrePalette(){
   versReserve(e.prodCharge,e.lots);
   e.charge=0; e.lots=null; e.prodCharge=null;
 }
+/* ==========================================================================
+   DÉPLACER UN MEUBLE
+   ==========================================================================
+   Le meuble garde son identité : sa marchandise, ses lots et leur âge, son
+   prix, son compteur de ventes. Seules ses cases changent. On libère d'abord
+   les siennes — sinon un décalage d'une case se refuserait lui-même, le meuble
+   se trouvant dans son propre chemin — puis on valide, puis on repose. */
+function tuilesDe(b,val,n){
+  for(let j=0;j<b.h;j++) for(let i=0;i<b.w;i++){
+    const t=idx(b.x+i,b.y+j);
+    P.sol[t]=val; P.occ[t]=n;
+  }
+}
+function peutDeplacerIci(b,x,y){
+  const d=b.d;
+  if(!dedans(x,y)||!dedans(x+d.w-1,y+d.h-1)) return {ok:false,r:'Hors du local'};
+  for(let j=0;j<d.h;j++) for(let i=0;i<d.w;i++){
+    if(dansSas(x+i,y+j)) return {ok:false,r:'On ne bouche pas l\'entrée'};
+    if(!libre(x+i,y+j)) return {ok:false,r:'Il faut de la place libre dans le magasin'};
+  }
+  if(b.cat!=='decor'&&!toucheSol(x,y,d.w,d.h))
+    return {ok:false,r:'Il faut une allée devant, sinon personne n\'y accède'};
+  if(d.pres&&!colleCaisse(x,y,d.w,d.h))
+    return {ok:false,r:'Un présentoir se colle contre une caisse'};
+  return {ok:true};
+}
+/* la même question, mais sans rien casser : sert au fantôme de déplacement */
+function testerDeplacement(b,x,y){
+  const n=P.meubles.indexOf(b);
+  if(n<0) return {ok:false,r:'Meuble introuvable'};
+  tuilesDe(b,SOL,-1);
+  const v=peutDeplacerIci(b,x,y);
+  tuilesDe(b,MEUBLE,n);
+  return v;
+}
+function deplacerBati(b,x,y){
+  const n=P.meubles.indexOf(b);
+  if(n<0) return false;
+  if(b.x===x&&b.y===y) return true;
+  tuilesDe(b,SOL,-1);
+  const v=peutDeplacerIci(b,x,y);
+  if(!v.ok){
+    tuilesDe(b,MEUBLE,n);
+    flash(v.r,'mal'); SND.erreur();
+    return false;
+  }
+  const ax=b.x, ay=b.y;
+  b.x=x; b.y=y;
+  tuilesDe(b,MEUBLE,n);
+  invaliderSol(ax,ay); invaliderSol(x,y);
+  /* tout ce qui visait ce meuble avait un chemin vers l'ancienne case : on
+     renvoie tout le monde chercher, plutôt que de laisser des clients marcher
+     vers un rayon qui n'est plus là */
+  for(const c of P.clients){
+    if(c.cible===b){ c.cible=null; c.etat='cherche'; }
+    if(c.caisse===b){ c.caisse=null; c.etat='versCaisse'; }
+  }
+  if(b.cat==='caisse'){
+    for(const c of b.file) if(c.etat==='file'){ c.caisse=null; c.etat='versCaisse'; }
+    b.file.length=0; b.sert=null;
+  }
+  const pt=P.patron;
+  if(pt&&pt.cible===b){ pt.champ=null; }
+  for(const e of P.employes) if(e.cible===b) e.champ=null;
+  b.champ=null; b.faces=[];
+  P.sale=true;
+  majCaisses();
+  SND.pose();
+  return true;
+}
+
 function demolir(x,y){
   if(!dedans(x,y)) return;
   const n=P.occ[idx(x,y)];
@@ -1480,6 +1689,25 @@ function lacherTache(){
   P.patron.tache=null; P.patron.cible=null; P.patron.champ=null;
   majCaisseHud();
 }
+/* Le geste de préparation le plus fréquent : monter en rayon tout ce qui
+   attend en réserve. Cliquer quinze gondoles une par une n'est pas une
+   décision, c'est une corvée — on remplit la file de tâches du patron d'un
+   coup, en commençant par les rayons les plus vides. */
+function monterTout(){
+  if(!P||!P.patron) return 0;
+  const l=P.meubles.filter(b=>b.cat==='meuble'&&b.prod&&b.servi
+    &&deficit(b)>0&&stockReserve(b.prod)>0);
+  if(!l.length){ flash('Rien à monter en rayon'); return 0; }
+  l.sort((a,b)=>deficit(b)-deficit(a));
+  let n=0;
+  for(const b of l){
+    if(P.patron.file.length>=12&&P.patron.tache) break;
+    if(envoyerPatron(b.x,b.y)) n++;
+  }
+  if(n){ SND.clic(); flash(n+' RAYON'+(n>1?'S':'')+' DANS LA FILE',''); }
+  return n;
+}
+
 function envoyerPatron(gx,gy){
   if(!P.patron||!dedans(gx,gy)) return false;
   const e=P.patron;
@@ -1871,6 +2099,10 @@ function passerCommande(){
   return true;
 }
 function livraisonDue(l){
+  /* pendant la préparation l'horloge est arrêtée : un camion prévu pour ce
+     matin décharge tout de suite, un camion prévu pour l'après-midi attend
+     l'ouverture. Sinon on pourrait geler le temps en attendant sa livraison. */
+  if(P.phase==='prepa') return P.jourNum>l.jn;
   return P.jourNum>l.jn || (P.jourNum===l.jn && P.heure>=l.h);
 }
 function decharger(l){
@@ -1982,7 +2214,8 @@ function noterManque(k,q){
 }
 /* la démarque inconnue : ce qui sort sans passer en caisse */
 function demarque(){
-  const vig=P.employes.some(e=>e.k==='vigile')?.30:1;
+  const v=P.employes.filter(e=>e.k==='vigile');
+  const vig=v.length?clamp(.30/ffEmp(v[0]),.08,1):1;
   const taux=.0035*vig*(1-.25*AM('securite'));
   let perte=0;
   for(const b of P.meubles){
@@ -2382,7 +2615,7 @@ function pasCaisse(b,dt){
      seul, et chaque coup de scanner du joueur reprend l'avance. Tenir une
      caisse à la main vaut donc mieux qu'un hôte — c'est ce qui rend le travail
      manuel rentable tant qu'on ne peut pas se payer quelqu'un. */
-  b.reste-=dt*(b.hote?1:.5);
+  b.reste-=dt*(b.hote?ffEmp(b.hote):.5);
   b.bipT-=dt;
   if(b.bipT<=0&&b.reste>0&&b.hote){ b.bipT=CADENCE_BASE*b.d.cadence; SND.bip(); }
   if(b.reste<=0){
@@ -2510,22 +2743,59 @@ function scanner(){
   return true;
 }
 
-function embaucher(k,muet){
+function prenomLibre(){
+  const pris=P.employes.map(e=>e.nom);
+  const l=PRENOMS.filter(n=>pris.indexOf(n)<0);
+  return l.length?pick(l):pick(PRENOMS);
+}
+function embaucher(k,muet,niv,nom){
   const m=METIERS[k];
-  if(!m) return;
+  if(!m) return null;
   const t=P.porte.length?pick(P.porte):idx(Math.floor(GX/2),GY-3);
-  P.employes.push({k, d:m, x:(t%GX+.5)*TUILE, y:((t/GX|0)+.5)*TUILE,
+  const e={k, d:m, nom:nom||prenomLibre(), niv:clamp(niv|0,0,3), jours:0,
+    x:(t%GX+.5)*TUILE, y:((t/GX|0)+.5)*TUILE,
     tx:t%GX, ty:(t/GX|0), cible:null, champ:null, t:0, ph:rnd(0,TAU),
-    dx:0, dy:0, vx:0, vy:-1, charge:0, prodCharge:null, recalc:0, caisse:null});
+    dx:0, dy:0, vx:0, vy:-1, charge:0, prodCharge:null, recalc:0, caisse:null};
+  P.employes.push(e);
   P.sale=true;
   majCaisses();
-  if(muet) return;
-  flash(m.nom+' EMBAUCHÉ','bon'); SND.pose();
+  if(muet) return e;
+  flash(e.nom+' — '+m.nom+' EMBAUCHÉ','bon'); SND.pose();
+  return e;
+}
+/* on forme quelqu'un, pas un poste : la dépense est immédiate, le gain aussi,
+   et la paie du soir monte pour de bon */
+function former(e){
+  if(!e||(e.niv||0)>=ECHELONS.length-1){ flash('Déjà au dernier échelon'); return false; }
+  const p=prixFormation(e);
+  if(P.argent<p){ flash('Pas assez d\'argent','mal'); SND.erreur(); return false; }
+  P.argent-=p;
+  e.niv=(e.niv||0)+1;
+  P.jt.depForm=(P.jt.depForm||0)+p;
+  flotte(e.x,e.y-14,'−'+eur(p),'#8257bd');
+  flash(e.nom+' PASSE '+ECHELONS[e.niv].nom,'bon');
+  SND.cloche();
+  decrocher('ecole');
+  return true;
+}
+/* le solde de tout compte : une journée de paie, pour que virer quelqu'un le
+   samedi soir ne soit pas gratuit */
+function renvoyer(e){
+  const i=P.employes.indexOf(e);
+  if(i<0) return false;
+  const solde=paieDe(e);
+  P.argent-=solde;
+  P.jt.depPaie=(P.jt.depPaie||0)+solde;
+  P.employes.splice(i,1);
+  if(e.caisse){ e.caisse.hote=null; e.caisse=null; }
+  flash(e.nom+' REMERCIÉ · solde '+eur(solde),'');
+  SND.clic();
+  P.sale=true; majCaisses();
+  return true;
 }
 function licencier(k){
-  const i=P.employes.findIndex(e=>e.k===k);
-  if(i>=0){ P.employes.splice(i,1); flash(METIERS[k].nom+' remercié'); SND.clic();
-    P.sale=true; majCaisses(); }
+  const l=P.employes.filter(e=>e.k===k);
+  if(l.length) renvoyer(l[l.length-1]);
 }
 function rackLePlusProche(e){
   let best=null,bd=1e9;
@@ -2548,7 +2818,8 @@ function caseSale(){
 function pasEmploye(e,dt,heures){
   e.t+=dt;
   e.recalc-=dt;
-  const vitesse=VIT_BASE*1.15;
+  const ff=ffEmp(e);
+  const vitesse=VIT_BASE*1.15*(1+(ff-1)*.5);
   const allerA=(champ,pres)=>{
     if(!champ) return false;
     const cx=(e.tx+.5)*TUILE+e.dx, cy=(e.ty+.5)*TUILE+e.dy;
@@ -2583,8 +2854,8 @@ function pasEmploye(e,dt,heures){
       /* le fournil fabrique sur place : pas de réserve, mais la matière se paie */
       e.fourT=(e.fourT||0)-dt;
       if(e.fourT<=0){
-        e.fourT=2.6;
-        const q=Math.min(6,deficit(b));
+        e.fourT=2.6/ff;
+        const q=Math.min(Math.round(6*ff),deficit(b));
         if(q>0){
           b.lots.push({q,age:0}); fusionner(b.lots); b.stock=totalLots(b.lots);
           const c=q*PRODUITS[b.prod].achat*.62;
@@ -2618,12 +2889,12 @@ function pasEmploye(e,dt,heures){
       const xx=e.tx+x, yy=e.ty+y;
       if(!dedans(xx,yy)) continue;
       const t=idx(xx,yy);
-      P.salete[t]=Math.max(0,P.salete[t]-dt*.55*(1-Math.hypot(x,y)/(r+1)));
+      P.salete[t]=Math.max(0,P.salete[t]-dt*.55*ff*(1-Math.hypot(x,y)/(r+1)));
     }
     return;
   }
   if(e.k==='rayonniste'){
-    const cap=Math.round(22*(1+.35*AM('logistique'))
+    const cap=Math.round(22*ff*(1+.35*AM('logistique'))
       *(P.meubles.some(b=>b.k==='quai')?1.9:1));
     if(e.charge<=0){
       /* aller chercher une palette : au rack s'il y en a un, sinon à la porte */
@@ -2662,13 +2933,23 @@ function pasEmploye(e,dt,heures){
 /* ==========================================================================
    7. LA JOURNÉE
    ==========================================================================
-   Huit heures du matin, rideau. Vingt heures, rideau. Entre les deux, le
-   joueur ne fait qu'ajuster : il ne peut plus commander, la marchandise est
-   celle qu'il a demandée hier soir. Ce décalage d'une journée entre la
-   décision et son effet est le ressort du jeu. */
+   Une journée se joue en deux temps.
+
+   D'abord la PRÉPARATION, rideau baissé : l'horloge est arrêtée sur huit
+   heures et rien n'entre. On commande, on déplace les gondoles, on embauche,
+   on forme, on monte les palettes en rayon — aussi longtemps qu'on veut. Rien
+   ne presse parce que rien ne tourne.
+
+   Puis le SERVICE, quand le joueur appuie sur OUVRIR : de huit heures à vingt
+   heures, et là plus rien ne s'arrête. C'est le joueur qui décide du moment
+   où il est prêt, et c'est ce qui donne un début et une fin à la préparation
+   au lieu de la noyer dans la journée.
+
+   On peut aussi ne pas ouvrir du tout : la paie et les charges tombent quand
+   même, mais on gagne une journée entière de travaux. */
 
 function ouvrirJournee(){
-  P.t=0; P.ouvert=true; P.heure=OUVERTURE;
+  P.t=0; P.ouvert=false; P.phase='prepa'; P.heure=OUVERTURE;
   P.temps=pick(urneTemps(P.jour));
   P.prevu=affluencePrevue();
   P.spawnAcc=0; P.grace=0;
@@ -2685,14 +2966,65 @@ function ouvrirJournee(){
   P.patron.scans=0; P.patron.trajets=0; P.patron.ramasses=0;
   majCaisses();
   SND.tempo=(P.jour>=5)?1.12:1;
-  SND.musiqueVol(.24);
+  SND.musiqueVol(.20);
   SND.lancerMuzak();
+  P.jt.prepa=0;
   instantane();
+  montrerPrepa();
 }
+
+/* ---- le rideau se lève ---- */
+function demarrerService(){
+  if(!P||P.phase!=='prepa') return;
+  P.phase='ouvert'; P.ouvert=true;
+  P.t=0; P.heure=OUVERTURE; P.grace=0; P.spawnAcc=0;
+  cacherPrepa();
+  SND.musiqueVol(.24);
+  SND.carillon();
+  flash('LE MAGASIN EST OUVERT','bon');
+  aide(null);
+  majBarre();
+}
+/* ---- ou il reste baissé : la journée est sautée, les charges tombent ---- */
+function resterFerme(){
+  if(!P||P.phase!=='prepa') return;
+  P.phase='ferme';
+  P.ouvert=false;
+  P.jt.ferme=1;
+  cacherPrepa();
+  flash('MAGASIN FERMÉ POUR LA JOURNÉE','');
+  SND.clic();
+  fermerJournee();
+}
+function enPrepa(){ return !!(P&&P.phase==='prepa'); }
 
 function pasJournee(dt){
   if(!P) return;
   const heures=dt/SECONDES_JOUR*HEURES_JOUR;
+
+  /* rideau baissé : l'horloge ne tourne pas, personne n'entre, mais le magasin
+     vit — les palettes montent, le sol se nettoie, le camion peut arriver */
+  if(P.phase==='prepa'){
+    P.jt.prepa=(P.jt.prepa||0)+dt;
+    P.saleT=(P.saleT||0)-dt;
+    if(P.sale && P.saleT<=0){ refaireChamps(); P.saleT=.25; }
+    pasLivraisons();
+    reassortPatron(dt);
+    for(const e of P.employes) pasEmploye(e,dt,heures*.35);
+    pasPatron(dt,heures*.35);
+    for(let i=P.parts.length-1;i>=0;i--){
+      const q=P.parts[i]; q.vie-=dt;
+      if(q.vie<=0){ P.parts.splice(i,1); continue; }
+      q.x+=q.vx*dt; q.y+=q.vy*dt; q.vy+=(q.g||0)*dt;
+    }
+    for(let i=P.flottants.length-1;i>=0;i--){
+      const f=P.flottants[i]; f.vie-=dt; f.y-=dt*13;
+      if(f.vie<=0) P.flottants.splice(i,1);
+    }
+    SND.murmure(0);
+    majPrepa();
+    return;
+  }
 
   if(P.ouvert){
     P.t+=dt;
@@ -2752,10 +3084,12 @@ function glisserFile(c,dt){
 }
 
 /* ---------------------------------------------------------------- le soir */
+function masseSalariale(){
+  return Math.round(P.employes.reduce((s,e)=>s+paieDe(e),0)*(1-.12*AM('entente')));
+}
 function coutsQuotidiens(){
   const ent=P.meubles.reduce((s,b)=>s+coutJour(b),0);
-  const paie=Math.round(P.employes.reduce((s,e)=>s+e.d.paie,0)*(1-.12*AM('entente')));
-  return ent+paie;
+  return ent+masseSalariale();
 }
 function loyerProchain(){
   return Math.round(LOYERS[Math.min(P.sem,SEMAINES)-1]*DIF().loyer*(1-.08*AM('bail')));
@@ -2772,15 +3106,19 @@ function fermerJournee(){
   for(const b of P.meubles){ if(b.file) b.file.length=0; b.sert=null; }
 
   const ent=P.meubles.reduce((s,b)=>s+coutJour(b),0);
-  const paie=Math.round(P.employes.reduce((s,e)=>s+e.d.paie,0)*(1-.12*AM('entente')));
-  P.jt.depEnt=ent; P.jt.depPaie=paie;
+  const paie=masseSalariale();
+  P.jt.depEnt=ent; P.jt.depPaie=(P.jt.depPaie||0)+paie;
   P.argent-=ent+paie;
-  demarque();
+  for(const e of P.employes) e.jours=(e.jours||0)+1;
+  /* pas de démarque un jour de fermeture : rien ne sort d'un magasin où
+     personne n'est entré */
+  if(!P.jt.ferme) demarque();
   const casse=perimer();
 
   const marge=margeBrute();
   P.jt.marge=marge;
-  const resultat=P.jt.ca-P.jt.achats-casse-P.jt.demarque-ent-paie;
+  const resultat=P.jt.ca-P.jt.achats-casse-P.jt.demarque-ent-P.jt.depPaie
+    -(P.jt.depForm||0);
   P.jt.resultat=resultat;
   P.st.clients+=P.jt.clients; P.st.ca+=P.jt.ca; P.st.marge+=marge;
   P.total.ca+=P.jt.ca; P.total.articles+=P.jt.articles;
@@ -2818,6 +3156,16 @@ function fermerJournee(){
   verifierSucces(true);
   P.histoire.push({s:P.sem, j:P.jour, cli:P.jt.clients, ben:resultat,
     arg:P.argent, rep:P.rep, jn:JOURS_SEM[P.jour-1].court});
+  /* le relevé du jour de la semaine : c'est lui qui finit par dire quoi
+     commander et quand ouvrir une caisse de plus */
+  if(!P.parJour) P.parJour=JOURS_SEM.map(()=>({n:0,cli:0,ca:0,art:0,rate:0,max:0}));
+  if(!P.jt.ferme){
+    const pj=P.parJour[P.jour-1];
+    let rates=0;
+    for(const k in P.jt.manques) rates+=P.jt.manques[k];
+    pj.n++; pj.cli+=P.jt.clients; pj.ca+=P.jt.ca; pj.art+=P.jt.articles;
+    pj.rate+=rates; pj.max=Math.max(pj.max||0,P.jt.clients);
+  }
   sauver();
 
   ecranActif='soir';
@@ -2857,6 +3205,7 @@ function apresSoir(){
 }
 /* on referme le bureau et on retourne dans le magasin */
 function fermerCommande(){
+  enregistrerPrepa();
   ecranActif='jeu';
   ecrans(null);
   catOuverte=null; majCats();
@@ -3558,6 +3907,40 @@ function dessinerFantome(){
     if(cam.z>.5) bulle(sx+TUILE*cam.z/2,sy-2*cam.z,quoi,'#ffd964');
     return;
   }
+  if(outil.cat==='deplacer'){
+    if(!dedans(gx,gy)) return;
+    const b=outil.b;
+    if(!b){
+      const n=P.occ[idx(gx,gy)];
+      const [sx,sy]=ecran(gx*TUILE,gy*TUILE);
+      ctx.strokeStyle=n>=0?'#2b7bbf':'rgba(255,255,255,.4)';
+      ctx.lineWidth=2; ctx.setLineDash([5,4]);
+      ctx.strokeRect(sx,sy,TUILE*cam.z,TUILE*cam.z);
+      ctx.setLineDash([]);
+      if(n>=0&&cam.z>.5)
+        bulle(sx+TUILE*cam.z/2,sy-2*cam.z,'PRENDRE '+P.meubles[n].d.nom,'#8fd0ff');
+      return;
+    }
+    /* le meuble en main : on montre d'où il vient et où il va */
+    const [ax,ay]=ecran(b.x*TUILE,b.y*TUILE);
+    ctx.strokeStyle='rgba(43,123,191,.55)'; ctx.lineWidth=2; ctx.setLineDash([3,4]);
+    ctx.strokeRect(ax,ay,b.w*TUILE*cam.z,b.h*TUILE*cam.z);
+    ctx.setLineDash([]);
+    const tx=gx-outil.ox, ty=gy-outil.oy;
+    const v=testerDeplacement(b,tx,ty);
+    const [sx,sy]=ecran(tx*TUILE,ty*TUILE);
+    ctx.globalAlpha=.55;
+    ctx.fillStyle=v.ok?'rgba(43,123,191,.35)':'rgba(226,59,46,.35)';
+    ctx.fillRect(sx,sy,b.w*TUILE*cam.z,b.h*TUILE*cam.z);
+    ctx.globalAlpha=1;
+    ctx.strokeStyle=v.ok?'#2b7bbf':'#e23b2e';
+    ctx.lineWidth=2; ctx.setLineDash([5,4]);
+    ctx.strokeRect(sx,sy,b.w*TUILE*cam.z,b.h*TUILE*cam.z);
+    ctx.setLineDash([]);
+    if(cam.z>.5) bulle(sx+b.w*TUILE*cam.z/2,sy-2*cam.z,
+      v.ok?b.d.nom:v.r, v.ok?'#8fd0ff':'#ff9a8f');
+    return;
+  }
   if(outil.cat==='demolir'){
     if(!dedans(gx,gy)) return;
     const n=P.occ[idx(gx,gy)];
@@ -3663,6 +4046,8 @@ const CATS=[
  {id:'commande', nom:'COMMANDER',   ico:'🚚'},
  {id:'contrats', nom:'CONTRATS',    ico:'📋'},
  {id:'magasin',  nom:'LE MAGASIN',  ico:'🏪'},
+ {id:'frequent', nom:'FRÉQUENTATION',ico:'📈'},
+ {id:'deplacer', nom:'DÉPLACER',    ico:'✥'},
  {id:'demolir',  nom:'RETIRER',     ico:'⛏', sup:1}
 ];
 let catOuverte=null;
@@ -3682,10 +4067,17 @@ function ouvrirCat(id){
     aide('<b>Clique un rayon</b> pour aller le remplir depuis la réserve · '
       +'<b>une caisse</b> pour l\'ouvrir et scanner toi-même · '
       +'<b>un papier par terre</b> pour le ramasser.'); }
+  else if(id==='deplacer'){ outil={cat:'deplacer', b:null, ox:0, oy:0};
+    $('palette').innerHTML='';
+    aide('<b>Clique un meuble</b> pour le prendre, <b>reclique</b> pour le reposer '
+      +'ailleurs. Il garde sa marchandise, son prix et ses ventes — un déplacement '
+      +'ne coûte rien.'); }
   else if(id==='demolir'){ outil={cat:'demolir'}; $('palette').innerHTML='';
     aide('Clique sur un meuble pour le retirer. On récupère <b>45 %</b> du prix, et le stock repart en réserve.'); }
   else if(id==='personnel'){ outil=null; palettePersonnel(); aide(null); }
   else if(id==='magasin'){ outil=null; $('palette').innerHTML=''; aide(null); ficheMagasin(); }
+  else if(id==='frequent'){ outil=null; $('palette').innerHTML=''; aide(null);
+    ficheFrequentation(); }
   else if(id==='contrats'){ outil=null; $('palette').innerHTML=''; aide(null); ficheContrats(); }
   else if(id==='commande'){ outil=null; $('palette').innerHTML=''; aide(null);
     fermerFiche(); ouvrirBureau(); }
@@ -3758,12 +4150,54 @@ function palettePersonnel(){
     b.appendChild(c);
     b.onclick=()=>{
       if(bloque){ flash('Agrément '+m.niv+' requis','mal'); SND.erreur(); return; }
-      embaucher(k); palettePersonnel();
-      aide('<b>'+m.nom+'</b> — '+m.d+' Clic droit sur la vignette pour en retirer un.');
+      embaucher(k); palettePersonnel(); ficheEquipe();
+      aide('<b>'+m.nom+'</b> — '+m.d);
     };
-    b.oncontextmenu=e=>{ e.preventDefault(); licencier(k); palettePersonnel(); };
     el.appendChild(b);
   }
+  ficheEquipe();
+}
+
+/* ==========================================================================
+   L'ÉQUIPE
+   ==========================================================================
+   La liste des gens qu'on paie, avec pour chacun ce qu'il coûte, ce qu'il vaut,
+   ce que coûterait de le former et le bouton pour le remercier. */
+function ficheEquipe(){
+  selection=null;
+  const el=$('panneau'); el.classList.add('on');
+  const l=P.employes;
+  let h='<h3>L\'ÉQUIPE</h3><div class="sous">'+l.length+' PERSONNE'+(l.length>1?'S':'')
+    +' · '+eur(masseSalariale())+' PAR JOUR</div>';
+  if(!l.length) h+='<div class="txt">Personne. Tout repose sur toi : la caisse, '
+    +'les palettes et le balai. Choisis un métier dans la palette pour embaucher.</div>';
+  l.forEach((e,i)=>{
+    const ech=ECHELONS[clamp(e.niv||0,0,3)];
+    const px=prixFormation(e);
+    h+='<div class="emp"><div class="eh"><span class="ei">'+e.d.ico+'</span>'
+      +'<div class="en"><b>'+e.nom+'</b><span>'+e.d.nom+' · '+ech.nom+' '+ech.ico+'</span></div>'
+      +'<div class="ep">'+eur(paieDe(e))+'<em>/jour</em></div></div>'
+      +'<div class="ed">'+e.d.d+'</div>'
+      +'<div class="eb">'
+      +(px?('<button class="bt vert" data-f="'+i+'">FORMER · '+eur(px)+'</button>')
+          :'<button class="bt" disabled>AU SOMMET</button>')
+      +'<button class="bt rouge" data-v="'+i+'">REMERCIER</button></div></div>';
+  });
+  h+='<div class="txt">Former quelqu\'un le rend environ un tiers plus efficace et '
+    +'lui donne un cinquième de paie en plus, <b>tous les jours jusqu\'à la fin</b>. '
+    +'Un départ se solde d\'une journée de paie.</div>'
+    +'<button class="bt" id="eFer">FERMER</button>';
+  el.innerHTML=h;
+  el.querySelectorAll('button[data-f]').forEach(b=>{
+    b.onclick=()=>{ if(former(P.employes[+b.getAttribute('data-f')])){
+      palettePersonnel(); majBarre(); } };
+  });
+  el.querySelectorAll('button[data-v]').forEach(b=>{
+    b.onclick=()=>{ const e=P.employes[+b.getAttribute('data-v')];
+      if(e&&renvoyer(e)){ palettePersonnel(); majBarre(); } };
+  });
+  $('eFer').onclick=()=>{ fermerFiche(); catOuverte=null; majCats();
+    $('palette').innerHTML=''; };
 }
 
 /* ---- les fiches ---- */
@@ -3945,6 +4379,7 @@ function ficheBati(b){
       +(d.beau||0).toFixed(1)+'</b></div>';
   }
   h+='<div class="ligne" style="border:0"><span>Charges</span><b>'+(d.ent||0)+' €/jour</b></div>'
+    +'<button class="bt" id="bDep">DÉPLACER · gratuit</button>'
     +'<button class="bt rouge" id="bDem">RETIRER · rend '+eur(Math.round(d.prix*.45))+'</button>'
     +'<button class="bt" id="bFer">FERMER</button>';
   el.innerHTML=h;
@@ -3987,6 +4422,16 @@ function ficheBati(b){
     if(b.patron) lacherTache();
     else envoyerPatron(b.x,b.y);
     SND.clic(); ficheBati(b);
+  };
+  const dp=$('bDep');
+  if(dp) dp.onclick=()=>{
+    fermerFiche();
+    catOuverte='deplacer'; majCats();
+    $('palette').innerHTML='';
+    outil={cat:'deplacer', b, ox:0, oy:0};
+    SND.clic();
+    aide('<b>'+b.d.nom+'</b> en main — clique la case où le poser. '
+      +'Clic droit ou Échap pour le reposer où il était.');
   };
   $('bDem').onclick=()=>{ demolir(b.x,b.y); fermerFiche(); };
   $('bFer').onclick=fermerFiche;
@@ -4065,6 +4510,118 @@ function ficheContrats(){
   $('cFer').onclick=()=>{ fermerFiche(); catOuverte=null; majCats(); };
 }
 
+/* ==========================================================================
+   LA FRÉQUENTATION JOUR PAR JOUR
+   ==========================================================================
+   Une barre par jour de la semaine, à l'échelle du plus chargé. On lit d'un
+   coup d'œil quel jour paie le loyer et quel jour ne paie rien — sur ses
+   propres chiffres, pas sur une règle du jeu. */
+function barresFrequentation(compact){
+  const t=(P&&P.parJour)||[];
+  const moy=t.map(x=>x.n?x.cli/x.n:0);
+  const top=Math.max(1,...moy);
+  let h='';
+  for(let i=0;i<JOURS_SEM.length;i++){
+    const j=JOURS_SEM[i], d=t[i]||{n:0,cli:0,ca:0,rate:0,max:0};
+    const m=moy[i], u=m/top;
+    const auj=(P.jour-1)===i;
+    h+='<div class="frq'+(auj?' auj':'')+'">'
+      +'<span class="fj">'+j.court+'</span>'
+      +'<i class="fb"><u style="width:'+Math.round(u*100)+'%"></u></i>'
+      +'<b class="fv">'+(d.n?nb(Math.round(m)):'—')+'</b>'
+      +(compact?'':'<em class="fe">'+(d.n?(eur(Math.round(d.ca/d.n))
+        +(d.rate?' · '+nb(Math.round(d.rate/d.n))+' ratées':'')):'jamais ouvert')+'</em>')
+      +'</div>';
+  }
+  return h;
+}
+function ficheFrequentation(){
+  selection=null;
+  const el=$('panneau'); el.classList.add('on');
+  const t=P.parJour||[];
+  const ouverts=t.reduce((s,x)=>s+x.n,0);
+  let best=0, pire=0;
+  for(let i=1;i<t.length;i++){
+    const m=x=>t[x].n?t[x].cli/t[x].n:-1;
+    if(m(i)>m(best)) best=i;
+    if(m(i)<m(pire)&&t[i].n) pire=i;
+  }
+  let h='<h3>FRÉQUENTATION</h3><div class="sous">'+ouverts+' JOURNÉE'
+    +(ouverts>1?'S':'')+' OUVERTE'+(ouverts>1?'S':'')+' · MOYENNE DE CLIENTS PAR JOUR</div>'
+    +'<div class="frqL">'+barresFrequentation(false)+'</div>';
+  if(ouverts>=3)
+    h+='<div class="txt"><b>'+JOURS_SEM[best].nom+'</b> est ta grosse journée '
+      +'('+nb(Math.round(t[best].cli/Math.max(1,t[best].n)))+' clients en moyenne)'
+      +(t[pire].n?(', <b>'+JOURS_SEM[pire].nom+'</b> la plus creuse'):'')
+      +'. Commande pour le lendemain en regardant cette colonne, pas la précédente.</div>';
+  else h+='<div class="txt">Il faut quelques journées avant que la courbe veuille '
+    +'dire quelque chose. Reviens voir en fin de semaine.</div>';
+  const pic=t.reduce((s,x)=>Math.max(s,x.max||0),0);
+  if(pic) h+='<div class="ligne"><span>Record sur une journée</span><b>'+nb(pic)
+    +' clients</b></div>';
+  h+='<div class="ligne" style="border:0"><span>Attendu aujourd\'hui</span><b>'
+    +nb(P.prevu||0)+' clients</b></div>'
+    +'<button class="bt" id="frFer">FERMER</button>';
+  el.innerHTML=h;
+  $('frFer').onclick=()=>{ fermerFiche(); catOuverte=null; majCats(); };
+}
+
+/* ==========================================================================
+   LE BANDEAU DE PRÉPARATION
+   ==========================================================================
+   Ce qu'on voit avant d'ouvrir : ce que la journée va coûter, ce qui n'est pas
+   prêt, et les deux boutons. La liste des reproches est volontairement courte
+   — trois lignes qu'on lit d'un coup d'œil, pas un audit. */
+function montrerPrepa(){
+  const el=$('prepa');
+  if(!el) return;
+  el.classList.add('on');
+  majPrepa();
+  $('ppOuvrir').onclick=()=>{ SND.clic(); demarrerService(); };
+  $('ppMonter').onclick=()=>{ monterTout(); prepaT=0; majPrepa(); };
+  $('ppFerme').onclick=()=>{
+    if(!P.confirmeFerme){
+      P.confirmeFerme=1;
+      $('ppFerme').textContent='SÛR ? JOURNÉE PERDUE';
+      setTimeout(()=>{ if(P){ P.confirmeFerme=0;
+        const b=$('ppFerme'); if(b) b.textContent='RESTER FERMÉ'; } },4000);
+      return;
+    }
+    P.confirmeFerme=0;
+    resterFerme();
+  };
+}
+function cacherPrepa(){ const el=$('prepa'); if(el) el.classList.remove('on'); }
+
+let prepaT=0;
+function majPrepa(){
+  const el=$('prepa');
+  if(!el||!el.classList.contains('on')) return;
+  prepaT-=1;
+  if(prepaT>0) return;
+  prepaT=18;
+  const j=JOURS_SEM[P.jour-1];
+  poser1('ppJour',j.nom+' — SEMAINE '+P.sem+' · '+j.ico+' '+TEMPS[P.temps].nom);
+  const dus=coutsQuotidiens()+(P.jour>=JOURS?loyerProchain():0);
+  poser1('ppTxt',j.d+' Affluence attendue : environ '+nb(P.prevu)+' clients. '
+    +'Ce soir tu devras sortir '+eur(dus)+'.');
+  /* les reproches : ce qui empêchera la journée de bien se passer */
+  const l=[];
+  const vides=P.meubles.filter(b=>b.cat==='meuble'&&b.prod&&b.stock<=0).length;
+  const caisses=P.meubles.filter(b=>b.cat==='caisse'&&b.servi).length;
+  const hotes=P.employes.filter(e=>e.k==='hote').length;
+  const res=occupationReserve();
+  if(vides) l.push(['mal',vides+' rayon'+(vides>1?'s':'')+' vide'+(vides>1?'s':'')]);
+  if(!caisses) l.push(['mal','aucune caisse posée']);
+  else if(hotes+1<Math.ceil(P.prevu/70)) l.push(['mal','trop peu de caisses tenues']);
+  if(res>0) l.push(['','réserve : '+nb(res)+' articles à monter']);
+  if(P.livraisons.length) l.push(['',P.livraisons.length+' livraison(s) attendue(s)']);
+  if(P.argent<dus) l.push(['mal','la caisse ne couvre pas le soir']);
+  if(!l.length) l.push(['bon','le magasin est prêt']);
+  $('ppListe').innerHTML=l.slice(0,4)
+    .map(x=>'<i class="'+x[0]+'">'+x[1]+'</i>').join('');
+}
+
 /* ---- la barre du haut ---- */
 let hudC={};
 function majBarre(){
@@ -4087,8 +4644,31 @@ function majBarre(){
   majCaisseHud(); majPatronHud();
   const t=TEMPS[P.temps];
   set('tIco',t.ico);
-  set('tTxt',t.nom+' · '+Math.floor(P.heure)+'h'
-    +String(Math.floor((P.heure%1)*60)).padStart(2,'0'));
+  set('tTxt',t.nom);
+  /* l'horloge : l'heure en gros, la journée en barre, l'état du rideau */
+  const hh=Math.floor(P.heure), mm=Math.floor((P.heure%1)*60);
+  set('hlH',String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0'));
+  const uj=clamp((P.heure-OUVERTURE)/HEURES_JOUR,0,1);
+  const bf=$('hlBar'); if(bf) bf.style.width=Math.round(uj*100)+'%';
+  const ph=P.phase||'ouvert';
+  set('hlEtat',ph==='prepa'?'AVANT OUVERTURE':P.ouvert?'OUVERT':'RIDEAU BAISSÉ');
+  const hg=$('horloge');
+  if(hg){
+    hg.classList.toggle('ouvert',!!P.ouvert);
+    hg.classList.toggle('ferme',ph==='prepa');
+    hg.classList.toggle('soir',!P.ouvert&&ph!=='prepa');
+  }
+  /* ce que la journée coûtera ce soir, quoi qu'il arrive */
+  const loyer=P.jour>=JOURS?loyerProchain():0;
+  const dus=coutsQuotidiens()+loyer;
+  set('jPaie',eur(dus));
+  const pb=$('jPaieBloc');
+  if(pb){
+    pb.classList.toggle('mal',P.argent<dus);
+    pb.classList.toggle('loyer',loyer>0&&P.argent>=dus);
+    pb.title=loyer?('Charges '+eur(coutsQuotidiens())+' + loyer '+eur(loyer))
+                  :'Charges des meubles et paie du personnel';
+  }
 }
 function majVitesse(){
   Array.prototype.forEach.call($('vit').children,el=>{
@@ -4104,11 +4684,30 @@ function majVitesse(){
 function montrerSoir(){
   const j=P.jt;
   const res=j.resultat;
+  const ferme=!!j.ferme;
+  /* le relevé de la semaine, rempli juste avant l'affichage */
+  const fq=$('sFreq');
+  if(fq) fq.innerHTML=barresFrequentation(true);
+  const ft=$('sFreqT');
+  if(ft){
+    const t=P.parJour||[];
+    const ouverts=t.reduce((s,x)=>s+x.n,0);
+    let best=0;
+    for(let i=1;i<t.length;i++)
+      if((t[i].n?t[i].cli/t[i].n:-1)>(t[best].n?t[best].cli/t[best].n:-1)) best=i;
+    ft.innerHTML=ouverts>=3
+      ? ('Moyenne de clients par jour de la semaine, sur tes '+ouverts+' journées. '
+        +'<b>'+JOURS_SEM[best].nom+'</b> est celle qui remplit la caisse — c\'est pour '
+        +'elle qu\'il faut commander l\'avant-veille.')
+      : 'Moyenne de clients par jour de la semaine. Il faut trois ou quatre journées '
+        +'avant que ça veuille dire quelque chose.';
+  }
   const moy=j.bonheur.length?j.bonheur.reduce((a,b)=>a+b,0)/j.bonheur.length:0;
   $('sEye').textContent='SEMAINE '+P.sem+' · '+JOURS_SEM[P.jour-1].nom+' '+P.jour+' / '+JOURS
-    +' — '+TEMPS[P.temps].nom;
-  $('sTitre').textContent=res>=0?'BONNE JOURNÉE':'JOURNÉE DANS LE ROUGE';
-  $('sTitre').style.color=res>=0?'#1f7a3d':'#c0392b';
+    +' — '+(ferme?'RIDEAU JAMAIS LEVÉ':TEMPS[P.temps].nom);
+  $('sTitre').textContent=ferme?'MAGASIN RESTÉ FERMÉ'
+    :res>=0?'BONNE JOURNÉE':'JOURNÉE DANS LE ROUGE';
+  $('sTitre').style.color=ferme?'#8b8377':res>=0?'#1f7a3d':'#c0392b';
   const li=(em,t,s,v,c)=>'<div class="rl"><span class="re">'+em+'</span><div class="rt"><b style="color:'
     +(c||'#453f37')+'">'+t+'</b>'+(s?'<span>'+s+'</span>':'')+'</div>'
     +'<span class="rv" style="color:'+(c||'#26221e')+'">'+v+'</span></div>';
@@ -4122,7 +4721,11 @@ function montrerSoir(){
     '−'+eur(j.casse),j.casse?'#c0392b':'#8b8377');
   L+=li('👀','DÉMARQUE','Ce qui sort sans passer en caisse','−'+eur(j.demarque),'#c0392b');
   L+=li('🔌','CHARGES',P.meubles.length+' installations','−'+eur(j.depEnt),'#c0392b');
-  L+=li('🧑‍💼','SALAIRES',P.employes.length+' employés','−'+eur(j.depPaie),'#c0392b');
+  L+=li('🧑‍💼','SALAIRES',P.employes.length+' employés'
+    +(P.employes.some(e=>e.niv) ? ' · '+P.employes.filter(e=>e.niv).length+' formé(s)':''),
+    '−'+eur(j.depPaie),'#c0392b');
+  if(j.depForm) L+=li('🎓','FORMATION','Ce que tu as investi dans ton équipe aujourd\'hui',
+    '−'+eur(j.depForm),'#8257bd');
   L+=li(res>=0?'💰':'📉','RÉSULTAT DU JOUR','',(res>=0?'+':'')+eur(res),
     res>=0?'#1f7a3d':'#c0392b');
   L+=li('📊','MARGE BRUTE','Ce que rapportent les articles vendus, avant les frais',
@@ -4497,6 +5100,8 @@ function majReglages(){
   $('sonBtn').textContent=SAVE.son?'SON : ACTIVÉ':'SON : COUPÉ';
   $('volIn').value=Math.round((SAVE.volume||.6)*100);
   $('volVal').textContent=Math.round((SAVE.volume||.6)*100)+' %';
+  const rb=$('repBtn');
+  if(rb) rb.textContent=SAVE.reprise===false?'DÉSACTIVÉE':'ACTIVÉE';
 }
 
 /* ==========================================================================
@@ -4507,7 +5112,7 @@ function majReglages(){
    centrale d'achat. Une faillite au troisième samedi n'est jamais une soirée
    perdue — elle laisse de quoi commencer la suivante un cran plus haut. */
 
-const SAVE_DEF={ volume:.6, son:true, diff:'normale',
+const SAVE_DEF={ volume:.6, son:true, diff:'normale', reprise:true,
   nom:'', avatar:0,
   parties:0, victoires:0, meilleur:0, meilleureRep:0, meilleurNiveau:0,
   totalClients:0, totalArticles:0, totalCA:0, meilleureCaisse:0,
@@ -4582,6 +5187,8 @@ const SUCCES=[
  {id:'marge',    nom:'GROSSE MARGE',     d:'Huit mille euros de marge brute en une journée',j:10},
  {id:'satisfait',nom:'TOUT LE MONDE SOURIT',d:'Une journée à plus de 90 % de satisfaction',j:11},
  {id:'revision', nom:'LINÉAIRE',         d:'Poser vingt rayons dans un même magasin',      j:7},
+ {id:'ecole',    nom:'ÉCOLE DU RAYON',  d:'Former un employé',                            j:5},
+ {id:'braddroit',nom:'BRAS DROIT',      d:'Amener un employé au dernier échelon',         j:12},
  {id:'vedette',  nom:'PASSAGE À LA TÉLÉ',d:'Payer un spot régional',                       j:6},
  {id:'gagne',    nom:'DIX SEMAINES',     d:'Payer les dix loyers',                         j:35},
  {id:'gagnedur', nom:'MARGE NULLE',      d:'Gagner en difficulté MARGE NULLE',             j:60}
@@ -4620,6 +5227,7 @@ function verifierSucces(fin){
   for(const b of P.meubles) if(b.cat==='meuble'&&b.prod&&b.servi) fams[PRODUITS[b.prod].fam]=1;
   if(Object.keys(fams).length>=Object.keys(FAMILLES).length) decrocher('complet');
   if(referencees().length>=50) decrocher('cinquante');
+  if(P.employes.some(e=>(e.niv||0)>=ECHELONS.length-1)) decrocher('braddroit');
   if(fin){
     const n=j.bonheur?j.bonheur.length:0;
     if(n>=25&&!Object.keys(j.manques||{}).length&&!Object.keys(j.manquesFam||{}).length)
@@ -4744,12 +5352,28 @@ function serialiserPartie(){
     reserve:res, sal,
     meubles:P.meubles.map(b=>[b.cat,b.k,b.x,b.y,b.prod,
       b.lots.map(x=>[x.q,x.age]), b.ventes|0, Math.round(b.recette||0)]),
-    emp:P.employes.map(e=>e.k)
+    emp:P.employes.map(e=>[e.k, e.niv|0, e.nom, e.jours|0]),
+    parJour:(P.parJour||[]).map(x=>[x.n|0,Math.round(x.cli),Math.round(x.ca),
+      Math.round(x.art),Math.round(x.rate),x.max|0])
   };
 }
 function instantane(){
   if(!P||P.demo||P.fini) return;
   try{ SAVE.partie=serialiserPartie(); sauver(); }catch(e){ SAVE.partie=null; }
+}
+/* Pendant la préparation le magasin se décrit entièrement — personne dans les
+   allées, aucune file, aucun caddie. On peut donc réenregistrer à chaque geste,
+   et le joueur qui ferme l'onglet après avoir passé sa commande la retrouve.
+   Une fois le rideau levé, on ne touche plus à l'instantané du matin : la
+   journée se rejoue depuis son début, ce qui est plus honnête que de figer
+   quarante clients au milieu d'une allée. */
+let instT=0;
+function enregistrerPrepa(){
+  if(!P||P.demo||P.fini||P.phase!=='prepa') return;
+  const t=performance.now();
+  if(t-instT<400) return;
+  instT=t;
+  instantane();
 }
 function restaurerPartie(d){
   if(!d||!d.meubles) return false;
@@ -4773,7 +5397,14 @@ function restaurerPartie(d){
       b.ventes=ventes|0; b.recette=recette|0;
     }
     P.employes=[];
-    for(const k of (d.emp||[])) if(METIERS[k]) embaucher(k,true);
+    for(const a of (d.emp||[])){
+      /* une sauvegarde d'avant les échelons ne portait que la clé du métier */
+      if(typeof a==='string'){ if(METIERS[a]) embaucher(a,true); continue; }
+      if(a&&METIERS[a[0]]){
+        const e=embaucher(a[0],true,a[1]|0,a[2]);
+        if(e) e.jours=a[3]|0;
+      }
+    }
     P.reserve={};
     for(const k in (d.reserve||{}))
       if(PRODUITS[k]) P.reserve[k]=d.reserve[k].map(z=>({q:z[0],age:z[1]}));
@@ -4794,6 +5425,9 @@ function restaurerPartie(d){
     });
     P.niveau=clamp(P.niveau|0,1,NIV_MAX);
     P.prix=Object.assign({},P.prix,d.prix||{});
+    if(d.parJour&&d.parJour.length===JOURS_SEM.length)
+      P.parJour=d.parJour.map(a=>({n:a[0]|0, cli:a[1]|0, ca:a[2]|0, art:a[3]|0,
+        rate:a[4]|0, max:a[5]|0}));
     P.commande=d.commande||{};
     P.ventes=d.ventes||{}; P.manques=d.manques||{};
     CHUNKS=null; P.beaute=null; P.sale=true;
@@ -4802,17 +5436,19 @@ function restaurerPartie(d){
     return true;
   }catch(e){ return false; }
 }
-function reprendrePartie(){
+function reprendrePartie(muet){
   if(!restaurerPartie(SAVE.partie)){
     SAVE.partie=null; sauver(); majMenu();
-    flash('Sauvegarde illisible','mal');
-    return;
+    if(!muet) flash('Sauvegarde illisible','mal');
+    return false;
   }
   ecranActif='jeu'; ecrans(null);
   construireCats(); catOuverte=null; majCats(); $('palette').innerHTML='';
-  aide('Reprise de la semaine '+P.sem+', '+JOURS_SEM[P.jour-1].nom+'.');
-  setTimeout(()=>aide(null),6000);
+  aide('Te revoilà : semaine '+P.sem+', '+JOURS_SEM[P.jour-1].nom
+    +'. Le rideau est encore baissé.');
+  setTimeout(()=>aide(null),7000);
   ouvrirJournee();
+  return true;
 }
 
 let SAVE=Object.assign({},SAVE_DEF);
@@ -5038,8 +5674,28 @@ function majMenu(){
    ========================================================================== */
 function poserIci(gx,gy){
   if(!outil) return;
+  setTimeout(enregistrerPrepa,0);
   if(outil.cat==='travail'){ if(envoyerPatron(gx,gy)) SND.clic(); return; }
   if(outil.cat==='demolir'){ demolir(gx,gy); return; }
+  if(outil.cat==='deplacer'){
+    if(!outil.b){
+      const n=dedans(gx,gy)?P.occ[idx(gx,gy)]:-1;
+      if(n<0){ flash('Clique un meuble à déplacer','mal'); SND.erreur(); return; }
+      const b=P.meubles[n];
+      outil.b=b; outil.ox=gx-b.x; outil.oy=gy-b.y;
+      SND.clic();
+      aide('<b>'+b.d.nom+'</b> en main — clique la case où le poser.');
+      return;
+    }
+    const b=outil.b;
+    if(P.meubles.indexOf(b)<0){ outil.b=null; return; }
+    if(deplacerBati(b,gx-outil.ox,gy-outil.oy)){
+      flotte((b.x+b.w/2)*TUILE,b.y*TUILE-6,'DÉPLACÉ','#2b7bbf');
+      outil.b=null;
+      aide('Clique un autre meuble pour le déplacer.');
+    }
+    return;
+  }
   const b=poser(outil.cat,outil.k,gx,gy);
   if(b){
     flotte((b.x+b.w/2)*TUILE,b.y*TUILE-6,'−'+eur(b.d.prix),'#c0392b');
@@ -5149,8 +5805,11 @@ function cabler(){
     if(e.code==='Escape'){ outil=null; catOuverte=null; majCats(); $('palette').innerHTML='';
       aide(null); fermerFiche(); return; }
     if(ecranActif!=='jeu') return;
+    if(e.code==='Enter'&&enPrepa()){ demarrerService(); return; }
+    if((e.code==='KeyR')&&enPrepa()){ monterTout(); return; }
     if(e.code==='Space'){
       e.preventDefault();
+      if(enPrepa()&&!(P.patron&&P.patron.tache==='caisse')){ demarrerService(); return; }
       /* derrière une caisse, la barre d'espace scanne ; ailleurs elle met en
          pause. C'est la touche qu'on a sous le pouce dans les deux cas. */
       if(P&&P.patron&&P.patron.tache==='caisse'){ scanner(); majCaisseHud(); return; }
@@ -5256,6 +5915,8 @@ function cabler(){
     const l=Object.keys(DIFFS);
     SAVE.diff=l[(l.indexOf(SAVE.diff)+1)%l.length]; sauver(); majReglages(); SND.clic();
   };
+  $('repBtn').onclick=()=>{ SAVE.reprise=!SAVE.reprise; sauver(); majReglages();
+    SND.clic(); };
   $('sonBtn').onclick=()=>{ SAVE.son=!SAVE.son; SND.on=SAVE.son;
     if(!SAVE.son) SND.silence(); else if(P&&P.ouvert) SND.lancerMuzak();
     sauver(); majReglages(); };
@@ -5268,8 +5929,14 @@ function cabler(){
     P=null; ecranActif='menu'; ecrans('menu'); magasinDemo();
   };
   document.addEventListener('visibilitychange',()=>{
-    if(document.hidden&&ecranActif==='jeu'){ enPause=true; majVitesse(); }
+    if(document.hidden){
+      if(ecranActif==='jeu'){ enPause=true; majVitesse(); }
+      enregistrerPrepa();
+      try{ sauver(); }catch(e){}
+    }
   });
+  addEventListener('beforeunload',()=>{ enregistrerPrepa(); try{ sauver(); }catch(e){} });
+  addEventListener('pagehide',()=>{ enregistrerPrepa(); try{ sauver(); }catch(e){} });
 }
 
 /* ==========================================================================
@@ -5393,6 +6060,11 @@ magasinDemo();
 majMenu();
 majVitesse();
 ecrans('menu');
+/* On ne demande pas au joueur s'il veut reprendre : s'il y a une partie en
+   cours, c'est là qu'il allait. Le menu reste à un bouton de distance. */
+if(SAVE.reprise!==false&&SAVE.partie){
+  try{ if(!reprendrePartie(true)) ecrans('menu'); }catch(e){ ecrans('menu'); }
+}
 requestAnimationFrame(boucle);
 
 </script>
