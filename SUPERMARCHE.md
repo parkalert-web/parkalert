@@ -100,6 +100,46 @@ passée derrière une caisse est une minute qu'on ne passe pas à monter des
 palettes, et réciproquement. C'est la seule ressource du jeu qui ne s'achète
 pas — sauf en embauchant.
 
+## Le cours de la centrale
+
+Le prix d'achat était la dernière constante du jeu. On commandait toujours au
+même tarif, et commander aujourd'hui plutôt que demain n'avait aucune
+conséquence.
+
+Chaque référence a maintenant **un cours qui bouge toutes les nuits**. Trois
+mouvements, dans cet ordre :
+
+1. tout revient d'un quart vers son niveau normal, avec un peu de bruit — c'est
+   ce qui fait qu'un arrivage s'épuise en trois ou quatre jours au lieu de durer
+   toute la partie ;
+2. une fois sur deux, **une famille entière** bouge de 14 à 30 %, à la hausse ou
+   à la baisse ;
+3. puis deux à quatre références isolées prennent un vrai coup — **−22 à −42 %**
+   pour un arrivage, +20 à +38 % pour une tension.
+
+Et une raison, toujours : *la récolte a été bonne*, *le gel a touché les
+vergers*, *une chambre froide doit être vidée*, *le blé monte*. C'est cette
+phrase qui fait qu'on retient « le lait est à −30 % » au lieu de voir passer un
+chiffre vert de plus.
+
+**Le prix de vente ne bouge pas.** Ce que le client trouve normal reste ce qu'il
+trouve normal : une baisse de la centrale est de la marge pure, pour qui a la
+réserve, la trésorerie et la place en rayon pour en profiter. Sur soixante
+journées le cours moyen s'établit autour de **0,977** — 16 % des références en
+arrivage et 8 % en tension à un instant donné. Le cadeau est minuscule ; ce
+qu'on gagne à lire l'ardoise ne l'est pas.
+
+Ça se lit à quatre endroits : **L'ARDOISE DU JOUR** en tête du bon de commande,
+un badge de variation sur chaque ligne avec l'ancien prix barré, le panneau
+**LE MARCHÉ** depuis la barre d'outils, et le bilan du soir qui chiffre
+séparément *acheté au bon moment* et *payé au prix fort*. Le bouton REMPLIR AU
+MIEUX charge de lui-même sur les arrivages non périssables.
+
+Le bon de commande se lit aussi de trois façons — **par famille**, **par bonne
+affaire** (le cours le plus bas d'abord), **par ce qui a manqué** hier. C'est le
+tri qui décide de ce qu'on achète : celui qui range par famille achète par
+habitude, celui qui range par affaire achète au bon moment.
+
 ## Réagencer le magasin
 
 Poser une gondole au mauvais endroit coûtait le prix d'une démolition — 55 % du
@@ -116,6 +156,47 @@ Les mêmes règles qu'à la pose s'appliquent : il faut une allée devant, on ne
 bouche pas le sas d'entrée, et un présentoir reste collé à sa caisse. Le
 fantôme montre l'ancienne place en pointillé et la nouvelle en plein, avec la
 raison du refus quand il y en a une.
+
+## Ce qu'il y a dans les rayons
+
+Un rayon était un rectangle rempli de petits carrés à la couleur de la famille.
+On voyait s'il était plein ; on ne voyait pas ce qu'il y avait dedans, et deux
+rayons de la même famille étaient rigoureusement identiques.
+
+Chaque référence a maintenant **une silhouette**. Dix-sept formes — paquet,
+boîte, conserve, bouteille, canette, brique, pot, fruit, légume, pain,
+barquette, rouleau, flacon, tube, tablette, boîte à œufs, sachet — attribuées
+par famille avec une trentaine d'exceptions : la bouteille d'huile n'est pas le
+paquet de pâtes, la brique de lait n'est pas le pot de yaourt, le steak n'est
+pas la baguette. Trois nuances par référence, pour qu'un linéaire de trente-deux
+articles ne soit pas un aplat.
+
+C'est plus lisible **et moins cher à dessiner** : chaque silhouette est peinte
+une seule fois dans un petit canevas hors écran, à la taille exacte où on en a
+besoin, puis recopiée. Un article coûte un `drawImage` là où il coûtait trois
+`fillRect`. Le cache se vide quand le zoom change. Sous une certaine taille de
+case, on revient au bloc de couleur — à cette distance, une forme ne se
+distingue plus de toute façon.
+
+Au-dessus de chaque meuble, **une réglette de prix** : pastille à la couleur de
+la famille, nom de la référence, prix de vente à droite — rouge s'il est passé
+sous le prix d'achat, orange si la marge est maigre, vert sinon. Dessous, un
+**trait de remplissage** qui va du vert au rouge et qui se lit même dézoomé,
+bien après que le texte a disparu. Et un **fanion PROMO** quand le prix est
+nettement sous la référence.
+
+Sous 60 % de zoom la réglette disparaît — mais une **pastille à la couleur de
+la famille** reste posée sur le coin du meuble, et le trait de remplissage reste
+lisible. On retrouve son rayon de crémerie au milieu de quarante meubles sans
+avoir à rezoomer.
+
+Les meubles ont aussi gagné un filet sombre et une double ombre portée : sans
+contour, un meuble clair posé sur un sol clair transforme le magasin en bouillie
+beige dès qu'on prend du recul.
+
+L'étal de fruits, la vitrine du boucher et le fournil, qui avaient chacun leur
+dessin bricolé, passent au même système : on y voit maintenant de vraies
+pommes, de vraies barquettes et de vraies baguettes.
 
 ## L'équipe
 

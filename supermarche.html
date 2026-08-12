@@ -52,6 +52,36 @@ input[type=text]{-webkit-user-select:text;user-select:text}
 .jauge.rup b{color:var(--gris)} .jauge.rup.mal b{color:var(--rouge)}
 .jauge.rup{cursor:pointer;min-width:62px}
 #barre .pousse{flex:1}
+.triL{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin:14px 0 2px;
+  width:100%;max-width:760px}
+.triL button{padding:8px 13px;border:2px solid var(--bord);border-radius:9px;
+  background:var(--creme);color:var(--gris);font:700 9.5px var(--mono);letter-spacing:.12em;
+  cursor:pointer}
+.triL button.on{background:var(--encre);border-color:var(--encre);color:var(--creme)}
+
+/* l'ardoise */
+.crs{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:10px;
+  margin-top:6px;border:2px solid var(--bord);background:var(--creme2)}
+.crs .ci{font-size:19px;width:24px;text-align:center;flex:0 0 auto}
+.crs .cc{flex:1;min-width:0}
+.crs .cc b{display:block;font-size:11.5px;letter-spacing:.05em}
+.crs .cc span{display:block;font-size:10px;color:var(--gris);margin-top:2px}
+.crs .cv{font:700 15px var(--mono);white-space:nowrap}
+.crs.bas{border-color:var(--vert);background:#eef8f0}
+.crs.bas .cv{color:#1f7a3d}
+.crs.haut{border-color:var(--rouge);background:#fdeeec}
+.crs.haut .cv{color:var(--rouge)}
+.crs.gros .cc b{font-size:13px}
+.cmd.arriv{box-shadow:inset 3px 0 0 var(--vert)}
+.cmd.tens{box-shadow:inset 3px 0 0 var(--rouge)}
+.cmd .ci{position:relative}
+.cmd .ci .vr{position:absolute;left:50%;transform:translateX(-50%);bottom:-9px;
+  font:700 8px var(--mono);text-decoration:none;padding:1px 4px;border-radius:5px;
+  white-space:nowrap;color:#fff}
+.cmd .ci .vr.bas{background:var(--vert)}
+.cmd .ci .vr.haut{background:var(--rouge)}
+.cmd s{opacity:.55}
+
 .frqL{margin:8px 0 4px}
 .frq{display:flex;align-items:center;gap:7px;padding:4px 0}
 .frq .fj{font:700 9.5px var(--mono);letter-spacing:.1em;color:var(--gris);width:30px;
@@ -560,6 +590,8 @@ body:not(.enJeu) #flash{display:none !important}
       <span><i style="background:#ffc61e"></i>CAISSE</span>
       <span><i style="background:#8257bd"></i>FIN DE SEMAINE</span></div></div>
   <div class="carte" id="sLoyer" style="display:none"></div>
+  <div class="carte" id="sCoursC"><div class="sur">L'ARDOISE DE LA CENTRALE</div>
+    <div id="sCours"></div></div>
   <div class="carte" id="sFreqC"><div class="sur">QUI VIENT, ET QUEL JOUR</div>
     <div class="frqL" id="sFreq"></div>
     <div class="txt" id="sFreqT" style="font-size:10.5px;color:var(--gris);line-height:1.6">
@@ -577,8 +609,15 @@ body:not(.enJeu) #flash{display:none !important}
   <div class="eyebrow" id="cEye">LA CENTRALE D'ACHAT</div>
   <h1 style="font-size:var(--t2)" class="plat">COMMANDER</h1>
   <div class="carte" id="cAide"></div>
+  <div class="carte" id="cCours"><div class="sur">L'ARDOISE DU JOUR</div>
+    <div id="cCoursL"></div></div>
   <div class="carte" id="cLic"><div class="sur">LES LICENCES — CE QU'ON A LE DROIT DE VENDRE</div>
     <div id="cLicL"></div></div>
+  <div class="triL">
+    <button data-t="famille" class="on">PAR FAMILLE</button>
+    <button data-t="affaire">LES BONNES AFFAIRES</button>
+    <button data-t="manque">CE QUI A MANQUÉ</button>
+  </div>
   <div class="cmdL" id="cListe"></div>
   <div class="total"><span id="cTotT">TOTAL DE LA COMMANDE</span><b id="cTot">0 €</b></div>
   <div class="relance">
@@ -1176,6 +1215,82 @@ const METIERS={
 };
 
 /* ==========================================================================
+   LA SILHOUETTE DES ARTICLES
+   ==========================================================================
+   Ce qu'on voit dans un rayon, ce n'est pas une couleur, c'est une forme. Une
+   famille donne une forme par défaut, et une trentaine de références en ont une
+   à elles — c'est ce qui fait qu'on reconnaît le rayon des bouteilles de celui
+   des conserves sans lire l'étiquette. */
+const FORME_FAM={
+ sec:'paquet', entretien:'boite', boissons:'bouteille', sucre:'boite',
+ frais:'pot', fruits:'fruit', hygiene:'flacon', surgeles:'boite',
+ boulangerie:'sachet', divers:'boite', boucherie:'barquette'
+};
+const FORME_PROD={
+ conserve:'conserve', huile:'bouteille', sel:'boite',
+ papier:'rouleau', vaisselle:'flacon', eponges:'sachet', sacs:'rouleau',
+ jus:'brique', biere:'canette',
+ chocolat:'tablette', confiture:'pot', biscuits:'paquet', cafe:'paquet',
+ lait:'brique', oeufs:'boiteoeuf', beurre:'boite',
+ bananes:'legume', carottes:'legume', salade:'legume',
+ dentifrice:'tube', mouchoirs:'boite', couches:'sachet', savon:'boite',
+ legumesS:'sachet', glace:'pot',
+ baguette:'pain', croissants:'sachet', painmie:'sachet', brioche:'sachet',
+ croquettes:'sachet', magazines:'plat', piles:'boite', ampoules:'boite',
+ chewing:'boite'
+};
+function formeDe(k){
+  return FORME_PROD[k]||FORME_FAM[(PRODUITS[k]||{}).fam]||'boite';
+}
+
+/* ==========================================================================
+   LE COURS DE LA CENTRALE
+   ==========================================================================
+   Un coefficient par référence, autour de 1. Il revient toujours vers 1 —
+   sinon une bonne graine donnerait une partie entière à moitié prix — mais il
+   met plusieurs jours à le faire, ce qui laisse le temps d'en profiter.
+
+   Les bornes sont serrées (0,55 à 1,45) parce qu'un prix d'achat divisé par
+   deux sur un rayon très demandé suffit à changer une journée. */
+const COURS_MIN=.55, COURS_MAX=1.45;
+
+/* Les raisons. Elles ne servent qu'à écrire une phrase juste — mais c'est
+   cette phrase qui fait qu'on retient « le lait est à −30 % » au lieu de voir
+   passer un chiffre vert de plus. */
+const RAISONS_BAS={
+ sec:['la récolte a été bonne','un entrepôt se vide avant travaux','la centrale déstocke'],
+ entretien:['un fournisseur brade sa fin de série','palettes retournées d\'un autre magasin'],
+ boissons:['fin de saison chez l\'embouteilleur','une promotion nationale démarre'],
+ sucre:['un lot proche de la date','changement d\'emballage chez le fabricant'],
+ frais:['surproduction laitière','la coopérative écoule son excédent'],
+ fruits:['pleine saison, les cageots s\'entassent','récolte avancée par la chaleur'],
+ hygiene:['déstockage de fin de gamme','un concurrent a annulé sa commande'],
+ surgeles:['une chambre froide doit être vidée','fin de campagne chez le surgélateur'],
+ boulangerie:['la meunerie casse ses prix','farine dégriffée cette semaine'],
+ divers:['fin de série chez l\'importateur','un container arrive avec du retard'],
+ boucherie:['abattage plus important que prévu','le grossiste doit écouler']
+};
+const RAISONS_HAUT={
+ sec:['mauvaise récolte annoncée','le fret a augmenté'],
+ entretien:['rupture chez le fabricant','la matière première a doublé'],
+ boissons:['grosse demande, la canicule arrive','grève chez l\'embouteilleur'],
+ sucre:['le cacao flambe','la campagne publicitaire du fabricant tire la demande'],
+ frais:['la production laitière baisse','les éleveurs bloquent les dépôts'],
+ fruits:['le gel a touché les vergers','la pluie a retardé la cueillette'],
+ hygiene:['pénurie sur les emballages','tension sur la cellulose'],
+ surgeles:['l\'électricité a renchéri le stockage','rupture d\'approvisionnement'],
+ boulangerie:['le blé monte','la meunerie est en sous-capacité'],
+ divers:['le container est bloqué au port','pénurie de composants'],
+ boucherie:['la demande explose avant les fêtes','moins de bêtes sur le marché']
+};
+
+function coursDe(k){ return (P&&P.cours&&P.cours[k])||1; }
+function variationDe(k){ return Math.round((coursDe(k)-1)*100); }
+/* on n'annonce que ce qui se voit : au-delà de douze pour cent d'écart */
+function enArrivage(k){ return coursDe(k)<=.88; }
+function enTension(k){ return coursDe(k)>=1.12; }
+
+/* ==========================================================================
    LES FORMATIONS
    ==========================================================================
    Trois échelons. Chaque échelon rend l'employé environ un tiers plus efficace
@@ -1385,6 +1500,7 @@ function nouvellePartie(){
     rep:.32, etoilesMax:0, temps:'gris',
     niveau:1, xp:0, beaute:null,
     contrats:[], histoire:[], pub:null,
+    cours:{}, marcheJour:{bas:[],haut:[],fam:null}, achatsMalins:0,
     parJour:JOURS_SEM.map(()=>({n:0, cli:0, ca:0, art:0, rate:0, max:0})),
     entres:0, refus:0, fini:false, gagne:false, idBati:1,
     jt:journalNeuf(), st:{clients:0,ca:0,marge:0}, total:{clients:0,ca:0,articles:0},
@@ -1402,6 +1518,7 @@ function nouvellePartie(){
 function journalNeuf(){
   return {clients:0, articles:0, ca:0, achats:0, casse:0, casseQ:0, demarque:0,
     depEnt:0, depPaie:0, depPub:0, depForm:0, abandons:0, refus:0, prepa:0, ferme:0,
+    gainCours:0, surcout:0,
     avis:[], bonheur:[], causes:{}, manques:{}, ventes:{}, xp:0, niveaux:[]};
 }
 
@@ -2042,7 +2159,71 @@ function enRoute(k){
   return s;
 }
 function prixAchat(k){
+  return PRODUITS[k].achat*coursDe(k)*(1-.05*AM('negoce'))*(1-(P.remise||0));
+}
+/* le prix de la centrale sans le cours du jour : sert à afficher le barré */
+function prixCatalogue(k){
   return PRODUITS[k].achat*(1-.05*AM('negoce'))*(1-(P.remise||0));
+}
+
+/* ==========================================================================
+   LE COURS DU JOUR
+   ==========================================================================
+   Trois mouvements, dans cet ordre :
+
+     1. tout revient d'un quart vers 1, avec un peu de bruit — c'est ce qui
+        fait qu'un arrivage s'épuise en trois ou quatre jours au lieu de durer
+        toute la partie ;
+     2. une ou deux familles entières bougent, à la hausse ou à la baisse ;
+     3. deux à quatre références isolées prennent un vrai coup, dans un sens
+        ou dans l'autre.
+
+   On ne touche qu'aux références ouvertes : annoncer un arrivage sur le
+   poisson pané quand on n'a pas la licence surgelés, c'est du bruit. */
+function tirerCours(){
+  if(!P.cours) P.cours={};
+  P.marcheJour={bas:[], haut:[], fam:null};
+  const ouvertes=CLES_PRODUITS.filter(k=>produitOuvert(k));
+  const base=ouvertes.length?ouvertes:CLES_PRODUITS.slice(0,8);
+
+  for(const k of CLES_PRODUITS){
+    const c=P.cours[k]||1;
+    P.cours[k]=clamp(1+(c-1)*.74+rnd(-.045,.045),COURS_MIN,COURS_MAX);
+  }
+
+  /* une famille entière, une fois sur deux */
+  if(Math.random()<.5){
+    const fams=[...new Set(base.map(k=>PRODUITS[k].fam))];
+    if(fams.length){
+      const f=pick(fams);
+      const baisse=Math.random()<.62;
+      const amp=baisse?rnd(.16,.30):rnd(.14,.26);
+      for(const k of CLES_PRODUITS) if(PRODUITS[k].fam===f)
+        P.cours[k]=clamp(P.cours[k]*(baisse?1-amp:1+amp),COURS_MIN,COURS_MAX);
+      const l=(baisse?RAISONS_BAS:RAISONS_HAUT)[f]||['le marché bouge'];
+      P.marcheJour.fam={f, baisse, amp:Math.round(amp*100), raison:pick(l)};
+    }
+  }
+
+  /* puis les coups isolés */
+  const n=ri(2,4);
+  const tirees=[];
+  for(let i=0;i<n&&base.length;i++){
+    let k=pick(base), garde=0;
+    while(tirees.indexOf(k)>=0&&garde++<12) k=pick(base);
+    if(tirees.indexOf(k)>=0) continue;
+    tirees.push(k);
+    const baisse=Math.random()<.58;
+    const amp=baisse?rnd(.22,.42):rnd(.20,.38);
+    P.cours[k]=clamp(P.cours[k]*(baisse?1-amp:1+amp),COURS_MIN,COURS_MAX);
+  }
+  /* on relève ce qui mérite d'être annoncé, une fois tout appliqué */
+  for(const k of base){
+    if(enArrivage(k)) P.marcheJour.bas.push(k);
+    else if(enTension(k)) P.marcheJour.haut.push(k);
+  }
+  P.marcheJour.bas.sort((a,b)=>coursDe(a)-coursDe(b));
+  P.marcheJour.haut.sort((a,b)=>coursDe(b)-coursDe(a));
 }
 function coutCommande(){
   let s=0;
@@ -2057,7 +2238,11 @@ function volumeCommande(){
 function commandeAuto(){
   P.commande={};
   for(const k of referencees().filter(produitOuvert)){
-    const q=suggestion(k);
+    let q=suggestion(k);
+    /* on force la main sur les arrivages : un produit qui ne périme pas et
+       qui est à −30 %, on en prend pour deux jours de plus. C'est exactement
+       le geste qu'un gérant ferait, et le bouton doit le faire aussi. */
+    if(q>0&&enArrivage(k)&&!PRODUITS[k].peri) q=Math.round(q*(1+(1-coursDe(k))*2.2));
     if(q>0) P.commande[k]=q;
   }
   /* on rogne tant que ça ne rentre pas dans la caisse ou dans la réserve */
@@ -2090,6 +2275,13 @@ function passerCommande(){
   if(vol<=0) return false;
   if(cout>P.argent){ flash('La caisse ne suffit pas','mal'); SND.erreur(); return false; }
   const q=heureLivraison();
+  /* ce qu'on a économisé en commandant pendant un arrivage */
+  let plein=0;
+  for(const k in P.commande) plein+=(P.commande[k]||0)*prixCatalogue(k);
+  const gain=Math.round(plein-cout);
+  if(gain>0){ P.jt.gainCours=(P.jt.gainCours||0)+gain; P.achatsMalins+=gain;
+    if(gain>=500) decrocher('affaire'); }
+  else if(gain<0) P.jt.surcout=(P.jt.surcout||0)-gain;
   P.argent-=cout;
   P.jt.achats=(P.jt.achats||0)+cout;
   P.livraisons.push({jn:q.jn, h:q.h, lignes:Object.assign({},P.commande), cout, vol});
@@ -2969,6 +3161,9 @@ function ouvrirJournee(){
   SND.musiqueVol(.20);
   SND.lancerMuzak();
   P.jt.prepa=0;
+  /* à la reprise d'une partie sauvegardée, le cours du matin a déjà été tiré :
+     le retirer donnerait au joueur une deuxième chance sur les arrivages */
+  if(P.reprise){ P.reprise=0; } else tirerCours();
   instantane();
   montrerPrepa();
 }
@@ -3462,6 +3657,205 @@ function bulle(x,y,txt,col){
 }
 
 /* ---- le stock, dessiné produit par produit ---- */
+/* ==========================================================================
+   LES ARTICLES
+   ==========================================================================
+   Dix-sept silhouettes. Chacune est peinte une fois dans un petit canevas hors
+   écran, à la taille exacte où on en a besoin, puis recopiée telle quelle. Un
+   rayon de trente-deux articles coûte donc trente-deux drawImage — moins cher
+   que les fillRect qu'il remplace, et infiniment plus lisible.
+
+   Le cache est vidé dès que le zoom change : les tailles changent avec lui. */
+const SPRITES=new Map();
+function teinte(col,f){
+  const n=parseInt(col.slice(1),16);
+  let r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+  if(f>0){ r+=(255-r)*f; g+=(255-g)*f; b+=(255-b)*f; }
+  else { r*=(1+f); g*=(1+f); b*=(1+f); }
+  return 'rgb('+(r|0)+','+(g|0)+','+(b|0)+')';
+}
+function spriteArticle(forme,col,w,h,v){
+  const W=Math.max(2,Math.round(w)), H=Math.max(2,Math.round(h));
+  const cle=forme+col+W+'x'+H+'#'+v;
+  let s=SPRITES.get(cle);
+  if(s) return s;
+  if(SPRITES.size>700) SPRITES.clear();
+  const c=document.createElement('canvas');
+  c.width=Math.max(2,Math.round(W*DPR)); c.height=Math.max(2,Math.round(H*DPR));
+  const g=c.getContext('2d');
+  g.setTransform(DPR,0,0,DPR,0,0);
+  peindreArticle(g,W,H,forme,col,v);
+  SPRITES.set(cle,c);
+  return c;
+}
+/* les briques de base, en coordonnées de la vignette */
+function rc(g,x,y,w,h,col){ g.fillStyle=col; g.fillRect(x,y,w,h); }
+function ar(g,x,y,w,h,r,col){
+  g.fillStyle=col;
+  const rr=Math.min(r,w/2,h/2);
+  g.beginPath();
+  g.moveTo(x+rr,y); g.lineTo(x+w-rr,y); g.quadraticCurveTo(x+w,y,x+w,y+rr);
+  g.lineTo(x+w,y+h-rr); g.quadraticCurveTo(x+w,y+h,x+w-rr,y+h);
+  g.lineTo(x+rr,y+h); g.quadraticCurveTo(x,y+h,x,y+h-rr);
+  g.lineTo(x,y+rr); g.quadraticCurveTo(x,y,x+rr,y);
+  g.closePath(); g.fill();
+}
+function el(g,cx,cy,rx,ry,col){
+  g.fillStyle=col; g.beginPath(); g.ellipse(cx,cy,rx,ry,0,0,TAU); g.fill();
+}
+function peindreArticle(g,W,H,forme,col,v){
+  const c=teinte(col,(v-1)*.10);          // trois nuances par référence
+  const cl=teinte(c,.34), cs=teinte(c,-.30), tr=teinte(c,.72);
+  const m=Math.max(.6,W*.10);             // la marge autour de l'article
+  const x=m, y=Math.max(.6,H*.06), w=W-m*2, h=H-y-Math.max(.6,H*.04);
+  const R=Math.max(.7,Math.min(w,h)*.16);
+  switch(forme){
+   case 'paquet':                          // un sachet souple, épaules tombantes
+     g.fillStyle=c;
+     g.beginPath();
+     g.moveTo(x+w*.14,y); g.lineTo(x+w*.86,y);
+     g.quadraticCurveTo(x+w,y+h*.16,x+w*.96,y+h);
+     g.lineTo(x+w*.04,y+h);
+     g.quadraticCurveTo(x,y+h*.16,x+w*.14,y); g.closePath(); g.fill();
+     rc(g,x+w*.06,y+h*.40,w*.88,h*.22,tr);
+     rc(g,x+w*.06,y+h*.10,w*.88,h*.12,cl);
+     break;
+   case 'boite':
+     ar(g,x,y,w,h,R,c);
+     rc(g,x,y,w,Math.max(.8,h*.16),cl);
+     rc(g,x+w*.12,y+h*.42,w*.76,Math.max(.8,h*.20),tr);
+     rc(g,x,y+h-Math.max(.8,h*.10),w,Math.max(.8,h*.10),cs);
+     break;
+   case 'plat':                            // un magazine, posé à plat
+     ar(g,x,y+h*.42,w,h*.58,R*.6,c);
+     rc(g,x+w*.08,y+h*.52,w*.84,Math.max(.8,h*.14),tr);
+     rc(g,x,y+h*.42,w,Math.max(.8,h*.08),cl);
+     break;
+   case 'conserve':                        // une boîte de conserve
+     el(g,x+w/2,y+h*.10,w*.48,h*.10,cl);
+     rc(g,x+w*.02,y+h*.10,w*.96,h*.80,c);
+     rc(g,x+w*.02,y+h*.34,w*.96,h*.28,tr);
+     el(g,x+w/2,y+h*.90,w*.48,h*.10,cs);
+     rc(g,x+w*.10,y+h*.10,w*.10,h*.80,'rgba(255,255,255,.30)');
+     break;
+   case 'bouteille':
+     rc(g,x+w*.34,y,w*.32,h*.16,cs);                       // le bouchon
+     g.fillStyle=c;
+     g.beginPath();
+     g.moveTo(x+w*.36,y+h*.14); g.lineTo(x+w*.64,y+h*.14);
+     g.quadraticCurveTo(x+w*.94,y+h*.34,x+w*.92,y+h);
+     g.lineTo(x+w*.08,y+h);
+     g.quadraticCurveTo(x+w*.06,y+h*.34,x+w*.36,y+h*.14);
+     g.closePath(); g.fill();
+     rc(g,x+w*.08,y+h*.56,w*.84,h*.22,tr);
+     rc(g,x+w*.18,y+h*.36,w*.10,h*.54,'rgba(255,255,255,.34)');
+     break;
+   case 'canette':
+     rc(g,x+w*.14,y+h*.04,w*.72,h*.92,c);
+     el(g,x+w/2,y+h*.06,w*.36,h*.07,cl);
+     rc(g,x+w*.14,y+h*.36,w*.72,h*.26,tr);
+     rc(g,x+w*.22,y+h*.06,w*.09,h*.88,'rgba(255,255,255,.32)');
+     break;
+   case 'brique':                           // une brique de lait
+     rc(g,x+w*.10,y+h*.10,w*.80,h*.90,c);
+     g.fillStyle=cl;
+     g.beginPath();
+     g.moveTo(x+w*.10,y+h*.10); g.lineTo(x+w/2,y); g.lineTo(x+w*.90,y+h*.10);
+     g.closePath(); g.fill();
+     rc(g,x+w*.16,y+h*.44,w*.68,h*.24,tr);
+     rc(g,x+w*.10,y+h*.10,w*.12,h*.90,'rgba(255,255,255,.22)');
+     break;
+   case 'pot':                              // un pot, un yaourt, un bac de glace
+     rc(g,x+w*.10,y,w*.80,h*.14,cl);
+     g.fillStyle=c;
+     g.beginPath();
+     g.moveTo(x+w*.12,y+h*.12); g.lineTo(x+w*.88,y+h*.12);
+     g.lineTo(x+w*.78,y+h); g.lineTo(x+w*.22,y+h); g.closePath(); g.fill();
+     rc(g,x+w*.20,y+h*.46,w*.60,h*.22,tr);
+     break;
+   case 'fruit':
+     el(g,x+w/2,y+h*.56,w*.44,h*.42,c);
+     el(g,x+w*.38,y+h*.42,w*.16,h*.13,'rgba(255,255,255,.40)');
+     rc(g,x+w*.47,y+h*.08,Math.max(.7,w*.06),h*.16,'#6b4a2a');
+     break;
+   case 'legume':
+     g.save();
+     g.translate(x+w/2,y+h*.56); g.rotate(-.32);
+     el(g,0,0,w*.16,h*.44,c);
+     el(g,-w*.05,-h*.10,w*.06,h*.16,'rgba(255,255,255,.34)');
+     g.restore();
+     rc(g,x+w*.46,y+h*.02,Math.max(.7,w*.05),h*.16,'#4c7a35');
+     break;
+   case 'pain':                             // une baguette en biais
+     g.save();
+     g.translate(x+w/2,y+h*.54); g.rotate(-.42);
+     el(g,0,0,w*.14,h*.46,c);
+     g.strokeStyle=cs; g.lineWidth=Math.max(.5,w*.05);
+     for(let i=-1;i<=1;i++){
+       g.beginPath(); g.moveTo(-w*.10,i*h*.14-h*.04);
+       g.lineTo(w*.10,i*h*.14+h*.04); g.stroke();
+     }
+     g.restore();
+     break;
+   case 'barquette':                        // une barquette filmée
+     ar(g,x,y+h*.30,w,h*.70,R*.7,'#efe7d8');
+     ar(g,x+w*.08,y+h*.38,w*.84,h*.46,R*.5,c);
+     rc(g,x+w*.08,y+h*.38,w*.84,Math.max(.8,h*.10),'rgba(255,255,255,.45)');
+     rc(g,x,y+h*.30,w,Math.max(.8,h*.07),'rgba(255,255,255,.55)');
+     break;
+   case 'rouleau':                          // du papier, vu de côté
+     el(g,x+w/2,y+h*.16,w*.46,h*.14,cl);
+     rc(g,x+w*.04,y+h*.16,w*.92,h*.72,c);
+     el(g,x+w/2,y+h*.88,w*.46,h*.14,cs);
+     el(g,x+w/2,y+h*.16,w*.16,h*.05,'rgba(0,0,0,.22)');
+     rc(g,x+w*.12,y+h*.16,w*.10,h*.72,'rgba(255,255,255,.30)');
+     break;
+   case 'flacon':                           // un flacon à pompe
+     rc(g,x+w*.40,y,w*.20,h*.10,cs);
+     rc(g,x+w*.40,y+h*.06,w*.34,Math.max(.7,h*.05),cs);
+     ar(g,x+w*.12,y+h*.16,w*.76,h*.84,R,c);
+     rc(g,x+w*.18,y+h*.48,w*.64,h*.24,tr);
+     rc(g,x+w*.22,y+h*.20,w*.10,h*.66,'rgba(255,255,255,.32)');
+     break;
+   case 'tube':
+     ar(g,x+w*.26,y+h*.08,w*.48,h*.86,R,c);
+     rc(g,x+w*.36,y,w*.28,h*.12,cs);
+     rc(g,x+w*.30,y+h*.44,w*.40,h*.20,tr);
+     break;
+   case 'tablette':                          // une tablette de chocolat
+     ar(g,x+w*.04,y+h*.22,w*.92,h*.72,R*.5,c);
+     g.strokeStyle='rgba(0,0,0,.20)'; g.lineWidth=Math.max(.4,w*.04);
+     g.beginPath();
+     g.moveTo(x+w/2,y+h*.22); g.lineTo(x+w/2,y+h*.94);
+     g.moveTo(x+w*.04,y+h*.58); g.lineTo(x+w*.96,y+h*.58);
+     g.stroke();
+     rc(g,x+w*.04,y+h*.22,w*.92,Math.max(.8,h*.10),cl);
+     break;
+   case 'boiteoeuf':
+     ar(g,x,y+h*.26,w,h*.70,R*.6,c);
+     for(let i=0;i<3;i++)
+       el(g,x+w*(.22+i*.28),y+h*.28,w*.11,h*.10,cl);
+     rc(g,x,y+h*.66,w,Math.max(.8,h*.08),cs);
+     break;
+   default:                                  // 'sachet' : un coussin souple
+     g.fillStyle=c;
+     g.beginPath();
+     g.moveTo(x+w*.06,y+h*.16); g.quadraticCurveTo(x+w/2,y-h*.04,x+w*.94,y+h*.16);
+     g.quadraticCurveTo(x+w*1.02,y+h*.60,x+w*.94,y+h);
+     g.lineTo(x+w*.06,y+h);
+     g.quadraticCurveTo(x-w*.02,y+h*.60,x+w*.06,y+h*.16);
+     g.closePath(); g.fill();
+     rc(g,x+w*.10,y+h*.44,w*.80,h*.22,tr);
+     rc(g,x+w*.18,y+h*.20,w*.30,h*.08,cl);
+  }
+}
+
+/* ==========================================================================
+   UN RAYON
+   ==========================================================================
+   Des étagères, et sur chaque étagère des articles alignés. Les emplacements
+   vides ne sont plus des carrés gris : c'est le fond de l'étagère qui se voit,
+   et c'est ce qui donne au rayon vide son air de rayon vide. */
 function blocsRayon(b,X,Y,W,H,nx,ny){
   const d=b.prod?PRODUITS[b.prod]:null;
   const col=d?FAMILLES[d.fam].col:'#b0aaa0';
@@ -3469,49 +3863,117 @@ function blocsRayon(b,X,Y,W,H,nx,ny){
   const plein=b.cap?clamp(b.stock/b.cap,0,1):0;
   const n=Math.round(plein*total);
   const bw=W/nx, bh=H/ny;
+  /* le fond de l'étagère */
+  ctx.fillStyle='rgba(60,52,42,.16)';
+  ctx.fillRect(X,Y,W,H);
+  const forme=d?formeDe(b.prod):'boite';
+  const petit=(bw<4.5||bh<6);
   for(let i=0;i<total;i++){
     const cx=i%nx, cy=(i/nx)|0;
     const x=X+cx*bw, y=Y+(ny-1-cy)*bh;
-    if(i<n){
-      const v=hash2(b.x+cx,b.y+cy,b.id&255);
+    if(i>=n) continue;
+    if(petit){
+      /* trop loin pour distinguer une forme : on garde le bloc de couleur */
       ctx.fillStyle=col;
-      ctx.fillRect(x+bw*.10,y+bh*.10,bw*.80,bh*.80);
-      ctx.fillStyle='rgba(255,255,255,'+(.14+v*.22)+')';
-      ctx.fillRect(x+bw*.10,y+bh*.10,bw*.80,bh*.26);
-      if(bw>5){ ctx.fillStyle='rgba(0,0,0,.16)';
-        ctx.fillRect(x+bw*.10,y+bh*.72,bw*.80,bh*.18); }
-    } else {
-      ctx.fillStyle='rgba(0,0,0,.10)';
-      ctx.fillRect(x+bw*.14,y+bh*.14,bw*.72,bh*.72);
+      ctx.fillRect(x+bw*.12,y+bh*.12,bw*.76,bh*.76);
+      continue;
     }
+    const v=(hash2(b.x+cx,b.y+cy,b.id&255)*3)|0;
+    const s=spriteArticle(forme,col,bw,bh,v);
+    ctx.drawImage(s,x,y,bw,bh);
   }
+  /* les tablettes, qui donnent l'épaisseur */
+  ctx.fillStyle='rgba(38,34,30,.30)';
+  for(let r=1;r<ny;r++) ctx.fillRect(X,Y+r*bh-Math.max(.6,bh*.06),W,Math.max(.8,bh*.07));
 }
 function carcasse(X,Y,W,H,col){
   ctx.fillStyle=col||'#c9c2b4';
   ctx.fillRect(X,Y,W,H);
-  ctx.fillStyle='rgba(255,255,255,.30)';
+  ctx.fillStyle='rgba(255,255,255,.34)';
   ctx.fillRect(X,Y,W,Math.max(1,H*.10));
-  ctx.fillStyle='rgba(0,0,0,.22)';
+  ctx.fillStyle='rgba(0,0,0,.24)';
   ctx.fillRect(X,Y+H-Math.max(1,H*.12),W,Math.max(1,H*.12));
+  /* un filet sombre : sans lui, un meuble clair posé sur un sol clair n'a pas
+     de contour, et le magasin devient une bouillie beige dès qu'on dézoome */
+  if(cam.z>.36){
+    ctx.strokeStyle='rgba(38,34,30,.34)';
+    ctx.lineWidth=Math.max(.7,1.1*cam.z);
+    ctx.strokeRect(X+.5,Y+.5,W-1,H-1);
+  }
 }
-function etiquette(X,Y,W,txt,col){
-  if(cam.z<.62) return;
-  const h=6*cam.z;
+/* la réglette : la bande de prix qu'on trouve sur le bord d'une étagère */
+function etiquetteRayon(b,X,Y,W){
+  const d=b.prod?PRODUITS[b.prod]:null;
+  if(!d) return;
+  const fam=FAMILLES[d.fam];
+  const plein=b.cap?clamp(b.stock/b.cap,0,1):0;
+  /* le trait de remplissage, toujours visible : c'est lui qu'on lit de loin */
+  if(cam.z>.30){
+    const hj=Math.max(1.4,2.2*cam.z);
+    ctx.fillStyle='rgba(38,34,30,.30)';
+    ctx.fillRect(X+1,Y-hj-1,W-2,hj);
+    ctx.fillStyle=plein<=0?'#e23b2e':plein<.18?'#ff8a3c':plein<.5?'#ffc61e':'#2fa84f';
+    ctx.fillRect(X+1,Y-hj-1,(W-2)*plein,hj);
+  }
+  if(cam.z<.60){
+    /* trop loin pour lire : une pastille à la couleur de la famille suffit à
+       retrouver son rayon de fromage au milieu de quarante meubles */
+    if(cam.z>.34){
+      const r=Math.max(1.6,2.6*cam.z);
+      ctx.fillStyle=fam.col;
+      ctx.beginPath(); ctx.arc(X+r+1.5,Y-r-2.5*cam.z,r,0,TAU); ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.75)'; ctx.lineWidth=Math.max(.5,.8*cam.z);
+      ctx.stroke();
+    }
+    return;
+  }
+  const h=Math.round(7.4*cam.z);
+  const y=Y-Math.max(1.4,2.2*cam.z)-1-h;
   ctx.fillStyle='#fffdf5';
-  ctx.fillRect(X+1,Y-h,W-2,h);
-  ctx.fillStyle=col||'#26221e';
-  ctx.font='700 '+Math.round(5.4*cam.z)+'px '+FONT;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(txt,X+W/2,Y-h/2+.5*cam.z);
+  ctx.fillRect(X+1,y,W-2,h);
+  ctx.fillStyle=fam.col;
+  ctx.fillRect(X+1,y,Math.max(2,3.2*cam.z),h);
+  const px=P.prix[b.prod]||d.ref;
+  const marge=(px-prixAchat(b.prod))/Math.max(.01,px);
+  const fs=Math.round(5.2*cam.z);
+  ctx.font='700 '+fs+'px '+FONT;
+  ctx.textBaseline='middle';
+  const pxT=cts(px);
+  const wPx=cam.z>.85?ctx.measureText(pxT).width+4*cam.z:0;
+  ctx.textAlign='left';
+  ctx.fillStyle='#26221e';
+  const dispo=W-8*cam.z-wPx;
+  let nom=d.nom;
+  while(nom.length>3&&ctx.measureText(nom).width>dispo) nom=nom.slice(0,-1);
+  ctx.fillText(nom,X+5*cam.z,y+h/2+.4*cam.z);
+  if(wPx){
+    ctx.textAlign='right';
+    ctx.fillStyle=marge<0?'#e23b2e':marge<.14?'#c9930f':'#1f7a3d';
+    ctx.fillText(pxT,X+W-2.5*cam.z,y+h/2+.4*cam.z);
+  }
   ctx.textBaseline='alphabetic';
+  ctx.textAlign='center';
+  /* le fanion promo : un prix nettement sous la référence se voit de loin */
+  if(px<d.ref*.88&&cam.z>.7){
+    const fw=Math.min(W*.5,26*cam.z), fh=6.4*cam.z;
+    ctx.fillStyle='#e23b2e';
+    ctx.beginPath();
+    ctx.moveTo(X+W-fw,y-fh); ctx.lineTo(X+W,y-fh); ctx.lineTo(X+W,y);
+    ctx.lineTo(X+W-fw,y); ctx.lineTo(X+W-fw+3*cam.z,y-fh/2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.font='700 '+Math.round(4.2*cam.z)+'px '+FONT;
+    ctx.fillText('PROMO',X+W-fw/2+1.5*cam.z,y-fh*.28);
+  }
 }
 
 function dessinerBati(b,T){
   const [X,Y]=ecran(b.x*TUILE,b.y*TUILE);
   const W=b.w*TUILE*cam.z, H=b.h*TUILE*cam.z;
   const cx=X+W/2, cy=Y+H/2;
-  /* l'ombre portée */
-  ctx.fillStyle='rgba(38,34,30,.16)';
+  /* l'ombre portée : deux passes, pour que le meuble décolle du sol */
+  ctx.fillStyle='rgba(38,34,30,.10)';
+  ctx.fillRect(X+1*cam.z,Y+H-3*cam.z,W+3*cam.z,7*cam.z);
+  ctx.fillStyle='rgba(38,34,30,.20)';
   ctx.fillRect(X+2*cam.z,Y+H-2*cam.z,W,4*cam.z);
 
   if(b.cat==='meuble') dessinerMeuble(b,X,Y,W,H,cx,cy,T);
@@ -3541,7 +4003,7 @@ function dessinerMeuble(b,X,Y,W,H,cx,cy,T){
     carcasse(X,Y,W,H,'#c9c2b4');
     ctx.fillStyle='#b3ab9c'; ctx.fillRect(X,Y+H*.46,W,2*cam.z);
     blocsRayon(b,X+2*cam.z,Y+2*cam.z,W-4*cam.z,H-5*cam.z,d.w*4,2);
-    if(prod) etiquette(X,Y,W,prod.nom.slice(0,11),fam.col);
+    etiquetteRayon(b,X,Y,W);
   } else if(k==='tete'){
     carcasse(X,Y,W,H,'#d8c17f');
     blocsRayon(b,X+2*cam.z,Y+3*cam.z,W-4*cam.z,H-6*cam.z,5,2);
@@ -3550,29 +4012,22 @@ function dessinerMeuble(b,X,Y,W,H,cx,cy,T){
     ctx.fillRect(X+W*.18,Y-7*cam.z,W*.64,6*cam.z);
     if(cam.z>.7){ ctx.fillStyle='#fff'; ctx.font='700 '+Math.round(4.6*cam.z)+'px '+FONT;
       ctx.textAlign='center'; ctx.fillText('PROMO',cx,Y-2.6*cam.z); }
-    if(prod) etiquette(X,Y,W,prod.nom.slice(0,9),fam.col);
+    etiquetteRayon(b,X,Y,W);
   } else if(k==='casier'){
     ctx.fillStyle='#7d6a52'; ctx.fillRect(X,Y+H*.78,W,H*.22);   // la palette
     carcasse(X+W*.04,Y,W*.92,H*.80,'#9fb4c4');
     blocsRayon(b,X+W*.07,Y+2*cam.z,W*.86,H*.74,4,3);
-    if(prod) etiquette(X,Y,W,prod.nom.slice(0,10),fam.col);
+    etiquetteRayon(b,X,Y,W);
   } else if(k==='etal'){
-    /* des cagettes de bois en gradin */
+    /* des cagettes de bois en gradin, et dedans la vraie marchandise */
     ctx.fillStyle='#a37c4e'; ctx.fillRect(X,Y,W,H);
-    ctx.fillStyle='#8a6539'; ctx.fillRect(X,Y+H*.55,W,3*cam.z);
-    const plein=b.cap?clamp(b.stock/b.cap,0,1):0;
-    const col=fam?fam.col:'#8fbf6a';
-    const n=Math.round(plein*16);
-    for(let i=0;i<16;i++){
-      const ix=i%6, iy=(i/6)|0;
-      const x=X+W*.06+ix*W*.155, y=Y+H*.12+iy*H*.28;
-      if(i>=n){ ctx.fillStyle='rgba(0,0,0,.10)'; ctx.fillRect(x,y,W*.13,H*.22); continue; }
-      ctx.fillStyle=col;
-      ctx.beginPath(); ctx.arc(x+W*.065,y+H*.11,Math.max(1.5,W*.055),0,TAU); ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,.28)';
-      ctx.beginPath(); ctx.arc(x+W*.05,y+H*.085,Math.max(.8,W*.022),0,TAU); ctx.fill();
-    }
-    if(prod) etiquette(X,Y,W,prod.nom.slice(0,11),fam.col);
+    ctx.fillStyle='#8a6539';
+    for(let r=1;r<3;r++) ctx.fillRect(X,Y+H*r/3-1.4*cam.z,W,2.4*cam.z);
+    ctx.strokeStyle='rgba(90,62,32,.55)'; ctx.lineWidth=Math.max(.6,1.2*cam.z);
+    for(let i=1;i<6;i++){ ctx.beginPath(); ctx.moveTo(X+W*i/6,Y);
+      ctx.lineTo(X+W*i/6,Y+H); ctx.stroke(); }
+    blocsRayon(b,X+1.5*cam.z,Y+1.5*cam.z,W-3*cam.z,H-3*cam.z,6,3);
+    etiquetteRayon(b,X,Y,W);
   } else if(k==='bac'){
     carcasse(X,Y,W,H,'#a8c8d6');
     ctx.fillStyle='#d8ebf2'; ctx.fillRect(X+2*cam.z,Y+2*cam.z,W-4*cam.z,H-4*cam.z);
@@ -3580,7 +4035,7 @@ function dessinerMeuble(b,X,Y,W,H,cx,cy,T){
     /* le givre sur le rebord */
     ctx.fillStyle='rgba(255,255,255,.55)';
     ctx.fillRect(X+1*cam.z,Y+1*cam.z,W-2*cam.z,1.6*cam.z);
-    if(prod) etiquette(X,Y,W,prod.nom.slice(0,11),fam.col);
+    etiquetteRayon(b,X,Y,W);
   } else if(k==='armoire'){
     carcasse(X,Y,W,H,'#8fd2ea');
     ctx.fillStyle='rgba(215,240,250,.75)'; ctx.fillRect(X+2*cam.z,Y+2*cam.z,W-4*cam.z,H-4*cam.z);
@@ -3592,20 +4047,19 @@ function dessinerMeuble(b,X,Y,W,H,cx,cy,T){
     ctx.fillStyle='rgba(255,255,255,.30)';
     ctx.beginPath(); ctx.moveTo(X+W*.10,Y+H*.9); ctx.lineTo(X+W*.30,Y+H*.1);
     ctx.lineTo(X+W*.40,Y+H*.1); ctx.lineTo(X+W*.20,Y+H*.9); ctx.closePath(); ctx.fill();
-    if(prod) etiquette(X,Y,W,prod.nom.slice(0,12),fam.col);
+    etiquetteRayon(b,X,Y,W);
   } else if(k==='vitrine'){
     carcasse(X,Y,W,H,'#e6ded0');
     ctx.fillStyle='#f2ece0'; ctx.fillRect(X+2*cam.z,Y+H*.30,W-4*cam.z,H*.52);
-    const plein=b.cap?clamp(b.stock/b.cap,0,1):0;
-    const n=Math.round(plein*10);
-    for(let i=0;i<10;i++){
-      const x=X+W*.06+i*W*.09, y=Y+H*.40;
-      if(i>=n){ ctx.fillStyle='rgba(0,0,0,.08)'; ctx.fillRect(x,y,W*.07,H*.3); continue; }
-      ctx.fillStyle='#d1596a'; arrondi(x,y,W*.07,H*.3,2*cam.z); ctx.fill();
-      ctx.fillStyle='rgba(255,255,255,.35)'; ctx.fillRect(x,y,W*.07,H*.07);
-    }
+    blocsRayon(b,X+3*cam.z,Y+H*.30,W-6*cam.z,H*.52,Math.max(4,d.w*3),1);
+    /* la vitre : un reflet en biais, et le froid au-dessus */
     ctx.fillStyle='rgba(220,240,255,.30)'; ctx.fillRect(X+2*cam.z,Y+H*.24,W-4*cam.z,H*.10);
-    if(prod) etiquette(X,Y,W,prod.nom.slice(0,12),fam.col);
+    ctx.fillStyle='rgba(255,255,255,.16)';
+    ctx.beginPath();
+    ctx.moveTo(X+W*.08,Y+H*.86); ctx.lineTo(X+W*.34,Y+H*.28);
+    ctx.lineTo(X+W*.46,Y+H*.28); ctx.lineTo(X+W*.20,Y+H*.86);
+    ctx.closePath(); ctx.fill();
+    etiquetteRayon(b,X,Y,W);
   } else if(k==='four'){
     carcasse(X,Y,W,H,'#d9a24e');
     ctx.fillStyle='#8a5a2a'; ctx.fillRect(X+2*cam.z,Y+H*.10,W-4*cam.z,H*.30);
@@ -3613,19 +4067,12 @@ function dessinerMeuble(b,X,Y,W,H,cx,cy,T){
     const chaud=P.employes.some(e=>e.k==='boulanger');
     ctx.fillStyle=chaud?'rgba(255,150,40,'+(.55+Math.sin(T*3)*.15)+')':'rgba(60,40,20,.7)';
     ctx.fillRect(X+W*.14,Y+H*.16,W*.72,H*.18);
-    const plein=b.cap?clamp(b.stock/b.cap,0,1):0;
-    const n=Math.round(plein*8);
-    for(let i=0;i<8;i++){
-      const x=X+W*.08+i*W*.11, y=Y+H*.56;
-      if(i>=n){ continue; }
-      ctx.fillStyle='#c98a3c';
-      arrondi(x,y,W*.085,H*.26,2.4*cam.z); ctx.fill();
-      ctx.fillStyle='rgba(255,235,190,.45)'; ctx.fillRect(x,y+H*.05,W*.085,H*.04);
-    }
-    if(prod) etiquette(X,Y,W,prod.nom.slice(0,12),fam.col);
+    blocsRayon(b,X+3*cam.z,Y+H*.48,W-6*cam.z,H*.44,Math.max(4,d.w*3),1);
+    etiquetteRayon(b,X,Y,W);
   } else if(k==='presentoir'){
     carcasse(X,Y,W,H,'#e0b64a');
     blocsRayon(b,X+1.5*cam.z,Y+1.5*cam.z,W-3*cam.z,H-3*cam.z,3,3);
+    etiquetteRayon(b,X,Y,W);
   }
 }
 
@@ -4047,6 +4494,7 @@ const CATS=[
  {id:'contrats', nom:'CONTRATS',    ico:'📋'},
  {id:'magasin',  nom:'LE MAGASIN',  ico:'🏪'},
  {id:'frequent', nom:'FRÉQUENTATION',ico:'📈'},
+ {id:'cours',    nom:'LE MARCHÉ',    ico:'🏷'},
  {id:'deplacer', nom:'DÉPLACER',    ico:'✥'},
  {id:'demolir',  nom:'RETIRER',     ico:'⛏', sup:1}
 ];
@@ -4078,6 +4526,7 @@ function ouvrirCat(id){
   else if(id==='magasin'){ outil=null; $('palette').innerHTML=''; aide(null); ficheMagasin(); }
   else if(id==='frequent'){ outil=null; $('palette').innerHTML=''; aide(null);
     ficheFrequentation(); }
+  else if(id==='cours'){ outil=null; $('palette').innerHTML=''; aide(null); ficheCours(); }
   else if(id==='contrats'){ outil=null; $('palette').innerHTML=''; aide(null); ficheContrats(); }
   else if(id==='commande'){ outil=null; $('palette').innerHTML=''; aide(null);
     fermerFiche(); ouvrirBureau(); }
@@ -4535,6 +4984,22 @@ function barresFrequentation(compact){
   }
   return h;
 }
+function ficheCours(){
+  selection=null;
+  const el=$('panneau'); el.classList.add('on');
+  const m=(P.marcheJour)||{bas:[],haut:[]};
+  el.innerHTML='<h3>LE MARCHÉ</h3><div class="sous">CE QUE LA CENTRALE ANNONCE '
+    +'CE MATIN</div>'+ardoiseCours(false)
+    +'<div class="ligne"><span>Économisé depuis le début</span><b style="color:#1f7a3d">'
+    +eur(Math.round(P.achatsMalins||0))+'</b></div>'
+    +'<div class="ligne" style="border:0"><span>Références en arrivage</span><b>'
+    +m.bas.length+'</b></div>'
+    +'<button class="bt vert" id="coCmd">OUVRIR LE BON DE COMMANDE</button>'
+    +'<button class="bt" id="coFer">FERMER</button>';
+  $('coCmd').onclick=()=>{ SND.clic(); catOuverte='commande'; majCats();
+    fermerFiche(); ouvrirBureau(); };
+  $('coFer').onclick=()=>{ fermerFiche(); catOuverte=null; majCats(); };
+}
 function ficheFrequentation(){
   selection=null;
   const el=$('panneau'); el.classList.add('on');
@@ -4616,6 +5081,9 @@ function majPrepa(){
   else if(hotes+1<Math.ceil(P.prevu/70)) l.push(['mal','trop peu de caisses tenues']);
   if(res>0) l.push(['','réserve : '+nb(res)+' articles à monter']);
   if(P.livraisons.length) l.push(['',P.livraisons.length+' livraison(s) attendue(s)']);
+  const mb=(P.marcheJour&&P.marcheJour.bas)||[];
+  if(mb.length) l.push(['bon','arrivage : '+PRODUITS[mb[0]].nom.toLowerCase()
+    +' à '+variationDe(mb[0])+' %']);
   if(P.argent<dus) l.push(['mal','la caisse ne couvre pas le soir']);
   if(!l.length) l.push(['bon','le magasin est prêt']);
   $('ppListe').innerHTML=l.slice(0,4)
@@ -4685,6 +5153,8 @@ function montrerSoir(){
   const j=P.jt;
   const res=j.resultat;
   const ferme=!!j.ferme;
+  const cc=$('sCours');
+  if(cc) cc.innerHTML=ardoiseCours(true);
   /* le relevé de la semaine, rempli juste avant l'affichage */
   const fq=$('sFreq');
   if(fq) fq.innerHTML=barresFrequentation(true);
@@ -4726,6 +5196,10 @@ function montrerSoir(){
     '−'+eur(j.depPaie),'#c0392b');
   if(j.depForm) L+=li('🎓','FORMATION','Ce que tu as investi dans ton équipe aujourd\'hui',
     '−'+eur(j.depForm),'#8257bd');
+  if(j.gainCours) L+=li('📉','ACHETÉ AU BON MOMENT',
+    'Économisé sur les arrivages de la centrale','+'+eur(j.gainCours),'#1f7a3d');
+  if(j.surcout) L+=li('📈','PAYÉ AU PRIX FORT',
+    'Surcoût des références en tension','−'+eur(j.surcout),'#c0392b');
   L+=li(res>=0?'💰':'📉','RÉSULTAT DU JOUR','',(res>=0?'+':'')+eur(res),
     res>=0?'#1f7a3d':'#c0392b');
   L+=li('📊','MARGE BRUTE','Ce que rapportent les articles vendus, avant les frais',
@@ -4977,8 +5451,54 @@ function majLicences(){
       majLicences(); majCommande(); montrerCommande(); } };
   });
 }
+/* ==========================================================================
+   L'ARDOISE DE LA CENTRALE
+   ==========================================================================
+   Ce qui a bougé cette nuit, en clair. On ne liste pas les cinquante-sept
+   références : on liste les quatre plus grosses baisses et les trois plus
+   grosses hausses, avec la raison. Le reste se lit ligne par ligne. */
+function ardoiseCours(compact){
+  const m=(P&&P.marcheJour)||{bas:[],haut:[],fam:null};
+  let h='';
+  if(m.fam){
+    const f=FAMILLES[m.fam.f];
+    h+='<div class="crs '+(m.fam.baisse?'bas':'haut')+' gros">'
+      +'<span class="ci">'+f.ico+'</span>'
+      +'<div class="cc"><b>'+f.nom+' '+(m.fam.baisse?'−':'+')+m.fam.amp+' %</b>'
+      +'<span>'+m.fam.raison+'</span></div></div>';
+  }
+  const ligne=(k,bas)=>{
+    const p=PRODUITS[k];
+    return '<div class="crs '+(bas?'bas':'haut')+'">'
+      +'<span class="ci">'+FAMILLES[p.fam].ico+'</span>'
+      +'<div class="cc"><b>'+p.nom+'</b><span>'+cts(prixCatalogue(k))+' → <b>'
+      +cts(prixAchat(k))+'</b></span></div>'
+      +'<span class="cv">'+(variationDe(k)>0?'+':'')+variationDe(k)+' %</span></div>';
+  };
+  for(const k of m.bas.slice(0,compact?3:4)) h+=ligne(k,true);
+  for(const k of m.haut.slice(0,compact?2:3)) h+=ligne(k,false);
+  if(!h) h='<div class="txt">La centrale n\'annonce rien aujourd\'hui : '
+    +'tous les cours sont à leur niveau habituel.</div>';
+  else if(!compact) h+='<div class="txt">Le prix de <b>vente</b> ne bouge pas : '
+    +'ce que le client trouve normal reste ce qu\'il trouve normal. Une baisse de '
+    +'la centrale est donc de la marge en plus — à condition d\'avoir la réserve '
+    +'et la trésorerie pour en profiter, et de la place en rayon pour l\'écouler.</div>';
+  return h;
+}
+
+let triCommande='famille';
 function majCommande(){
-  const l=produitsOuverts();
+  const ard=$('cCoursL');
+  if(ard) ard.innerHTML=ardoiseCours(false);
+  let l=produitsOuverts();
+  /* trois lectures du même bon : par rayon, par affaire, par rupture. C'est le
+     tri qui décide de ce qu'on commande — celui qui range par famille achète
+     par habitude, celui qui range par affaire achète au bon moment. */
+  if(triCommande==='affaire')
+    l=l.slice().sort((a,b)=>coursDe(a)-coursDe(b));
+  else if(triCommande==='manque')
+    l=l.slice().sort((a,b)=>(P.manques[b]||0)-(P.manques[a]||0)
+      ||(P.ventes[b]||0)-(P.ventes[a]||0));
   const el=$('cListe');
   if(!l.length){
     el.innerHTML='<div class="carte"><div class="rl"><span class="re">🤷</span>'
@@ -4990,7 +5510,7 @@ function majCommande(){
   let fam=null, h='';
   for(const k of l){
     const p=PRODUITS[k];
-    if(p.fam!==fam){
+    if(triCommande==='famille'&&p.fam!==fam){
       fam=p.fam;
       h+='<div style="font:700 9.5px var(--mono);letter-spacing:.2em;color:var(--gris);'
         +'margin:10px 0 2px 4px">'+FAMILLES[fam].ico+' '+FAMILLES[fam].nom+'</div>';
@@ -4999,21 +5519,34 @@ function majCommande(){
     const route=enRoute(k);
     const q=P.commande[k]||0;
     const cls=m>0?' rupt':((p.peri&&cap&&s>cap*1.3)?' casse':'');
-    h+='<div class="cmd'+cls+'" data-k="'+k+'">'
-      +'<span class="ci">'+FAMILLES[p.fam].ico+'</span>'
+    const vr=variationDe(k);
+    h+='<div class="cmd'+cls+(enArrivage(k)?' arriv':'')+(enTension(k)?' tens':'')
+      +'" data-k="'+k+'">'
+      +'<span class="ci">'+FAMILLES[p.fam].ico
+      +(Math.abs(vr)>=12?'<u class="vr '+(vr<0?'bas':'haut')+'">'
+        +(vr>0?'+':'')+vr+'</u>':'')+'</span>'
       +'<div class="cc"><b>'+p.nom+'</b><span>'
       +(cap?'vendu '+nb(v)+(m?' · <b style="color:#c0392b">manqué '+nb(m)+'</b>':'')
         +' · reste '+nb(s)+' · place en rayon '+nb(cap)
         :'<b style="color:#c9930f">aucun rayon ne le porte</b> · en réserve '+nb(s))
       +(route?' · <b style="color:#2b7bbf">'+nb(route)+' en route</b>':'')
       +(p.peri?' · périme en '+p.peri+' j':' · ne périme pas')
-      +' · achat '+cts(prixAchat(k))+' · vente '+cts(P.prix[k]||p.ref)+'</span></div>'
+      +' · achat '+(variationDe(k)?'<s>'+cts(prixCatalogue(k))+'</s> ':'')
+      +'<b'+(enArrivage(k)?' style="color:#1f7a3d"':enTension(k)?' style="color:#c0392b"':'')
+      +'>'+cts(prixAchat(k))+'</b>'
+      +' · vente '+cts(P.prix[k]||p.ref)+'</span></div>'
       +'<div class="cq"><button data-m="'+k+'">−</button>'
       +'<input type="text" inputmode="numeric" data-i="'+k+'" value="'+q+'">'
       +'<button data-p="'+k+'">+</button></div>'
       +'<span class="cp" data-c="'+k+'">'+eur(Math.round(q*prixAchat(k)))+'</span></div>';
   }
   el.innerHTML=h;
+  const tl=document.querySelector('.triL');
+  if(tl) Array.prototype.forEach.call(tl.children,btn=>{
+    const t=btn.getAttribute('data-t');
+    btn.classList.toggle('on',t===triCommande);
+    btn.onclick=()=>{ triCommande=t; SND.clic(); majCommande(); };
+  });
   const pas=k=>Math.max(1,Math.round(placeRayon(k)*.12)||10);
   Array.prototype.forEach.call(el.querySelectorAll('[data-m]'),b=>{
     const k=b.getAttribute('data-m');
@@ -5188,6 +5721,8 @@ const SUCCES=[
  {id:'satisfait',nom:'TOUT LE MONDE SOURIT',d:'Une journée à plus de 90 % de satisfaction',j:11},
  {id:'revision', nom:'LINÉAIRE',         d:'Poser vingt rayons dans un même magasin',      j:7},
  {id:'ecole',    nom:'ÉCOLE DU RAYON',  d:'Former un employé',                            j:5},
+ {id:'affaire',  nom:'LA BONNE AFFAIRE', d:'Économiser 500 € en une commande sur un arrivage',j:8},
+ {id:'affaire5', nom:'ŒIL DU MARCHÉ',   d:'Économiser 5 000 € en tout sur les arrivages',  j:16},
  {id:'braddroit',nom:'BRAS DROIT',      d:'Amener un employé au dernier échelon',         j:12},
  {id:'vedette',  nom:'PASSAGE À LA TÉLÉ',d:'Payer un spot régional',                       j:6},
  {id:'gagne',    nom:'DIX SEMAINES',     d:'Payer les dix loyers',                         j:35},
@@ -5228,6 +5763,7 @@ function verifierSucces(fin){
   if(Object.keys(fams).length>=Object.keys(FAMILLES).length) decrocher('complet');
   if(referencees().length>=50) decrocher('cinquante');
   if(P.employes.some(e=>(e.niv||0)>=ECHELONS.length-1)) decrocher('braddroit');
+  if((P.achatsMalins||0)>=5000) decrocher('affaire5');
   if(fin){
     const n=j.bonheur?j.bonheur.length:0;
     if(n>=25&&!Object.keys(j.manques||{}).length&&!Object.keys(j.manquesFam||{}).length)
@@ -5354,7 +5890,8 @@ function serialiserPartie(){
       b.lots.map(x=>[x.q,x.age]), b.ventes|0, Math.round(b.recette||0)]),
     emp:P.employes.map(e=>[e.k, e.niv|0, e.nom, e.jours|0]),
     parJour:(P.parJour||[]).map(x=>[x.n|0,Math.round(x.cli),Math.round(x.ca),
-      Math.round(x.art),Math.round(x.rate),x.max|0])
+      Math.round(x.art),Math.round(x.rate),x.max|0]),
+    cours:P.cours, marche:P.marcheJour, malins:Math.round(P.achatsMalins||0)
   };
 }
 function instantane(){
@@ -5425,11 +5962,19 @@ function restaurerPartie(d){
     });
     P.niveau=clamp(P.niveau|0,1,NIV_MAX);
     P.prix=Object.assign({},P.prix,d.prix||{});
+    P.cours={};
+    for(const k in (d.cours||{})) if(PRODUITS[k]) P.cours[k]=clamp(+d.cours[k]||1,
+      COURS_MIN,COURS_MAX);
+    P.marcheJour=d.marche||{bas:[],haut:[],fam:null};
+    P.marcheJour.bas=(P.marcheJour.bas||[]).filter(k=>PRODUITS[k]);
+    P.marcheJour.haut=(P.marcheJour.haut||[]).filter(k=>PRODUITS[k]);
+    P.achatsMalins=d.malins||0;
     if(d.parJour&&d.parJour.length===JOURS_SEM.length)
       P.parJour=d.parJour.map(a=>({n:a[0]|0, cli:a[1]|0, ca:a[2]|0, art:a[3]|0,
         rate:a[4]|0, max:a[5]|0}));
     P.commande=d.commande||{};
     P.ventes=d.ventes||{}; P.manques=d.manques||{};
+    P.reprise=1;
     CHUNKS=null; P.beaute=null; P.sale=true;
     refaireChamps(); majCaisses();
     cam.x=GX*TUILE/2; cam.y=(P.zone.y1-6)*TUILE; cam.z=clamp(1.1,ZMIN,2.4); cam.zc=cam.z;
