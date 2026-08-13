@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ma Famille en Forme — suivi de poids & menus équilibrés</title>
+<meta name="description" content="Suivi de poids familial, 54 recettes équilibrées pour 4 personnes, planning de la semaine et liste de courses automatique.">
+<meta name="theme-color" content="#2f8f66">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥗</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="head-in">
+    <div class="brand"><span class="mark">🥗</span> Ma Famille en Forme</div>
+    <nav id="nav">
+      <button data-tab="progression" class="on">📈 Progression</button>
+      <button data-tab="recettes">🍽️ Recettes <span class="n" id="n-recettes">54</span></button>
+      <button data-tab="semaine">🗓️ Semaine <span class="n" id="n-semaine">0</span></button>
+      <button data-tab="courses">🛒 Courses <span class="n" id="n-courses">0</span></button>
+      <button data-tab="reglages">⚙️ Réglages</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ══════════════ PROGRESSION ══════════════ -->
+  <section class="tab on" id="tab-progression">
+    <div class="page-head">
+      <h1>Progression</h1>
+      <p>Le poids seul ne dit pas grand-chose : il se lit avec la taille, l'âge et le sexe. Pesez-vous une fois par semaine,
+         le matin à jeun, toujours dans les mêmes conditions — c'est la courbe qui compte, pas le chiffre du jour.</p>
+    </div>
+    <div id="first-run" class="notice" hidden>
+      <span>👋</span>
+      <span><b>Première visite ?</b> Les profils contiennent des valeurs d'exemple. Ouvrez « Modifier le profil »
+        sur chaque personne pour saisir la vraie date de naissance, la taille et l'objectif.</span>
+      <button class="btn sm ghost" id="dismiss-first">Compris</button>
+    </div>
+    <div class="people-grid" id="people"></div>
+
+    <div class="card set-card" style="margin-top:16px">
+      <h3>Comment les chiffres sont calculés</h3>
+      <p style="margin-bottom:10px">Pour que vous sachiez ce que vous lisez.</p>
+      <ul style="font-size:13.5px; color:var(--text-soft); padding-left:18px; line-height:1.75">
+        <li><b>IMC</b> = poids ÷ taille². Zone de référence adulte : 18,5 à 25. Il ne distingue pas muscle et graisse — un
+            sportif musclé peut dépasser 25 sans excès de masse grasse.</li>
+        <li><b>Métabolisme de base</b> (ce que le corps brûle au repos) : formule de Mifflin-St Jeor, la plus fiable
+            aujourd'hui pour des adultes en bonne santé.</li>
+        <li><b>Dépense totale</b> = métabolisme de base × facteur d'activité (1,2 sédentaire à 1,9 très sportif).</li>
+        <li><b>Objectif calorique</b> : environ −15 % de la dépense totale pour perdre du poids, jamais en dessous du
+            métabolisme de base. Une perte raisonnable, c'est 0,3 à 0,7 kg par semaine.</li>
+        <li><b>Avant 18 ans</b>, l'IMC adulte n'a pas de sens : on utilise les courbes de corpulence par âge. Le site
+            affiche donc la courbe de poids sans objectif de perte pour les mineurs.</li>
+      </ul>
+      <p style="margin-top:12px; font-size:12.5px">Ces estimations sont indicatives et ne remplacent pas l'avis d'un médecin
+         ou d'un diététicien, en particulier pour les enfants et adolescents.</p>
+    </div>
+  </section>
+
+  <!-- ══════════════ RECETTES ══════════════ -->
+  <section class="tab" id="tab-recettes">
+    <div class="page-head">
+      <h1>Recettes</h1>
+      <p>54 plats détaillés, quantités données pour <b id="nb-pers-label">4 personnes</b>. Construits selon les repères
+         du PNNS : la moitié de l'assiette en légumes, un quart de protéines, un quart de féculents complets.
+         Les plats <span class="chip w">🎉 jour sympa</span> sont là aussi — l'équilibre se joue sur la semaine, pas sur un repas.</p>
+    </div>
+
+    <div class="filters">
+      <input type="search" id="q" placeholder="Rechercher un plat, un ingrédient…">
+      <select id="f-cat">
+        <option value="">Toutes catégories</option>
+        <option>Végétarien</option><option>Poisson</option><option>Volaille</option>
+        <option>Viande rouge</option><option>Porc</option><option>Œufs</option>
+      </select>
+      <select id="f-temps">
+        <option value="">Tous les temps</option>
+        <option value="25">≤ 25 min</option>
+        <option value="35">≤ 35 min</option>
+        <option value="45">≤ 45 min</option>
+      </select>
+      <select id="f-saison">
+        <option value="">Toutes saisons</option>
+        <option value="printemps">Printemps</option><option value="ete">Été</option>
+        <option value="automne">Automne</option><option value="hiver">Hiver</option>
+      </select>
+      <button class="btn sm" id="clear-f">Réinitialiser</button>
+    </div>
+    <div class="pill-row" id="pills">
+      <button class="pill" data-p="fav">★ Ma sélection</button>
+      <button class="pill" data-p="plaisir">🎉 Jours sympa</button>
+      <button class="pill" data-p="legumineuse">🫘 Légumineuses</button>
+      <button class="pill" data-p="poissonGras">🐟 Poisson gras</button>
+      <button class="pill" data-p="rapide">⚡ Moins de 30 min</button>
+      <button class="pill" data-p="batch">🧊 Batch cooking</button>
+      <button class="pill on" data-p="compat">✅ Compatible avec nos allergies</button>
+    </div>
+    <div class="recipes" id="recipes"></div>
+  </section>
+
+  <!-- ══════════════ SEMAINE ══════════════ -->
+  <section class="tab" id="tab-semaine">
+    <div class="page-head">
+      <h1>La semaine</h1>
+      <p>Cliquez sur une case pour choisir un plat, ou laissez le planificateur composer une semaine variée et équilibrée
+         à votre place — il respecte vos allergies, vos aversions, et place les plats plaisir le week-end.</p>
+    </div>
+
+    <div class="filters" style="margin-bottom:16px">
+      <button class="btn primary" id="auto">✨ Composer ma semaine</button>
+      <button class="btn" id="auto-empty">Compléter les cases vides</button>
+      <button class="btn" id="clear-week">Tout effacer</button>
+      <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-soft);margin-left:auto">
+        <input type="checkbox" id="use-fav" style="width:16px;height:16px;accent-color:var(--accent)">
+        Piocher en priorité dans ma sélection ★
+      </label>
+      <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-soft)">
+        <input type="checkbox" id="only-season" style="width:16px;height:16px;accent-color:var(--accent)">
+        De saison uniquement
+      </label>
+    </div>
+
+    <div class="week" id="week"></div>
+
+    <h2 style="font-size:16px;margin:26px 0 12px">Équilibre de la semaine</h2>
+    <div class="balance" id="balance"></div>
+    <div id="bal-advice" style="margin-top:12px"></div>
+  </section>
+
+  <!-- ══════════════ COURSES ══════════════ -->
+  <section class="tab" id="tab-courses">
+    <div class="page-head">
+      <h1>Liste de courses</h1>
+      <p>Générée depuis le planning de la semaine, quantités additionnées et ajustées au nombre de convives,
+         puis rangées par rayon dans l'ordre du magasin.</p>
+    </div>
+    <div class="filters" style="margin-bottom:16px">
+      <button class="btn" id="copy-list">📋 Copier la liste</button>
+      <button class="btn" id="print-list">🖨️ Imprimer</button>
+      <button class="btn" id="uncheck-all">↺ Tout décocher</button>
+      <div class="tag-input" style="margin-left:auto;max-width:290px">
+        <input type="text" id="extra-in" placeholder="Ajouter un article (café, PQ…)">
+        <button class="btn sm" id="extra-add">+</button>
+      </div>
+    </div>
+    <div class="course-cols" id="courses"></div>
+  </section>
+
+  <!-- ══════════════ RÉGLAGES ══════════════ -->
+  <section class="tab" id="tab-reglages">
+    <div class="page-head">
+      <h1>Réglages</h1>
+      <p>Allergies, aversions, nombre de convives. Tout est enregistré dans votre navigateur — aucune donnée ne quitte
+         votre appareil.</p>
+    </div>
+    <div class="set-grid">
+
+      <div class="card set-card">
+        <h3>Allergies & intolérances</h3>
+        <p>Sélectionnez par personne. Les plats concernés sont signalés et peuvent être masqués depuis l'onglet Recettes.</p>
+        <div id="allergies"></div>
+      </div>
+
+      <div class="card set-card">
+        <h3>Ce qu'on n'aime pas</h3>
+        <p>Un mot par entrée (« champignons », « coriandre », « chèvre »…). Les plats qui en contiennent sont écartés
+           du planificateur automatique.</p>
+        <div class="tag-input">
+          <input type="text" id="av-in" placeholder="Ex : olives">
+          <button class="btn" id="av-add">Ajouter</button>
+        </div>
+        <div class="tag-list" id="av-list"></div>
+      </div>
+
+      <div class="card set-card">
+        <h3>Le foyer</h3>
+        <p>Les quantités des recettes et de la liste de courses sont recalculées à partir de ce nombre.</p>
+        <div class="field">
+          <label class="f" for="nb-pers">Nombre de convives</label>
+          <input type="number" id="nb-pers" min="1" max="12" step="1">
+        </div>
+        <div class="field">
+          <label class="f" for="week-start">Premier jour de la semaine planifiée</label>
+          <input type="date" id="week-start">
+        </div>
+        <div class="field">
+          <label class="f" for="repas-planif">Repas à planifier</label>
+          <select id="repas-planif">
+            <option value="both">Midi et soir</option>
+            <option value="soir">Le soir uniquement</option>
+            <option value="midi">Le midi uniquement</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card set-card">
+        <h3>Mes données</h3>
+        <p>Sauvegardez avant de changer de navigateur ou de vider le cache.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" id="export">⬇ Exporter (JSON)</button>
+          <button class="btn" id="import-btn">⬆ Importer</button>
+          <input type="file" id="import" accept="application/json" hidden>
+          <button class="btn danger" id="reset">Tout réinitialiser</button>
+        </div>
+        <p style="margin-top:14px;font-size:12.5px">Stockage : <code>localStorage</code> de ce navigateur.
+           Effacer les données du site les supprime définitivement.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p><b>Ma Famille en Forme</b> — suivi de poids et menus équilibrés.</p>
+    <p>Repères nutritionnels : PNNS 4 / ANSES. Calculs métaboliques : équation de Mifflin-St Jeor (1990).<br>
+       Inspirations culinaires :
+       <a href="https://www.marmiton.org" target="_blank" rel="noopener">Marmiton</a>,
+       <a href="https://www.750g.com" target="_blank" rel="noopener">750g</a>,
+       <a href="https://www.ricardocuisine.com" target="_blank" rel="noopener">Ricardo</a>,
+       <a href="https://www.amandinecooking.com" target="_blank" rel="noopener">Amandine Cooking</a>,
+       <a href="https://www.hellofresh.fr" target="_blank" rel="noopener">HelloFresh</a>.</p>
+    <p>Ce site donne des repères généraux, il ne remplace pas un avis médical.</p>
+  </footer>
+</main>
+
+<!-- Modale recette -->
+<div class="overlay" id="ov-recipe"><div class="modal" id="modal-recipe"></div></div>
+<!-- Modale sélection de plat pour un créneau -->
+<div class="overlay" id="ov-pick"><div class="modal" id="modal-pick"></div></div>
+
+<div class="toast" id="toast"></div>
+
+<script src="data/recettes.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
