@@ -20,7 +20,7 @@ double-clic depuis l'explorateur de fichiers. Les données restent dans le navig
 
 | Onglet | Ce qu'il fait |
 |---|---|
-| **Progression** | Un profil par personne (Christelle, Fabien, Nathan, Mathis) : date de naissance, taille, sexe, niveau d'activité, objectif de poids. Pesées horodatées, courbe SVG avec ligne d'objectif, IMC, métabolisme de base, dépense quotidienne et apport calorique conseillé. |
+| **Progression** | Un profil par personne (Christelle, Fabien, Nathan, Mathis), **vide au départ** : date de naissance, taille, sexe, niveau d'activité et objectif de poids sont à saisir. Tant qu'il manque une donnée, la fiche le dit et n'affiche aucun chiffre inventé. Ensuite : pesées horodatées, courbe SVG avec ligne d'objectif, IMC, métabolisme de base, dépense quotidienne et apport calorique conseillé. |
 | **Recettes** | 54 plats, quantités pour le nombre de convives réglé. Recherche, filtres (catégorie, temps, saison, légumineuses, poisson gras, batch cooking, jours sympa), fiche détaillée avec ingrédients, étapes, valeurs nutritionnelles et lien vers le site source. |
 | **Semaine** | Grille 7 jours × 2 repas. Remplissage manuel ou automatique. Le planificateur évite les répétitions, alterne les catégories, place les plats plaisir le week-end et respecte les repères PNNS. Bilan d'équilibre en bas de page. |
 | **Courses** | Liste générée depuis le planning : quantités additionnées, converties (g → kg), ajustées au nombre de convives et rangées par rayon. Cases à cocher, ajout d'articles libres, copie dans le presse-papier, impression. |
@@ -54,6 +54,15 @@ Double-cliquer sur `index.html`. Pour passer par un serveur :
 ```bash
 cd sante && python3 -m http.server 8000   # puis http://localhost:8000
 ```
+
+## Ce qui est conservé
+
+Tout est enregistré au fil de l'eau, sans bouton « sauvegarder » : profils, pesées, allergies, aversions, sélection
+de recettes, planning de la semaine, cases cochées de la liste de courses, réglages du foyer, et jusqu'à l'onglet
+ouvert — on retrouve l'application exactement là où on l'avait laissée.
+
+Les écrans se mettent à jour de façon ciblée : valider une pesée ou cocher un article ne reconstruit pas la page,
+donc le panneau ouvert reste ouvert et la position de défilement ne bouge pas.
 
 ## Données personnelles
 

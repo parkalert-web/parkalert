@@ -70,6 +70,9 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Doit primer sur les règles d'affichage des composants (.notice est en display:flex). */
+[hidden] { display: none !important; }
+
 html { -webkit-text-size-adjust: 100%; }
 
 body {
@@ -428,8 +431,9 @@ details.edit-p summary::before { content: '⚙'; }
     </div>
     <div id="first-run" class="notice" hidden>
       <span>👋</span>
-      <span><b>Première visite ?</b> Les profils contiennent des valeurs d'exemple. Ouvrez « Modifier le profil »
-        sur chaque personne pour saisir la vraie date de naissance, la taille et l'objectif.</span>
+      <span><b>Bienvenue.</b> Les profils sont vides : complétez la date de naissance, la taille et le sexe de chacun,
+        puis enregistrez une première pesée. L'objectif de poids est facultatif et peut être ajouté plus tard.
+        Tout est conservé automatiquement sur cet appareil.</span>
       <button class="btn sm ghost" id="dismiss-first">Compris</button>
     </div>
     <div class="people-grid" id="people"></div>
@@ -2551,12 +2555,14 @@ function etatParDefaut() {
   return {
     v: 1,
     premiereVisite: true,
+    onglet: 'progression',
     foyer: { nbPersonnes: 4, repasPlanifies: 'both' },
+    // Aucune donnée personnelle pré-remplie : tout est saisi par la famille.
     personnes: [
-      { id: 'christelle', nom: 'Christelle', sexe: 'F', naissance: '1982-05-14', taille: 166, objectif: 62, activite: 1.375, couleur: '#c0503f', allergenes: [], pesees: [{ d: aujourdhui(), p: 70 }] },
-      { id: 'fabien',     nom: 'Fabien',     sexe: 'H', naissance: '1980-09-22', taille: 178, objectif: 78, activite: 1.375, couleur: '#3b7ea1', allergenes: [], pesees: [{ d: aujourdhui(), p: 88 }] },
-      { id: 'nathan',     nom: 'Nathan',     sexe: 'H', naissance: '2008-03-11', taille: 176, objectif: 70, activite: 1.55,  couleur: '#2f8f66', allergenes: [], pesees: [{ d: aujourdhui(), p: 72 }] },
-      { id: 'mathis',     nom: 'Mathis',     sexe: 'H', naissance: '2013-06-30', taille: 152, objectif: 44, activite: 1.55,  couleur: '#7a5ea8', allergenes: [], pesees: [{ d: aujourdhui(), p: 45 }] }
+      { id: 'christelle', nom: 'Christelle', sexe: '', naissance: '', taille: null, objectif: null, activite: 1.375, couleur: '#c0503f', allergenes: [], pesees: [] },
+      { id: 'fabien',     nom: 'Fabien',     sexe: '', naissance: '', taille: null, objectif: null, activite: 1.375, couleur: '#3b7ea1', allergenes: [], pesees: [] },
+      { id: 'nathan',     nom: 'Nathan',     sexe: '', naissance: '', taille: null, objectif: null, activite: 1.375, couleur: '#2f8f66', allergenes: [], pesees: [] },
+      { id: 'mathis',     nom: 'Mathis',     sexe: '', naissance: '', taille: null, objectif: null, activite: 1.375, couleur: '#7a5ea8', allergenes: [], pesees: [] }
     ],
     aversions: [],
     selection: [],
@@ -2634,9 +2640,23 @@ function imcInfo(v) {
 /** Métabolisme de base — Mifflin-St Jeor (1990). */
 function metabolismeBase(p, poids) {
   const a = age(p);
-  if (!poids || !p.taille || a === null) return null;
+  // Sans sexe, taille, âge et poids, la formule n'a rien à calculer : on n'invente pas.
+  if (!poids || !p.taille || a === null || (p.sexe !== 'H' && p.sexe !== 'F')) return null;
   const base = 10 * poids + 6.25 * p.taille - 5 * a;
   return Math.round(base + (p.sexe === 'H' ? 5 : -161));
+}
+/** Champs indispensables aux calculs, pour signaler ce qui manque. */
+function profilManquant(p) {
+  const m = [];
+  if (!p.naissance) m.push('la date de naissance');
+  if (!p.taille) m.push('la taille');
+  if (p.sexe !== 'H' && p.sexe !== 'F') m.push('le sexe');
+  return m;
+}
+/** « a, b et c » plutôt que « a, b, c ». */
+function enumerer(l) {
+  if (l.length <= 1) return l[0] || '';
+  return l.slice(0, -1).join(', ') + ' et ' + l[l.length - 1];
 }
 function depenseTotale(p, poids) {
   const mb = metabolismeBase(p, poids);
@@ -2699,6 +2719,7 @@ const deSaison = r => (r.saisons || []).includes(saisonCourante());
 $$('#nav button').forEach(b => b.addEventListener('click', () => ouvrirOnglet(b.dataset.tab)));
 
 function ouvrirOnglet(nom) {
+  const dejaOuvert = state.onglet === nom && $('#tab-' + nom).classList.contains('on');
   $$('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === nom));
   $$('.tab').forEach(s => s.classList.toggle('on', s.id === 'tab-' + nom));
   if (nom === 'progression') rendrePersonnes();
@@ -2706,7 +2727,10 @@ function ouvrirOnglet(nom) {
   if (nom === 'semaine') { rendreSemaine(); rendreEquilibre(); }
   if (nom === 'courses') rendreCourses();
   if (nom === 'reglages') rendreReglages();
-  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+  // L'onglet ouvert est retenu : on retrouve l'application là où on l'avait laissée.
+  state.onglet = nom;
+  sauver();
+  if (!dejaOuvert) window.scrollTo(0, 0);
 }
 
 /* ============================================================
@@ -2716,12 +2740,46 @@ function rendrePersonnes() {
   $('#first-run').hidden = !state.premiereVisite;
   const box = $('#people');
   box.innerHTML = state.personnes.map(personneHTML).join('');
+  state.personnes.forEach(p => dessinerCourbe(p));
+}
 
-  // Les graphiques ont besoin de la largeur réelle : on les dessine après insertion.
-  state.personnes.forEach(p => {
-    const holder = $(`[data-chart="${p.id}"]`);
-    if (holder) holder.innerHTML = graphique(p, holder.clientWidth || 300);
-  });
+/** Le graphique a besoin de la largeur réelle : on le dessine après insertion. */
+function dessinerCourbe(p) {
+  const holder = $(`[data-chart="${p.id}"]`);
+  if (holder) holder.innerHTML = graphique(p, holder.clientWidth || 300);
+}
+
+/**
+ * Redessine une seule fiche, en préservant ce que la personne est en train de faire :
+ * panneau d'édition ouvert, champ actif, curseur et position de défilement.
+ * Sans cela, chaque validation donne l'impression que la page se recharge.
+ */
+function rendreUnePersonne(id) {
+  const p = state.personnes.find(x => x.id === id);
+  const carte = $(`[data-person="${id}"]`);
+  if (!p || !carte) { rendrePersonnes(); return; }
+  $('#first-run').hidden = !state.premiereVisite;
+
+  const detailsOuvert = carte.querySelector('details').open;
+  const actif = document.activeElement;
+  const champActif = carte.contains(actif) ? (actif.dataset.champ || null) : null;
+  const curseur = champActif && actif.selectionStart !== undefined ? actif.selectionStart : null;
+  const defilement = window.scrollY;
+
+  carte.outerHTML = personneHTML(p);
+
+  const neuve = $(`[data-person="${id}"]`);
+  if (detailsOuvert) neuve.querySelector('details').open = true;
+  dessinerCourbe(p);
+
+  if (champActif) {
+    const champ = neuve.querySelector(`[data-champ="${champActif}"]`);
+    if (champ) {
+      champ.focus();
+      if (curseur !== null) { try { champ.setSelectionRange(curseur, curseur); } catch (e) { /* type sans sélection */ } }
+    }
+  }
+  window.scrollTo(0, defilement);
 }
 
 function personneHTML(p) {
@@ -2754,13 +2812,18 @@ function personneHTML(p) {
     </div>`;
   }).join('') || '<p class="muted" style="padding:10px 0">Aucune pesée enregistrée.</p>';
 
+  const manque = profilManquant(p);
+  const sousTitre = manque.length
+    ? 'Profil à compléter'
+    : `${a} ans · ${p.taille} cm · ${p.sexe === 'H' ? 'homme' : 'femme'}${mineur(p) ? ' · mineur' : ''}`;
+
   return `
-  <div class="card person" style="--pc:${p.couleur}">
+  <div class="card person" data-person="${p.id}" style="--pc:${p.couleur}">
     <div class="p-top">
       <div class="avatar">${esc(p.nom[0])}</div>
       <div>
         <div class="p-name">${esc(p.nom)}</div>
-        <div class="p-sub">${a !== null ? a + ' ans' : 'âge à renseigner'} · ${p.taille} cm · ${p.sexe === 'H' ? 'homme' : 'femme'}${mineur(p) ? ' · mineur' : ''}</div>
+        <div class="p-sub">${sousTitre}</div>
       </div>
     </div>
 
@@ -2773,7 +2836,10 @@ function personneHTML(p) {
     ${mineur(p)
       ? `<p class="muted" style="margin-bottom:10px">👦 Moins de 18 ans : l'IMC adulte ne s'applique pas. On suit la courbe de poids
            et on vise le maintien d'une alimentation équilibrée, pas une perte de poids.</p>`
-      : `<p class="muted" style="margin-bottom:10px">${info.txt}${zone ? ` · zone de référence : <b>${zone[0]}–${zone[1]} kg</b>` : ''}</p>`}
+      : manque.length
+        ? `<p class="muted" style="margin-bottom:10px">Renseignez ${enumerer(manque)} ci-dessous pour obtenir l'IMC,
+             le métabolisme de base et les besoins caloriques.</p>`
+        : `<p class="muted" style="margin-bottom:10px">${info.txt}${zone ? ` · zone de référence : <b>${zone[0]}–${zone[1]} kg</b>` : ''}</p>`}
 
     ${cible && !mineur(p) ? `
     <div class="prog-wrap">
@@ -2793,16 +2859,17 @@ function personneHTML(p) {
 
     <div class="hist">${hist}</div>
 
-    <details class="edit-p">
-      <summary>Modifier le profil</summary>
+    <details class="edit-p" ${manque.length ? 'open' : ''}>
+      <summary>${manque.length ? 'Compléter le profil' : 'Modifier le profil'}</summary>
       <div class="grid2" style="margin-top:12px">
         <div class="field"><label class="f">Prénom</label><input type="text" data-p="${p.id}" data-champ="nom" value="${esc(p.nom)}"></div>
-        <div class="field"><label class="f">Date de naissance</label><input type="date" data-p="${p.id}" data-champ="naissance" value="${p.naissance || ''}"></div>
-        <div class="field"><label class="f">Taille (cm)</label><input type="number" min="80" max="230" data-p="${p.id}" data-champ="taille" value="${p.taille}"></div>
+        <div class="field"><label class="f">Date de naissance</label><input type="date" data-p="${p.id}" data-champ="naissance" value="${p.naissance || ''}" max="${aujourdhui()}"></div>
+        <div class="field"><label class="f">Taille (cm)</label><input type="number" min="80" max="230" placeholder="ex : 170" data-p="${p.id}" data-champ="taille" value="${p.taille || ''}"></div>
         <div class="field"><label class="f">Sexe</label><select data-p="${p.id}" data-champ="sexe">
+          <option value="" ${!p.sexe ? 'selected' : ''}>À préciser</option>
           <option value="F" ${p.sexe === 'F' ? 'selected' : ''}>Femme</option>
           <option value="H" ${p.sexe === 'H' ? 'selected' : ''}>Homme</option></select></div>
-        <div class="field"><label class="f">Objectif (kg)</label><input type="number" step="0.5" min="20" max="250" data-p="${p.id}" data-champ="objectif" value="${p.objectif || ''}"></div>
+        <div class="field"><label class="f">Objectif (kg)</label><input type="number" step="0.5" min="20" max="250" placeholder="facultatif" data-p="${p.id}" data-champ="objectif" value="${p.objectif || ''}"></div>
         <div class="field"><label class="f">Couleur</label><input type="color" data-p="${p.id}" data-champ="couleur" value="${p.couleur}" style="padding:2px;height:38px"></div>
       </div>
       <div class="field"><label class="f">Niveau d'activité</label><select data-p="${p.id}" data-champ="activite">
@@ -2863,7 +2930,7 @@ $('#people').addEventListener('click', e => {
     if (!val || val < 20 || val > 300) { toast('Entrez un poids valide (20 à 300 kg)'); return; }
     p.pesees = (p.pesees || []).filter(x => x.d !== d).concat([{ d, p: +val.toFixed(1) }]);
     state.premiereVisite = false;
-    sauver(); rendrePersonnes();
+    sauver(); rendreUnePersonne(id);
     toast(`Pesée enregistrée pour ${p.nom}`);
     return;
   }
@@ -2872,7 +2939,7 @@ $('#people').addEventListener('click', e => {
     const [id, d] = del.dataset.delPesee.split('|');
     const p = state.personnes.find(x => x.id === id);
     p.pesees = p.pesees.filter(x => x.d !== d);
-    sauver(); rendrePersonnes();
+    sauver(); rendreUnePersonne(id);
     return;
   }
 });
@@ -2887,7 +2954,9 @@ $('#people').addEventListener('change', e => {
   if (champ === 'nom' && !String(v).trim()) return;
   p[champ] = v;
   state.premiereVisite = false;
-  sauver(); rendrePersonnes(); rendreReglages();
+  sauver();
+  rendreUnePersonne(p.id);
+  if (champ === 'nom' || champ === 'couleur') rendreReglages();
 });
 
 $('#dismiss-first').addEventListener('click', () => {
@@ -2982,11 +3051,30 @@ $('#recipes').addEventListener('click', e => {
 
 function basculerFavori(id) {
   const i = state.selection.indexOf(id);
-  if (i >= 0) { state.selection.splice(i, 1); toast('Retiré de la sélection'); }
-  else { state.selection.push(id); toast('Ajouté à ma sélection ★'); }
-  sauver(); rendreRecettes();
+  const fav = i < 0;
+  if (fav) { state.selection.push(id); toast('Ajouté à ma sélection ★'); }
+  else { state.selection.splice(i, 1); toast('Retiré de la sélection'); }
+  sauver();
+
+  // Mise à jour ciblée : on ne reconstruit la grille que si le filtre ★ est actif,
+  // sinon la page sauterait sous les doigts à chaque clic.
+  if (filtres.pills.has('fav')) {
+    rendreRecettes();
+  } else {
+    const btn = $(`#recipes [data-fav="${id}"]`);
+    if (btn) {
+      btn.textContent = fav ? '★' : '☆';
+      btn.title = fav ? 'Retirer de ma sélection' : 'Ajouter à ma sélection';
+    }
+  }
   const m = $('#modal-recipe');
-  if ($('#ov-recipe').classList.contains('on') && m.dataset.r === id) ouvrirRecette(id);
+  if ($('#ov-recipe').classList.contains('on') && m.dataset.r === id) {
+    const b = m.querySelector('[data-fav]');
+    if (b) {
+      b.textContent = fav ? '★ Dans ma sélection' : '☆ Ajouter à ma sélection';
+      b.classList.toggle('primary', !fav);
+    }
+  }
 }
 
 $('#q').addEventListener('input', e => { filtres.q = e.target.value; rendreRecettes(); });
@@ -3443,7 +3531,7 @@ function rendreCourses() {
       }).join('')}
     </div>`;
   }).join('') + (extra.length ? `<div class="card rayon">
-      <h3>Divers <span class="n">${extra.length}</span></h3>
+      <h3>Divers <span class="n">${extra.filter((t, i) => !state.courses.coches.includes('x|' + i)).length}/${extra.length}</span></h3>
       ${extra.map((t, idx) => {
         const cle = 'x|' + idx;
         const done = state.courses.coches.includes(cle);
@@ -3464,7 +3552,16 @@ $('#courses').addEventListener('change', e => {
   const i = state.courses.coches.indexOf(cle);
   if (c.checked && i < 0) state.courses.coches.push(cle);
   if (!c.checked && i >= 0) state.courses.coches.splice(i, 1);
-  sauver(); rendreCourses();
+  sauver();
+
+  // On coche en plein magasin : surtout ne pas reconstruire la liste sous les doigts.
+  const ligne = c.closest('.item');
+  ligne.classList.toggle('done', c.checked);
+  const rayon = ligne.closest('.rayon');
+  const compteur = rayon.querySelector('h3 .n');
+  const total = rayon.querySelectorAll('.item').length;
+  compteur.textContent = `${rayon.querySelectorAll('.item:not(.done)').length}/${total}`;
+  majBadges();
 });
 $('#courses').addEventListener('click', e => {
   const d = e.target.closest('[data-del-extra]');
@@ -3655,6 +3752,7 @@ function tout() {
 }
 
 tout();
+ouvrirOnglet(['progression', 'recettes', 'semaine', 'courses', 'reglages'].includes(state.onglet) ? state.onglet : 'progression');
 </script>
 </body>
 </html>
