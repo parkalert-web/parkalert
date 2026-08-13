@@ -7,7 +7,400 @@
 <meta name="description" content="Suivi de poids familial, 54 recettes équilibrées pour 4 personnes, planning de la semaine et liste de courses automatique.">
 <meta name="theme-color" content="#2f8f66">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥗</text></svg>">
-<link rel="stylesheet" href="style.css">
+<style>
+/* ============================================================
+   Ma Famille en Forme — feuille de style
+   ============================================================ */
+
+:root {
+  --bg:        #f4f5f1;
+  --bg-alt:    #eceee7;
+  --surface:   #ffffff;
+  --surface-2: #f8f9f6;
+  --border:    #e0e2da;
+  --border-2:  #cfd3c7;
+  --text:      #1b1f1c;
+  --text-soft: #5c6560;
+  --text-mute: #8a938d;
+
+  --accent:      #2f8f66;
+  --accent-dark: #226b4c;
+  --accent-soft: #e3f2ea;
+  --warm:        #d97f34;
+  --warm-soft:   #fbeee0;
+  --blue:        #3b7ea1;
+  --blue-soft:   #e4f0f6;
+  --red:         #c0503f;
+  --red-soft:    #fbe8e5;
+  --purple:      #7a5ea8;
+
+  --radius:    14px;
+  --radius-sm: 9px;
+  --shadow:    0 1px 2px rgba(20,30,25,.05), 0 6px 20px rgba(20,30,25,.06);
+  --shadow-lg: 0 8px 40px rgba(20,30,25,.16);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:        #10130f;
+    --bg-alt:    #161a15;
+    --surface:   #191d18;
+    --surface-2: #1f241e;
+    --border:    #2b312a;
+    --border-2:  #3a423a;
+    --text:      #e8ebe6;
+    --text-soft: #a3ada4;
+    --text-mute: #737d74;
+
+    --accent:      #4fb98a;
+    --accent-dark: #6fd0a3;
+    --accent-soft: #1b3129;
+    --warm:        #e29a5b;
+    --warm-soft:   #33261a;
+    --blue:        #6aa9c9;
+    --blue-soft:   #17262e;
+    --red:         #e0796a;
+    --red-soft:    #2f1c19;
+    --purple:      #a48ad0;
+    --shadow:    0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,.5);
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 60px;
+}
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 650; letter-spacing: -0.015em; }
+a { color: var(--accent-dark); }
+
+/* ── Barre supérieure ───────────────────────────────────── */
+header {
+  position: sticky; top: 0; z-index: 50;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.head-in {
+  max-width: 1180px; margin: 0 auto;
+  padding: 10px 18px;
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 750; font-size: 17px; letter-spacing: -0.02em; }
+.brand .mark {
+  width: 30px; height: 30px; border-radius: 9px;
+  background: linear-gradient(140deg, var(--accent), var(--blue));
+  display: grid; place-items: center; font-size: 16px;
+}
+nav { display: flex; gap: 2px; margin-left: auto; flex-wrap: wrap; }
+nav button {
+  border: none; background: transparent; cursor: pointer;
+  font: inherit; font-size: 13.5px; font-weight: 550;
+  color: var(--text-soft);
+  padding: 7px 13px; border-radius: 999px;
+  display: flex; align-items: center; gap: 6px;
+}
+nav button:hover { background: var(--bg-alt); color: var(--text); }
+nav button.on { background: var(--accent); color: #fff; }
+nav button .n {
+  background: rgba(255,255,255,.25); border-radius: 20px;
+  padding: 0 6px; font-size: 11px; font-weight: 700;
+}
+nav button:not(.on) .n { background: var(--border); color: var(--text-soft); }
+
+main { max-width: 1180px; margin: 0 auto; padding: 22px 18px 40px; }
+.tab { display: none; }
+.tab.on { display: block; animation: fade .22s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ── Éléments génériques ────────────────────────────────── */
+.page-head { margin-bottom: 20px; }
+.page-head h1 { font-size: 25px; margin-bottom: 4px; }
+.page-head p { color: var(--text-soft); font-size: 14px; max-width: 70ch; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.btn {
+  font: inherit; font-size: 13.5px; font-weight: 600;
+  border: 1px solid var(--border-2); background: var(--surface); color: var(--text);
+  padding: 8px 14px; border-radius: var(--radius-sm); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.btn:hover { background: var(--bg-alt); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--text-soft); }
+.btn.ghost:hover { background: var(--bg-alt); color: var(--text); }
+.btn.sm { padding: 5px 10px; font-size: 12.5px; }
+.btn.danger { color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, transparent); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+input, select, textarea {
+  font: inherit; font-size: 14px;
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border-2); border-radius: var(--radius-sm);
+  padding: 8px 11px; width: 100%;
+}
+input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 1px; border-color: var(--accent); }
+label.f { display: block; font-size: 12px; font-weight: 650; color: var(--text-soft); margin-bottom: 4px; letter-spacing: .01em; }
+.field { margin-bottom: 12px; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 600; padding: 3px 9px;
+  border-radius: 999px; background: var(--bg-alt); color: var(--text-soft);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.chip.g { background: var(--accent-soft); color: var(--accent-dark); border-color: transparent; }
+.chip.w { background: var(--warm-soft); color: var(--warm); border-color: transparent; }
+.chip.b { background: var(--blue-soft); color: var(--blue); border-color: transparent; }
+.chip.r { background: var(--red-soft); color: var(--red); border-color: transparent; }
+
+.muted { color: var(--text-mute); font-size: 13px; }
+.notice {
+  background: var(--warm-soft); border: 1px solid color-mix(in srgb, var(--warm) 30%, transparent);
+  color: color-mix(in srgb, var(--warm) 80%, var(--text));
+  padding: 11px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 16px;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.notice button { margin-left: auto; }
+
+/* ── PROGRESSION ────────────────────────────────────────── */
+.people-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; }
+.person { padding: 16px; position: relative; overflow: hidden; }
+.person::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--pc, var(--accent)); }
+.p-top { display: flex; align-items: center; gap: 11px; margin-bottom: 14px; }
+.avatar {
+  width: 40px; height: 40px; border-radius: 12px; flex: none;
+  display: grid; place-items: center; font-weight: 750; font-size: 16px; color: #fff;
+  background: var(--pc, var(--accent));
+}
+.p-name { font-weight: 700; font-size: 16px; }
+.p-sub { font-size: 12px; color: var(--text-mute); }
+
+.stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.stat { background: var(--surface-2); border-radius: var(--radius-sm); padding: 9px 10px; text-align: center; }
+.stat .v { font-size: 18px; font-weight: 750; letter-spacing: -0.02em; }
+.stat .v small { font-size: 11px; font-weight: 600; color: var(--text-mute); }
+.stat .k { font-size: 10.5px; color: var(--text-mute); text-transform: uppercase; letter-spacing: .05em; font-weight: 650; }
+
+.prog-wrap { margin-bottom: 12px; }
+.prog-lab { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-soft); margin-bottom: 5px; font-weight: 600; }
+.prog-bar { height: 8px; background: var(--bg-alt); border-radius: 20px; overflow: hidden; }
+.prog-bar i { display: block; height: 100%; background: var(--pc, var(--accent)); border-radius: 20px; transition: width .5s cubic-bezier(.3,.8,.3,1); }
+
+.chart { width: 100%; height: 132px; display: block; margin: 4px 0 10px; }
+.chart .grid-l { stroke: var(--border); stroke-width: 1; }
+.chart .goal-l { stroke: var(--warm); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.chart .line { fill: none; stroke: var(--pc, var(--accent)); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.chart .area { fill: var(--pc, var(--accent)); opacity: .10; }
+.chart .dot { fill: var(--surface); stroke: var(--pc, var(--accent)); stroke-width: 2.5; }
+.chart text { font-size: 9.5px; fill: var(--text-mute); font-family: var(--font); }
+
+.weigh-in { display: flex; gap: 7px; align-items: center; }
+.weigh-in input[type=number] { width: 88px; }
+.weigh-in input[type=date] { flex: 1; min-width: 0; }
+
+.hist { max-height: 150px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--border); }
+.hist-row { display: flex; align-items: center; gap: 8px; padding: 5px 2px; font-size: 13px; border-bottom: 1px solid var(--border); }
+.hist-row .d { color: var(--text-mute); font-size: 12px; }
+.hist-row .p { font-weight: 650; margin-left: auto; }
+.hist-row .delta { font-size: 11.5px; font-weight: 650; min-width: 44px; text-align: right; }
+.down { color: var(--accent); } .up { color: var(--red); }
+
+details.edit-p { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+details.edit-p summary { cursor: pointer; font-size: 12.5px; font-weight: 650; color: var(--text-soft); list-style: none; display: flex; align-items: center; gap: 6px; }
+details.edit-p summary::-webkit-details-marker { display: none; }
+details.edit-p summary::before { content: '⚙'; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ── RECETTES ───────────────────────────────────────────── */
+.filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.filters input[type=search] { max-width: 260px; }
+.filters select { width: auto; min-width: 130px; }
+.pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+.pill {
+  font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border-2); background: var(--surface); color: var(--text-soft);
+  padding: 5px 12px; border-radius: 999px;
+}
+.pill.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+.recipes { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 14px; }
+.r-card { padding: 14px; display: flex; flex-direction: column; gap: 9px; cursor: pointer; transition: transform .15s, box-shadow .15s; position: relative; }
+.r-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.r-card.excluded { opacity: .5; }
+.r-card h3 { font-size: 15.5px; padding-right: 26px; }
+.r-emo { position: absolute; top: 12px; right: 12px; font-size: 19px; }
+.r-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+.r-nutri { display: flex; gap: 10px; font-size: 11.5px; color: var(--text-mute); border-top: 1px solid var(--border); padding-top: 8px; margin-top: auto; }
+.r-nutri b { color: var(--text-soft); font-weight: 700; }
+.r-acts { display: flex; gap: 6px; }
+.r-warn { font-size: 11.5px; color: var(--red); font-weight: 600; }
+.fav-btn { background: transparent; border: none; cursor: pointer; font-size: 17px; padding: 2px; line-height: 1; }
+
+/* ── MODALE ─────────────────────────────────────────────── */
+.overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(12,18,14,.55); backdrop-filter: blur(3px);
+  display: none; align-items: flex-start; justify-content: center;
+  padding: 24px 16px; overflow-y: auto;
+}
+.overlay.on { display: flex; }
+.modal {
+  background: var(--surface); border-radius: 18px; max-width: 720px; width: 100%;
+  box-shadow: var(--shadow-lg); padding: 24px; position: relative;
+  animation: pop .2s ease;
+}
+@keyframes pop { from { opacity: 0; transform: scale(.97) translateY(6px); } to { opacity: 1; transform: none; } }
+.modal .close { position: absolute; top: 14px; right: 14px; border: none; background: var(--bg-alt); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 16px; color: var(--text-soft); }
+.modal h2 { font-size: 21px; padding-right: 40px; margin-bottom: 8px; }
+.m-cols { display: grid; grid-template-columns: 1fr 1.25fr; gap: 22px; margin-top: 18px; }
+.m-cols h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-mute); margin-bottom: 9px; }
+.ing-list { list-style: none; font-size: 13.5px; }
+.ing-list li { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px dashed var(--border); }
+.ing-list li b { font-weight: 650; white-space: nowrap; color: var(--text-soft); }
+.ing-list li.bad { color: var(--red); }
+.steps { list-style: none; counter-reset: s; font-size: 13.8px; }
+.steps li { counter-increment: s; padding: 0 0 12px 30px; position: relative; }
+.steps li::before {
+  content: counter(s); position: absolute; left: 0; top: 0;
+  width: 21px; height: 21px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-dark);
+  display: grid; place-items: center; font-size: 11.5px; font-weight: 750;
+}
+.tip { background: var(--warm-soft); border-left: 3px solid var(--warm); padding: 10px 13px; border-radius: 0 8px 8px 0; font-size: 13px; margin-top: 12px; }
+.nutri-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 14px 0 4px; }
+.nutri-grid div { background: var(--surface-2); border-radius: 8px; padding: 8px 4px; text-align: center; }
+.nutri-grid .v { font-weight: 750; font-size: 15px; }
+.nutri-grid .k { font-size: 10px; color: var(--text-mute); text-transform: uppercase; letter-spacing: .04em; }
+.m-foot { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px; align-items: center; }
+
+/* ── SEMAINE ────────────────────────────────────────────── */
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-bottom: 20px; }
+.day { display: flex; flex-direction: column; gap: 8px; }
+.day-h { text-align: center; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-soft); padding-bottom: 2px; }
+.day-h span { display: block; font-size: 10.5px; color: var(--text-mute); font-weight: 500; letter-spacing: 0; text-transform: none; }
+.day.we .day-h { color: var(--warm); }
+.slot {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  min-height: 92px; padding: 9px; cursor: pointer; position: relative;
+  display: flex; flex-direction: column; gap: 5px; font-size: 12px; transition: border-color .15s;
+}
+.slot:hover { border-color: var(--accent); }
+.slot .lab { font-size: 9.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-mute); font-weight: 700; }
+.slot .nm { font-weight: 600; line-height: 1.3; font-size: 12.2px; }
+.slot .mt { margin-top: auto; display: flex; gap: 5px; align-items: center; flex-wrap: wrap; font-size: 10.5px; color: var(--text-mute); }
+.slot.empty { border-style: dashed; align-items: center; justify-content: center; color: var(--text-mute); }
+.slot.empty .plus { font-size: 17px; }
+.slot .x { position: absolute; top: 4px; right: 4px; border: none; background: var(--bg-alt); border-radius: 50%; width: 18px; height: 18px; font-size: 11px; cursor: pointer; color: var(--text-soft); opacity: 0; }
+.slot:hover .x { opacity: 1; }
+.slot .dotc { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+
+.balance { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.bal { padding: 12px; display: flex; flex-direction: column; gap: 3px; }
+.bal .v { font-size: 20px; font-weight: 750; }
+.bal .k { font-size: 11.5px; color: var(--text-mute); font-weight: 600; }
+.bal .st { font-size: 11px; font-weight: 650; }
+.ok { color: var(--accent); } .warn { color: var(--warm); } .bad { color: var(--red); }
+
+.picker-list { max-height: 46vh; overflow-y: auto; margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.picker-item { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; background: var(--surface); text-align: left; font: inherit; width: 100%; }
+.picker-item:hover { border-color: var(--accent); background: var(--surface-2); }
+.picker-item .nm { font-weight: 600; font-size: 13.5px; }
+.picker-item .sub { font-size: 11.5px; color: var(--text-mute); }
+.picker-item .em { font-size: 18px; }
+
+/* ── COURSES ────────────────────────────────────────────── */
+/* Flux multi-colonnes : les rayons se répartissent sans laisser de colonne vide. */
+.course-cols { columns: 300px 4; column-gap: 14px; }
+.course-cols .empty-state { column-span: all; }
+.rayon { padding: 14px; break-inside: avoid; margin-bottom: 14px; display: inline-block; width: 100%; }
+.rayon h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-soft); margin-bottom: 10px; display: flex; gap: 8px; align-items: center; }
+.rayon h3 .n { margin-left: auto; font-size: 11px; color: var(--text-mute); }
+.item { display: flex; align-items: flex-start; gap: 9px; padding: 6px 0; font-size: 13.5px; border-bottom: 1px solid var(--border); }
+.item:last-child { border-bottom: none; }
+.item input { width: 16px; height: 16px; flex: none; margin-top: 3px; accent-color: var(--accent); }
+.item.done label { text-decoration: line-through; color: var(--text-mute); }
+.item .q { margin-left: auto; font-weight: 650; color: var(--text-soft); white-space: nowrap; font-size: 12.5px; }
+.item label { cursor: pointer; }
+.item .src { display: block; font-size: 10.5px; color: var(--text-mute); }
+
+/* ── RÉGLAGES ───────────────────────────────────────────── */
+.set-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.set-card { padding: 18px; }
+.set-card h3 { font-size: 15px; margin-bottom: 4px; }
+.set-card > p { font-size: 12.5px; color: var(--text-mute); margin-bottom: 14px; }
+.alg-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.alg {
+  font-size: 12.5px; padding: 5px 11px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border-2); background: var(--surface); color: var(--text-soft);
+  user-select: none;
+}
+.alg.on { background: var(--red-soft); border-color: var(--red); color: var(--red); font-weight: 650; }
+.tag-input { display: flex; gap: 6px; }
+.tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.tag-list .t { background: var(--bg-alt); border-radius: 999px; padding: 4px 8px 4px 11px; font-size: 12.5px; display: flex; align-items: center; gap: 6px; }
+.tag-list .t button { border: none; background: none; cursor: pointer; color: var(--text-mute); font-size: 14px; line-height: 1; }
+
+.foot { margin-top: 34px; text-align: center; font-size: 12px; color: var(--text-mute); line-height: 1.7; }
+.foot a { color: var(--text-soft); }
+
+.empty-state { text-align: center; padding: 44px 20px; color: var(--text-mute); }
+.empty-state .big { font-size: 34px; margin-bottom: 10px; }
+
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--text); color: var(--bg); padding: 11px 20px; border-radius: 999px;
+  font-size: 13.5px; font-weight: 600; z-index: 500; box-shadow: var(--shadow-lg);
+  transition: transform .28s cubic-bezier(.2,.9,.3,1); pointer-events: none;
+}
+.toast.on { transform: translateX(-50%) translateY(0); }
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .week { grid-template-columns: repeat(2, 1fr); }
+  .m-cols { grid-template-columns: 1fr; gap: 16px; }
+}
+@media (max-width: 620px) {
+  main { padding: 16px 13px 30px; }
+  .head-in { padding: 9px 13px; gap: 10px; }
+  nav { width: 100%; margin-left: 0; overflow-x: auto; }
+  nav button { padding: 6px 10px; font-size: 12.5px; }
+  .week { grid-template-columns: 1fr; }
+  .day { flex-direction: row; align-items: stretch; gap: 8px; }
+  .day-h { writing-mode: horizontal-tb; min-width: 58px; text-align: left; padding-top: 8px; }
+  .slot { flex: 1; }
+  .nutri-grid { grid-template-columns: repeat(3, 1fr); }
+  .modal { padding: 18px; }
+  .stat-row { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media print {
+  header, nav, .btn, .filters, .pill-row, .foot, .notice { display: none !important; }
+  body { background: #fff; padding: 0; }
+  .tab { display: none !important; }
+  .tab.on { display: block !important; }
+  .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+  .course-cols { columns: 2; }
+}
+</style>
 </head>
 <body>
 
@@ -232,7 +625,3036 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="data/recettes.js"></script>
-<script src="js/app.js"></script>
+<script>
+/* ============================================================
+   BASE DE RECETTES — 53 plats équilibrés pour 4 personnes
+   ------------------------------------------------------------
+   Construite à partir des repères nutritionnels du PNNS 4 / ANSES :
+     · 1/2 légumes, 1/4 protéines, 1/4 féculents complets
+     · poisson 2x/semaine dont 1 poisson gras
+     · légumineuses 2 a 3x/semaine
+     · viande rouge <= 1x/semaine, charcuterie limitee
+   Inspirations : Marmiton, 750g, Ricardo, Amandine Cooking, HelloFresh.
+
+   Champs :
+     cat        Végétarien | Poisson | Volaille | Viande rouge | Porc | Œufs
+     legumineuse / poissonGras / viandeRouge : marqueurs d'équilibre
+     plaisir    true = plat "jour sympa" (week-end / envie de réconfort)
+     ingredients: [nom, quantité (pour 4 pers.), unité, rayon]
+     allergenes : codes de la liste ALLERGENES (js/app.js)
+     src        : [site, requête de recherche]
+   ============================================================ */
+
+const RAYONS = {
+  lg: 'Fruits & légumes',
+  bo: 'Boucherie & volaille',
+  po: 'Poissonnerie',
+  cr: 'Crèmerie & œufs',
+  fe: 'Féculents & légumes secs',
+  ep: 'Épicerie salée',
+  es: 'Épices & aromates',
+  bl: 'Boulangerie',
+  sg: 'Surgelés'
+};
+
+const SOURCES = {
+  marmiton:       { nom: 'Marmiton',         url: 'https://www.marmiton.org/recettes/recherche.aspx?aqt=' },
+  g750:           { nom: '750g',             url: 'https://www.750g.com/recherche?q=' },
+  ricardo:        { nom: 'Ricardo Cuisine',  url: 'https://www.ricardocuisine.com/recherche?q=' },
+  amandine:       { nom: 'Amandine Cooking', url: 'https://www.amandinecooking.com/?s=' },
+  hellofresh:     { nom: 'HelloFresh',       url: 'https://www.hellofresh.fr/recipes/search?q=' }
+};
+
+const RECETTES = [
+
+/* ---------------------------------------------------------------
+   VÉGÉTARIEN & LÉGUMINEUSES
+   --------------------------------------------------------------- */
+{
+  id: 'dahl-corail',
+  nom: 'Dahl de lentilles corail au lait de coco et épinards',
+  cat: 'Végétarien', legumineuse: true, plaisir: false,
+  temps: 35, diff: 'Facile',
+  kcal: 515, prot: 21, gluc: 68, lip: 16, fibres: 14,
+  saisons: ['automne', 'hiver', 'printemps'],
+  tags: ['one pot', 'batch cooking', 'sans gluten', 'économique'],
+  allergenes: [],
+  ingredients: [
+    ['Lentilles corail', 300, 'g', 'fe'],
+    ['Lait de coco', 400, 'ml', 'ep'],
+    ['Épinards frais', 200, 'g', 'lg'],
+    ['Tomates concassées', 400, 'g', 'ep'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Gingembre frais', 20, 'g', 'lg'],
+    ['Curry en poudre', 2, 'c.à.s', 'es'],
+    ['Cumin moulu', 1, 'c.à.c', 'es'],
+    ['Curcuma', 1, 'c.à.c', 'es'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep'],
+    ['Riz basmati complet', 250, 'g', 'fe'],
+    ['Citron vert', 1, 'pièce', 'lg'],
+    ['Coriandre fraîche', 1, 'botte', 'lg']
+  ],
+  etapes: [
+    'Émincez les oignons, hachez l\'ail et le gingembre. Faites revenir 5 min dans l\'huile d\'olive dans une grande cocotte.',
+    'Ajoutez curry, cumin et curcuma, mélangez 1 min pour libérer les arômes.',
+    'Versez les lentilles corail rincées, les tomates concassées, le lait de coco et 400 ml d\'eau. Salez, poivrez.',
+    'Laissez mijoter 20 min à feu doux en remuant de temps en temps, jusqu\'à ce que les lentilles se défassent.',
+    'Pendant ce temps, faites cuire le riz complet selon les indications du paquet.',
+    'Hors du feu, incorporez les épinards (ils fondent en 2 min), le jus du citron vert et la coriandre ciselée.'
+  ],
+  astuce: 'Se congèle très bien : doublez les quantités et gardez 4 portions pour un soir de flemme.',
+  src: ['marmiton', 'dahl lentilles corail lait de coco']
+},
+{
+  id: 'chili-sin-carne',
+  nom: 'Chili sin carne aux haricots rouges',
+  cat: 'Végétarien', legumineuse: true, plaisir: false,
+  temps: 40, diff: 'Facile',
+  kcal: 495, prot: 20, gluc: 72, lip: 11, fibres: 17,
+  saisons: ['automne', 'hiver'],
+  tags: ['one pot', 'batch cooking', 'économique', 'riche en fibres'],
+  allergenes: [],
+  ingredients: [
+    ['Haricots rouges cuits', 480, 'g', 'ep'],
+    ['Maïs doux', 200, 'g', 'ep'],
+    ['Tomates concassées', 800, 'g', 'ep'],
+    ['Poivron rouge', 2, 'pièce', 'lg'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Carotte', 2, 'pièce', 'lg'],
+    ['Cumin moulu', 2, 'c.à.c', 'es'],
+    ['Paprika fumé', 2, 'c.à.c', 'es'],
+    ['Piment doux en poudre', 1, 'c.à.c', 'es'],
+    ['Concentré de tomate', 2, 'c.à.s', 'ep'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep'],
+    ['Riz complet', 250, 'g', 'fe'],
+    ['Coriandre fraîche', 0.5, 'botte', 'lg']
+  ],
+  etapes: [
+    'Taillez oignons, poivrons et carottes en petits dés. Faites-les suer 8 min dans l\'huile.',
+    'Ajoutez l\'ail haché, les épices et le concentré de tomate, mélangez 2 min.',
+    'Versez les tomates concassées et 200 ml d\'eau, laissez mijoter 15 min à couvert.',
+    'Ajoutez les haricots rouges égouttés et le maïs, poursuivez 10 min à découvert pour épaissir.',
+    'Faites cuire le riz complet en parallèle.',
+    'Rectifiez l\'assaisonnement et parsemez de coriandre au moment de servir.'
+  ],
+  astuce: 'Un carré de chocolat noir dans la sauce arrondit l\'acidité de la tomate.',
+  src: ['g750', 'chili sin carne']
+},
+{
+  id: 'curry-pois-chiches',
+  nom: 'Curry de pois chiches, patate douce et épinards',
+  cat: 'Végétarien', legumineuse: true, plaisir: false,
+  temps: 40, diff: 'Facile',
+  kcal: 540, prot: 18, gluc: 74, lip: 17, fibres: 15,
+  saisons: ['automne', 'hiver'],
+  tags: ['one pot', 'sans gluten', 'batch cooking'],
+  allergenes: [],
+  ingredients: [
+    ['Pois chiches cuits', 480, 'g', 'ep'],
+    ['Patate douce', 700, 'g', 'lg'],
+    ['Épinards frais', 200, 'g', 'lg'],
+    ['Lait de coco', 400, 'ml', 'ep'],
+    ['Oignon', 1, 'pièce', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Gingembre frais', 20, 'g', 'lg'],
+    ['Pâte de curry (ou curry en poudre)', 2, 'c.à.s', 'es'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep'],
+    ['Riz basmati', 250, 'g', 'fe'],
+    ['Citron', 1, 'pièce', 'lg']
+  ],
+  etapes: [
+    'Épluchez et coupez la patate douce en cubes de 2 cm.',
+    'Faites revenir l\'oignon émincé, l\'ail et le gingembre 5 min, ajoutez la pâte de curry.',
+    'Ajoutez la patate douce, le lait de coco et 200 ml d\'eau. Couvrez et laissez cuire 20 min.',
+    'Incorporez les pois chiches égouttés, poursuivez 5 min.',
+    'Ajoutez les épinards, un filet de jus de citron, salez, poivrez.',
+    'Servez avec le riz basmati.'
+  ],
+  astuce: 'La patate douce apporte des glucides à index glycémique modéré : idéal le soir après le sport.',
+  src: ['amandine', 'curry pois chiches patate douce']
+},
+{
+  id: 'buddha-bowl',
+  nom: 'Buddha bowl quinoa, houmous et légumes rôtis',
+  cat: 'Végétarien', legumineuse: true, plaisir: false,
+  temps: 45, diff: 'Facile',
+  kcal: 560, prot: 19, gluc: 65, lip: 23, fibres: 14,
+  saisons: ['printemps', 'été', 'automne'],
+  tags: ['sans gluten', 'lunch box', 'coloré'],
+  allergenes: ['sesame'],
+  ingredients: [
+    ['Quinoa', 240, 'g', 'fe'],
+    ['Pois chiches cuits', 400, 'g', 'ep'],
+    ['Patate douce', 500, 'g', 'lg'],
+    ['Brocoli', 400, 'g', 'lg'],
+    ['Carotte', 3, 'pièce', 'lg'],
+    ['Avocat', 2, 'pièce', 'lg'],
+    ['Houmous', 200, 'g', 'ep'],
+    ['Graines de courge', 40, 'g', 'ep'],
+    ['Tahini (purée de sésame)', 2, 'c.à.s', 'ep'],
+    ['Citron', 1, 'pièce', 'lg'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep'],
+    ['Paprika fumé', 1, 'c.à.c', 'es']
+  ],
+  etapes: [
+    'Préchauffez le four à 200 °C. Coupez patate douce et carottes en bâtonnets, le brocoli en fleurettes.',
+    'Mélangez les légumes et la moitié des pois chiches avec 2 c.à.s d\'huile, le paprika, sel et poivre. Enfournez 25 min.',
+    'Faites cuire le quinoa 12 min dans 2 fois son volume d\'eau salée, puis égrainez à la fourchette.',
+    'Préparez la sauce : tahini, jus de citron, 3 c.à.s d\'eau, sel — fouettez jusqu\'à obtenir une texture crémeuse.',
+    'Composez les bols : quinoa, légumes rôtis, pois chiches restants, avocat en lamelles, une cuillère de houmous.',
+    'Arrosez de sauce tahini et parsemez de graines de courge.'
+  ],
+  astuce: 'Le trio quinoa + pois chiches donne un profil d\'acides aminés complet, sans viande.',
+  src: ['hellofresh', 'buddha bowl quinoa']
+},
+{
+  id: 'minestrone',
+  nom: 'Minestrone aux haricots blancs et pâtes complètes',
+  cat: 'Végétarien', legumineuse: true, plaisir: false,
+  temps: 40, diff: 'Facile',
+  kcal: 430, prot: 17, gluc: 66, lip: 9, fibres: 15,
+  saisons: ['automne', 'hiver'],
+  tags: ['soupe repas', 'économique', 'batch cooking'],
+  allergenes: ['gluten', 'lait', 'celeri'],
+  ingredients: [
+    ['Haricots blancs cuits', 400, 'g', 'ep'],
+    ['Pâtes complètes courtes', 160, 'g', 'fe'],
+    ['Courgette', 2, 'pièce', 'lg'],
+    ['Carotte', 3, 'pièce', 'lg'],
+    ['Céleri branche', 2, 'pièce', 'lg'],
+    ['Poireau', 1, 'pièce', 'lg'],
+    ['Tomates concassées', 400, 'g', 'ep'],
+    ['Oignon', 1, 'pièce', 'lg'],
+    ['Ail', 2, 'gousse', 'lg'],
+    ['Bouillon de légumes', 1200, 'ml', 'ep'],
+    ['Parmesan', 60, 'g', 'cr'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep'],
+    ['Basilic frais', 0.5, 'botte', 'lg']
+  ],
+  etapes: [
+    'Taillez tous les légumes en petits dés réguliers.',
+    'Faites suer oignon, carotte et céleri 8 min dans l\'huile d\'olive.',
+    'Ajoutez poireau, courgette, ail, puis les tomates concassées et le bouillon. Mijotez 15 min.',
+    'Ajoutez les pâtes et les haricots blancs, cuisez le temps indiqué sur le paquet.',
+    'Servez avec le parmesan râpé et le basilic ciselé.'
+  ],
+  astuce: 'Version sans gluten : remplacez les pâtes par 120 g de riz complet.',
+  src: ['marmiton', 'minestrone haricots blancs']
+},
+{
+  id: 'galettes-lentilles',
+  nom: 'Galettes de lentilles vertes et carotte, sauce yaourt-menthe',
+  cat: 'Végétarien', legumineuse: true, plaisir: false,
+  temps: 45, diff: 'Moyen',
+  kcal: 470, prot: 22, gluc: 58, lip: 15, fibres: 13,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['économique', 'les enfants adorent'],
+  allergenes: ['oeuf', 'lait', 'gluten'],
+  ingredients: [
+    ['Lentilles vertes', 250, 'g', 'fe'],
+    ['Carotte', 3, 'pièce', 'lg'],
+    ['Oignon', 1, 'pièce', 'lg'],
+    ['Œuf', 2, 'pièce', 'cr'],
+    ['Chapelure', 60, 'g', 'ep'],
+    ['Cumin moulu', 1, 'c.à.c', 'es'],
+    ['Yaourt grec', 300, 'g', 'cr'],
+    ['Menthe fraîche', 0.5, 'botte', 'lg'],
+    ['Citron', 1, 'pièce', 'lg'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep'],
+    ['Salade verte', 1, 'pièce', 'lg'],
+    ['Pommes de terre', 600, 'g', 'lg']
+  ],
+  etapes: [
+    'Cuisez les lentilles 20 min à l\'eau salée, égouttez et laissez tiédir.',
+    'Râpez les carottes, hachez l\'oignon. Mélangez avec les lentilles écrasées grossièrement, les œufs, la chapelure et le cumin.',
+    'Formez 8 galettes, réservez 15 min au frais pour qu\'elles se tiennent.',
+    'Faites cuire les pommes de terre en robe des champs (25 min) ou en cubes au four.',
+    'Dorez les galettes 4 min de chaque côté à la poêle dans un filet d\'huile.',
+    'Mélangez yaourt, menthe ciselée, jus de citron, sel. Servez avec la salade.'
+  ],
+  astuce: 'Les galettes se congèlent crues, séparées par du papier cuisson.',
+  src: ['amandine', 'galettes lentilles carotte']
+},
+{
+  id: 'tajine-legumes',
+  nom: 'Tajine de légumes aux pois chiches et abricots secs',
+  cat: 'Végétarien', legumineuse: true, plaisir: false,
+  temps: 50, diff: 'Facile',
+  kcal: 520, prot: 17, gluc: 84, lip: 12, fibres: 16,
+  saisons: ['automne', 'hiver'],
+  tags: ['one pot', 'batch cooking', 'parfumé'],
+  allergenes: ['gluten', 'coque'],
+  ingredients: [
+    ['Pois chiches cuits', 480, 'g', 'ep'],
+    ['Courgette', 2, 'pièce', 'lg'],
+    ['Carotte', 3, 'pièce', 'lg'],
+    ['Navet', 2, 'pièce', 'lg'],
+    ['Poivron jaune', 1, 'pièce', 'lg'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Abricots secs', 100, 'g', 'ep'],
+    ['Tomates concassées', 400, 'g', 'ep'],
+    ['Ras el-hanout', 2, 'c.à.s', 'es'],
+    ['Cannelle', 1, 'c.à.c', 'es'],
+    ['Semoule complète', 250, 'g', 'fe'],
+    ['Amandes effilées', 40, 'g', 'ep'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep'],
+    ['Coriandre fraîche', 0.5, 'botte', 'lg']
+  ],
+  etapes: [
+    'Faites revenir les oignons émincés 5 min, ajoutez le ras el-hanout et la cannelle.',
+    'Ajoutez carottes, navets et poivron en morceaux, mouillez avec les tomates et 300 ml d\'eau.',
+    'Laissez mijoter 20 min à couvert, puis ajoutez courgettes, pois chiches et abricots coupés en deux.',
+    'Poursuivez 15 min à découvert : la sauce doit être sirupeuse.',
+    'Préparez la semoule complète (volume égal d\'eau bouillante, 5 min à couvert, égrainez).',
+    'Parsemez d\'amandes torréfiées et de coriandre.'
+  ],
+  astuce: 'Sans les fruits secs, comptez 80 kcal de moins par personne.',
+  src: ['marmiton', 'tajine legumes pois chiches']
+},
+{
+  id: 'risotto-orge',
+  nom: 'Risotto d\'orge perlé aux champignons',
+  cat: 'Végétarien', legumineuse: false, plaisir: false,
+  temps: 45, diff: 'Moyen',
+  kcal: 505, prot: 17, gluc: 74, lip: 14, fibres: 11,
+  saisons: ['automne', 'hiver'],
+  tags: ['réconfortant', 'céréale complète'],
+  allergenes: ['gluten', 'lait', 'coque', 'sulfite'],
+  ingredients: [
+    ['Orge perlé', 300, 'g', 'fe'],
+    ['Champignons de Paris', 500, 'g', 'lg'],
+    ['Échalote', 2, 'pièce', 'lg'],
+    ['Ail', 2, 'gousse', 'lg'],
+    ['Bouillon de légumes', 1000, 'ml', 'ep'],
+    ['Vin blanc sec', 100, 'ml', 'ep'],
+    ['Parmesan', 60, 'g', 'cr'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep'],
+    ['Persil plat', 0.5, 'botte', 'lg'],
+    ['Roquette', 100, 'g', 'lg'],
+    ['Noix', 40, 'g', 'ep']
+  ],
+  etapes: [
+    'Émincez les champignons, faites-les sauter à feu vif 6 min sans les remuer sans arrêt pour qu\'ils dorent. Réservez.',
+    'Faites suer les échalotes, ajoutez l\'orge perlé et nacrez 2 min.',
+    'Déglacez au vin blanc, puis ajoutez le bouillon louche par louche pendant 30 min en remuant.',
+    'Incorporez les champignons, le parmesan et le persil hors du feu.',
+    'Servez avec la roquette assaisonnée et les noix concassées.'
+  ],
+  astuce: 'L\'orge perlé remplace le riz arborio : 3 fois plus de fibres, texture identique.',
+  src: ['ricardo', 'risotto orge champignons']
+},
+{
+  id: 'lasagnes-veggie',
+  nom: 'Lasagnes végétariennes lentilles-courgettes',
+  cat: 'Végétarien', legumineuse: true, plaisir: false,
+  temps: 70, diff: 'Moyen',
+  kcal: 585, prot: 26, gluc: 66, lip: 21, fibres: 12,
+  saisons: ['automne', 'hiver', 'printemps'],
+  tags: ['plat familial', 'batch cooking'],
+  allergenes: ['gluten', 'lait'],
+  ingredients: [
+    ['Feuilles de lasagne', 250, 'g', 'fe'],
+    ['Lentilles vertes', 200, 'g', 'fe'],
+    ['Courgette', 3, 'pièce', 'lg'],
+    ['Tomates concassées', 800, 'g', 'ep'],
+    ['Oignon', 1, 'pièce', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Lait demi-écrémé', 500, 'ml', 'cr'],
+    ['Farine', 40, 'g', 'ep'],
+    ['Beurre', 30, 'g', 'cr'],
+    ['Mozzarella râpée', 125, 'g', 'cr'],
+    ['Parmesan', 40, 'g', 'cr'],
+    ['Origan séché', 1, 'c.à.c', 'es'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep']
+  ],
+  etapes: [
+    'Cuisez les lentilles 20 min. Faites revenir oignon et ail, ajoutez les tomates, l\'origan puis les lentilles. Mijotez 15 min.',
+    'Taillez les courgettes en fines lamelles, poêlez-les 5 min pour évacuer l\'eau.',
+    'Préparez la béchamel : beurre + farine, puis le lait froid en fouettant, 5 min jusqu\'à épaississement. Muscade, sel, poivre.',
+    'Montez : sauce lentilles, feuilles, courgettes, béchamel — 3 fois.',
+    'Terminez par la béchamel, la mozzarella et le parmesan.',
+    'Enfournez 35 min à 180 °C, laissez reposer 10 min avant de couper.'
+  ],
+  astuce: 'Les lentilles remplacent la viande hachée avec autant de protéines et zéro graisse saturée.',
+  src: ['g750', 'lasagnes vegetariennes lentilles']
+},
+{
+  id: 'falafels-four',
+  nom: 'Falafels au four et taboulé de quinoa',
+  cat: 'Végétarien', legumineuse: true, plaisir: false,
+  temps: 45, diff: 'Moyen',
+  kcal: 530, prot: 20, gluc: 68, lip: 18, fibres: 15,
+  saisons: ['printemps', 'été'],
+  tags: ['sans friture', 'lunch box'],
+  allergenes: ['sesame'],
+  ingredients: [
+    ['Pois chiches secs (trempés 12 h)', 300, 'g', 'fe'],
+    ['Quinoa', 240, 'g', 'fe'],
+    ['Oignon', 1, 'pièce', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Persil plat', 1, 'botte', 'lg'],
+    ['Coriandre fraîche', 0.5, 'botte', 'lg'],
+    ['Cumin moulu', 2, 'c.à.c', 'es'],
+    ['Tomate', 3, 'pièce', 'lg'],
+    ['Concombre', 1, 'pièce', 'lg'],
+    ['Citron', 2, 'pièce', 'lg'],
+    ['Tahini (purée de sésame)', 3, 'c.à.s', 'ep'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep'],
+    ['Menthe fraîche', 0.5, 'botte', 'lg']
+  ],
+  etapes: [
+    'Mixez les pois chiches trempés (crus, non cuits) avec oignon, ail, herbes, cumin, sel : la pâte doit rester granuleuse.',
+    'Formez 20 boulettes, badigeonnez d\'huile et enfournez 25 min à 200 °C en les retournant à mi-cuisson.',
+    'Cuisez le quinoa 12 min, laissez refroidir.',
+    'Mélangez le quinoa avec tomates et concombre en dés, herbes ciselées, jus de citron et huile d\'olive.',
+    'Sauce : tahini + jus de citron + eau, jusqu\'à consistance de crème.',
+    'Servez les falafels sur le taboulé, nappés de sauce.'
+  ],
+  astuce: 'Impératif : des pois chiches secs trempés, jamais en conserve, sinon la pâte se délite.',
+  src: ['marmiton', 'falafel au four']
+},
+{
+  id: 'curry-tofu',
+  nom: 'Curry thaï de tofu, brocoli et lait de coco',
+  cat: 'Végétarien', legumineuse: true, plaisir: false,
+  temps: 30, diff: 'Facile',
+  kcal: 525, prot: 24, gluc: 60, lip: 21, fibres: 9,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['rapide', 'wok'],
+  allergenes: ['soja'],
+  ingredients: [
+    ['Tofu ferme', 400, 'g', 'cr'],
+    ['Brocoli', 500, 'g', 'lg'],
+    ['Poivron rouge', 1, 'pièce', 'lg'],
+    ['Lait de coco', 400, 'ml', 'ep'],
+    ['Pâte de curry vert', 2, 'c.à.s', 'es'],
+    ['Sauce soja', 3, 'c.à.s', 'ep'],
+    ['Gingembre frais', 20, 'g', 'lg'],
+    ['Riz thaï complet', 250, 'g', 'fe'],
+    ['Citron vert', 1, 'pièce', 'lg'],
+    ['Huile de sésame', 1, 'c.à.s', 'ep'],
+    ['Basilic frais', 0.5, 'botte', 'lg']
+  ],
+  etapes: [
+    'Pressez le tofu 10 min entre deux torchons, coupez-le en cubes et faites-le dorer 8 min au wok. Réservez.',
+    'Faites revenir le gingembre et la pâte de curry 1 min, ajoutez le lait de coco.',
+    'Ajoutez brocoli et poivron, cuisez 8 min : les légumes doivent rester croquants.',
+    'Remettez le tofu, ajoutez la sauce soja et le jus de citron vert.',
+    'Servez sur le riz thaï complet avec le basilic.'
+  ],
+  astuce: 'Tofu bien pressé = tofu qui dore. C\'est toute la différence.',
+  src: ['hellofresh', 'curry vert tofu']
+},
+{
+  id: 'soupe-pois-casses',
+  nom: 'Soupe de pois cassés au cumin et croûtons complets',
+  cat: 'Végétarien', legumineuse: true, plaisir: false,
+  temps: 50, diff: 'Facile',
+  kcal: 425, prot: 22, gluc: 62, lip: 9, fibres: 18,
+  saisons: ['automne', 'hiver'],
+  tags: ['soupe repas', 'très économique', 'batch cooking'],
+  allergenes: ['gluten'],
+  ingredients: [
+    ['Pois cassés', 350, 'g', 'fe'],
+    ['Carotte', 3, 'pièce', 'lg'],
+    ['Poireau', 2, 'pièce', 'lg'],
+    ['Oignon', 1, 'pièce', 'lg'],
+    ['Ail', 2, 'gousse', 'lg'],
+    ['Cumin moulu', 2, 'c.à.c', 'es'],
+    ['Bouillon de légumes', 1500, 'ml', 'ep'],
+    ['Pain complet', 4, 'tranche', 'bl'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep'],
+    ['Yaourt grec', 200, 'g', 'cr'],
+    ['Persil plat', 0.5, 'botte', 'lg']
+  ],
+  etapes: [
+    'Rincez les pois cassés. Faites revenir oignon, carottes et poireaux 8 min.',
+    'Ajoutez les pois cassés, le cumin, l\'ail et le bouillon. Cuisez 35 min à couvert.',
+    'Mixez la moitié de la soupe pour garder de la texture.',
+    'Toastez le pain complet coupé en dés avec un filet d\'huile, 8 min à 200 °C.',
+    'Servez avec une cuillère de yaourt grec, les croûtons et le persil.'
+  ],
+  astuce: '18 g de fibres par portion : la soupe la plus rassasiante de la liste.',
+  src: ['marmiton', 'soupe pois casses']
+},
+{
+  id: 'haricots-blancs-tomate',
+  nom: 'Haricots blancs à la tomate et au romarin, œuf poché',
+  cat: 'Végétarien', legumineuse: true, plaisir: false,
+  temps: 30, diff: 'Facile',
+  kcal: 460, prot: 24, gluc: 55, lip: 15, fibres: 16,
+  saisons: ['automne', 'hiver'],
+  tags: ['rapide', 'économique', 'one pot'],
+  allergenes: ['oeuf', 'gluten'],
+  ingredients: [
+    ['Haricots blancs cuits', 600, 'g', 'ep'],
+    ['Tomates concassées', 600, 'g', 'ep'],
+    ['Oignon', 1, 'pièce', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Romarin frais', 2, 'brin', 'lg'],
+    ['Œuf', 4, 'pièce', 'cr'],
+    ['Épinards frais', 150, 'g', 'lg'],
+    ['Pain complet', 4, 'tranche', 'bl'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep'],
+    ['Vinaigre blanc', 1, 'c.à.s', 'ep'],
+    ['Parmesan', 30, 'g', 'cr']
+  ],
+  etapes: [
+    'Faites revenir oignon et ail 5 min avec le romarin.',
+    'Ajoutez les tomates et les haricots égouttés, laissez mijoter 15 min à feu doux.',
+    'Incorporez les épinards en fin de cuisson.',
+    'Pochez les œufs 3 min dans une eau frémissante vinaigrée.',
+    'Servez les haricots avec l\'œuf poché dessus, un peu de parmesan et une tranche de pain grillé.'
+  ],
+  astuce: 'Le dîner de secours par excellence : 30 min, ingrédients de placard.',
+  src: ['ricardo', 'haricots blancs tomate romarin']
+},
+
+/* ---------------------------------------------------------------
+   POISSON & FRUITS DE MER
+   --------------------------------------------------------------- */
+{
+  id: 'saumon-miso',
+  nom: 'Saumon rôti au miso, brocolis et riz complet',
+  cat: 'Poisson', poissonGras: true, plaisir: false,
+  temps: 30, diff: 'Facile',
+  kcal: 565, prot: 38, gluc: 55, lip: 21, fibres: 8,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['oméga-3', 'rapide', 'four'],
+  allergenes: ['poisson', 'soja', 'sesame'],
+  ingredients: [
+    ['Pavé de saumon', 4, 'pièce', 'po'],
+    ['Brocoli', 600, 'g', 'lg'],
+    ['Riz complet', 250, 'g', 'fe'],
+    ['Pâte de miso', 2, 'c.à.s', 'ep'],
+    ['Sauce soja', 2, 'c.à.s', 'ep'],
+    ['Miel', 1, 'c.à.s', 'ep'],
+    ['Gingembre frais', 15, 'g', 'lg'],
+    ['Ail', 2, 'gousse', 'lg'],
+    ['Huile de sésame', 1, 'c.à.s', 'ep'],
+    ['Graines de sésame', 2, 'c.à.s', 'ep'],
+    ['Citron vert', 1, 'pièce', 'lg']
+  ],
+  etapes: [
+    'Mélangez miso, sauce soja, miel, gingembre râpé et ail pressé.',
+    'Badigeonnez les pavés de saumon et laissez mariner 10 min.',
+    'Enfournez 12 à 14 min à 200 °C, peau vers le bas.',
+    'Faites cuire le riz complet et le brocoli à la vapeur (8 min, il doit rester ferme).',
+    'Servez avec les graines de sésame et un trait de citron vert.'
+  ],
+  astuce: 'Le poisson gras 1 fois par semaine couvre l\'essentiel des besoins en oméga-3 (repère PNNS).',
+  src: ['ricardo', 'saumon miso erable']
+},
+{
+  id: 'papillote-cabillaud',
+  nom: 'Papillote de cabillaud citron-fenouil et pommes de terre',
+  cat: 'Poisson', poissonGras: false, plaisir: false,
+  temps: 40, diff: 'Facile',
+  kcal: 425, prot: 36, gluc: 46, lip: 10, fibres: 8,
+  saisons: ['automne', 'hiver', 'printemps'],
+  tags: ['light', 'four', 'sans gluten'],
+  allergenes: ['poisson'],
+  ingredients: [
+    ['Dos de cabillaud', 600, 'g', 'po'],
+    ['Fenouil', 2, 'pièce', 'lg'],
+    ['Pommes de terre', 800, 'g', 'lg'],
+    ['Citron', 2, 'pièce', 'lg'],
+    ['Tomate cerise', 250, 'g', 'lg'],
+    ['Échalote', 2, 'pièce', 'lg'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep'],
+    ['Thym frais', 4, 'brin', 'lg'],
+    ['Olives noires', 60, 'g', 'ep']
+  ],
+  etapes: [
+    'Préchauffez le four à 200 °C. Coupez les pommes de terre en rondelles fines, précuisez-les 8 min à l\'eau.',
+    'Émincez le fenouil finement, les échalotes en lamelles.',
+    'Sur 4 feuilles de papier cuisson : pommes de terre, fenouil, un morceau de cabillaud, tomates cerises, olives, rondelles de citron, thym.',
+    'Arrosez d\'huile d\'olive, salez, poivrez et fermez hermétiquement les papillotes.',
+    'Enfournez 20 min. Ouvrez à table : le parfum fait tout le travail.'
+  ],
+  astuce: 'Zéro vaisselle et cuisson à la vapeur douce : la texture du poisson reste nacrée.',
+  src: ['marmiton', 'papillote cabillaud fenouil']
+},
+{
+  id: 'poke-saumon',
+  nom: 'Poke bowl saumon, avocat et concombre',
+  cat: 'Poisson', poissonGras: true, plaisir: false,
+  temps: 25, diff: 'Facile',
+  kcal: 590, prot: 33, gluc: 62, lip: 23, fibres: 8,
+  saisons: ['printemps', 'été'],
+  tags: ['sans cuisson', 'oméga-3', 'frais'],
+  allergenes: ['poisson', 'soja', 'sesame'],
+  ingredients: [
+    ['Saumon très frais (qualité sashimi)', 500, 'g', 'po'],
+    ['Riz à sushi', 300, 'g', 'fe'],
+    ['Avocat', 2, 'pièce', 'lg'],
+    ['Concombre', 1, 'pièce', 'lg'],
+    ['Carotte', 2, 'pièce', 'lg'],
+    ['Edamame', 200, 'g', 'sg'],
+    ['Sauce soja', 4, 'c.à.s', 'ep'],
+    ['Huile de sésame', 1, 'c.à.s', 'ep'],
+    ['Vinaigre de riz', 3, 'c.à.s', 'ep'],
+    ['Graines de sésame', 2, 'c.à.s', 'ep'],
+    ['Citron vert', 1, 'pièce', 'lg'],
+    ['Oignon nouveau', 2, 'pièce', 'lg']
+  ],
+  etapes: [
+    'Cuisez le riz, assaisonnez-le tiède avec le vinaigre de riz et une pincée de sucre et de sel.',
+    'Coupez le saumon en cubes de 2 cm, faites-le mariner 10 min dans sauce soja + huile de sésame + jus de citron vert.',
+    'Taillez concombre et carottes en fines lamelles, l\'avocat en tranches.',
+    'Faites cuire les edamame 4 min à l\'eau bouillante salée.',
+    'Composez les bols et parsemez de sésame et d\'oignon nouveau.'
+  ],
+  astuce: 'Saumon cru : achetez-le le jour même chez le poissonnier, ou passez-le 24 h au congélateur avant.',
+  src: ['g750', 'poke bowl saumon']
+},
+{
+  id: 'curry-crevettes',
+  nom: 'Curry de crevettes au lait de coco',
+  cat: 'Poisson', poissonGras: false, plaisir: false,
+  temps: 30, diff: 'Facile',
+  kcal: 545, prot: 32, gluc: 62, lip: 18, fibres: 6,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['rapide', 'parfumé'],
+  allergenes: ['crustace'],
+  ingredients: [
+    ['Crevettes décortiquées', 600, 'g', 'po'],
+    ['Lait de coco', 400, 'ml', 'ep'],
+    ['Poivron rouge', 2, 'pièce', 'lg'],
+    ['Courgette', 1, 'pièce', 'lg'],
+    ['Oignon', 1, 'pièce', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Gingembre frais', 20, 'g', 'lg'],
+    ['Pâte de curry rouge', 2, 'c.à.s', 'es'],
+    ['Riz basmati', 250, 'g', 'fe'],
+    ['Citron vert', 1, 'pièce', 'lg'],
+    ['Coriandre fraîche', 0.5, 'botte', 'lg']
+  ],
+  etapes: [
+    'Faites revenir oignon, ail et gingembre 4 min, ajoutez la pâte de curry.',
+    'Versez le lait de coco, ajoutez poivrons et courgette en lanières, mijotez 10 min.',
+    'Ajoutez les crevettes et cuisez 4 min seulement : au-delà elles deviennent caoutchouteuses.',
+    'Finissez avec le jus de citron vert et la coriandre.',
+    'Servez avec le riz basmati.'
+  ],
+  astuce: 'Crevettes crues plutôt que cuites : elles restent moelleuses.',
+  src: ['marmiton', 'curry crevettes lait de coco']
+},
+{
+  id: 'maquereau-lentilles',
+  nom: 'Maquereaux grillés et salade de lentilles vertes',
+  cat: 'Poisson', poissonGras: true, legumineuse: true, plaisir: false,
+  temps: 35, diff: 'Facile',
+  kcal: 555, prot: 38, gluc: 45, lip: 24, fibres: 12,
+  saisons: ['printemps', 'été', 'automne'],
+  tags: ['oméga-3', 'économique', 'sans gluten'],
+  allergenes: ['poisson', 'moutarde'],
+  ingredients: [
+    ['Filets de maquereau', 8, 'pièce', 'po'],
+    ['Lentilles vertes', 300, 'g', 'fe'],
+    ['Carotte', 2, 'pièce', 'lg'],
+    ['Échalote', 2, 'pièce', 'lg'],
+    ['Persil plat', 1, 'botte', 'lg'],
+    ['Moutarde à l\'ancienne', 1, 'c.à.s', 'ep'],
+    ['Vinaigre de cidre', 2, 'c.à.s', 'ep'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep'],
+    ['Citron', 1, 'pièce', 'lg'],
+    ['Feuille de laurier', 1, 'pièce', 'es']
+  ],
+  etapes: [
+    'Cuisez les lentilles 20 min avec une carotte entière et le laurier, dans une eau non salée (salez en fin de cuisson).',
+    'Préparez la vinaigrette : moutarde, vinaigre de cidre, huile d\'olive, échalote ciselée.',
+    'Égouttez les lentilles encore tièdes et mélangez-les à la vinaigrette avec la seconde carotte râpée et le persil.',
+    'Grillez les filets de maquereau 3 min côté peau, 1 min de l\'autre côté.',
+    'Servez avec un quartier de citron.'
+  ],
+  astuce: 'Le maquereau est le poisson gras le moins cher et l\'un des plus riches en oméga-3.',
+  src: ['g750', 'maquereau salade lentilles']
+},
+{
+  id: 'pates-thon',
+  nom: 'Pâtes complètes au thon, câpres et tomates cerises',
+  cat: 'Poisson', poissonGras: false, plaisir: false,
+  temps: 25, diff: 'Facile',
+  kcal: 540, prot: 31, gluc: 72, lip: 14, fibres: 10,
+  saisons: ['printemps', 'été'],
+  tags: ['rapide', 'placard', 'économique'],
+  allergenes: ['poisson', 'gluten'],
+  ingredients: [
+    ['Pâtes complètes', 400, 'g', 'fe'],
+    ['Thon au naturel', 320, 'g', 'ep'],
+    ['Tomate cerise', 400, 'g', 'lg'],
+    ['Câpres', 2, 'c.à.s', 'ep'],
+    ['Olives noires', 60, 'g', 'ep'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Roquette', 100, 'g', 'lg'],
+    ['Citron', 1, 'pièce', 'lg'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep'],
+    ['Piment d\'Espelette', 0.5, 'c.à.c', 'es'],
+    ['Basilic frais', 0.5, 'botte', 'lg']
+  ],
+  etapes: [
+    'Faites cuire les pâtes complètes al dente, réservez une louche d\'eau de cuisson.',
+    'Pendant ce temps, faites éclater les tomates cerises coupées en deux 5 min à la poêle avec l\'ail et l\'huile.',
+    'Ajoutez le thon égoutté et émietté, les câpres et les olives, réchauffez 2 min.',
+    'Mélangez avec les pâtes et un peu d\'eau de cuisson pour lier.',
+    'Hors du feu : roquette, zeste et jus de citron, basilic, piment d\'Espelette.'
+  ],
+  astuce: 'L\'eau de cuisson des pâtes est le meilleur liant : jamais de crème.',
+  src: ['marmiton', 'pates thon tomates cerises capres']
+},
+{
+  id: 'cabillaud-pane',
+  nom: 'Cabillaud pané aux herbes au four et purée de petits pois',
+  cat: 'Poisson', poissonGras: false, plaisir: false,
+  temps: 35, diff: 'Facile',
+  kcal: 480, prot: 38, gluc: 48, lip: 13, fibres: 10,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['les enfants adorent', 'sans friture'],
+  allergenes: ['poisson', 'gluten', 'oeuf', 'lait'],
+  ingredients: [
+    ['Dos de cabillaud', 600, 'g', 'po'],
+    ['Chapelure', 100, 'g', 'ep'],
+    ['Parmesan', 40, 'g', 'cr'],
+    ['Persil plat', 0.5, 'botte', 'lg'],
+    ['Œuf', 2, 'pièce', 'cr'],
+    ['Farine', 40, 'g', 'ep'],
+    ['Petits pois surgelés', 600, 'g', 'sg'],
+    ['Pommes de terre', 400, 'g', 'lg'],
+    ['Menthe fraîche', 0.5, 'botte', 'lg'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep'],
+    ['Citron', 1, 'pièce', 'lg']
+  ],
+  etapes: [
+    'Mélangez chapelure, parmesan, persil haché, sel et poivre.',
+    'Passez les morceaux de cabillaud dans la farine, l\'œuf battu puis la chapelure.',
+    'Déposez sur une plaque, arrosez d\'un filet d\'huile et enfournez 18 min à 200 °C.',
+    'Cuisez pommes de terre et petits pois 12 min à l\'eau, écrasez avec un peu d\'huile d\'olive et la menthe.',
+    'Servez avec un quartier de citron.'
+  ],
+  astuce: 'Version maison des « fish sticks » : même plaisir, moitié moins de matières grasses.',
+  src: ['ricardo', 'cabillaud pane four']
+},
+{
+  id: 'sardines-ratatouille',
+  nom: 'Sardines grillées, ratatouille et semoule complète',
+  cat: 'Poisson', poissonGras: true, plaisir: false,
+  temps: 50, diff: 'Facile',
+  kcal: 545, prot: 33, gluc: 60, lip: 20, fibres: 12,
+  saisons: ['été'],
+  tags: ['oméga-3', 'économique', 'plancha'],
+  allergenes: ['poisson', 'gluten'],
+  ingredients: [
+    ['Sardines fraîches', 12, 'pièce', 'po'],
+    ['Aubergine', 2, 'pièce', 'lg'],
+    ['Courgette', 2, 'pièce', 'lg'],
+    ['Poivron rouge', 2, 'pièce', 'lg'],
+    ['Tomate', 4, 'pièce', 'lg'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Herbes de Provence', 2, 'c.à.c', 'es'],
+    ['Semoule complète', 250, 'g', 'fe'],
+    ['Huile d\'olive', 4, 'c.à.s', 'ep'],
+    ['Citron', 2, 'pièce', 'lg']
+  ],
+  etapes: [
+    'Coupez tous les légumes en cubes. Faites revenir séparément aubergine et courgette pour qu\'elles dorent sans rendre trop d\'eau.',
+    'Faites suer oignons et poivrons, ajoutez les tomates et l\'ail, puis les autres légumes.',
+    'Ajoutez les herbes, laissez mijoter 25 min à découvert.',
+    'Grillez les sardines 3 min de chaque côté à feu vif.',
+    'Préparez la semoule complète et servez le tout avec du citron.'
+  ],
+  astuce: 'La ratatouille est encore meilleure réchauffée : préparez-la la veille.',
+  src: ['marmiton', 'sardines grillees ratatouille']
+},
+{
+  id: 'wok-crevettes-soba',
+  nom: 'Wok de crevettes, nouilles soba et légumes croquants',
+  cat: 'Poisson', poissonGras: false, plaisir: false,
+  temps: 25, diff: 'Facile',
+  kcal: 510, prot: 33, gluc: 68, lip: 11, fibres: 8,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['rapide', 'wok'],
+  allergenes: ['crustace', 'gluten', 'soja', 'sesame'],
+  ingredients: [
+    ['Crevettes décortiquées', 500, 'g', 'po'],
+    ['Nouilles soba', 300, 'g', 'fe'],
+    ['Pak choï (ou chou chinois)', 400, 'g', 'lg'],
+    ['Carotte', 2, 'pièce', 'lg'],
+    ['Poivron rouge', 1, 'pièce', 'lg'],
+    ['Oignon nouveau', 3, 'pièce', 'lg'],
+    ['Sauce soja', 4, 'c.à.s', 'ep'],
+    ['Gingembre frais', 20, 'g', 'lg'],
+    ['Ail', 2, 'gousse', 'lg'],
+    ['Huile de sésame', 1, 'c.à.s', 'ep'],
+    ['Graines de sésame', 2, 'c.à.s', 'ep'],
+    ['Citron vert', 1, 'pièce', 'lg']
+  ],
+  etapes: [
+    'Cuisez les nouilles soba 4 min, rincez-les à l\'eau froide pour stopper la cuisson.',
+    'Taillez tous les légumes en fines lanières (mandoline ou couteau).',
+    'Au wok très chaud : gingembre, ail, puis carottes et poivron 3 min.',
+    'Ajoutez les crevettes 3 min, puis le pak choï 2 min.',
+    'Ajoutez les nouilles, la sauce soja et l\'huile de sésame, sautez 2 min.',
+    'Servez avec sésame, oignon nouveau et citron vert.'
+  ],
+  astuce: 'Tout doit être coupé avant d\'allumer le feu : un wok se cuisine en 8 minutes chrono.',
+  src: ['hellofresh', 'wok crevettes nouilles']
+},
+{
+  id: 'truite-aneth',
+  nom: 'Truite au four à l\'aneth, épinards et pommes grenaille',
+  cat: 'Poisson', poissonGras: true, plaisir: false,
+  temps: 40, diff: 'Facile',
+  kcal: 535, prot: 37, gluc: 45, lip: 21, fibres: 7,
+  saisons: ['printemps', 'automne', 'hiver'],
+  tags: ['oméga-3', 'four', 'sans gluten'],
+  allergenes: ['poisson', 'lait'],
+  ingredients: [
+    ['Filets de truite', 600, 'g', 'po'],
+    ['Pommes de terre grenaille', 800, 'g', 'lg'],
+    ['Épinards frais', 400, 'g', 'lg'],
+    ['Aneth', 1, 'botte', 'lg'],
+    ['Citron', 2, 'pièce', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Yaourt grec', 200, 'g', 'cr'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep'],
+    ['Moutarde', 1, 'c.à.c', 'ep']
+  ],
+  etapes: [
+    'Coupez les grenailles en deux, mélangez-les à l\'huile, sel, poivre, et enfournez 30 min à 200 °C.',
+    'Déposez les filets de truite sur la plaque à mi-cuisson (12 min suffisent) avec des rondelles de citron.',
+    'Faites tomber les épinards 3 min à la poêle avec l\'ail.',
+    'Mélangez yaourt grec, aneth ciselé, jus de citron et moutarde pour la sauce.',
+    'Servez la truite avec les grenailles, les épinards et la sauce à l\'aneth.'
+  ],
+  astuce: 'La truite d\'élevage française est une alternative locale et moins chère au saumon.',
+  src: ['ricardo', 'truite four aneth']
+},
+{
+  id: 'colin-sauce-vierge',
+  nom: 'Filet de colin sauce vierge, quinoa et courgettes',
+  cat: 'Poisson', poissonGras: false, plaisir: false,
+  temps: 30, diff: 'Facile',
+  kcal: 455, prot: 36, gluc: 44, lip: 14, fibres: 8,
+  saisons: ['printemps', 'été'],
+  tags: ['light', 'sans gluten', 'rapide'],
+  allergenes: ['poisson'],
+  ingredients: [
+    ['Filet de colin', 600, 'g', 'po'],
+    ['Quinoa', 240, 'g', 'fe'],
+    ['Courgette', 3, 'pièce', 'lg'],
+    ['Tomate', 3, 'pièce', 'lg'],
+    ['Échalote', 1, 'pièce', 'lg'],
+    ['Basilic frais', 0.5, 'botte', 'lg'],
+    ['Ciboulette', 0.5, 'botte', 'lg'],
+    ['Citron', 1, 'pièce', 'lg'],
+    ['Huile d\'olive', 4, 'c.à.s', 'ep'],
+    ['Coriandre en grains', 1, 'c.à.c', 'es']
+  ],
+  etapes: [
+    'Préparez la sauce vierge : tomates mondées en petits dés, échalote ciselée, herbes, jus de citron, huile d\'olive, coriandre concassée. Laissez infuser à température ambiante.',
+    'Cuisez le quinoa 12 min.',
+    'Taillez les courgettes en rubans et poêlez-les 5 min à feu vif.',
+    'Cuisez le colin 4 min de chaque côté à la poêle antiadhésive, ou 10 min vapeur.',
+    'Nappez le poisson de sauce vierge au moment de servir (jamais chauffée).'
+  ],
+  astuce: 'La sauce vierge remplace le beurre blanc : 3 fois moins de lipides, plus de fraîcheur.',
+  src: ['g750', 'colin sauce vierge']
+},
+
+/* ---------------------------------------------------------------
+   VOLAILLE
+   --------------------------------------------------------------- */
+{
+  id: 'poulet-roti-legumes',
+  nom: 'Poulet rôti citron-herbes et légumes racines au four',
+  cat: 'Volaille', plaisir: false,
+  temps: 80, diff: 'Facile',
+  kcal: 575, prot: 42, gluc: 52, lip: 20, fibres: 9,
+  saisons: ['automne', 'hiver'],
+  tags: ['plat familial', 'dimanche', 'sans gluten'],
+  allergenes: [],
+  ingredients: [
+    ['Poulet fermier entier', 1400, 'g', 'bo'],
+    ['Pommes de terre', 600, 'g', 'lg'],
+    ['Carotte', 4, 'pièce', 'lg'],
+    ['Panais', 2, 'pièce', 'lg'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Citron', 2, 'pièce', 'lg'],
+    ['Ail', 6, 'gousse', 'lg'],
+    ['Thym frais', 4, 'brin', 'lg'],
+    ['Romarin frais', 2, 'brin', 'lg'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep']
+  ],
+  etapes: [
+    'Préchauffez à 200 °C. Glissez un citron piqué et des herbes dans le poulet.',
+    'Coupez tous les légumes en gros morceaux, disposez-les autour du poulet dans un grand plat.',
+    'Arrosez d\'huile d\'olive, salez, poivrez, ajoutez les gousses d\'ail en chemise.',
+    'Enfournez 1 h 10 en arrosant 2 ou 3 fois avec le jus de cuisson.',
+    'Laissez reposer 10 min avant de découper : la chair reste juteuse.'
+  ],
+  astuce: 'Gardez la carcasse : un bouillon maison de 2 h vaut tous les cubes du commerce.',
+  src: ['marmiton', 'poulet roti citron herbes']
+},
+{
+  id: 'poulet-curry-basmati',
+  nom: 'Émincé de poulet au curry et riz basmati',
+  cat: 'Volaille', plaisir: false,
+  temps: 30, diff: 'Facile',
+  kcal: 545, prot: 40, gluc: 62, lip: 15, fibres: 6,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['rapide', 'les enfants adorent'],
+  allergenes: ['lait'],
+  ingredients: [
+    ['Blanc de poulet', 600, 'g', 'bo'],
+    ['Riz basmati', 250, 'g', 'fe'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Poivron jaune', 1, 'pièce', 'lg'],
+    ['Courgette', 1, 'pièce', 'lg'],
+    ['Curry en poudre', 2, 'c.à.s', 'es'],
+    ['Lait de coco allégé', 250, 'ml', 'ep'],
+    ['Yaourt grec', 150, 'g', 'cr'],
+    ['Ail', 2, 'gousse', 'lg'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep'],
+    ['Coriandre fraîche', 0.5, 'botte', 'lg']
+  ],
+  etapes: [
+    'Coupez le poulet en lanières, saisissez-les 5 min à feu vif. Réservez.',
+    'Faites revenir oignons, poivron et courgette 6 min, ajoutez l\'ail et le curry.',
+    'Versez le lait de coco, remettez le poulet et laissez mijoter 8 min.',
+    'Hors du feu, ajoutez le yaourt grec pour lier la sauce (elle ne doit plus bouillir).',
+    'Servez avec le riz basmati et la coriandre.'
+  ],
+  astuce: 'Le yaourt hors du feu remplace la crème : -100 kcal par portion.',
+  src: ['marmiton', 'poulet au curry riz basmati']
+},
+{
+  id: 'blanquette-dinde',
+  nom: 'Blanquette de dinde légère aux champignons',
+  cat: 'Volaille', plaisir: false,
+  temps: 55, diff: 'Moyen',
+  kcal: 530, prot: 42, gluc: 55, lip: 14, fibres: 7,
+  saisons: ['automne', 'hiver'],
+  tags: ['réconfortant', 'plat familial'],
+  allergenes: ['lait', 'gluten', 'celeri'],
+  ingredients: [
+    ['Escalope de dinde', 700, 'g', 'bo'],
+    ['Champignons de Paris', 400, 'g', 'lg'],
+    ['Carotte', 4, 'pièce', 'lg'],
+    ['Poireau', 1, 'pièce', 'lg'],
+    ['Céleri branche', 1, 'pièce', 'lg'],
+    ['Oignon', 1, 'pièce', 'lg'],
+    ['Bouillon de volaille', 800, 'ml', 'ep'],
+    ['Farine', 30, 'g', 'ep'],
+    ['Crème légère 15%', 150, 'ml', 'cr'],
+    ['Riz complet', 250, 'g', 'fe'],
+    ['Citron', 1, 'pièce', 'lg'],
+    ['Feuille de laurier', 1, 'pièce', 'es'],
+    ['Persil plat', 0.5, 'botte', 'lg']
+  ],
+  etapes: [
+    'Coupez la dinde en cubes, faites-la blanchir 3 min dans le bouillon frémissant avec laurier, carottes, poireau et céleri.',
+    'Laissez cuire 25 min à feu doux, puis retirez la viande et les légumes.',
+    'Faites un roux léger (farine + 2 c.à.s de bouillon), délayez avec 600 ml de bouillon, laissez épaissir 5 min.',
+    'Poêlez les champignons émincés à part pour qu\'ils dorent, ajoutez-les à la sauce.',
+    'Hors du feu : crème légère, jus de citron, persil. Remettez viande et légumes.',
+    'Servez avec le riz complet.'
+  ],
+  astuce: 'La crème à 15 % suffit largement, la sauce est déjà liée par le roux.',
+  src: ['g750', 'blanquette dinde legere']
+},
+{
+  id: 'poulet-basquaise',
+  nom: 'Poulet basquaise et riz complet',
+  cat: 'Volaille', plaisir: false,
+  temps: 55, diff: 'Facile',
+  kcal: 560, prot: 41, gluc: 60, lip: 16, fibres: 9,
+  saisons: ['été', 'automne'],
+  tags: ['one pot', 'batch cooking', 'sans gluten'],
+  allergenes: ['sulfite'],
+  ingredients: [
+    ['Cuisse de poulet', 4, 'pièce', 'bo'],
+    ['Poivron rouge', 2, 'pièce', 'lg'],
+    ['Poivron vert', 2, 'pièce', 'lg'],
+    ['Tomate', 6, 'pièce', 'lg'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Piment d\'Espelette', 1, 'c.à.c', 'es'],
+    ['Thym frais', 3, 'brin', 'lg'],
+    ['Riz complet', 250, 'g', 'fe'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep'],
+    ['Vin blanc sec', 100, 'ml', 'ep']
+  ],
+  etapes: [
+    'Retirez la peau des cuisses (l\'essentiel du gras y est) et faites-les dorer 6 min dans la cocotte.',
+    'Ajoutez oignons et poivrons en lanières, laissez fondre 10 min.',
+    'Déglacez au vin blanc, ajoutez tomates concassées, ail, thym et piment d\'Espelette.',
+    'Couvrez et laissez mijoter 30 min à feu doux.',
+    'Servez avec le riz complet.'
+  ],
+  astuce: 'Retirer la peau du poulet fait économiser environ 90 kcal par portion.',
+  src: ['marmiton', 'poulet basquaise']
+},
+{
+  id: 'brochettes-poulet-yaourt',
+  nom: 'Brochettes de poulet mariné yaourt-curcuma et boulgour',
+  cat: 'Volaille', plaisir: false,
+  temps: 35, diff: 'Facile',
+  kcal: 520, prot: 44, gluc: 58, lip: 11, fibres: 9,
+  saisons: ['printemps', 'été'],
+  tags: ['barbecue', 'marinade', 'lunch box'],
+  allergenes: ['lait', 'gluten'],
+  ingredients: [
+    ['Blanc de poulet', 700, 'g', 'bo'],
+    ['Yaourt nature', 250, 'g', 'cr'],
+    ['Curcuma', 2, 'c.à.c', 'es'],
+    ['Paprika', 1, 'c.à.c', 'es'],
+    ['Cumin moulu', 1, 'c.à.c', 'es'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Citron', 2, 'pièce', 'lg'],
+    ['Boulgour', 250, 'g', 'fe'],
+    ['Poivron rouge', 2, 'pièce', 'lg'],
+    ['Courgette', 1, 'pièce', 'lg'],
+    ['Oignon rouge', 1, 'pièce', 'lg'],
+    ['Menthe fraîche', 0.5, 'botte', 'lg'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep']
+  ],
+  etapes: [
+    'Mélangez yaourt, épices, ail pressé, jus d\'un citron. Faites mariner le poulet en cubes 30 min minimum (idéalement 4 h).',
+    'Montez les brochettes en alternant poulet, poivron, courgette et oignon rouge.',
+    'Cuisez 12 min au four à 220 °C (ou 10 min au barbecue), en retournant à mi-cuisson.',
+    'Faites gonfler le boulgour dans un volume et demi d\'eau bouillante, 10 min à couvert.',
+    'Mélangez le boulgour avec la menthe, l\'huile d\'olive et le jus du second citron.'
+  ],
+  astuce: 'La marinade au yaourt attendrit la viande grâce à son acidité — sans ajouter de gras.',
+  src: ['ricardo', 'brochettes poulet yaourt curcuma']
+},
+{
+  id: 'wok-poulet-brocoli',
+  nom: 'Wok de poulet, brocoli et sauce soja-gingembre',
+  cat: 'Volaille', plaisir: false,
+  temps: 25, diff: 'Facile',
+  kcal: 510, prot: 42, gluc: 58, lip: 12, fibres: 8,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['rapide', 'wok'],
+  allergenes: ['soja', 'sesame', 'gluten'],
+  ingredients: [
+    ['Blanc de poulet', 600, 'g', 'bo'],
+    ['Brocoli', 500, 'g', 'lg'],
+    ['Carotte', 2, 'pièce', 'lg'],
+    ['Oignon nouveau', 3, 'pièce', 'lg'],
+    ['Riz complet', 250, 'g', 'fe'],
+    ['Sauce soja', 4, 'c.à.s', 'ep'],
+    ['Gingembre frais', 25, 'g', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Miel', 1, 'c.à.s', 'ep'],
+    ['Huile de sésame', 1, 'c.à.s', 'ep'],
+    ['Graines de sésame', 2, 'c.à.s', 'ep'],
+    ['Maïzena', 1, 'c.à.c', 'ep']
+  ],
+  etapes: [
+    'Cuisez le riz complet. Détaillez le poulet en lanières fines.',
+    'Mélangez sauce soja, miel, gingembre râpé, ail et maïzena avec 5 c.à.s d\'eau.',
+    'Saisissez le poulet 5 min au wok très chaud, réservez.',
+    'Sautez brocoli et carottes 5 min avec 2 c.à.s d\'eau pour créer de la vapeur.',
+    'Remettez le poulet, versez la sauce, laissez épaissir 2 min.',
+    'Servez sur le riz avec sésame et oignon nouveau.'
+  ],
+  astuce: 'La maïzena dans la marinade (technique du « velveting ») garde le poulet tendre.',
+  src: ['hellofresh', 'wok poulet brocoli soja']
+},
+{
+  id: 'chili-dinde',
+  nom: 'Chili de dinde hachée aux haricots noirs',
+  cat: 'Volaille', legumineuse: true, plaisir: false,
+  temps: 40, diff: 'Facile',
+  kcal: 505, prot: 38, gluc: 60, lip: 11, fibres: 14,
+  saisons: ['automne', 'hiver'],
+  tags: ['one pot', 'batch cooking', 'riche en protéines'],
+  allergenes: [],
+  ingredients: [
+    ['Dinde hachée', 500, 'g', 'bo'],
+    ['Haricots noirs cuits', 400, 'g', 'ep'],
+    ['Tomates concassées', 800, 'g', 'ep'],
+    ['Poivron rouge', 2, 'pièce', 'lg'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Maïs doux', 150, 'g', 'ep'],
+    ['Cumin moulu', 2, 'c.à.c', 'es'],
+    ['Paprika fumé', 2, 'c.à.c', 'es'],
+    ['Riz complet', 250, 'g', 'fe'],
+    ['Citron vert', 1, 'pièce', 'lg'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep'],
+    ['Coriandre fraîche', 0.5, 'botte', 'lg']
+  ],
+  etapes: [
+    'Faites dorer la dinde hachée 6 min en l\'émiettant.',
+    'Ajoutez oignons, poivrons, ail et épices, poursuivez 6 min.',
+    'Versez les tomates, laissez mijoter 20 min.',
+    'Ajoutez haricots noirs et maïs, réchauffez 5 min.',
+    'Servez sur le riz avec coriandre et jus de citron vert.'
+  ],
+  astuce: 'La dinde hachée contient 3 fois moins de lipides que le bœuf 15 % MG.',
+  src: ['ricardo', 'chili dinde hachee']
+},
+{
+  id: 'cesar-poulet',
+  nom: 'Salade César revisitée au poulet grillé',
+  cat: 'Volaille', plaisir: false,
+  temps: 30, diff: 'Facile',
+  kcal: 465, prot: 41, gluc: 34, lip: 18, fibres: 6,
+  saisons: ['printemps', 'été'],
+  tags: ['light', 'rapide', 'salade repas'],
+  allergenes: ['lait', 'gluten', 'oeuf', 'poisson', 'moutarde'],
+  ingredients: [
+    ['Blanc de poulet', 600, 'g', 'bo'],
+    ['Laitue romaine', 2, 'pièce', 'lg'],
+    ['Pain complet', 4, 'tranche', 'bl'],
+    ['Parmesan', 60, 'g', 'cr'],
+    ['Yaourt grec', 200, 'g', 'cr'],
+    ['Filet d\'anchois', 3, 'pièce', 'ep'],
+    ['Moutarde', 1, 'c.à.c', 'ep'],
+    ['Ail', 1, 'gousse', 'lg'],
+    ['Citron', 1, 'pièce', 'lg'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep'],
+    ['Tomate cerise', 200, 'g', 'lg']
+  ],
+  etapes: [
+    'Sauce : mixez yaourt grec, anchois, ail, moutarde, jus de citron, la moitié du parmesan et 1 c.à.s d\'huile.',
+    'Grillez le poulet assaisonné 6 min de chaque côté, laissez reposer puis émincez.',
+    'Toastez le pain complet en dés au four, 8 min à 200 °C avec un filet d\'huile.',
+    'Mélangez la romaine coupée, les tomates cerises et la sauce.',
+    'Ajoutez le poulet, les croûtons et les copeaux de parmesan restants.'
+  ],
+  astuce: 'La César classique est à base de mayonnaise : la version yaourt divise les lipides par trois.',
+  src: ['g750', 'salade cesar legere yaourt']
+},
+{
+  id: 'curry-vert-poulet',
+  nom: 'Curry vert de poulet à la thaïe',
+  cat: 'Volaille', plaisir: false,
+  temps: 35, diff: 'Facile',
+  kcal: 570, prot: 39, gluc: 60, lip: 20, fibres: 7,
+  saisons: ['automne', 'hiver'],
+  tags: ['parfumé', 'one pot'],
+  allergenes: ['poisson', 'crustace'],
+  ingredients: [
+    ['Blanc de poulet', 600, 'g', 'bo'],
+    ['Pâte de curry vert', 2, 'c.à.s', 'es'],
+    ['Lait de coco', 400, 'ml', 'ep'],
+    ['Haricots verts', 300, 'g', 'lg'],
+    ['Aubergine', 1, 'pièce', 'lg'],
+    ['Poivron rouge', 1, 'pièce', 'lg'],
+    ['Sauce nuoc-mâm', 2, 'c.à.s', 'ep'],
+    ['Riz thaï complet', 250, 'g', 'fe'],
+    ['Citron vert', 2, 'pièce', 'lg'],
+    ['Basilic frais', 0.5, 'botte', 'lg'],
+    ['Huile d\'olive', 1, 'c.à.s', 'ep']
+  ],
+  etapes: [
+    'Faites chauffer la pâte de curry 1 min avec l\'huile, puis ajoutez la moitié du lait de coco.',
+    'Ajoutez le poulet en lanières, cuisez 5 min.',
+    'Ajoutez le reste du lait de coco, l\'aubergine en cubes, les haricots verts et le poivron.',
+    'Laissez mijoter 15 min, assaisonnez au nuoc-mâm et au jus de citron vert.',
+    'Servez sur le riz avec le basilic.'
+  ],
+  astuce: 'Sans nuoc-mâm (poisson) : remplacez par 1 c.à.s de sauce soja + une pincée de sel.',
+  src: ['marmiton', 'curry vert poulet thai']
+},
+{
+  id: 'tikka-masala',
+  nom: 'Poulet tikka masala allégé au yaourt',
+  cat: 'Volaille', plaisir: false,
+  temps: 45, diff: 'Moyen',
+  kcal: 555, prot: 44, gluc: 58, lip: 16, fibres: 6,
+  saisons: ['automne', 'hiver'],
+  tags: ['parfumé', 'plat familial'],
+  allergenes: ['lait'],
+  ingredients: [
+    ['Blanc de poulet', 700, 'g', 'bo'],
+    ['Yaourt nature', 300, 'g', 'cr'],
+    ['Tomates concassées', 600, 'g', 'ep'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Ail', 4, 'gousse', 'lg'],
+    ['Gingembre frais', 25, 'g', 'lg'],
+    ['Garam masala', 2, 'c.à.s', 'es'],
+    ['Paprika', 2, 'c.à.c', 'es'],
+    ['Curcuma', 1, 'c.à.c', 'es'],
+    ['Riz basmati', 250, 'g', 'fe'],
+    ['Crème légère 15%', 100, 'ml', 'cr'],
+    ['Coriandre fraîche', 0.5, 'botte', 'lg'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep']
+  ],
+  etapes: [
+    'Marinez le poulet en cubes 1 h dans le yaourt avec la moitié des épices, l\'ail et le gingembre.',
+    'Faites griller le poulet 12 min au four à 220 °C pour obtenir les bords caramélisés typiques.',
+    'Faites revenir les oignons 10 min jusqu\'à ce qu\'ils soient bien fondants, ajoutez le reste des épices.',
+    'Versez les tomates, mijotez 15 min puis mixez la sauce pour la rendre veloutée.',
+    'Ajoutez le poulet grillé et la crème légère, réchauffez 5 min sans bouillir.',
+    'Servez avec le riz basmati et la coriandre.'
+  ],
+  astuce: 'Le vrai secret du tikka : le passage au four très chaud, pas la crème.',
+  src: ['marmiton', 'poulet tikka masala']
+},
+
+/* ---------------------------------------------------------------
+   VIANDE ROUGE & PORC
+   --------------------------------------------------------------- */
+{
+  id: 'bourguignon-leger',
+  nom: 'Bœuf bourguignon allégé et purée maison',
+  cat: 'Viande rouge', viandeRouge: true, plaisir: false,
+  temps: 150, diff: 'Moyen',
+  kcal: 620, prot: 45, gluc: 54, lip: 21, fibres: 8,
+  saisons: ['automne', 'hiver'],
+  tags: ['mijoté', 'dimanche', 'plat familial'],
+  allergenes: ['gluten', 'lait', 'sulfite'],
+  ingredients: [
+    ['Bœuf à braiser (paleron)', 800, 'g', 'bo'],
+    ['Carotte', 5, 'pièce', 'lg'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Champignons de Paris', 400, 'g', 'lg'],
+    ['Vin rouge', 400, 'ml', 'ep'],
+    ['Bouillon de bœuf', 400, 'ml', 'ep'],
+    ['Concentré de tomate', 2, 'c.à.s', 'ep'],
+    ['Farine', 20, 'g', 'ep'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Bouquet garni', 1, 'pièce', 'es'],
+    ['Pommes de terre', 1000, 'g', 'lg'],
+    ['Lait demi-écrémé', 150, 'ml', 'cr'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep']
+  ],
+  etapes: [
+    'Dégraissez soigneusement la viande et coupez-la en gros cubes. Saisissez-la par petites quantités dans la cocotte.',
+    'Ajoutez oignons et carottes, saupoudrez de farine et mélangez 2 min.',
+    'Déglacez au vin rouge, ajoutez le bouillon, le concentré de tomate, l\'ail et le bouquet garni.',
+    'Couvrez et laissez mijoter 2 h à feu très doux (ou 2 h 30 au four à 150 °C).',
+    'Ajoutez les champignons poêlés 20 min avant la fin.',
+    'Purée : pommes de terre cuites à l\'eau, écrasées avec le lait chaud et un filet d\'huile d\'olive (pas de beurre).'
+  ],
+  astuce: 'Préparez-le la veille, dégraissez à froid : la sauce y gagne et vous retirez le gras figé.',
+  src: ['marmiton', 'boeuf bourguignon']
+},
+{
+  id: 'boeuf-brocoli',
+  nom: 'Bœuf sauté au brocoli façon asiatique',
+  cat: 'Viande rouge', viandeRouge: true, plaisir: false,
+  temps: 25, diff: 'Facile',
+  kcal: 540, prot: 42, gluc: 58, lip: 15, fibres: 8,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['rapide', 'wok'],
+  allergenes: ['soja', 'sesame', 'gluten'],
+  ingredients: [
+    ['Bavette de bœuf', 500, 'g', 'bo'],
+    ['Brocoli', 600, 'g', 'lg'],
+    ['Riz complet', 250, 'g', 'fe'],
+    ['Sauce soja', 4, 'c.à.s', 'ep'],
+    ['Gingembre frais', 20, 'g', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Miel', 1, 'c.à.s', 'ep'],
+    ['Maïzena', 1, 'c.à.c', 'ep'],
+    ['Huile de sésame', 1, 'c.à.s', 'ep'],
+    ['Oignon nouveau', 3, 'pièce', 'lg'],
+    ['Graines de sésame', 1, 'c.à.s', 'ep']
+  ],
+  etapes: [
+    'Émincez le bœuf très finement dans le sens contraire des fibres, mélangez-le à la maïzena et 1 c.à.s de soja.',
+    'Blanchissez le brocoli 3 min à l\'eau bouillante, égouttez.',
+    'Saisissez le bœuf 2 min au wok brûlant, réservez immédiatement.',
+    'Faites revenir ail et gingembre, ajoutez le brocoli, la sauce soja restante et le miel.',
+    'Remettez le bœuf 1 min, servez sur le riz avec sésame et oignon nouveau.'
+  ],
+  astuce: 'Le PNNS conseille de limiter la viande rouge à 500 g par semaine et par personne : ce plat en utilise 125 g.',
+  src: ['ricardo', 'boeuf brocoli sauté']
+},
+{
+  id: 'boulettes-boeuf',
+  nom: 'Boulettes de bœuf sauce tomate et spaghettis complets',
+  cat: 'Viande rouge', viandeRouge: true, plaisir: false,
+  temps: 45, diff: 'Facile',
+  kcal: 610, prot: 38, gluc: 72, lip: 18, fibres: 11,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['plat familial', 'les enfants adorent'],
+  allergenes: ['gluten', 'oeuf', 'lait'],
+  ingredients: [
+    ['Bœuf haché 5% MG', 500, 'g', 'bo'],
+    ['Spaghettis complets', 400, 'g', 'fe'],
+    ['Tomates concassées', 800, 'g', 'ep'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Ail', 4, 'gousse', 'lg'],
+    ['Œuf', 1, 'pièce', 'cr'],
+    ['Chapelure', 50, 'g', 'ep'],
+    ['Parmesan', 50, 'g', 'cr'],
+    ['Persil plat', 0.5, 'botte', 'lg'],
+    ['Origan séché', 1, 'c.à.c', 'es'],
+    ['Carotte', 2, 'pièce', 'lg'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep'],
+    ['Basilic frais', 0.5, 'botte', 'lg']
+  ],
+  etapes: [
+    'Mélangez le bœuf haché avec l\'œuf, la chapelure, la moitié du parmesan, le persil, un oignon râpé, sel et poivre.',
+    'Formez 16 boulettes, dorez-les 6 min à la poêle puis réservez.',
+    'Faites revenir le second oignon, l\'ail et les carottes râpées 6 min, ajoutez les tomates et l\'origan.',
+    'Laissez mijoter 15 min, ajoutez les boulettes et poursuivez 10 min.',
+    'Cuisez les spaghettis complets al dente et servez avec le reste de parmesan et le basilic.'
+  ],
+  astuce: 'La carotte râpée dans la sauce adoucit l\'acidité sans sucre ajouté.',
+  src: ['marmiton', 'boulettes boeuf sauce tomate']
+},
+{
+  id: 'filet-mignon-pommes',
+  nom: 'Filet mignon de porc aux pommes et patates douces',
+  cat: 'Porc', plaisir: false,
+  temps: 50, diff: 'Facile',
+  kcal: 575, prot: 42, gluc: 64, lip: 15, fibres: 9,
+  saisons: ['automne', 'hiver'],
+  tags: ['four', 'sucré-salé', 'sans gluten'],
+  allergenes: ['moutarde', 'porc'],
+  ingredients: [
+    ['Filet mignon de porc', 700, 'g', 'bo'],
+    ['Patate douce', 800, 'g', 'lg'],
+    ['Pomme', 3, 'pièce', 'lg'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Moutarde à l\'ancienne', 2, 'c.à.s', 'ep'],
+    ['Miel', 1, 'c.à.s', 'ep'],
+    ['Thym frais', 4, 'brin', 'lg'],
+    ['Bouillon de volaille', 200, 'ml', 'ep'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep'],
+    ['Haricots verts', 400, 'g', 'lg']
+  ],
+  etapes: [
+    'Préchauffez à 200 °C. Coupez les patates douces en cubes, mélangez-les à l\'huile et au thym, enfournez 20 min.',
+    'Saisissez le filet mignon sur toutes ses faces dans une cocotte, badigeonnez de moutarde et de miel.',
+    'Ajoutez oignons et pommes en quartiers, versez le bouillon.',
+    'Enfournez 25 min avec les patates douces. La viande doit rester rosée à cœur.',
+    'Laissez reposer 5 min avant de trancher. Servez avec les haricots verts vapeur.'
+  ],
+  astuce: 'Le filet mignon est le morceau de porc le plus maigre : environ 4 % de matières grasses.',
+  src: ['ricardo', 'filet mignon porc pommes']
+},
+{
+  id: 'parmentier-patate-douce',
+  nom: 'Hachis parmentier bœuf et patate douce',
+  cat: 'Viande rouge', viandeRouge: true, plaisir: false,
+  temps: 60, diff: 'Moyen',
+  kcal: 595, prot: 36, gluc: 68, lip: 19, fibres: 11,
+  saisons: ['automne', 'hiver'],
+  tags: ['plat familial', 'batch cooking', 'les enfants adorent'],
+  allergenes: ['lait'],
+  ingredients: [
+    ['Bœuf haché 5% MG', 500, 'g', 'bo'],
+    ['Patate douce', 800, 'g', 'lg'],
+    ['Pommes de terre', 500, 'g', 'lg'],
+    ['Carotte', 3, 'pièce', 'lg'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Tomates concassées', 400, 'g', 'ep'],
+    ['Lait demi-écrémé', 150, 'ml', 'cr'],
+    ['Gruyère râpé', 60, 'g', 'cr'],
+    ['Thym frais', 3, 'brin', 'lg'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep'],
+    ['Salade verte', 1, 'pièce', 'lg']
+  ],
+  etapes: [
+    'Cuisez patates douces et pommes de terre 20 min à l\'eau, écrasez-les avec le lait chaud.',
+    'Faites revenir oignons, ail et carottes en petits dés 8 min.',
+    'Ajoutez le bœuf haché, faites-le colorer, puis les tomates et le thym. Mijotez 10 min.',
+    'Dans un plat : la viande, puis la purée. Rayez à la fourchette et parsemez de gruyère.',
+    'Gratinez 20 min à 200 °C. Servez avec la salade verte.'
+  ],
+  astuce: 'Moitié patate douce, moitié pomme de terre : plus de vitamine A et un goût plus rond.',
+  src: ['g750', 'hachis parmentier patate douce']
+},
+{
+  id: 'saute-agneau-legumes',
+  nom: 'Sauté d\'agneau aux légumes du soleil et semoule',
+  cat: 'Viande rouge', viandeRouge: true, plaisir: false,
+  temps: 60, diff: 'Moyen',
+  kcal: 605, prot: 40, gluc: 62, lip: 21, fibres: 10,
+  saisons: ['printemps', 'été'],
+  tags: ['mijoté', 'parfumé'],
+  allergenes: ['gluten'],
+  ingredients: [
+    ['Épaule d\'agneau désossée', 700, 'g', 'bo'],
+    ['Courgette', 2, 'pièce', 'lg'],
+    ['Aubergine', 1, 'pièce', 'lg'],
+    ['Poivron rouge', 2, 'pièce', 'lg'],
+    ['Tomate', 4, 'pièce', 'lg'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Ras el-hanout', 1, 'c.à.s', 'es'],
+    ['Cumin moulu', 1, 'c.à.c', 'es'],
+    ['Semoule complète', 250, 'g', 'fe'],
+    ['Bouillon de volaille', 300, 'ml', 'ep'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep'],
+    ['Coriandre fraîche', 0.5, 'botte', 'lg']
+  ],
+  etapes: [
+    'Dégraissez l\'agneau, coupez-le en cubes et saisissez-le vivement dans la cocotte.',
+    'Ajoutez oignons et ail, puis les épices.',
+    'Mouillez avec le bouillon, couvrez et laissez mijoter 30 min.',
+    'Ajoutez tous les légumes en gros morceaux et poursuivez 20 min à découvert.',
+    'Préparez la semoule complète et servez avec la coriandre.'
+  ],
+  astuce: 'Un seul plat de viande rouge par semaine suffit : celui-ci ou le bourguignon, pas les deux.',
+  src: ['marmiton', 'saute agneau legumes']
+},
+
+/* ---------------------------------------------------------------
+   ŒUFS & PLATS LÉGERS
+   --------------------------------------------------------------- */
+{
+  id: 'chakchouka',
+  nom: 'Chakchouka, œufs pochés aux tomates et poivrons',
+  cat: 'Œufs', plaisir: false,
+  temps: 35, diff: 'Facile',
+  kcal: 420, prot: 21, gluc: 44, lip: 17, fibres: 10,
+  saisons: ['été', 'automne'],
+  tags: ['économique', 'one pot', 'rapide'],
+  allergenes: ['oeuf', 'gluten'],
+  ingredients: [
+    ['Œuf', 8, 'pièce', 'cr'],
+    ['Poivron rouge', 3, 'pièce', 'lg'],
+    ['Tomates concassées', 800, 'g', 'ep'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Cumin moulu', 2, 'c.à.c', 'es'],
+    ['Paprika fumé', 1, 'c.à.c', 'es'],
+    ['Pain complet', 8, 'tranche', 'bl'],
+    ['Feta', 100, 'g', 'cr'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep'],
+    ['Persil plat', 0.5, 'botte', 'lg']
+  ],
+  etapes: [
+    'Émincez oignons et poivrons, faites-les fondre 12 min à feu doux dans l\'huile d\'olive.',
+    'Ajoutez l\'ail et les épices, puis les tomates concassées. Laissez réduire 10 min.',
+    'Creusez 8 puits dans la sauce et cassez-y les œufs.',
+    'Couvrez et laissez cuire 6 à 8 min : le blanc doit être pris, le jaune coulant.',
+    'Parsemez de feta émiettée et de persil, servez avec le pain complet grillé.'
+  ],
+  astuce: 'Le petit-déjeuner-dîner parfait : 2 œufs par personne couvrent 40 % des besoins en protéines du repas.',
+  src: ['marmiton', 'chakchouka']
+},
+{
+  id: 'tortilla-pdt',
+  nom: 'Tortilla de pommes de terre et oignons, salade verte',
+  cat: 'Œufs', plaisir: false,
+  temps: 40, diff: 'Moyen',
+  kcal: 455, prot: 20, gluc: 48, lip: 20, fibres: 6,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['économique', 'lunch box', 'sans gluten'],
+  allergenes: ['oeuf', 'moutarde'],
+  ingredients: [
+    ['Œuf', 8, 'pièce', 'cr'],
+    ['Pommes de terre', 800, 'g', 'lg'],
+    ['Oignon', 2, 'pièce', 'lg'],
+    ['Huile d\'olive', 4, 'c.à.s', 'ep'],
+    ['Salade verte', 1, 'pièce', 'lg'],
+    ['Tomate cerise', 200, 'g', 'lg'],
+    ['Persil plat', 0.5, 'botte', 'lg'],
+    ['Moutarde', 1, 'c.à.c', 'ep'],
+    ['Vinaigre de cidre', 1, 'c.à.s', 'ep']
+  ],
+  etapes: [
+    'Coupez les pommes de terre en rondelles fines et les oignons en lamelles.',
+    'Faites-les cuire doucement 20 min à couvert dans 3 c.à.s d\'huile : elles doivent être fondantes, pas dorées.',
+    'Battez les œufs, salez, poivrez, ajoutez les pommes de terre égouttées et laissez reposer 5 min.',
+    'Versez dans la poêle, cuisez 6 min à feu doux, retournez à l\'aide d\'une assiette et poursuivez 4 min.',
+    'Servez tiède avec la salade assaisonnée à la vinaigrette moutarde.'
+  ],
+  astuce: 'Se mange froide le lendemain : la meilleure lunch box qui soit.',
+  src: ['g750', 'tortilla espagnole pommes de terre']
+},
+{
+  id: 'quiche-sans-pate',
+  nom: 'Quiche sans pâte courgettes-chèvre',
+  cat: 'Œufs', plaisir: false,
+  temps: 50, diff: 'Facile',
+  kcal: 405, prot: 25, gluc: 28, lip: 21, fibres: 5,
+  saisons: ['printemps', 'été'],
+  tags: ['light', 'sans pâte', 'lunch box'],
+  allergenes: ['oeuf', 'lait', 'gluten', 'coque'],
+  ingredients: [
+    ['Œuf', 6, 'pièce', 'cr'],
+    ['Courgette', 3, 'pièce', 'lg'],
+    ['Bûche de chèvre', 150, 'g', 'cr'],
+    ['Lait demi-écrémé', 250, 'ml', 'cr'],
+    ['Farine', 60, 'g', 'ep'],
+    ['Oignon', 1, 'pièce', 'lg'],
+    ['Menthe fraîche', 0.5, 'botte', 'lg'],
+    ['Huile d\'olive', 1, 'c.à.s', 'ep'],
+    ['Salade verte', 1, 'pièce', 'lg'],
+    ['Noix', 40, 'g', 'ep']
+  ],
+  etapes: [
+    'Râpez les courgettes, faites-les revenir 8 min avec l\'oignon pour évacuer l\'eau. C\'est l\'étape à ne pas sauter.',
+    'Battez les œufs avec le lait et la farine, salez, poivrez.',
+    'Ajoutez les courgettes et la menthe ciselée, versez dans un moule huilé.',
+    'Répartissez le chèvre en rondelles sur le dessus.',
+    'Enfournez 35 min à 180 °C. Servez avec la salade et les noix.'
+  ],
+  astuce: 'Sans pâte : environ 180 kcal de moins par part qu\'une quiche classique.',
+  src: ['amandine', 'quiche sans pate courgette chevre']
+},
+{
+  id: 'riz-saute-oeufs',
+  nom: 'Riz sauté aux œufs et petits légumes',
+  cat: 'Œufs', plaisir: false,
+  temps: 25, diff: 'Facile',
+  kcal: 480, prot: 19, gluc: 70, lip: 13, fibres: 7,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['rapide', 'anti-gaspi', 'économique'],
+  allergenes: ['oeuf', 'soja', 'sesame'],
+  ingredients: [
+    ['Riz complet', 300, 'g', 'fe'],
+    ['Œuf', 4, 'pièce', 'cr'],
+    ['Petits pois surgelés', 200, 'g', 'sg'],
+    ['Carotte', 2, 'pièce', 'lg'],
+    ['Poivron rouge', 1, 'pièce', 'lg'],
+    ['Oignon nouveau', 3, 'pièce', 'lg'],
+    ['Ail', 2, 'gousse', 'lg'],
+    ['Sauce soja', 3, 'c.à.s', 'ep'],
+    ['Huile de sésame', 1, 'c.à.s', 'ep'],
+    ['Gingembre frais', 15, 'g', 'lg']
+  ],
+  etapes: [
+    'Cuisez le riz la veille si possible : un riz froid ne colle pas au wok.',
+    'Brouillez les œufs rapidement dans le wok, réservez.',
+    'Sautez carottes et poivron 4 min, ajoutez ail, gingembre et petits pois.',
+    'Ajoutez le riz froid, faites-le sauter 4 min à feu vif avec la sauce soja.',
+    'Remettez les œufs, ajoutez l\'huile de sésame et l\'oignon nouveau.'
+  ],
+  astuce: 'Le plat anti-gaspi idéal : tout reste de légumes du frigo y passe.',
+  src: ['hellofresh', 'riz saute oeufs legumes']
+},
+{
+  id: 'veloute-potimarron',
+  nom: 'Velouté de potimarron aux lentilles corail et tartine de chèvre',
+  cat: 'Végétarien', legumineuse: true, plaisir: false,
+  temps: 35, diff: 'Facile',
+  kcal: 445, prot: 18, gluc: 58, lip: 14, fibres: 12,
+  saisons: ['automne', 'hiver'],
+  tags: ['soupe repas', 'économique', 'réconfortant'],
+  allergenes: ['lait', 'gluten'],
+  ingredients: [
+    ['Potimarron', 1200, 'g', 'lg'],
+    ['Lentilles corail', 150, 'g', 'fe'],
+    ['Oignon', 1, 'pièce', 'lg'],
+    ['Ail', 2, 'gousse', 'lg'],
+    ['Bouillon de légumes', 1200, 'ml', 'ep'],
+    ['Lait de coco', 100, 'ml', 'ep'],
+    ['Cumin moulu', 1, 'c.à.c', 'es'],
+    ['Pain complet', 8, 'tranche', 'bl'],
+    ['Bûche de chèvre', 150, 'g', 'cr'],
+    ['Graines de courge', 40, 'g', 'ep'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep'],
+    ['Miel', 1, 'c.à.s', 'ep']
+  ],
+  etapes: [
+    'Lavez le potimarron sans l\'éplucher (la peau se mange) et coupez-le en cubes.',
+    'Faites revenir l\'oignon, ajoutez potimarron, lentilles corail, ail, cumin et bouillon.',
+    'Laissez cuire 20 min puis mixez finement avec le lait de coco.',
+    'Toastez les tranches de pain, déposez le chèvre, un filet de miel et passez 3 min sous le gril.',
+    'Servez le velouté parsemé de graines de courge.'
+  ],
+  astuce: 'Les lentilles corail apportent les protéines qui manquent à une soupe classique : c\'est ça qui en fait un vrai repas.',
+  src: ['amandine', 'veloute potimarron lentilles corail']
+},
+{
+  id: 'ramen-oeuf-mollet',
+  nom: 'Bouillon ramen aux œufs mollets et pak choï',
+  cat: 'Œufs', plaisir: false,
+  temps: 35, diff: 'Moyen',
+  kcal: 490, prot: 22, gluc: 66, lip: 14, fibres: 8,
+  saisons: ['automne', 'hiver'],
+  tags: ['réconfortant', 'bouillon'],
+  allergenes: ['oeuf', 'gluten', 'soja', 'sesame'],
+  ingredients: [
+    ['Nouilles ramen (ou soba)', 300, 'g', 'fe'],
+    ['Œuf', 4, 'pièce', 'cr'],
+    ['Pak choï (ou chou chinois)', 400, 'g', 'lg'],
+    ['Champignons shiitake', 200, 'g', 'lg'],
+    ['Bouillon de légumes', 1500, 'ml', 'ep'],
+    ['Sauce soja', 4, 'c.à.s', 'ep'],
+    ['Pâte de miso', 2, 'c.à.s', 'ep'],
+    ['Gingembre frais', 25, 'g', 'lg'],
+    ['Ail', 3, 'gousse', 'lg'],
+    ['Oignon nouveau', 3, 'pièce', 'lg'],
+    ['Huile de sésame', 1, 'c.à.s', 'ep'],
+    ['Maïs doux', 150, 'g', 'ep']
+  ],
+  etapes: [
+    'Cuisez les œufs 6 min exactement, refroidissez-les dans l\'eau glacée puis écalez-les.',
+    'Faites infuser gingembre et ail dans le bouillon 15 min, ajoutez sauce soja et miso délayé (jamais bouillant).',
+    'Faites sauter les shiitakes 5 min, blanchissez le pak choï 2 min.',
+    'Cuisez les nouilles séparément et répartissez-les dans les bols.',
+    'Versez le bouillon, disposez légumes, maïs, œuf coupé en deux, oignon nouveau et huile de sésame.'
+  ],
+  astuce: '6 minutes chrono pour l\'œuf mollet : au-delà, le jaune n\'est plus coulant.',
+  src: ['g750', 'ramen maison bouillon miso']
+},
+{
+  id: 'salade-grecque-quinoa',
+  nom: 'Salade grecque au quinoa, feta et concombre',
+  cat: 'Végétarien', plaisir: false,
+  temps: 20, diff: 'Facile',
+  kcal: 465, prot: 17, gluc: 52, lip: 20, fibres: 9,
+  saisons: ['été'],
+  tags: ['sans cuisson', 'lunch box', 'rapide', 'sans gluten'],
+  allergenes: ['lait'],
+  ingredients: [
+    ['Quinoa', 250, 'g', 'fe'],
+    ['Concombre', 1, 'pièce', 'lg'],
+    ['Tomate', 4, 'pièce', 'lg'],
+    ['Poivron vert', 1, 'pièce', 'lg'],
+    ['Oignon rouge', 1, 'pièce', 'lg'],
+    ['Feta', 200, 'g', 'cr'],
+    ['Olives noires', 100, 'g', 'ep'],
+    ['Origan séché', 1, 'c.à.c', 'es'],
+    ['Huile d\'olive', 4, 'c.à.s', 'ep'],
+    ['Citron', 1, 'pièce', 'lg'],
+    ['Pois chiches cuits', 240, 'g', 'ep']
+  ],
+  etapes: [
+    'Cuisez le quinoa 12 min, rincez-le à l\'eau froide et laissez refroidir.',
+    'Coupez concombre, tomates, poivron et oignon rouge en gros morceaux.',
+    'Mélangez le tout avec les pois chiches et les olives.',
+    'Assaisonnez d\'huile d\'olive, jus de citron, origan, sel et poivre.',
+    'Ajoutez la feta en cubes juste avant de servir.'
+  ],
+  astuce: 'Se prépare le matin pour le soir : la salade n\'en est que meilleure.',
+  src: ['marmiton', 'salade grecque quinoa feta']
+},
+
+/* ---------------------------------------------------------------
+   JOURS SYMPA — plaisir, mais version maligne
+   --------------------------------------------------------------- */
+{
+  id: 'burger-poulet-four',
+  nom: 'Burger maison au poulet croustillant au four et potatoes',
+  cat: 'Volaille', plaisir: true,
+  temps: 50, diff: 'Moyen',
+  kcal: 685, prot: 44, gluc: 74, lip: 22, fibres: 8,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['jour sympa', 'sans friture', 'les enfants adorent'],
+  allergenes: ['gluten', 'oeuf', 'lait', 'moutarde'],
+  ingredients: [
+    ['Blanc de poulet', 600, 'g', 'bo'],
+    ['Pain burger complet', 4, 'pièce', 'bl'],
+    ['Chapelure panko', 120, 'g', 'ep'],
+    ['Œuf', 2, 'pièce', 'cr'],
+    ['Farine', 50, 'g', 'ep'],
+    ['Paprika fumé', 2, 'c.à.c', 'es'],
+    ['Pommes de terre', 800, 'g', 'lg'],
+    ['Yaourt grec', 150, 'g', 'cr'],
+    ['Moutarde', 1, 'c.à.c', 'ep'],
+    ['Cornichons', 6, 'pièce', 'ep'],
+    ['Salade verte', 1, 'pièce', 'lg'],
+    ['Tomate', 2, 'pièce', 'lg'],
+    ['Oignon rouge', 1, 'pièce', 'lg'],
+    ['Cheddar', 60, 'g', 'cr'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep']
+  ],
+  etapes: [
+    'Coupez les pommes de terre en quartiers, mélangez-les à 2 c.à.s d\'huile et au paprika, enfournez 35 min à 200 °C.',
+    'Aplatissez les blancs de poulet, passez-les dans la farine, l\'œuf battu puis le panko.',
+    'Déposez sur une plaque, arrosez d\'un filet d\'huile et enfournez 22 min à 200 °C (retournez à mi-cuisson).',
+    'Sauce : yaourt grec, moutarde, cornichons hachés, sel, poivre.',
+    'Toastez les pains, montez : sauce, salade, poulet croustillant, cheddar, tomate, oignon rouge.'
+  ],
+  astuce: 'Panné au four et non frit : on garde le croustillant, on divise les lipides par deux.',
+  src: ['g750', 'burger poulet croustillant maison']
+},
+{
+  id: 'pizza-maison',
+  nom: 'Pizza maison pâte semi-complète, légumes et mozzarella',
+  cat: 'Végétarien', plaisir: true,
+  temps: 100, diff: 'Moyen',
+  kcal: 645, prot: 26, gluc: 88, lip: 20, fibres: 10,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['jour sympa', 'à faire ensemble', 'plat familial'],
+  allergenes: ['gluten', 'lait'],
+  ingredients: [
+    ['Farine semi-complète (T110)', 400, 'g', 'ep'],
+    ['Farine de blé (T65)', 100, 'g', 'ep'],
+    ['Levure de boulanger sèche', 1, 'pièce', 'ep'],
+    ['Coulis de tomate', 400, 'g', 'ep'],
+    ['Mozzarella', 250, 'g', 'cr'],
+    ['Courgette', 1, 'pièce', 'lg'],
+    ['Poivron rouge', 1, 'pièce', 'lg'],
+    ['Champignons de Paris', 200, 'g', 'lg'],
+    ['Oignon rouge', 1, 'pièce', 'lg'],
+    ['Roquette', 100, 'g', 'lg'],
+    ['Origan séché', 2, 'c.à.c', 'es'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep'],
+    ['Ail', 2, 'gousse', 'lg']
+  ],
+  etapes: [
+    'Pâte : mélangez les farines, la levure, 10 g de sel, 320 ml d\'eau tiède et 2 c.à.s d\'huile. Pétrissez 8 min.',
+    'Laissez lever 1 h 30 sous un torchon, jusqu\'à ce que la pâte double de volume.',
+    'Préchauffez le four au maximum (250 °C) avec la plaque à l\'intérieur.',
+    'Étalez la pâte finement en 2 pizzas, étalez le coulis assaisonné à l\'ail et à l\'origan.',
+    'Garnissez de légumes finement émincés et de mozzarella déchirée.',
+    'Enfournez 10 à 12 min sur la plaque brûlante. Ajoutez la roquette à la sortie du four.'
+  ],
+  astuce: 'La farine semi-complète apporte le double de fibres — et une pâte plus goûteuse.',
+  src: ['marmiton', 'pate a pizza maison']
+},
+{
+  id: 'tacos-boeuf-haricots',
+  nom: 'Tacos maison bœuf-haricots rouges et guacamole',
+  cat: 'Viande rouge', viandeRouge: true, legumineuse: true, plaisir: true,
+  temps: 40, diff: 'Facile',
+  kcal: 670, prot: 36, gluc: 72, lip: 25, fibres: 15,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['jour sympa', 'à faire ensemble', 'convivial'],
+  allergenes: ['gluten', 'lait'],
+  ingredients: [
+    ['Bœuf haché 5% MG', 400, 'g', 'bo'],
+    ['Haricots rouges cuits', 400, 'g', 'ep'],
+    ['Tortillas de blé complet', 8, 'pièce', 'bl'],
+    ['Avocat', 2, 'pièce', 'lg'],
+    ['Tomate', 3, 'pièce', 'lg'],
+    ['Oignon rouge', 1, 'pièce', 'lg'],
+    ['Citron vert', 2, 'pièce', 'lg'],
+    ['Maïs doux', 150, 'g', 'ep'],
+    ['Laitue', 1, 'pièce', 'lg'],
+    ['Cumin moulu', 2, 'c.à.c', 'es'],
+    ['Paprika fumé', 1, 'c.à.c', 'es'],
+    ['Yaourt grec', 150, 'g', 'cr'],
+    ['Cheddar', 80, 'g', 'cr'],
+    ['Coriandre fraîche', 0.5, 'botte', 'lg']
+  ],
+  etapes: [
+    'Faites revenir le bœuf haché avec la moitié de l\'oignon, le cumin et le paprika, 8 min.',
+    'Ajoutez les haricots rouges écrasés grossièrement et 100 ml d\'eau, laissez épaissir 5 min.',
+    'Guacamole : écrasez les avocats avec le jus d\'un citron vert, l\'oignon rouge restant, sel, coriandre.',
+    'Préparez une salsa rapide : tomates en dés, maïs, jus du second citron vert.',
+    'Réchauffez les tortillas 30 s à la poêle sèche.',
+    'Chacun garnit son tacos : viande-haricots, salade, salsa, guacamole, yaourt grec, un peu de cheddar.'
+  ],
+  astuce: 'Moitié viande, moitié haricots : plus de fibres, moins de gras, et personne ne voit la différence.',
+  src: ['ricardo', 'tacos boeuf haricots rouges']
+},
+{
+  id: 'gratin-butternut-cheddar',
+  nom: 'Gratin de pâtes complètes butternut-cheddar',
+  cat: 'Végétarien', plaisir: true,
+  temps: 55, diff: 'Facile',
+  kcal: 650, prot: 26, gluc: 86, lip: 21, fibres: 12,
+  saisons: ['automne', 'hiver'],
+  tags: ['jour sympa', 'réconfortant', 'plat familial'],
+  allergenes: ['gluten', 'lait'],
+  ingredients: [
+    ['Pâtes complètes courtes', 400, 'g', 'fe'],
+    ['Butternut', 700, 'g', 'lg'],
+    ['Cheddar', 120, 'g', 'cr'],
+    ['Lait demi-écrémé', 400, 'ml', 'cr'],
+    ['Farine', 30, 'g', 'ep'],
+    ['Beurre', 25, 'g', 'cr'],
+    ['Oignon', 1, 'pièce', 'lg'],
+    ['Ail', 2, 'gousse', 'lg'],
+    ['Muscade', 1, 'pincée', 'es'],
+    ['Chapelure', 40, 'g', 'ep'],
+    ['Épinards frais', 200, 'g', 'lg'],
+    ['Huile d\'olive', 1, 'c.à.s', 'ep']
+  ],
+  etapes: [
+    'Cuisez le butternut en cubes 15 min à la vapeur, puis mixez-le avec un peu de lait.',
+    'Faites une béchamel légère (beurre, farine, lait), ajoutez la purée de butternut, la muscade et les deux tiers du cheddar.',
+    'Cuisez les pâtes 2 min de moins que le temps indiqué.',
+    'Faites tomber les épinards à la poêle avec l\'ail.',
+    'Mélangez pâtes, épinards et sauce, versez dans un plat, couvrez du reste de cheddar et de chapelure.',
+    'Gratinez 20 min à 200 °C.'
+  ],
+  astuce: 'Le butternut donne l\'onctuosité et la couleur d\'un mac & cheese avec moitié moins de fromage.',
+  src: ['amandine', 'gratin pates butternut']
+},
+{
+  id: 'fajitas-poulet',
+  nom: 'Fajitas de poulet et poivrons',
+  cat: 'Volaille', plaisir: true,
+  temps: 35, diff: 'Facile',
+  kcal: 625, prot: 43, gluc: 68, lip: 19, fibres: 10,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['jour sympa', 'convivial', 'rapide'],
+  allergenes: ['gluten', 'lait'],
+  ingredients: [
+    ['Blanc de poulet', 600, 'g', 'bo'],
+    ['Tortillas de blé complet', 8, 'pièce', 'bl'],
+    ['Poivron rouge', 2, 'pièce', 'lg'],
+    ['Poivron vert', 1, 'pièce', 'lg'],
+    ['Oignon rouge', 2, 'pièce', 'lg'],
+    ['Paprika fumé', 2, 'c.à.c', 'es'],
+    ['Cumin moulu', 2, 'c.à.c', 'es'],
+    ['Origan séché', 1, 'c.à.c', 'es'],
+    ['Citron vert', 2, 'pièce', 'lg'],
+    ['Yaourt grec', 200, 'g', 'cr'],
+    ['Avocat', 1, 'pièce', 'lg'],
+    ['Laitue', 1, 'pièce', 'lg'],
+    ['Huile d\'olive', 2, 'c.à.s', 'ep']
+  ],
+  etapes: [
+    'Marinez le poulet en lanières 15 min avec épices, huile et jus d\'un citron vert.',
+    'Saisissez le poulet 6 min à feu vif, réservez.',
+    'Sautez poivrons et oignons 8 min : ils doivent rester légèrement croquants et colorés.',
+    'Remettez le poulet, mélangez 2 min.',
+    'Réchauffez les tortillas et servez avec yaourt grec, avocat en lamelles, laitue et citron vert.'
+  ],
+  astuce: 'Le poulet mariné puis saisi très chaud : c\'est la coloration qui fait tout le goût, pas le gras.',
+  src: ['hellofresh', 'fajitas poulet poivrons']
+},
+{
+  id: 'nuggets-coleslaw',
+  nom: 'Nuggets de poulet maison au four, wedges et coleslaw léger',
+  cat: 'Volaille', plaisir: true,
+  temps: 45, diff: 'Facile',
+  kcal: 630, prot: 42, gluc: 66, lip: 20, fibres: 9,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['jour sympa', 'les enfants adorent', 'sans friture'],
+  allergenes: ['gluten', 'oeuf', 'lait', 'moutarde'],
+  ingredients: [
+    ['Blanc de poulet', 600, 'g', 'bo'],
+    ['Chapelure panko', 120, 'g', 'ep'],
+    ['Œuf', 2, 'pièce', 'cr'],
+    ['Farine', 50, 'g', 'ep'],
+    ['Parmesan', 40, 'g', 'cr'],
+    ['Paprika', 2, 'c.à.c', 'es'],
+    ['Pommes de terre', 800, 'g', 'lg'],
+    ['Chou blanc', 400, 'g', 'lg'],
+    ['Carotte', 3, 'pièce', 'lg'],
+    ['Yaourt grec', 200, 'g', 'cr'],
+    ['Moutarde', 1, 'c.à.c', 'ep'],
+    ['Vinaigre de cidre', 2, 'c.à.s', 'ep'],
+    ['Huile d\'olive', 3, 'c.à.s', 'ep']
+  ],
+  etapes: [
+    'Coupez les pommes de terre en wedges, huilez, salez et enfournez 35 min à 200 °C.',
+    'Détaillez le poulet en gros morceaux, passez-les dans la farine, l\'œuf, puis le mélange panko-parmesan-paprika.',
+    'Enfournez 20 min à 200 °C avec un filet d\'huile, en les retournant à mi-cuisson.',
+    'Coleslaw : chou et carottes râpés, sauce yaourt grec + moutarde + vinaigre de cidre.',
+    'Servez le tout ensemble, avec un peu de la même sauce en accompagnement.'
+  ],
+  astuce: 'Le panko donne un croustillant que la chapelure classique ne fait pas, même sans friture.',
+  src: ['ricardo', 'nuggets poulet maison four']
+},
+{
+  id: 'pancakes-avoine',
+  nom: 'Pancakes protéinés à l\'avoine et fruits rouges (brunch)',
+  cat: 'Végétarien', plaisir: true,
+  temps: 25, diff: 'Facile',
+  kcal: 480, prot: 24, gluc: 62, lip: 14, fibres: 8,
+  saisons: ['printemps', 'été', 'automne', 'hiver'],
+  tags: ['jour sympa', 'brunch', 'week-end'],
+  allergenes: ['oeuf', 'lait', 'gluten', 'coque'],
+  ingredients: [
+    ['Flocons d\'avoine', 250, 'g', 'fe'],
+    ['Œuf', 4, 'pièce', 'cr'],
+    ['Fromage blanc 0%', 300, 'g', 'cr'],
+    ['Lait demi-écrémé', 150, 'ml', 'cr'],
+    ['Levure chimique', 1, 'c.à.c', 'ep'],
+    ['Banane', 2, 'pièce', 'lg'],
+    ['Fruits rouges surgelés', 300, 'g', 'sg'],
+    ['Miel', 2, 'c.à.s', 'ep'],
+    ['Amandes effilées', 40, 'g', 'ep'],
+    ['Huile de colza', 1, 'c.à.s', 'ep'],
+    ['Cannelle', 1, 'c.à.c', 'es']
+  ],
+  etapes: [
+    'Mixez les flocons d\'avoine en farine grossière.',
+    'Mélangez avec les œufs, le fromage blanc, le lait, la levure, la cannelle et les bananes écrasées.',
+    'Laissez reposer la pâte 10 min : elle épaissit.',
+    'Cuisez les pancakes 2 min de chaque côté à la poêle légèrement huilée.',
+    'Faites compoter les fruits rouges 5 min avec 1 c.à.s de miel.',
+    'Servez avec la compotée, les amandes et un filet de miel.'
+  ],
+  astuce: '24 g de protéines par personne : un brunch qui tient jusqu\'au dîner.',
+  src: ['amandine', 'pancakes avoine proteines']
+}
+
+];
+</script>
+
+<script>
+/* ============================================================
+   Ma Famille en Forme — logique de l'application
+   Vanilla JS, aucune dépendance, stockage local.
+   ============================================================ */
+'use strict';
+
+/* ── Raccourcis ─────────────────────────────────────────── */
+const $  = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
+const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+/* ── Référentiels ───────────────────────────────────────── */
+const ALLERGENES = [
+  { id: 'gluten',   nom: 'Gluten' },
+  { id: 'lait',     nom: 'Lait / lactose' },
+  { id: 'oeuf',     nom: 'Œuf' },
+  { id: 'poisson',  nom: 'Poisson' },
+  { id: 'crustace', nom: 'Crustacés' },
+  { id: 'coque',    nom: 'Fruits à coque' },
+  { id: 'arachide', nom: 'Arachide' },
+  { id: 'soja',     nom: 'Soja' },
+  { id: 'sesame',   nom: 'Sésame' },
+  { id: 'moutarde', nom: 'Moutarde' },
+  { id: 'celeri',   nom: 'Céleri' },
+  { id: 'sulfite',  nom: 'Sulfites' },
+  { id: 'porc',     nom: 'Porc' }
+];
+const ALG_NOM = Object.fromEntries(ALLERGENES.map(a => [a.id, a.nom]));
+
+const JOURS = [
+  { k: 'lun', n: 'Lundi' }, { k: 'mar', n: 'Mardi' }, { k: 'mer', n: 'Mercredi' },
+  { k: 'jeu', n: 'Jeudi' }, { k: 'ven', n: 'Vendredi' }, { k: 'sam', n: 'Samedi' }, { k: 'dim', n: 'Dimanche' }
+];
+const REPAS = [{ k: 'midi', n: 'Midi' }, { k: 'soir', n: 'Soir' }];
+const WEEKEND = ['sam', 'dim'];
+
+const EMOJI = {
+  'Végétarien': '🥬', 'Poisson': '🐟', 'Volaille': '🍗',
+  'Viande rouge': '🥩', 'Porc': '🥓', 'Œufs': '🥚'
+};
+const ORDRE_RAYONS = ['lg', 'bo', 'po', 'cr', 'fe', 'ep', 'bl', 'sg', 'pl'];
+RAYONS.pl = 'Placard — à vérifier avant de partir';
+
+/** Épices et condiments : on les regroupe à part, on en a souvent déjà. */
+const PLACARD = /^(huile|vinaigre|sauce soja|sauce nuoc|miel|moutarde|maïzena|levure|pâte de curry|pâte de miso|bouquet garni|feuille de laurier)/i;
+const rayonEffectif = (nom, rayon) => (rayon === 'es' || PLACARD.test(nom)) ? 'pl' : rayon;
+
+const ACTIVITES = [
+  { v: 1.2,   n: 'Sédentaire — bureau, peu de marche' },
+  { v: 1.375, n: 'Légèrement actif — 1 à 3 séances/semaine' },
+  { v: 1.55,  n: 'Modérément actif — 3 à 5 séances/semaine' },
+  { v: 1.725, n: 'Très actif — 6 à 7 séances/semaine' },
+  { v: 1.9,   n: 'Extrêmement actif — sport intensif ou métier physique' }
+];
+
+/* ── État ───────────────────────────────────────────────── */
+const CLE = 'famille-en-forme-v1';
+
+function lundiCourant() {
+  const d = new Date();
+  const j = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - j);
+  return d.toISOString().slice(0, 10);
+}
+const aujourdhui = () => new Date().toISOString().slice(0, 10);
+
+function etatParDefaut() {
+  return {
+    v: 1,
+    premiereVisite: true,
+    foyer: { nbPersonnes: 4, repasPlanifies: 'both' },
+    personnes: [
+      { id: 'christelle', nom: 'Christelle', sexe: 'F', naissance: '1982-05-14', taille: 166, objectif: 62, activite: 1.375, couleur: '#c0503f', allergenes: [], pesees: [{ d: aujourdhui(), p: 70 }] },
+      { id: 'fabien',     nom: 'Fabien',     sexe: 'H', naissance: '1980-09-22', taille: 178, objectif: 78, activite: 1.375, couleur: '#3b7ea1', allergenes: [], pesees: [{ d: aujourdhui(), p: 88 }] },
+      { id: 'nathan',     nom: 'Nathan',     sexe: 'H', naissance: '2008-03-11', taille: 176, objectif: 70, activite: 1.55,  couleur: '#2f8f66', allergenes: [], pesees: [{ d: aujourdhui(), p: 72 }] },
+      { id: 'mathis',     nom: 'Mathis',     sexe: 'H', naissance: '2013-06-30', taille: 152, objectif: 44, activite: 1.55,  couleur: '#7a5ea8', allergenes: [], pesees: [{ d: aujourdhui(), p: 45 }] }
+    ],
+    aversions: [],
+    selection: [],
+    planning: { debut: lundiCourant(), repas: {} },
+    options: { useFav: false, onlySeason: false },
+    courses: { coches: [], extra: [] }
+  };
+}
+
+let state = charger();
+
+function charger() {
+  try {
+    const brut = localStorage.getItem(CLE);
+    if (!brut) return etatParDefaut();
+    const s = JSON.parse(brut);
+    const d = etatParDefaut();
+    // fusion défensive : une version antérieure ne doit jamais casser l'app
+    return {
+      ...d, ...s,
+      foyer: { ...d.foyer, ...(s.foyer || {}) },
+      planning: { ...d.planning, ...(s.planning || {}), repas: (s.planning && s.planning.repas) || {} },
+      options: { ...d.options, ...(s.options || {}) },
+      courses: { ...d.courses, ...(s.courses || {}) },
+      personnes: (s.personnes && s.personnes.length ? s.personnes : d.personnes).map((p, i) => ({ ...d.personnes[i % 4], ...p, pesees: p.pesees || [] }))
+    };
+  } catch (e) {
+    console.warn('Données illisibles, réinitialisation.', e);
+    return etatParDefaut();
+  }
+}
+
+function sauver() {
+  try { localStorage.setItem(CLE, JSON.stringify(state)); }
+  catch (e) { toast('Impossible d\'enregistrer (stockage plein ?)'); }
+}
+
+/* ── Toast ──────────────────────────────────────────────── */
+let toastT;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('on'), 2400);
+}
+
+/* ============================================================
+   CALCULS SANTÉ
+   ============================================================ */
+function age(p) {
+  if (!p.naissance) return null;
+  const n = new Date(p.naissance), h = new Date();
+  let a = h.getFullYear() - n.getFullYear();
+  const m = h.getMonth() - n.getMonth();
+  if (m < 0 || (m === 0 && h.getDate() < n.getDate())) a--;
+  return a >= 0 && a < 120 ? a : null;
+}
+const mineur = p => { const a = age(p); return a !== null && a < 18; };
+
+function pesees(p) { return [...(p.pesees || [])].sort((a, b) => a.d.localeCompare(b.d)); }
+function poidsActuel(p) { const l = pesees(p); return l.length ? l[l.length - 1].p : null; }
+function poidsDepart(p) { const l = pesees(p); return l.length ? l[0].p : null; }
+
+function imc(poids, taille) { return taille ? poids / Math.pow(taille / 100, 2) : null; }
+
+function imcInfo(v) {
+  if (v === null) return { txt: '—', cls: '' };
+  if (v < 18.5) return { txt: 'Insuffisance pondérale', cls: 'warn' };
+  if (v < 25)   return { txt: 'Corpulence normale', cls: 'ok' };
+  if (v < 30)   return { txt: 'Surpoids', cls: 'warn' };
+  return { txt: 'Obésité', cls: 'bad' };
+}
+
+/** Métabolisme de base — Mifflin-St Jeor (1990). */
+function metabolismeBase(p, poids) {
+  const a = age(p);
+  if (!poids || !p.taille || a === null) return null;
+  const base = 10 * poids + 6.25 * p.taille - 5 * a;
+  return Math.round(base + (p.sexe === 'H' ? 5 : -161));
+}
+function depenseTotale(p, poids) {
+  const mb = metabolismeBase(p, poids);
+  return mb ? Math.round(mb * (p.activite || 1.375)) : null;
+}
+
+/** Objectif calorique quotidien indicatif, plancher = métabolisme de base. */
+function objectifCalorique(p, poids) {
+  const dt = depenseTotale(p, poids), mb = metabolismeBase(p, poids);
+  if (!dt) return null;
+  if (mineur(p)) return { kcal: dt, mode: 'Croissance en cours — maintien' };
+  const ecart = poids - (p.objectif || poids);
+  if (ecart > 1)  return { kcal: Math.max(Math.round(dt * 0.85), mb, p.sexe === 'H' ? 1500 : 1200), mode: 'Déficit modéré (−15 %)' };
+  if (ecart < -1) return { kcal: Math.round(dt * 1.10), mode: 'Surplus léger (+10 %)' };
+  return { kcal: dt, mode: 'Maintien' };
+}
+
+/** Fourchette de poids correspondant à un IMC de 18,5 à 25. */
+function poidsSante(taille) {
+  if (!taille) return null;
+  const m = taille / 100;
+  return [Math.round(18.5 * m * m), Math.round(25 * m * m)];
+}
+
+/* ============================================================
+   COMPATIBILITÉ DES RECETTES
+   ============================================================ */
+function allergiesFoyer() {
+  const m = {};
+  state.personnes.forEach(p => (p.allergenes || []).forEach(a => {
+    (m[a] = m[a] || []).push(p.nom);
+  }));
+  return m;
+}
+
+/** Retourne les problèmes d'une recette : allergènes du foyer + aversions. */
+function problemes(r) {
+  const foyer = allergiesFoyer();
+  const alg = (r.allergenes || []).filter(a => foyer[a]).map(a => ({ id: a, qui: foyer[a] }));
+  const av = (state.aversions || []).filter(mot => {
+    const n = norm(mot).trim();
+    if (!n) return false;
+    return r.ingredients.some(i => norm(i[0]).includes(n)) || norm(r.nom).includes(n);
+  });
+  return { alg, av, ok: alg.length === 0 && av.length === 0 };
+}
+
+function saisonCourante() {
+  const m = new Date().getMonth();
+  if (m <= 1 || m === 11) return 'hiver';
+  if (m <= 4) return 'printemps';
+  if (m <= 7) return 'ete';
+  return 'automne';
+}
+const deSaison = r => (r.saisons || []).includes(saisonCourante());
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+$$('#nav button').forEach(b => b.addEventListener('click', () => ouvrirOnglet(b.dataset.tab)));
+
+function ouvrirOnglet(nom) {
+  $$('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === nom));
+  $$('.tab').forEach(s => s.classList.toggle('on', s.id === 'tab-' + nom));
+  if (nom === 'progression') rendrePersonnes();
+  if (nom === 'recettes') rendreRecettes();
+  if (nom === 'semaine') { rendreSemaine(); rendreEquilibre(); }
+  if (nom === 'courses') rendreCourses();
+  if (nom === 'reglages') rendreReglages();
+  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+}
+
+/* ============================================================
+   ONGLET PROGRESSION
+   ============================================================ */
+function rendrePersonnes() {
+  $('#first-run').hidden = !state.premiereVisite;
+  const box = $('#people');
+  box.innerHTML = state.personnes.map(personneHTML).join('');
+
+  // Les graphiques ont besoin de la largeur réelle : on les dessine après insertion.
+  state.personnes.forEach(p => {
+    const holder = $(`[data-chart="${p.id}"]`);
+    if (holder) holder.innerHTML = graphique(p, holder.clientWidth || 300);
+  });
+}
+
+function personneHTML(p) {
+  const poids = poidsActuel(p);
+  const dep = poidsDepart(p);
+  const a = age(p);
+  const v = poids ? imc(poids, p.taille) : null;
+  const info = imcInfo(mineur(p) ? null : v);
+  const dt = depenseTotale(p, poids);
+  const obj = objectifCalorique(p, poids);
+  const zone = poidsSante(p.taille);
+  const cible = p.objectif;
+
+  let progression = 0, restant = null;
+  if (poids !== null && dep !== null && cible) {
+    restant = +(poids - cible).toFixed(1);
+    const total = dep - cible;
+    progression = Math.abs(total) < 0.05 ? 100 : clamp(((dep - poids) / total) * 100, 0, 100);
+  }
+
+  const liste = pesees(p).slice().reverse();
+  const hist = liste.map((x, i) => {
+    const prec = liste[i + 1];
+    const d = prec ? +(x.p - prec.p).toFixed(1) : null;
+    return `<div class="hist-row">
+      <span class="d">${dateCourte(x.d)}</span>
+      <span class="p">${x.p.toFixed(1)} kg</span>
+      <span class="delta ${d === null ? '' : d < 0 ? 'down' : d > 0 ? 'up' : ''}">${d === null ? '—' : (d > 0 ? '+' : '') + d}</span>
+      <button class="btn sm ghost" data-del-pesee="${p.id}|${x.d}" title="Supprimer">✕</button>
+    </div>`;
+  }).join('') || '<p class="muted" style="padding:10px 0">Aucune pesée enregistrée.</p>';
+
+  return `
+  <div class="card person" style="--pc:${p.couleur}">
+    <div class="p-top">
+      <div class="avatar">${esc(p.nom[0])}</div>
+      <div>
+        <div class="p-name">${esc(p.nom)}</div>
+        <div class="p-sub">${a !== null ? a + ' ans' : 'âge à renseigner'} · ${p.taille} cm · ${p.sexe === 'H' ? 'homme' : 'femme'}${mineur(p) ? ' · mineur' : ''}</div>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="v">${poids !== null ? poids.toFixed(1) + '<small> kg</small>' : '—'}</div><div class="k">Poids</div></div>
+      <div class="stat"><div class="v ${info.cls}">${mineur(p) ? '—' : (v ? v.toFixed(1) : '—')}</div><div class="k">IMC</div></div>
+      <div class="stat"><div class="v">${dt ? dt + '<small> kcal</small>' : '—'}</div><div class="k">Dépense/j</div></div>
+    </div>
+
+    ${mineur(p)
+      ? `<p class="muted" style="margin-bottom:10px">👦 Moins de 18 ans : l'IMC adulte ne s'applique pas. On suit la courbe de poids
+           et on vise le maintien d'une alimentation équilibrée, pas une perte de poids.</p>`
+      : `<p class="muted" style="margin-bottom:10px">${info.txt}${zone ? ` · zone de référence : <b>${zone[0]}–${zone[1]} kg</b>` : ''}</p>`}
+
+    ${cible && !mineur(p) ? `
+    <div class="prog-wrap">
+      <div class="prog-lab"><span>Objectif ${cible} kg</span><span>${restant !== null ? (Math.abs(restant) < 0.2 ? 'Atteint 🎉' : (restant > 0 ? restant + ' kg à perdre' : Math.abs(restant) + ' kg à prendre')) : ''}</span></div>
+      <div class="prog-bar"><i style="width:${progression.toFixed(0)}%"></i></div>
+    </div>` : ''}
+
+    <div data-chart="${p.id}"></div>
+
+    <div class="weigh-in">
+      <input type="date" value="${aujourdhui()}" data-date="${p.id}" max="${aujourdhui()}">
+      <input type="number" step="0.1" min="20" max="300" placeholder="kg" data-poids="${p.id}">
+      <button class="btn primary sm" data-add-pesee="${p.id}">Peser</button>
+    </div>
+
+    ${obj ? `<p class="muted" style="margin-top:10px">🎯 Apport indicatif : <b>${obj.kcal} kcal/jour</b> — ${obj.mode}.</p>` : ''}
+
+    <div class="hist">${hist}</div>
+
+    <details class="edit-p">
+      <summary>Modifier le profil</summary>
+      <div class="grid2" style="margin-top:12px">
+        <div class="field"><label class="f">Prénom</label><input type="text" data-p="${p.id}" data-champ="nom" value="${esc(p.nom)}"></div>
+        <div class="field"><label class="f">Date de naissance</label><input type="date" data-p="${p.id}" data-champ="naissance" value="${p.naissance || ''}"></div>
+        <div class="field"><label class="f">Taille (cm)</label><input type="number" min="80" max="230" data-p="${p.id}" data-champ="taille" value="${p.taille}"></div>
+        <div class="field"><label class="f">Sexe</label><select data-p="${p.id}" data-champ="sexe">
+          <option value="F" ${p.sexe === 'F' ? 'selected' : ''}>Femme</option>
+          <option value="H" ${p.sexe === 'H' ? 'selected' : ''}>Homme</option></select></div>
+        <div class="field"><label class="f">Objectif (kg)</label><input type="number" step="0.5" min="20" max="250" data-p="${p.id}" data-champ="objectif" value="${p.objectif || ''}"></div>
+        <div class="field"><label class="f">Couleur</label><input type="color" data-p="${p.id}" data-champ="couleur" value="${p.couleur}" style="padding:2px;height:38px"></div>
+      </div>
+      <div class="field"><label class="f">Niveau d'activité</label><select data-p="${p.id}" data-champ="activite">
+        ${ACTIVITES.map(x => `<option value="${x.v}" ${Number(p.activite) === x.v ? 'selected' : ''}>${x.n}</option>`).join('')}
+      </select></div>
+    </details>
+  </div>`;
+}
+
+function dateCourte(d) {
+  const [y, m, j] = d.split('-');
+  return `${j}/${m}/${y.slice(2)}`;
+}
+
+/** Courbe de poids en SVG, avec ligne d'objectif. */
+function graphique(p, largeur) {
+  const pts = pesees(p);
+  const L = Math.max(largeur, 240), H = 132, mg = { t: 12, r: 40, b: 18, l: 8 };
+  if (pts.length === 0) {
+    return `<p class="muted" style="height:132px;display:grid;place-items:center">Ajoutez une première pesée pour voir la courbe.</p>`;
+  }
+  const objectif = mineur(p) ? null : p.objectif;
+  const valeurs = pts.map(x => x.p).concat(objectif ? [objectif] : []);
+  let min = Math.min(...valeurs), max = Math.max(...valeurs);
+  if (max - min < 2) { const c = (max + min) / 2; min = c - 1.5; max = c + 1.5; }
+  const pad = (max - min) * 0.15; min -= pad; max += pad;
+
+  const t0 = new Date(pts[0].d).getTime();
+  const t1 = new Date(pts[pts.length - 1].d).getTime();
+  const X = t => mg.l + (t1 === t0 ? (L - mg.l - mg.r) / 2 : ((t - t0) / (t1 - t0)) * (L - mg.l - mg.r));
+  const Y = v => mg.t + (1 - (v - min) / (max - min)) * (H - mg.t - mg.b);
+
+  const coords = pts.map(x => [X(new Date(x.d).getTime()), Y(x.p)]);
+  const ligne = coords.map((c, i) => (i ? 'L' : 'M') + c[0].toFixed(1) + ' ' + c[1].toFixed(1)).join(' ');
+  const aire = `${ligne} L${coords[coords.length - 1][0].toFixed(1)} ${H - mg.b} L${coords[0][0].toFixed(1)} ${H - mg.b} Z`;
+
+  return `<svg class="chart" viewBox="0 0 ${L} ${H}" width="100%" height="${H}" role="img" aria-label="Courbe de poids de ${esc(p.nom)}">
+    <line class="grid-l" x1="${mg.l}" y1="${H - mg.b}" x2="${L - mg.r}" y2="${H - mg.b}"/>
+    ${objectif ? `<line class="goal-l" x1="${mg.l}" y1="${Y(objectif).toFixed(1)}" x2="${L - mg.r}" y2="${Y(objectif).toFixed(1)}"/>
+      <text x="${L - mg.r + 4}" y="${(Y(objectif) + 3).toFixed(1)}" fill="var(--warm)">${objectif} kg</text>` : ''}
+    <path class="area" d="${aire}"/>
+    <path class="line" d="${ligne}"/>
+    ${coords.map(c => `<circle class="dot" cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="3.4"/>`).join('')}
+    <text x="${mg.l}" y="${H - 5}">${dateCourte(pts[0].d)}</text>
+    ${pts.length > 1 ? `<text x="${(L - mg.r).toFixed(0)}" y="${H - 5}" text-anchor="end">${dateCourte(pts[pts.length - 1].d)}</text>` : ''}
+    <text x="${L - mg.r + 4}" y="${(Y(pts[pts.length - 1].p) + 3).toFixed(1)}" font-weight="700" fill="${p.couleur}">${pts[pts.length - 1].p.toFixed(1)}</text>
+  </svg>`;
+}
+
+/* Actions de l'onglet progression (délégation) */
+$('#people').addEventListener('click', e => {
+  const add = e.target.closest('[data-add-pesee]');
+  if (add) {
+    const id = add.dataset.addPesee;
+    const p = state.personnes.find(x => x.id === id);
+    const d = $(`[data-date="${id}"]`).value || aujourdhui();
+    const val = parseFloat($(`[data-poids="${id}"]`).value);
+    if (!val || val < 20 || val > 300) { toast('Entrez un poids valide (20 à 300 kg)'); return; }
+    p.pesees = (p.pesees || []).filter(x => x.d !== d).concat([{ d, p: +val.toFixed(1) }]);
+    state.premiereVisite = false;
+    sauver(); rendrePersonnes();
+    toast(`Pesée enregistrée pour ${p.nom}`);
+    return;
+  }
+  const del = e.target.closest('[data-del-pesee]');
+  if (del) {
+    const [id, d] = del.dataset.delPesee.split('|');
+    const p = state.personnes.find(x => x.id === id);
+    p.pesees = p.pesees.filter(x => x.d !== d);
+    sauver(); rendrePersonnes();
+    return;
+  }
+});
+
+$('#people').addEventListener('change', e => {
+  const el = e.target.closest('[data-champ]');
+  if (!el) return;
+  const p = state.personnes.find(x => x.id === el.dataset.p);
+  const champ = el.dataset.champ;
+  let v = el.value;
+  if (['taille', 'objectif', 'activite'].includes(champ)) v = parseFloat(v) || null;
+  if (champ === 'nom' && !String(v).trim()) return;
+  p[champ] = v;
+  state.premiereVisite = false;
+  sauver(); rendrePersonnes(); rendreReglages();
+});
+
+$('#dismiss-first').addEventListener('click', () => {
+  state.premiereVisite = false; sauver(); $('#first-run').hidden = true;
+});
+
+let resizeT;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeT);
+  resizeT = setTimeout(() => { if ($('#tab-progression').classList.contains('on')) rendrePersonnes(); }, 250);
+});
+
+/* ============================================================
+   ONGLET RECETTES
+   ============================================================ */
+const filtres = { q: '', cat: '', temps: '', saison: '', pills: new Set(['compat']) };
+
+function recettesFiltrees() {
+  const q = norm(filtres.q).trim();
+  return RECETTES.filter(r => {
+    if (filtres.cat && r.cat !== filtres.cat) return false;
+    if (filtres.temps && r.temps > +filtres.temps) return false;
+    if (filtres.saison && !(r.saisons || []).includes(filtres.saison)) return false;
+    if (q) {
+      const dans = norm(r.nom).includes(q)
+        || r.ingredients.some(i => norm(i[0]).includes(q))
+        || (r.tags || []).some(t => norm(t).includes(q))
+        || norm(r.cat).includes(q);
+      if (!dans) return false;
+    }
+    const P = filtres.pills;
+    if (P.has('fav') && !state.selection.includes(r.id)) return false;
+    if (P.has('plaisir') && !r.plaisir) return false;
+    if (P.has('legumineuse') && !r.legumineuse) return false;
+    if (P.has('poissonGras') && !r.poissonGras) return false;
+    if (P.has('rapide') && r.temps > 30) return false;
+    if (P.has('batch') && !(r.tags || []).includes('batch cooking')) return false;
+    if (P.has('compat') && !problemes(r).ok) return false;
+    return true;
+  });
+}
+
+function rendreRecettes() {
+  $('#nb-pers-label').textContent = state.foyer.nbPersonnes + ' personne' + (state.foyer.nbPersonnes > 1 ? 's' : '');
+  const liste = recettesFiltrees();
+  $('#n-recettes').textContent = liste.length;
+  const box = $('#recipes');
+  if (!liste.length) {
+    box.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="big">🔍</div>
+      Aucun plat ne correspond. Élargissez les filtres, ou décochez « Compatible avec nos allergies ».</div>`;
+    return;
+  }
+  box.innerHTML = liste.map(carteHTML).join('');
+}
+
+function carteHTML(r) {
+  const pb = problemes(r);
+  const fav = state.selection.includes(r.id);
+  return `<article class="card r-card ${pb.ok ? '' : 'excluded'}" data-r="${r.id}">
+    <span class="r-emo">${r.plaisir ? '🎉' : EMOJI[r.cat] || '🍽️'}</span>
+    <h3>${esc(r.nom)}</h3>
+    <div class="r-meta">
+      <span class="chip ${r.plaisir ? 'w' : 'g'}">${r.cat}</span>
+      <span class="chip">⏱ ${r.temps} min</span>
+      ${r.legumineuse ? '<span class="chip b">🫘 légumineuses</span>' : ''}
+      ${r.poissonGras ? '<span class="chip b">oméga-3</span>' : ''}
+      ${(r.tags || []).filter(t => t !== 'oméga-3').slice(0, 1).map(t => `<span class="chip">${esc(t)}</span>`).join('')}
+    </div>
+    ${!pb.ok ? `<div class="r-warn">⚠ ${[
+      ...pb.alg.map(a => `${ALG_NOM[a.id]} (${a.qui.join(', ')})`),
+      ...pb.av.map(a => `contient : ${esc(a)}`)
+    ].join(' · ')}</div>` : ''}
+    <div class="r-nutri">
+      <span><b>${r.kcal}</b> kcal</span><span><b>${r.prot}</b>g prot.</span>
+      <span><b>${r.fibres}</b>g fibres</span>
+      <button class="fav-btn" data-fav="${r.id}" title="${fav ? 'Retirer de ma sélection' : 'Ajouter à ma sélection'}"
+        style="margin-left:auto">${fav ? '★' : '☆'}</button>
+    </div>
+  </article>`;
+}
+
+$('#recipes').addEventListener('click', e => {
+  const f = e.target.closest('[data-fav]');
+  if (f) {
+    e.stopPropagation();
+    basculerFavori(f.dataset.fav);
+    return;
+  }
+  const c = e.target.closest('[data-r]');
+  if (c) ouvrirRecette(c.dataset.r);
+});
+
+function basculerFavori(id) {
+  const i = state.selection.indexOf(id);
+  if (i >= 0) { state.selection.splice(i, 1); toast('Retiré de la sélection'); }
+  else { state.selection.push(id); toast('Ajouté à ma sélection ★'); }
+  sauver(); rendreRecettes();
+  const m = $('#modal-recipe');
+  if ($('#ov-recipe').classList.contains('on') && m.dataset.r === id) ouvrirRecette(id);
+}
+
+$('#q').addEventListener('input', e => { filtres.q = e.target.value; rendreRecettes(); });
+['cat', 'temps', 'saison'].forEach(k => $('#f-' + k).addEventListener('change', e => { filtres[k] = e.target.value; rendreRecettes(); }));
+$('#clear-f').addEventListener('click', () => {
+  filtres.q = filtres.cat = filtres.temps = filtres.saison = '';
+  filtres.pills = new Set(['compat']);
+  $('#q').value = ''; $('#f-cat').value = ''; $('#f-temps').value = ''; $('#f-saison').value = '';
+  $$('#pills .pill').forEach(b => b.classList.toggle('on', b.dataset.p === 'compat'));
+  rendreRecettes();
+});
+$$('#pills .pill').forEach(b => b.addEventListener('click', () => {
+  const p = b.dataset.p;
+  if (filtres.pills.has(p)) filtres.pills.delete(p); else filtres.pills.add(p);
+  b.classList.toggle('on');
+  rendreRecettes();
+}));
+
+/* ── Modale recette ─────────────────────────────────────── */
+function facteur() { return state.foyer.nbPersonnes / 4; }
+
+const UNITES_DENOMBRABLES = ['pièce', 'tranche', 'gousse', 'brin', 'botte', 'pincée'];
+
+function fmtQte(q, u) {
+  const f = +q;
+  if (u === 'g' && f >= 1000)  return fmtNb(f / 1000) + ' kg';
+  if (u === 'ml' && f >= 1000) return fmtNb(f / 1000) + ' l';
+
+  let n;
+  if (UNITES_DENOMBRABLES.includes(u)) n = Math.max(0.5, Math.round(f * 2) / 2);
+  else if (f >= 20) n = Math.round(f);
+  else n = Math.round(f * 10) / 10;
+
+  if (u === 'pièce') return '×' + fmtNb(n);
+  const pluriel = n > 1 && UNITES_DENOMBRABLES.includes(u) ? u + 's' : u;
+  return fmtNb(n) + ' ' + pluriel;
+}
+function fmtNb(n) {
+  const arrondi = Math.round(n * 100) / 100;
+  return String(arrondi).replace('.', ',');
+}
+
+function ouvrirRecette(id) {
+  const r = RECETTES.find(x => x.id === id);
+  if (!r) return;
+  const pb = problemes(r);
+  const f = facteur();
+  const fav = state.selection.includes(r.id);
+  const src = SOURCES[r.src[0]];
+  const avSet = new Set(state.aversions.map(a => norm(a).trim()).filter(Boolean));
+
+  $('#modal-recipe').dataset.r = id;
+  $('#modal-recipe').innerHTML = `
+    <button class="close" data-close>✕</button>
+    <h2>${r.plaisir ? '🎉 ' : ''}${esc(r.nom)}</h2>
+    <div class="r-meta">
+      <span class="chip ${r.plaisir ? 'w' : 'g'}">${r.cat}</span>
+      <span class="chip">⏱ ${r.temps} min</span>
+      <span class="chip">${r.diff}</span>
+      ${(r.tags || []).map(t => `<span class="chip">${esc(t)}</span>`).join('')}
+    </div>
+
+    ${!pb.ok ? `<div class="notice" style="margin-top:14px">⚠️<span>${[
+      ...pb.alg.map(a => `<b>${ALG_NOM[a.id]}</b> — allergie déclarée pour ${a.qui.join(', ')}`),
+      ...pb.av.map(a => `contient « ${esc(a)} », dans vos aversions`)
+    ].join('<br>')}</span></div>` : ''}
+
+    <div class="nutri-grid">
+      <div><div class="v">${r.kcal}</div><div class="k">kcal/pers</div></div>
+      <div><div class="v">${r.prot}g</div><div class="k">Protéines</div></div>
+      <div><div class="v">${r.gluc}g</div><div class="k">Glucides</div></div>
+      <div><div class="v">${r.lip}g</div><div class="k">Lipides</div></div>
+      <div><div class="v">${r.fibres}g</div><div class="k">Fibres</div></div>
+    </div>
+
+    <div class="m-cols">
+      <div>
+        <h4>Ingrédients — ${state.foyer.nbPersonnes} pers.</h4>
+        <ul class="ing-list">
+          ${r.ingredients.map(i => {
+            const mauvais = [...avSet].some(a => norm(i[0]).includes(a));
+            return `<li class="${mauvais ? 'bad' : ''}"><span>${esc(i[0])}</span><b>${fmtQte(i[1] * f, i[2])}</b></li>`;
+          }).join('')}
+        </ul>
+      </div>
+      <div>
+        <h4>Préparation</h4>
+        <ol class="steps">${r.etapes.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
+        ${r.astuce ? `<div class="tip">💡 <b>Le petit plus :</b> ${esc(r.astuce)}</div>` : ''}
+      </div>
+    </div>
+
+    <div class="m-foot">
+      <button class="btn ${fav ? '' : 'primary'}" data-fav="${r.id}">${fav ? '★ Dans ma sélection' : '☆ Ajouter à ma sélection'}</button>
+      <button class="btn" data-plan="${r.id}">🗓️ Placer dans la semaine</button>
+      <a class="btn ghost" href="${src.url}${encodeURIComponent(r.src[1])}" target="_blank" rel="noopener">Voir des variantes sur ${src.nom} ↗</a>
+    </div>`;
+  $('#ov-recipe').classList.add('on');
+}
+
+/* ============================================================
+   ONGLET SEMAINE
+   ============================================================ */
+function creneauxActifs() {
+  const mode = state.foyer.repasPlanifies;
+  const repas = mode === 'both' ? REPAS : REPAS.filter(r => r.k === mode);
+  const out = [];
+  JOURS.forEach(j => repas.forEach(r => out.push({ key: `${j.k}-${r.k}`, jour: j, repas: r })));
+  return out;
+}
+
+function dateDuJour(indexJour) {
+  const d = new Date(state.planning.debut + 'T12:00:00');
+  d.setDate(d.getDate() + indexJour);
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+}
+
+function rendreSemaine() {
+  const mode = state.foyer.repasPlanifies;
+  const repas = mode === 'both' ? REPAS : REPAS.filter(r => r.k === mode);
+  $('#use-fav').checked = !!state.options.useFav;
+  $('#only-season').checked = !!state.options.onlySeason;
+
+  $('#week').innerHTML = JOURS.map((j, i) => `
+    <div class="day ${WEEKEND.includes(j.k) ? 'we' : ''}">
+      <div class="day-h">${j.n}<span>${dateDuJour(i)}</span></div>
+      ${repas.map(rp => creneauHTML(j, rp)).join('')}
+    </div>`).join('');
+
+  const n = Object.values(state.planning.repas).filter(Boolean).length;
+  $('#n-semaine').textContent = n;
+}
+
+function creneauHTML(j, rp) {
+  const key = `${j.k}-${rp.k}`;
+  const id = state.planning.repas[key];
+  const r = id && RECETTES.find(x => x.id === id);
+  if (!r) {
+    return `<div class="slot empty" data-slot="${key}">
+      <span class="lab">${rp.n}</span><span class="plus">＋</span></div>`;
+  }
+  return `<div class="slot" data-slot="${key}">
+    <button class="x" data-clear="${key}" title="Retirer">✕</button>
+    <span class="lab">${rp.n}</span>
+    <span class="nm">${r.plaisir ? '🎉 ' : ''}${esc(r.nom)}</span>
+    <span class="mt"><span class="dotc" style="background:${couleurCat(r)}"></span>${r.temps} min · ${r.kcal} kcal</span>
+  </div>`;
+}
+
+function couleurCat(r) {
+  if (r.plaisir) return 'var(--warm)';
+  return { 'Végétarien': 'var(--accent)', 'Poisson': 'var(--blue)', 'Volaille': '#b8963e', 'Viande rouge': 'var(--red)', 'Porc': 'var(--red)', 'Œufs': 'var(--purple)' }[r.cat] || 'var(--accent)';
+}
+
+$('#week').addEventListener('click', e => {
+  const c = e.target.closest('[data-clear]');
+  if (c) {
+    delete state.planning.repas[c.dataset.clear];
+    sauver(); rendreSemaine(); rendreEquilibre(); majBadges();
+    return;
+  }
+  const s = e.target.closest('[data-slot]');
+  if (s) ouvrirChoixPlat(s.dataset.slot);
+});
+
+/* ── Sélecteur de plat pour un créneau ──────────────────── */
+function ouvrirChoixPlat(slotKey) {
+  const [jk, rk] = slotKey.split('-');
+  const jour = JOURS.find(j => j.k === jk).n, repas = REPAS.find(r => r.k === rk).n;
+  const dispo = RECETTES.filter(r => problemes(r).ok);
+  const dejaUtilises = new Set(Object.values(state.planning.repas));
+
+  $('#modal-pick').innerHTML = `
+    <button class="close" data-close>✕</button>
+    <h2>${jour} — ${repas}</h2>
+    <p class="muted">Choisissez un plat. Ceux déjà placés cette semaine sont grisés.</p>
+    <input type="search" id="pick-q" placeholder="Filtrer…" style="margin-top:12px">
+    <div class="picker-list" id="pick-list">
+      ${dispo.map(r => ligneChoix(r, dejaUtilises.has(r.id), slotKey)).join('')}
+    </div>`;
+  $('#ov-pick').classList.add('on');
+  const q = $('#pick-q');
+  q.addEventListener('input', () => {
+    const v = norm(q.value);
+    $('#pick-list').innerHTML = dispo.filter(r => norm(r.nom).includes(v) || norm(r.cat).includes(v) || r.ingredients.some(i => norm(i[0]).includes(v)))
+      .map(r => ligneChoix(r, dejaUtilises.has(r.id), slotKey)).join('');
+  });
+  setTimeout(() => q.focus(), 60);
+}
+
+function ligneChoix(r, deja, slotKey) {
+  return `<button class="picker-item" data-pick="${r.id}" data-target="${slotKey}" style="${deja ? 'opacity:.45' : ''}">
+    <span class="em">${r.plaisir ? '🎉' : EMOJI[r.cat] || '🍽️'}</span>
+    <span>
+      <span class="nm">${esc(r.nom)}${state.selection.includes(r.id) ? ' ★' : ''}</span>
+      <span class="sub">${r.cat} · ${r.temps} min · ${r.kcal} kcal${deja ? ' · déjà au menu' : ''}</span>
+    </span>
+  </button>`;
+}
+
+/* ── Placement depuis la fiche recette ──────────────────── */
+function ouvrirChoixCreneau(recetteId) {
+  const r = RECETTES.find(x => x.id === recetteId);
+  $('#modal-pick').innerHTML = `
+    <button class="close" data-close>✕</button>
+    <h2>Placer « ${esc(r.nom)} »</h2>
+    <p class="muted">Sur quel repas de la semaine ?</p>
+    <div class="picker-list">
+      ${creneauxActifs().map(c => {
+        const occ = state.planning.repas[c.key];
+        const occR = occ && RECETTES.find(x => x.id === occ);
+        return `<button class="picker-item" data-place="${c.key}" data-recette="${recetteId}">
+          <span class="em">${WEEKEND.includes(c.jour.k) ? '🌟' : '📅'}</span>
+          <span><span class="nm">${c.jour.n} — ${c.repas.n}</span>
+          <span class="sub">${occR ? 'occupé par : ' + esc(occR.nom) : 'libre'}</span></span></button>`;
+      }).join('')}
+    </div>`;
+  $('#ov-pick').classList.add('on');
+}
+
+/* ── Planificateur automatique ──────────────────────────── */
+function melanger(a) {
+  const t = [...a];
+  for (let i = t.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [t[i], t[j]] = [t[j], t[i]]; }
+  return t;
+}
+
+function planifier(seulementVides) {
+  const creneaux = creneauxActifs();
+  const cibles = seulementVides ? creneaux.filter(c => !state.planning.repas[c.key]) : creneaux;
+  if (!cibles.length) { toast('Toutes les cases sont déjà remplies'); return; }
+
+  let pool = RECETTES.filter(r => problemes(r).ok);
+  if (state.options.onlySeason) {
+    const s = pool.filter(deSaison);
+    if (s.length >= cibles.length + 4) pool = s;
+    else toast('Peu de plats de saison : la contrainte a été assouplie');
+  }
+  if (pool.length < cibles.length) {
+    pool = RECETTES.filter(r => problemes(r).alg.length === 0);
+    toast('Peu de plats compatibles : les aversions ont été assouplies');
+  }
+  if (!pool.length) { toast('Aucun plat compatible — vérifiez les allergies déclarées'); return; }
+
+  const utilises = new Set(seulementVides ? Object.values(state.planning.repas) : []);
+  const N = cibles.length;
+
+  // Quotas hebdomadaires inspirés des repères PNNS
+  const besoins = [];
+  const nPoisson = Math.max(2, Math.round(N * 0.18));
+  const nLegum   = Math.max(2, Math.round(N * 0.28));
+  const nPlaisir = N >= 10 ? 2 : 1;
+  const nRouge   = N >= 6 ? 1 : 0;
+  besoins.push('poissonGras');
+  for (let i = 1; i < nPoisson; i++) besoins.push('poisson');
+  for (let i = 0; i < nLegum; i++) besoins.push('legumineuse');
+  for (let i = 0; i < nPlaisir; i++) besoins.push('plaisir');
+  for (let i = 0; i < nRouge; i++) besoins.push('viandeRouge');
+  while (besoins.length < N) besoins.push('libre');
+  besoins.length = N;
+
+  // Les plats plaisir vont sur le week-end (ou vendredi soir) en priorité
+  const idxPlaisir = besoins.map((b, i) => b === 'plaisir' ? i : -1).filter(i => i >= 0);
+  const ordre = melanger(cibles.map((c, i) => i));
+  const attribution = new Array(N);
+  const restants = besoins.filter(b => b !== 'plaisir');
+
+  const creneauxFete = ordre.filter(i => WEEKEND.includes(cibles[i].jour.k) || (cibles[i].jour.k === 'ven' && cibles[i].repas.k === 'soir'));
+  const posFete = melanger(creneauxFete).slice(0, idxPlaisir.length);
+  posFete.forEach(i => attribution[i] = 'plaisir');
+
+  let k = 0;
+  const melangeRestants = melanger(restants);
+  for (const i of ordre) if (!attribution[i]) attribution[i] = melangeRestants[k++] || 'libre';
+
+  // Remplissage créneau par créneau
+  let precedente = null, nonRemplis = 0;
+  cibles.forEach((c, i) => {
+    const besoin = attribution[i];
+    const semaine = !WEEKEND.includes(c.jour.k);
+    const rapideSouhaite = semaine && c.repas.k === 'midi';
+
+    const candidats = pool.filter(r => {
+      if (utilises.has(r.id)) return false;
+      if (besoin === 'plaisir') return r.plaisir;
+      if (r.plaisir) return false;
+      if (besoin === 'poissonGras') return r.poissonGras;
+      if (besoin === 'poisson') return r.cat === 'Poisson';
+      if (besoin === 'legumineuse') return r.legumineuse;
+      if (besoin === 'viandeRouge') return r.viandeRouge;
+      return !r.viandeRouge;
+    });
+
+    const liste = candidats.length ? candidats : pool.filter(r => !utilises.has(r.id));
+    if (!liste.length) { nonRemplis++; return; }
+
+    const note = r => {
+      let s = Math.random() * 2;
+      if (state.options.useFav && state.selection.includes(r.id)) s += 6;
+      if (deSaison(r)) s += 2.5;
+      if (rapideSouhaite) s += r.temps <= 30 ? 2.5 : r.temps > 50 ? -3 : 0;
+      if (semaine && r.temps > 60) s -= 2.5;
+      if (precedente && r.cat === precedente.cat) s -= 3;
+      if (precedente && r.legumineuse && precedente.legumineuse) s -= 1.5;
+      return s;
+    };
+    const choix = liste.reduce((a, b) => note(b) > note(a) ? b : a);
+    state.planning.repas[c.key] = choix.id;
+    utilises.add(choix.id);
+    precedente = choix;
+  });
+
+  sauver(); rendreSemaine(); rendreEquilibre(); majBadges();
+  if (nonRemplis) {
+    toast(`${nonRemplis} case${nonRemplis > 1 ? 's' : ''} non remplie${nonRemplis > 1 ? 's' : ''} : seulement ${pool.length} plats compatibles`);
+  } else {
+    toast(seulementVides ? 'Cases vides complétées' : 'Semaine composée ✨');
+  }
+}
+
+$('#auto').addEventListener('click', () => planifier(false));
+$('#auto-empty').addEventListener('click', () => planifier(true));
+$('#clear-week').addEventListener('click', () => {
+  if (!confirm('Effacer tous les plats de la semaine ?')) return;
+  state.planning.repas = {};
+  sauver(); rendreSemaine(); rendreEquilibre(); majBadges();
+});
+$('#use-fav').addEventListener('change', e => { state.options.useFav = e.target.checked; sauver(); });
+$('#only-season').addEventListener('change', e => { state.options.onlySeason = e.target.checked; sauver(); });
+
+/* ── Équilibre de la semaine ────────────────────────────── */
+function platsPlanifies() {
+  return Object.values(state.planning.repas).map(id => RECETTES.find(r => r.id === id)).filter(Boolean);
+}
+
+function rendreEquilibre() {
+  const plats = platsPlanifies();
+  const box = $('#balance');
+  if (!plats.length) {
+    box.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="big">🗓️</div>
+      Composez la semaine pour voir son équilibre nutritionnel.</div>`;
+    $('#bal-advice').innerHTML = '';
+    return;
+  }
+  const n = plats.length;
+  const nb = f => plats.filter(f).length;
+  const poisson = nb(r => r.cat === 'Poisson');
+  const gras = nb(r => r.poissonGras);
+  const legum = nb(r => r.legumineuse);
+  const rouge = nb(r => r.viandeRouge);
+  const vege = nb(r => r.cat === 'Végétarien' || r.cat === 'Œufs');
+  const plaisir = nb(r => r.plaisir);
+  const kcal = Math.round(plats.reduce((s, r) => s + r.kcal, 0) / n);
+  const fibres = Math.round(plats.reduce((s, r) => s + r.fibres, 0) / n);
+  const temps = Math.round(plats.reduce((s, r) => s + r.temps, 0) / n);
+
+  const st = (ok, warn) => ok ? 'ok' : warn ? 'warn' : 'bad';
+  const cases = [
+    { v: poisson, k: 'repas de poisson', st: st(poisson >= 2, poisson >= 1), t: poisson >= 2 ? 'Repère atteint (2/sem.)' : 'Visez 2 par semaine' },
+    { v: gras, k: 'poisson gras', st: st(gras >= 1, false), t: gras >= 1 ? 'Oméga-3 assurés' : 'Ajoutez saumon, maquereau ou sardines' },
+    { v: legum, k: 'plats de légumineuses', st: st(legum >= 3, legum >= 2), t: legum >= 3 ? 'Excellent' : 'Repère : 2 à 3 par semaine' },
+    { v: rouge, k: 'viande rouge', st: st(rouge <= 1, rouge <= 2), t: rouge <= 1 ? 'Dans les clous (≤ 1/sem.)' : 'Trop : limitez à 1 par semaine' },
+    { v: vege, k: 'repas végétariens', st: st(vege >= 2, vege >= 1), t: vege >= 2 ? 'Belle place au végétal' : 'Essayez d\'en ajouter un' },
+    { v: plaisir, k: 'plats plaisir 🎉', st: st(plaisir >= 1 && plaisir <= 3, plaisir <= 4), t: plaisir === 0 ? 'Osez un plat plaisir !' : plaisir <= 3 ? 'Bon équilibre' : 'Un peu beaucoup' },
+    { v: kcal, k: 'kcal moyen / repas', st: 'ok', t: 'Hors petit-déjeuner et goûter' },
+    { v: fibres + ' g', k: 'fibres / repas', st: st(fibres >= 8, fibres >= 6), t: fibres >= 8 ? 'Très bien' : 'Plus de légumes secs et de complet' },
+    { v: temps + ' min', k: 'temps moyen', st: 'ok', t: 'Préparation par repas' }
+  ];
+  box.innerHTML = cases.map(c => `<div class="card bal">
+    <div class="v ${c.st}">${c.v}</div><div class="k">${c.k}</div><div class="st ${c.st}">${c.t}</div></div>`).join('');
+
+  // Confrontation aux besoins caloriques de chacun
+  const parJour = {};
+  Object.entries(state.planning.repas).forEach(([k, id]) => {
+    const r = RECETTES.find(x => x.id === id); if (!r) return;
+    const j = k.split('-')[0];
+    parJour[j] = (parJour[j] || 0) + r.kcal;
+  });
+  const jours = Object.values(parJour);
+  const moyJour = jours.length ? Math.round(jours.reduce((a, b) => a + b, 0) / jours.length) : 0;
+  const complement = 550; // petit-déjeuner + goûter, estimation basse
+
+  $('#bal-advice').innerHTML = `<div class="card set-card">
+    <h3>Ce que ça donne pour chacun</h3>
+    <p>Les repas planifiés représentent en moyenne <b>${moyJour} kcal par jour et par personne</b>.
+       En ajoutant un petit-déjeuner et un goûter (environ ${complement} kcal), on arrive à
+       <b>${moyJour + complement} kcal</b> — à comparer à l'objectif de chacun.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      ${state.personnes.map(p => {
+        const w = poidsActuel(p), o = objectifCalorique(p, w);
+        if (!o) return `<span class="chip">${esc(p.nom)} : profil incomplet</span>`;
+        const total = moyJour + complement;
+        const ecart = total - o.kcal;
+        const cls = Math.abs(ecart) <= 200 ? 'g' : ecart > 0 ? 'w' : 'b';
+        return `<span class="chip ${cls}">${esc(p.nom)} : objectif ${o.kcal} kcal · ${ecart > 0 ? '+' : ''}${ecart} kcal</span>`;
+      }).join('')}
+    </div>
+    <p style="margin-top:12px;font-size:12.5px">Les portions se règlent surtout sur les féculents : servez-en davantage aux
+       grands appétits et aux ados en croissance, un peu moins aux profils en déficit. Le reste de l'assiette — légumes et
+       protéines — reste identique pour tout le monde.</p>
+  </div>`;
+}
+
+/* ============================================================
+   ONGLET COURSES
+   ============================================================ */
+function listeCourses() {
+  const f = facteur();
+  const map = new Map();
+  platsPlanifies().forEach(r => {
+    r.ingredients.forEach(([nom, q, u, rayon]) => {
+      const cle = norm(nom) + '|' + u;
+      if (!map.has(cle)) map.set(cle, { nom, u, rayon: rayonEffectif(nom, rayon), q: 0, plats: new Set() });
+      const e = map.get(cle);
+      e.q += q * f;
+      e.plats.add(r.nom);
+    });
+  });
+  const parRayon = {};
+  [...map.entries()].forEach(([cle, e]) => {
+    (parRayon[e.rayon] = parRayon[e.rayon] || []).push({ ...e, cle });
+  });
+  Object.values(parRayon).forEach(l => l.sort((a, b) => a.nom.localeCompare(b.nom, 'fr')));
+  return parRayon;
+}
+
+function rendreCourses() {
+  const parRayon = listeCourses();
+  const box = $('#courses');
+  const rayons = ORDRE_RAYONS.filter(r => parRayon[r]);
+  const extra = state.courses.extra || [];
+
+  if (!rayons.length && !extra.length) {
+    box.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="big">🛒</div>
+      La liste se remplit toute seule dès que des plats sont placés dans la semaine.</div>`;
+    majBadges();
+    return;
+  }
+
+  box.innerHTML = rayons.map(r => {
+    const items = parRayon[r];
+    const restants = items.filter(i => !state.courses.coches.includes(i.cle)).length;
+    return `<div class="card rayon">
+      <h3>${RAYONS[r]} <span class="n">${restants}/${items.length}</span></h3>
+      ${items.map(i => {
+        const done = state.courses.coches.includes(i.cle);
+        return `<div class="item ${done ? 'done' : ''}">
+          <input type="checkbox" id="c-${i.cle.replace(/[^a-z0-9]/gi, '')}" data-check="${i.cle}" ${done ? 'checked' : ''}>
+          <label for="c-${i.cle.replace(/[^a-z0-9]/gi, '')}">${esc(i.nom)}
+            <span class="src">${[...i.plats].slice(0, 2).map(esc).join(', ')}${i.plats.size > 2 ? ` +${i.plats.size - 2}` : ''}</span>
+          </label>
+          <span class="q">${fmtQte(i.q, i.u)}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('') + (extra.length ? `<div class="card rayon">
+      <h3>Divers <span class="n">${extra.length}</span></h3>
+      ${extra.map((t, idx) => {
+        const cle = 'x|' + idx;
+        const done = state.courses.coches.includes(cle);
+        return `<div class="item ${done ? 'done' : ''}">
+          <input type="checkbox" id="cx-${idx}" data-check="${cle}" ${done ? 'checked' : ''}>
+          <label for="cx-${idx}">${esc(t)}</label>
+          <button class="btn sm ghost" data-del-extra="${idx}">✕</button>
+        </div>`;
+      }).join('')}
+    </div>` : '');
+  majBadges();
+}
+
+$('#courses').addEventListener('change', e => {
+  const c = e.target.closest('[data-check]');
+  if (!c) return;
+  const cle = c.dataset.check;
+  const i = state.courses.coches.indexOf(cle);
+  if (c.checked && i < 0) state.courses.coches.push(cle);
+  if (!c.checked && i >= 0) state.courses.coches.splice(i, 1);
+  sauver(); rendreCourses();
+});
+$('#courses').addEventListener('click', e => {
+  const d = e.target.closest('[data-del-extra]');
+  if (!d) return;
+  state.courses.extra.splice(+d.dataset.delExtra, 1);
+  state.courses.coches = state.courses.coches.filter(c => !c.startsWith('x|'));
+  sauver(); rendreCourses();
+});
+$('#extra-add').addEventListener('click', ajouterExtra);
+$('#extra-in').addEventListener('keydown', e => { if (e.key === 'Enter') ajouterExtra(); });
+function ajouterExtra() {
+  const v = $('#extra-in').value.trim();
+  if (!v) return;
+  state.courses.extra.push(v);
+  $('#extra-in').value = '';
+  sauver(); rendreCourses();
+}
+$('#uncheck-all').addEventListener('click', () => { state.courses.coches = []; sauver(); rendreCourses(); });
+
+$('#copy-list').addEventListener('click', async () => {
+  const parRayon = listeCourses();
+  let txt = `Liste de courses — semaine du ${dateCourte(state.planning.debut)} (${state.foyer.nbPersonnes} pers.)\n\n`;
+  ORDRE_RAYONS.filter(r => parRayon[r]).forEach(r => {
+    txt += `— ${RAYONS[r].toUpperCase()} —\n`;
+    parRayon[r].forEach(i => { txt += `[ ] ${i.nom} : ${fmtQte(i.q, i.u)}\n`; });
+    txt += '\n';
+  });
+  if (state.courses.extra.length) txt += `— DIVERS —\n${state.courses.extra.map(t => `[ ] ${t}`).join('\n')}\n`;
+  try {
+    await navigator.clipboard.writeText(txt);
+    toast('Liste copiée dans le presse-papier');
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+    toast('Liste copiée');
+  }
+});
+$('#print-list').addEventListener('click', () => window.print());
+
+/* ============================================================
+   ONGLET RÉGLAGES
+   ============================================================ */
+function rendreReglages() {
+  $('#nb-pers').value = state.foyer.nbPersonnes;
+  $('#week-start').value = state.planning.debut;
+  $('#repas-planif').value = state.foyer.repasPlanifies;
+
+  $('#allergies').innerHTML = state.personnes.map(p => `
+    <div style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+        <span class="avatar" style="width:24px;height:24px;border-radius:8px;font-size:12px;background:${p.couleur}">${esc(p.nom[0])}</span>
+        <b style="font-size:13.5px">${esc(p.nom)}</b>
+        <span class="muted">${(p.allergenes || []).length ? (p.allergenes.length + ' déclarée' + (p.allergenes.length > 1 ? 's' : '')) : 'aucune'}</span>
+      </div>
+      <div class="alg-grid">
+        ${ALLERGENES.map(a => `<span class="alg ${(p.allergenes || []).includes(a.id) ? 'on' : ''}"
+           data-alg="${a.id}" data-pers="${p.id}">${a.nom}</span>`).join('')}
+      </div>
+    </div>`).join('');
+
+  $('#av-list').innerHTML = (state.aversions || []).map((t, i) =>
+    `<span class="t">${esc(t)}<button data-del-av="${i}" title="Retirer">✕</button></span>`).join('')
+    || '<span class="muted">Aucune aversion enregistrée.</span>';
+}
+
+$('#allergies').addEventListener('click', e => {
+  const a = e.target.closest('[data-alg]');
+  if (!a) return;
+  const p = state.personnes.find(x => x.id === a.dataset.pers);
+  p.allergenes = p.allergenes || [];
+  const i = p.allergenes.indexOf(a.dataset.alg);
+  if (i >= 0) p.allergenes.splice(i, 1); else p.allergenes.push(a.dataset.alg);
+  sauver(); rendreReglages(); rendreRecettes();
+});
+
+$('#av-add').addEventListener('click', ajouterAversion);
+$('#av-in').addEventListener('keydown', e => { if (e.key === 'Enter') ajouterAversion(); });
+function ajouterAversion() {
+  const v = $('#av-in').value.trim();
+  if (!v) return;
+  if (!state.aversions.includes(v)) state.aversions.push(v);
+  $('#av-in').value = '';
+  sauver(); rendreReglages(); rendreRecettes();
+  toast(`« ${v} » sera évité`);
+}
+$('#av-list').addEventListener('click', e => {
+  const d = e.target.closest('[data-del-av]');
+  if (!d) return;
+  state.aversions.splice(+d.dataset.delAv, 1);
+  sauver(); rendreReglages(); rendreRecettes();
+});
+
+$('#nb-pers').addEventListener('change', e => {
+  state.foyer.nbPersonnes = clamp(parseInt(e.target.value) || 4, 1, 12);
+  e.target.value = state.foyer.nbPersonnes;
+  sauver(); toast('Quantités recalculées');
+});
+$('#week-start').addEventListener('change', e => {
+  state.planning.debut = e.target.value || lundiCourant();
+  sauver();
+});
+$('#repas-planif').addEventListener('change', e => {
+  state.foyer.repasPlanifies = e.target.value;
+  // les créneaux devenus inactifs sont libérés
+  const actifs = new Set(creneauxActifs().map(c => c.key));
+  Object.keys(state.planning.repas).forEach(k => { if (!actifs.has(k)) delete state.planning.repas[k]; });
+  sauver(); majBadges();
+});
+
+$('#export').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `famille-en-forme-${aujourdhui()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+$('#import-btn').addEventListener('click', () => $('#import').click());
+$('#import').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const d = JSON.parse(fr.result);
+      if (!d.personnes) throw new Error('format');
+      state = { ...etatParDefaut(), ...d };
+      sauver(); tout();
+      toast('Données importées');
+    } catch (err) { toast('Fichier illisible'); }
+  };
+  fr.readAsText(f);
+});
+$('#reset').addEventListener('click', () => {
+  if (!confirm('Effacer toutes les données (profils, pesées, planning, courses) ?')) return;
+  localStorage.removeItem(CLE);
+  state = etatParDefaut();
+  sauver(); tout();
+  toast('Tout a été réinitialisé');
+});
+
+/* ============================================================
+   MODALES — fermeture et actions déléguées
+   ============================================================ */
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-close]') || e.target.classList.contains('overlay')) {
+    $$('.overlay').forEach(o => o.classList.remove('on'));
+  }
+  const f = e.target.closest('.modal [data-fav]');
+  if (f) basculerFavori(f.dataset.fav);
+
+  const p = e.target.closest('[data-plan]');
+  if (p) { $('#ov-recipe').classList.remove('on'); ouvrirChoixCreneau(p.dataset.plan); }
+
+  const pick = e.target.closest('[data-pick]');
+  if (pick) {
+    state.planning.repas[pick.dataset.target] = pick.dataset.pick;
+    sauver(); $('#ov-pick').classList.remove('on');
+    rendreSemaine(); rendreEquilibre(); majBadges();
+    toast('Plat ajouté au planning');
+  }
+  const place = e.target.closest('[data-place]');
+  if (place) {
+    state.planning.repas[place.dataset.place] = place.dataset.recette;
+    sauver(); $('#ov-pick').classList.remove('on');
+    rendreSemaine(); rendreEquilibre(); majBadges();
+    toast('Plat placé dans la semaine');
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') $$('.overlay').forEach(o => o.classList.remove('on'));
+});
+
+/* ============================================================
+   DÉMARRAGE
+   ============================================================ */
+function majBadges() {
+  $('#n-semaine').textContent = Object.values(state.planning.repas).filter(Boolean).length;
+  const parRayon = listeCourses();
+  const total = Object.values(parRayon).reduce((s, l) => s + l.length, 0) + (state.courses.extra || []).length;
+  const restants = total - state.courses.coches.length;
+  $('#n-courses').textContent = Math.max(0, restants);
+}
+
+function tout() {
+  rendrePersonnes(); rendreRecettes(); rendreSemaine(); rendreEquilibre(); rendreCourses(); rendreReglages(); majBadges();
+}
+
+tout();
+</script>
 </body>
 </html>

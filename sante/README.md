@@ -1,18 +1,20 @@
 # Ma Famille en Forme
 
 Suivi de poids familial + 54 recettes équilibrées + planning de la semaine + liste de courses automatique.
-Site statique : **aucun serveur, aucune base de données, aucune dépendance externe**. Tout fonctionne hors ligne
-une fois la page chargée, et les données restent dans le navigateur (`localStorage`).
+**Un seul fichier**, `index.html` : HTML, CSS, JavaScript et les 54 recettes sont tous dedans. Aucun serveur,
+aucune base de données, aucune dépendance externe, rien à compiler. Il fonctionne hors ligne, et même par simple
+double-clic depuis l'explorateur de fichiers. Les données restent dans le navigateur (`localStorage`).
 
-## Contenu
+## Repères dans le fichier
 
-```
-sante/
-├── index.html          page unique, 5 onglets
-├── style.css           thème clair + thème sombre automatique + feuille d'impression
-├── js/app.js           logique (calculs santé, filtres, planificateur, courses)
-└── data/recettes.js    les 54 recettes + rayons + sources
-```
+`index.html` s'ouvre dans n'importe quel éditeur de texte et se lit de haut en bas :
+
+| Section | Contenu |
+|---|---|
+| `<style>` | thème clair, thème sombre automatique, mise en page responsive, feuille d'impression |
+| `<body>` | les 5 onglets et les deux fenêtres modales |
+| 1er `<script>` | `RAYONS`, `SOURCES` et le tableau `RECETTES` — les 54 plats |
+| 2e `<script>` | l'application : calculs santé, filtres, planificateur, liste de courses |
 
 ## Les cinq onglets
 
@@ -41,18 +43,17 @@ sante/
 1. Dépôt → *Settings* → *Pages* → *Source : Deploy from a branch* → branche `main`, dossier `/ (root)`.
 2. Le site est publié sur `https://<utilisateur>.github.io/<dépôt>/sante/`.
 
-Pour le servir à la racine du domaine, déplacer le contenu de `sante/` à la racine du dépôt
+Pour le servir à la racine du domaine, déplacer `sante/index.html` à la racine du dépôt
 (attention : `index.html` à la racine est actuellement occupé par ParkAlert).
 
 ### Netlify / Vercel / OVH / autre hébergeur
-Déposer le dossier `sante/` tel quel. Il n'y a rien à compiler ni à installer.
+Téléverser `index.html`. C'est tout : un seul fichier à déposer, rien à compiler ni à installer.
 
 ### En local
+Double-cliquer sur `index.html`. Pour passer par un serveur :
 ```bash
-cd sante && python3 -m http.server 8000
-# puis http://localhost:8000
+cd sante && python3 -m http.server 8000   # puis http://localhost:8000
 ```
-Ouvrir `index.html` par double-clic fonctionne aussi.
 
 ## Données personnelles
 
@@ -63,7 +64,7 @@ appareil à l'autre.
 
 ## Ajouter une recette
 
-Dans `data/recettes.js`, copier un bloc existant et adapter :
+Dans `index.html`, chercher `const RECETTES = [`, puis copier un bloc existant et l'adapter :
 
 ```js
 {
@@ -77,7 +78,7 @@ Dans `data/recettes.js`, copier un bloc existant et adapter :
   kcal: 520, prot: 21, gluc: 66, lip: 17, fibres: 13,   // par personne
   saisons: ['automne', 'hiver'],
   tags: ['one pot', 'batch cooking'],
-  allergenes: ['gluten'],       // voir ALLERGENES dans js/app.js
+  allergenes: ['gluten'],       // voir la liste ALLERGENES dans le 2e <script>
   ingredients: [
     // [nom, quantité pour 4 personnes, unité, rayon]
     // unités : g, ml, pièce, gousse, tranche, brin, botte, pincée, c.à.s, c.à.c
