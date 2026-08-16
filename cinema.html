@@ -16,6 +16,7 @@
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
   --titre:"Arial Black","Arial Bold",Impact,system-ui,sans-serif;
   --t1:clamp(32px,9.4vw,70px); --t2:clamp(21px,5.6vw,40px);
+  --bas:112px;                  /* la hauteur réelle de la barre du bas */
   --ombre:0 2px 0 rgba(20,16,28,.22),0 8px 22px rgba(20,16,28,.22);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -30,12 +31,13 @@ input[type=text]{-webkit-user-select:text;user-select:text}
 /* ---------------- barre du haut ---------------- */
 #barre{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:stretch;
   gap:1px;padding:calc(env(safe-area-inset-top) + 6px) 8px 6px;pointer-events:none;
+  overflow:hidden;
   background:linear-gradient(180deg,rgba(27,23,38,.94),rgba(27,23,38,.62) 68%,rgba(27,23,38,0))}
 .jauge{pointer-events:auto;display:flex;flex-direction:column;justify-content:center;
   padding:5px 11px;min-width:74px;overflow:hidden}
 .jauge span{font-size:8.5px;letter-spacing:.17em;color:var(--gris2);font-weight:700}
 .jauge b{font-family:var(--titre);font-size:clamp(15px,3.4vw,21px);line-height:1.1;
-  font-variant-numeric:tabular-nums;color:#fff}
+  font-variant-numeric:tabular-nums;color:#fff;white-space:nowrap}
 .jauge.arg{background:linear-gradient(180deg,#fffdf7,#f7efdc);border:2px solid var(--jaune);
   border-radius:11px;box-shadow:var(--ombre);padding:5px 14px;min-width:132px;cursor:pointer}
 .jauge.arg span{color:var(--gris)}
@@ -138,7 +140,7 @@ input[type=text]{-webkit-user-select:text;user-select:text}
 
 /* le bandeau de préparation */
 #prepa{position:fixed;left:50%;transform:translateX(-50%);z-index:24;display:none;
-  bottom:calc(env(safe-area-inset-bottom) + 118px);width:min(580px,calc(100vw - 20px));
+  bottom:calc(var(--bas) + 10px);width:min(580px,calc(100vw - 20px));
   background:var(--creme);border:3px solid var(--encre);border-radius:16px;
   padding:13px 15px;box-shadow:0 10px 0 rgba(0,0,0,.24),0 18px 40px rgba(0,0,0,.42)}
 #prepa.on{display:block}
@@ -154,7 +156,6 @@ input[type=text]{-webkit-user-select:text;user-select:text}
 #prepa .pb .btn{margin:0;flex:1;min-width:150px;font-size:15px;padding:13px 14px}
 #prepa .pb .btn.ghost{flex:0 1 auto;font-size:11px;padding:11px 13px}
 @media (max-width:640px){
-  #prepa{bottom:calc(env(safe-area-inset-bottom) + 104px)}
   #prepa .pl{display:none}
 }
 #etoiles{letter-spacing:1px}
@@ -322,7 +323,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 .prodR .pk b{display:block;font-family:var(--titre);font-size:20px;margin-top:2px}
 
 /* ---------------- le poste tenu à la main ---------------- */
-#posteHud{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 116px);
+#posteHud{position:fixed;left:50%;bottom:calc(var(--bas) + 8px);
   transform:translateX(-50%);z-index:21;display:none;align-items:center;gap:10px;
   padding:9px 11px;border:2px solid #a8790a;border-radius:13px;
   background:linear-gradient(180deg,#fffdf3,#f8eecf);box-shadow:var(--ombre);
@@ -340,7 +341,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 #posteHud button:active{transform:translateY(2px)}
 #posteHud button em{display:block;font-style:normal;font-size:7.5px;opacity:.7;margin-top:3px}
 #posteHud button.gris{background:var(--creme2);border-color:var(--bord);color:var(--encre2)}
-#patronHud{position:fixed;left:8px;bottom:calc(env(safe-area-inset-bottom) + 116px);
+#patronHud{position:fixed;left:8px;bottom:calc(var(--bas) + 8px);
   z-index:21;display:none;align-items:center;gap:8px;padding:7px 9px;
   border:2px solid var(--bord);border-radius:12px;background:var(--creme);
   box-shadow:var(--ombre);max-width:240px}
@@ -354,7 +355,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
   border-radius:8px;background:var(--creme2);font:700 9px/1 var(--mono);
   color:var(--encre2);cursor:pointer}
 /* le prochain rendez-vous : la salle qui ouvre ses portes, en bas à droite */
-#prochain{position:fixed;right:8px;bottom:calc(env(safe-area-inset-bottom) + 116px);
+#prochain{position:fixed;right:8px;bottom:calc(var(--bas) + 8px);
   z-index:21;display:none;align-items:center;gap:9px;padding:8px 11px;
   border:2px solid var(--jaune);border-radius:12px;background:var(--creme);
   box-shadow:var(--ombre);max-width:260px;cursor:pointer}
@@ -369,7 +370,7 @@ body:not(.enJeu) #patronHud,
 body:not(.enJeu) #prochain{display:none !important}
 body:not(.enJeu) #prepa{display:none !important}
 @media (max-width:560px){
-  #posteHud{bottom:calc(env(safe-area-inset-bottom) + 108px);gap:7px;padding:7px 8px}
+  #posteHud{gap:7px;padding:7px 8px}
   #posteHud .chi{display:none}
   #posteHud button{padding:9px 10px;font-size:11px}
   #patronHud,#prochain{display:none !important}
@@ -382,7 +383,7 @@ body:not(.enJeu) #prepa{display:none !important}
   font:700 11px/1 var(--mono);letter-spacing:.06em;animation:pop .3s both;white-space:nowrap}
 .msg.bon{background:rgba(47,168,79,.94)} .msg.mal{background:rgba(192,35,60,.94)}
 @keyframes pop{0%{opacity:0;transform:translateY(-8px) scale(.94)}100%{opacity:1;transform:none}}
-#aide{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 132px);transform:translateX(-50%);
+#aide{position:fixed;left:50%;bottom:calc(var(--bas) + 26px);transform:translateX(-50%);
   z-index:18;pointer-events:none;padding:7px 14px;border-radius:18px;background:rgba(33,29,43,.90);
   color:#fff;font:700 10.5px/1.5 var(--mono);text-align:center;display:none;max-width:88vw}
 #aide.on{display:block}
@@ -590,9 +591,38 @@ body:not(.enJeu) #flash{display:none !important}
   .cmd{gap:6px;padding:8px}
   .cmd .ci{display:none}
 }
-@media (max-height:460px){
-  #panneau{max-height:52vh}
-  .pal i{height:24px}
+@media (max-height:520px){
+  #barre{padding:calc(env(safe-area-inset-top) + 2px) 4px 2px;gap:2px}
+  .jauge{padding:2px 5px;min-width:0}
+  .jauge b{font-size:13px}
+  .jauge span{font-size:6.5px;letter-spacing:.04em}
+  .jauge.arg{min-width:92px;padding:3px 8px}
+  .jauge.arg b{font-size:17px}
+  .jauge.et,.jauge.cli,.jauge.sea,.jauge.niv,#temps{display:none}
+  #horloge{min-width:62px;padding:2px 6px}
+  #horloge b{font-size:15px}
+  #horloge .hbar{margin:2px 0 1px;height:4px}
+  #vit button{width:24px;height:24px;font-size:9px}
+  #construire{padding:4px 6px calc(env(safe-area-inset-bottom) + 4px);gap:3px}
+  #cats{flex-wrap:nowrap;overflow-x:auto;max-width:100%;justify-content:flex-start}
+  .cat{padding:6px 9px;font-size:9px;flex:0 0 auto}
+  .cat u{font-size:12px}
+  .pal{width:66px;padding:4px}
+  .pal i{height:22px}
+  .pal em{font-size:8.5px}
+  #patronHud,#prochain{display:none !important}
+  #posteHud{padding:5px 7px}
+  #posteHud .chi{display:none}
+  #posteHud button{padding:7px 9px;font-size:10.5px}
+  #panneau{top:calc(env(safe-area-inset-top) + 38px);max-height:76vh;width:220px}
+  #aide{font-size:9.5px;padding:5px 10px}
+  #prepa{padding:9px 12px}
+  #prepa .pl{display:none}
+  #prepa .pt span{font-size:10px}
+  #prepa .pb .btn{font-size:13px;padding:10px 12px;min-width:120px}
+  #prepa .pb .btn.ghost{font-size:10px;padding:9px 10px}
+  #flash{top:calc(env(safe-area-inset-top) + 40px)}
+  .msg{font-size:10px;padding:6px 12px}
 }
 </style>
 </head>
@@ -4121,19 +4151,16 @@ function dessinerSalle(b,X,Y,W,H,cx,cy,T){
     const pris=n<nOcc, reserve=!pris&&n<nVend;
     n++;
     if(petit){
-      ctx.fillStyle=pris?'#f2c98a':reserve?'#8a5a72':'#4a3550';
+      ctx.fillStyle=pris?'#ffcf8a':reserve?'#c0455a':'#3b2c3f';
       ctx.fillRect(x,y,Math.max(.8,w),Math.max(.8,h));
       continue;
     }
-    /* le fauteuil : dossier, assise, accoudoirs */
-    ctx.fillStyle=pris?'#6a2438':'#57203a';
+    /* Le fauteuil. Vide il est sombre et froid ; vendu il est rouge velours ;
+       occupé il porte une tête. Une salle pleine doit s'allumer de loin. */
+    ctx.fillStyle=pris?'#c0455a':reserve?'#96263e':'#3b2c3f';
     arrondi(x,y,w,h,Math.max(.6,w*.22)); ctx.fill();
-    ctx.fillStyle=pris?'#8a3450':'#48192f';
+    ctx.fillStyle=pris?'#d9647a':reserve?'#b03350':'#2e2233';
     ctx.fillRect(x+w*.14,y+h*.10,w*.72,h*.44);
-    if(reserve){
-      ctx.fillStyle='rgba(224,85,155,.55)';
-      ctx.fillRect(x+w*.14,y+h*.10,w*.72,h*.44);
-    }
     if(pris){
       /* une tête, éclairée par l'écran quand il y en a un */
       ctx.fillStyle=noir?'#5a4a52':'#c9a084';
@@ -4196,7 +4223,7 @@ function frontonSalle(b,T){
   const etat=e?e.etat:'attente';
   const s=(e&&e.s)?e.s:prochaineSeance(b);
   const film=s?s.film:null;
-  const h=Math.max(7,10.5*cam.z);
+  const h=Math.max(10,11.5*cam.z);
   const y=Y-h-Math.max(2,3*cam.z);
 
   let col='#5a5468', txt='SALLE VIDE', sous='';
@@ -4210,7 +4237,7 @@ function frontonSalle(b,T){
     sous=Math.round(b.proprete*100)+' %'; }
   else if(film){ col='#7b8fa8'; txt=film.titre; sous=heureTxt(s.debut); }
 
-  ctx.font='700 '+Math.round(h*.62)+'px '+FONT;
+  ctx.font='700 '+Math.max(6,Math.round(h*.58))+'px '+FONT;
   let nom=txt;
   const dispo=W-8*cam.z;
   while(nom.length>3&&ctx.measureText(nom).width>dispo) nom=nom.slice(0,-1);
@@ -4222,9 +4249,9 @@ function frontonSalle(b,T){
   arrondi(X+.5,y+.5,W-1,h-1,Math.max(1,2*cam.z)); ctx.stroke();
   ctx.fillStyle=col;
   ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(nom,X+W/2,y+h*(sous&&cam.z>.62?.36:.5));
-  if(sous&&cam.z>.62){
-    ctx.font='700 '+Math.round(h*.42)+'px '+FONT;
+  ctx.fillText(nom,X+W/2,y+h*(sous&&cam.z>.70?.36:.5));
+  if(sous&&cam.z>.70){
+    ctx.font='700 '+Math.max(5,Math.round(h*.40))+'px '+FONT;
     ctx.fillStyle='rgba(255,255,255,.62)';
     ctx.fillText(sous,X+W/2,y+h*.74);
   }
@@ -4836,6 +4863,15 @@ function flash(txt,type){
     setTimeout(()=>d.remove(),420); },1900);
   while($('flash').children.length>4) $('flash').firstChild.remove();
 }
+/* La hauteur réelle de la barre du bas, relue après chaque changement de
+   palette : c'est elle qui décale tout ce qui flotte au-dessus. */
+function majBas(){
+  const el=$('construire');
+  if(!el) return;
+  const h=Math.round(el.getBoundingClientRect().height);
+  document.documentElement.style.setProperty('--bas',Math.max(60,h)+'px');
+}
+addEventListener('resize',()=>setTimeout(majBas,60));
 function aide(txt){
   const e=$('aide');
   if(!txt){ e.classList.remove('on'); return; }
@@ -4885,6 +4921,7 @@ const CATS=[
 ];
 let catOuverte=null;
 function construireCats(){
+  setTimeout(majBas,0);
   $('cats').innerHTML=CATS.map(c=>'<button class="cat'+(c.sup?' sup':'')
     +'" data-c="'+c.id+'"><u>'+c.ico+'</u>'+c.nom+'</button>').join('');
   Array.prototype.forEach.call($('cats').children,el=>{
@@ -4893,7 +4930,7 @@ function construireCats(){
 }
 function ouvrirCat(id){
   if(catOuverte===id){ catOuverte=null; outil=null; $('palette').innerHTML='';
-    majCats(); aide(null); fermerFiche(); return; }
+    majCats(); majBas(); aide(null); fermerFiche(); return; }
   catOuverte=id;
   fermerFiche();
   if(id==='travail'){ outil={cat:'travail'}; $('palette').innerHTML='';
@@ -4910,7 +4947,10 @@ function ouvrirCat(id){
       +'Une salle où il y a du monde ne se démolit pas.'); }
   else if(id==='personnel'){ outil=null; palettePersonnel(); aide(null); }
   else if(id==='cinema'){ outil=null; $('palette').innerHTML=''; aide(null); ficheCinema(); }
-  else if(id==='prog'){ outil=null; $('palette').innerHTML=''; aide(null); ficheProgramme(); }
+  else if(id==='prog'){ outil=null; $('palette').innerHTML=''; aide(null);
+    /* on ouvre sur la grille entière, pas sur un créneau déjà déplié : le
+       premier coup d'œil doit montrer la journée, pas un menu */
+    creneauOuvert=-1; ficheProgramme(); }
   else if(id==='frequent'){ outil=null; $('palette').innerHTML=''; aide(null);
     ficheFrequentation(); }
   else if(id==='contrats'){ outil=null; $('palette').innerHTML=''; aide(null); ficheContrats(); }
@@ -4918,6 +4958,7 @@ function ouvrirCat(id){
     fermerFiche(); ouvrirBureau(); }
   else { outil=null; paletteObjets(id); aide(null); }
   majCats();
+  majBas();
 }
 function majCats(){
   Array.prototype.forEach.call($('cats').children,el=>
@@ -4944,6 +4985,7 @@ function paletteObjets(cat){
   const T=tableDe(cat);
   const el=$('palette');
   el.innerHTML='';
+  setTimeout(majBas,0);
   for(const k in T){
     const d=T[k];
     const bloque=(d.niv||1)>P.niveau;
@@ -4973,6 +5015,7 @@ function paletteObjets(cat){
 function palettePersonnel(){
   const el=$('palette');
   el.innerHTML='';
+  setTimeout(majBas,0);
   for(const k in METIERS){
     const m=METIERS[k];
     const n=P.employes.filter(e=>e.k===k).length;
@@ -6737,6 +6780,7 @@ function reprendrePartie(muet){
   }
   ecranActif='jeu'; ecrans(null);
   construireCats(); catOuverte=null; majCats(); $('palette').innerHTML='';
+  setTimeout(majBas,0);
   aide('Te revoilà : semaine '+P.sem+', '+JOURS_SEM[P.jour-1].nom
     +'. Le rideau est encore baissé.');
   setTimeout(()=>aide(null),7000);
@@ -7041,7 +7085,7 @@ function cabler(){
   cv.addEventListener('mousedown',e=>{
     if(ecranActif!=='jeu') return;
     if(e.button===2){ outil=null; catOuverte=null; majCats(); $('palette').innerHTML='';
-      aide(null); return; }
+      majBas(); aide(null); return; }
     if(e.button!==0) return;
     SND.init(); SND.reprendre();
     souris.down=true; souris.bouge=false;
@@ -7102,7 +7146,7 @@ function cabler(){
   addEventListener('keydown',e=>{
     if(e.target&&e.target.tagName==='INPUT') return;
     if(e.code==='Escape'){ outil=null; catOuverte=null; majCats(); $('palette').innerHTML='';
-      aide(null); fermerFiche(); return; }
+      majBas(); aide(null); fermerFiche(); return; }
     if(ecranActif!=='jeu') return;
     if(e.code==='Enter'&&enPrepa()){ demarrerService(); return; }
     if((e.code==='KeyR')&&enPrepa()){ menageTout(); return; }
@@ -7147,6 +7191,7 @@ function cabler(){
   const demarrer=()=>{
     ecranActif='jeu'; ecrans(null);
     construireCats(); catOuverte=null; majCats(); $('palette').innerHTML='';
+    setTimeout(majBas,0);
   };
   $('jouer').onclick=()=>{ SND.init(); SND.reprendre(); SND.clic();
     if(SAVE.partie&&!confirm('Une partie est en cours (semaine '+SAVE.partie.sem+', '
