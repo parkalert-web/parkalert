@@ -1,0 +1,1061 @@
+<title>La Chasse à la place</title>
+<style>
+/* Bebas Neue & DM Mono — SIL Open Font License 1.1, sous-ensemble latin embarqué */
+@font-face{font-family:'Bebas';src:url(data:font/woff2;base64,__BEBAS__) format('woff2');font-weight:400;font-style:normal;font-display:block;}
+@font-face{font-family:'DMM';src:url(data:font/woff2;base64,__DM400__) format('woff2');font-weight:400;font-style:normal;font-display:block;}
+@font-face{font-family:'DMM';src:url(data:font/woff2;base64,__DM500__) format('woff2');font-weight:500;font-style:normal;font-display:block;}
+
+/* La page assume un parti pris unique : un instrument de nuit.
+   Toutes les couleurs sont donc peintes explicitement, sans variante claire. */
+:root{
+  --ground:#030712;
+  --plate:#070d19;
+  --plate-2:#0b1322;
+  --rule:#16203a;
+  --rule-soft:#0f1729;
+  --ink:#dbe4f0;
+  --ink-dim:#7c8ba3;
+  --ink-faint:#3d4b64;
+  --net:#4ade80;
+  --blind:#f43f5e;
+  --warn:#f59e0b;
+  --cool:#38bdf8;
+  --violet:#8b8cf0;
+  --display:'Bebas','Arial Narrow',Impact,system-ui,sans-serif;
+  --mono:'DMM',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --gut:clamp(16px,3.2vw,30px);
+}
+*{box-sizing:border-box;}
+body{
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--mono);
+  font-size:14px;
+  line-height:1.62;
+  font-variant-numeric:tabular-nums;
+  -webkit-font-smoothing:antialiased;
+  margin:0;
+  overflow-x:hidden;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 var(--gut);}
+h1,h2,h3{font-family:var(--display);font-weight:400;text-wrap:balance;margin:0;}
+p{margin:0;}
+b,strong{font-weight:500;color:#f2f6fb;}
+
+/* ── étiquettes d'instrument ── */
+.tag{
+  font-family:var(--mono);font-size:10px;font-weight:500;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);
+}
+
+/* ── bandeau ── */
+.masthead{border-bottom:1px solid var(--rule);padding:38px 0 0;position:relative;}
+.masthead::after{
+  content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--net),transparent);opacity:.5;
+}
+.mh-top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;}
+.mark{font-family:var(--display);font-size:19px;letter-spacing:.18em;color:#f2f6fb;}
+.mark i{font-style:normal;color:var(--net);}
+h1{
+  font-size:clamp(58px,15vw,158px);
+  line-height:.84;letter-spacing:.012em;
+  margin:22px 0 0;color:#f6f9fc;
+}
+h1 em{font-style:normal;color:var(--ink-faint);}
+.deck{
+  max-width:52ch;margin:20px 0 0;color:var(--ink-dim);font-size:15px;line-height:1.7;
+}
+.deck b{color:var(--ink);}
+.specimen{
+  display:flex;flex-wrap:wrap;gap:0;margin:30px 0 0;
+  border-top:1px solid var(--rule-soft);
+}
+.specimen div{
+  flex:1 1 128px;padding:11px 14px 13px;border-right:1px solid var(--rule-soft);
+}
+.specimen div:last-child{border-right:0;}
+.specimen dt{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);}
+.specimen dd{margin:2px 0 0;font-family:var(--display);font-size:25px;letter-spacing:.06em;color:var(--ink);}
+
+/* ── texte courant ── */
+.prose{max-width:66ch;}
+.prose p+p{margin-top:1.05em;}
+.prose a{color:var(--net);text-underline-offset:3px;text-decoration-thickness:1px;}
+
+section{padding:56px 0;}
+.rule-top{border-top:1px solid var(--rule-soft);}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:26px;flex-wrap:wrap;}
+.sec-head h2{font-size:32px;letter-spacing:.05em;color:#eef3f9;}
+.sec-head .tag{white-space:nowrap;}
+.sec-head hr{flex:1;min-width:24px;border:0;border-top:1px solid var(--rule-soft);margin:0;}
+@media(max-width:640px){
+  .sec-head .tag{white-space:normal;flex:1 0 100%;}
+}
+
+/* ── plaques ── */
+.plates{display:grid;grid-template-columns:1fr;gap:18px;}
+@media(min-width:880px){.plates{grid-template-columns:1fr 1fr;}}
+.plate{
+  background:var(--plate);border:1px solid var(--rule);position:relative;
+}
+.plate::before,.plate::after{
+  content:'';position:absolute;width:9px;height:9px;pointer-events:none;
+  border:1px solid var(--ink-faint);opacity:.55;
+}
+.plate::before{top:7px;left:7px;border-right:0;border-bottom:0;}
+.plate::after{bottom:7px;right:7px;border-left:0;border-top:0;}
+.plate-head{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:12px 16px 11px;border-bottom:1px solid var(--rule-soft);
+}
+.plate-name{font-family:var(--display);font-size:19px;letter-spacing:.16em;color:#eef3f9;}
+.plate-name s{text-decoration:none;color:var(--ink-faint);}
+.plate-badge{
+  font-size:10.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
+  padding:3px 9px;border:1px solid currentColor;white-space:nowrap;
+}
+.badge-ctl{color:var(--ink-faint);}
+.badge-run{color:var(--net);}
+.cv-holder{position:relative;line-height:0;}
+canvas.city{width:100%;height:auto;display:block;}
+.stabilising{
+  position:absolute;left:12px;bottom:12px;font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--warn);background:rgba(3,7,18,.82);
+  padding:3px 8px;border:1px solid rgba(245,158,11,.35);transition:opacity .4s;
+}
+.hud{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--rule-soft);}
+.hud div{padding:10px 12px 12px;border-right:1px solid var(--rule-soft);}
+.hud div:last-child{border-right:0;}
+.hud dt{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);white-space:nowrap;}
+.hud dd{margin:1px 0 0;font-family:var(--display);font-size:27px;letter-spacing:.05em;line-height:1.1;}
+.hud dd u{text-decoration:none;font-family:var(--mono);font-size:11px;letter-spacing:0;color:var(--ink-faint);margin-left:2px;}
+.v-net{color:var(--net);} .v-blind{color:var(--blind);} .v-warn{color:var(--warn);} .v-ink{color:var(--ink);}
+
+.twin-note{
+  margin-top:14px;padding:10px 14px;border-left:2px solid var(--cool);
+  background:rgba(56,189,248,.05);color:var(--ink-dim);font-size:12.5px;
+  transition:opacity .45s;
+}
+.twin-note b{color:var(--cool);font-weight:500;}
+
+/* ── console ── */
+.console{
+  margin-top:18px;border:1px solid var(--rule);background:var(--plate-2);
+  display:grid;grid-template-columns:1fr;
+}
+@media(min-width:720px){.console{grid-template-columns:1.45fr 1.45fr auto;}}
+.ctrl{padding:14px 18px 16px;border-bottom:1px solid var(--rule-soft);}
+@media(min-width:720px){.ctrl{border-bottom:0;border-right:1px solid var(--rule-soft);}}
+.ctrl-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;}
+.ctrl-val{font-family:var(--display);font-size:24px;letter-spacing:.05em;color:var(--net);}
+.ctrl-val.alt{color:var(--cool);}
+.ctrl-hint{font-size:11px;color:var(--ink-faint);margin-top:3px;}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;
+  margin:6px 0 0;cursor:pointer;display:block;
+}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--rule);}
+input[type=range]::-moz-range-track{height:2px;background:var(--rule);}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:13px;height:13px;margin-top:-5.5px;
+  background:var(--net);border:0;border-radius:0;transform:rotate(45deg);
+}
+input[type=range]::-moz-range-thumb{
+  width:11px;height:11px;background:var(--net);border:0;border-radius:0;
+}
+#pression::-webkit-slider-thumb{background:var(--cool);}
+#pression::-moz-range-thumb{background:var(--cool);}
+input[type=range]:focus-visible{outline:1px solid var(--net);outline-offset:4px;}
+.buttons{display:flex;flex-wrap:wrap;gap:0;padding:14px 16px;align-items:center;}
+button{
+  font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-dim);background:transparent;
+  border:1px solid var(--rule);padding:8px 13px;cursor:pointer;
+  margin:0 8px 0 0;transition:color .15s,border-color .15s,background .15s;
+}
+button:hover{color:var(--ink);border-color:var(--ink-faint);}
+button:focus-visible{outline:1px solid var(--net);outline-offset:2px;}
+button[aria-pressed=true]{color:var(--ground);background:var(--net);border-color:var(--net);}
+button.wide{margin-top:0;}
+.speeds{display:inline-flex;margin-right:8px;}
+.speeds button{margin:0;border-right:0;}
+.speeds button:last-child{border-right:1px solid var(--rule);}
+.speeds button[aria-pressed=true]{border-color:var(--net);}
+
+/* ── instruments ── */
+.instruments{display:grid;grid-template-columns:1fr;gap:18px;}
+@media(min-width:900px){.instruments{grid-template-columns:1fr 1.25fr;}}
+.inst{border:1px solid var(--rule);background:var(--plate);}
+.inst-head{
+  padding:12px 16px 11px;border-bottom:1px solid var(--rule-soft);
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+}
+.inst-head h3{font-size:18px;letter-spacing:.14em;color:#eef3f9;}
+.inst-body{padding:16px;}
+
+.split-row{display:flex;align-items:center;gap:12px;padding:9px 0;}
+.split-row+.split-row{border-top:1px solid var(--rule-soft);}
+.split-key{width:13ch;flex:0 0 auto;font-size:11.5px;color:var(--ink-dim);}
+.split-key b{white-space:nowrap;}
+.split-key b{display:block;font-weight:500;font-size:12.5px;}
+.split-bar{flex:1;height:8px;background:var(--rule-soft);position:relative;overflow:hidden;}
+.split-bar i{position:absolute;inset:0 auto 0 0;width:0;transition:width .5s cubic-bezier(.4,0,.2,1);}
+.split-num{
+  width:7.5ch;flex:0 0 auto;text-align:right;font-family:var(--display);
+  font-size:22px;letter-spacing:.04em;
+}
+.split-num u{text-decoration:none;font-family:var(--mono);font-size:10px;color:var(--ink-faint);}
+.verdict{
+  margin-top:14px;padding-top:14px;border-top:1px solid var(--rule);
+  font-size:12.5px;color:var(--ink-dim);line-height:1.6;min-height:3.4em;
+}
+.verdict b{color:var(--ink);font-weight:500;}
+
+canvas#courbe{width:100%;height:auto;display:block;}
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;font-size:11px;color:var(--ink-dim);}
+.legend span{display:inline-flex;align-items:center;gap:6px;}
+.legend i{width:14px;height:2px;display:inline-block;}
+.sweep-bar{height:2px;background:var(--rule-soft);margin-top:12px;overflow:hidden;}
+.sweep-bar i{display:block;height:100%;width:0;background:var(--net);transition:width .2s linear;}
+
+.counters{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule);}
+.counters div{padding:14px 16px 16px;border-right:1px solid var(--rule-soft);}
+.counters div:last-child{border-right:0;}
+.counters dt{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);}
+.counters dd{margin:3px 0 0;font-family:var(--display);font-size:30px;letter-spacing:.04em;}
+.counters dd u{text-decoration:none;font-family:var(--mono);font-size:11px;color:var(--ink-faint);margin-left:3px;}
+.counters small{display:block;font-size:10.5px;color:var(--ink-faint);margin-top:2px;line-height:1.4;}
+
+/* ── notes de laboratoire ── */
+.notes{display:grid;grid-template-columns:1fr;gap:34px;}
+@media(min-width:860px){.notes{grid-template-columns:1fr 1fr;}}
+.notes h3{font-size:19px;letter-spacing:.13em;margin-bottom:12px;color:#eef3f9;}
+.notes h3 span{color:var(--ink-faint);}
+.notes ul{list-style:none;margin:0;padding:0;}
+.notes li{
+  padding:9px 0 9px 20px;border-top:1px solid var(--rule-soft);
+  position:relative;font-size:13px;color:var(--ink-dim);line-height:1.6;
+}
+.notes li::before{
+  content:'';position:absolute;left:0;top:17px;width:8px;height:1px;background:var(--ink-faint);
+}
+.notes li b{color:var(--ink);}
+.notes .no li::before{background:var(--blind);}
+
+.findings{counter-reset:f;display:grid;gap:0;margin-top:8px;}
+.finding{
+  display:grid;grid-template-columns:auto 1fr;gap:18px;
+  padding:22px 0;border-top:1px solid var(--rule-soft);align-items:start;
+}
+.finding::before{
+  counter-increment:f;content:counter(f,decimal-leading-zero);
+  font-family:var(--display);font-size:30px;letter-spacing:.04em;color:var(--ink-faint);line-height:1;
+}
+.finding h4{font-family:var(--display);font-weight:400;font-size:23px;letter-spacing:.05em;margin:0 0 5px;color:#eef3f9;}
+.finding p{color:var(--ink-dim);font-size:13.5px;max-width:60ch;}
+.finding em{font-style:normal;color:var(--net);}
+
+.closer{
+  margin-top:44px;padding:26px 0 0;border-top:1px solid var(--rule);
+}
+.closer p{max-width:56ch;font-size:16px;line-height:1.66;color:var(--ink);}
+.closer p+p{margin-top:.9em;color:var(--ink-dim);font-size:14px;}
+footer{
+  border-top:1px solid var(--rule-soft);padding:22px 0 46px;
+  display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+}
+@media(max-width:520px){
+  body{font-size:13px;}
+  .deck{font-size:14px;}
+  h1{line-height:.88;}
+  .hud dd{font-size:23px;}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition-duration:.01ms !important;}
+}
+</style>
+
+<header class="masthead">
+  <div class="wrap">
+    <div class="mh-top">
+      <div class="mark">PARK<i>ALERT</i></div>
+      <div class="tag">Laboratoire · modèle multi-agents</div>
+    </div>
+    <h1>La chasse<br><em>à la place</em></h1>
+    <p class="deck">
+      Deux villes rigoureusement identiques. Les mêmes conducteurs, les mêmes
+      destinations, les mêmes durées de stationnement, minute par minute.
+      Une seule chose les sépare : <b>dans la ville B, une partie des conducteurs
+      se disent où sont les places.</b> Regardez ce que ça change — et surtout, à qui.
+    </p>
+    <dl class="specimen">
+      <div><dt>Intersections</dt><dd id="sp-n">49</dd></div>
+      <div><dt>Tronçons</dt><dd id="sp-e">84</dd></div>
+      <div><dt>Places au trottoir</dt><dd id="sp-s">336</dd></div>
+      <div><dt>Véhicules</dt><dd id="sp-v">319</dd></div>
+      <div><dt>Heure de la nuit</dt><dd id="sp-t">00:00</dd></div>
+    </dl>
+  </div>
+</header>
+
+<section class="wrap">
+  <div class="prose">
+    <p>
+      Chercher une place, c’est rouler sans aller nulle part. L’économiste
+      Donald Shoup a popularisé l’idée qu’une part substantielle du trafic des
+      centres denses n’est que cette chasse-là ; les études qu’il a compilées
+      donnent des ordres de grandeur très dispersés d’une ville à l’autre, mais
+      toutes racontent la même chose — une partie du bruit, des gaz et de
+      l’énervement d’un quartier vient de gens qui sont déjà arrivés.
+    </p>
+    <p>
+      Ce simulateur ne mesure pas Paris. Il pose une question plus étroite, et
+      vérifiable : <b>dans une ville-jouet dont on contrôle absolument tout,
+      qu’est-ce que change le fait de se parler ?</b> Les deux villes ci-dessous
+      partagent la même graine aléatoire. Mettez l’équipement à 0 % et elles sont
+      la même ville, au pixel près. Tout écart que vous verrez apparaître ensuite
+      n’a qu’une cause possible.
+    </p>
+  </div>
+</section>
+
+<section class="wrap rule-top">
+  <div class="sec-head">
+    <h2>Les deux villes</h2><hr><span class="tag">Pose longue · les traces s’accumulent</span>
+  </div>
+
+  <div class="plates">
+    <div class="plate">
+      <div class="plate-head">
+        <div class="plate-name">VILLE A <s>/ TÉMOIN</s></div>
+        <div class="plate-badge badge-ctl">0 % équipés</div>
+      </div>
+      <div class="cv-holder">
+        <canvas class="city" id="cvA" width="760" height="760" role="img"
+          aria-label="Vue aérienne animée de la ville témoin : les véhicules en recherche laissent des traces roses en tournant autour du centre."></canvas>
+        <div class="stabilising" id="stabA">stabilisation…</div>
+      </div>
+      <dl class="hud">
+        <div><dt>Recherche</dt><dd class="v-blind" id="A-t">—<u>min</u></dd></div>
+        <div><dt>Distance</dt><dd class="v-blind" id="A-d">—<u>m</u></dd></div>
+        <div><dt>En chasse</dt><dd class="v-ink" id="A-c">—</dd></div>
+        <div><dt>Occupation</dt><dd class="v-ink" id="A-o">—<u>%</u></dd></div>
+      </dl>
+    </div>
+
+    <div class="plate">
+      <div class="plate-head">
+        <div class="plate-name">VILLE B <s>/ ESSAI</s></div>
+        <div class="plate-badge badge-run" id="B-badge">0 % équipés</div>
+      </div>
+      <div class="cv-holder">
+        <canvas class="city" id="cvB" width="760" height="760" role="img"
+          aria-label="Vue aérienne animée de la ville d’essai : les véhicules équipés, en vert, rejoignent directement une place réservée."></canvas>
+        <div class="stabilising" id="stabB">stabilisation…</div>
+      </div>
+      <dl class="hud">
+        <div><dt>Recherche</dt><dd class="v-net" id="B-t">—<u>min</u></dd></div>
+        <div><dt>Distance</dt><dd class="v-net" id="B-d">—<u>m</u></dd></div>
+        <div><dt>En chasse</dt><dd class="v-ink" id="B-c">—</dd></div>
+        <div><dt>Occupation</dt><dd class="v-ink" id="B-o">—<u>%</u></dd></div>
+      </dl>
+    </div>
+  </div>
+
+  <p class="twin-note" id="twinNote">
+    <b>Équipement à 0 %.</b> Les deux plaques sont identiques image par image — c’est
+    la preuve que rien d’autre que l’équipement ne les distingue. Montez le curseur.
+  </p>
+
+  <div class="console">
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label class="tag" for="adoption">Équipement de la ville B</label>
+        <span class="ctrl-val" id="adoption-val">0 %</span>
+      </div>
+      <input type="range" id="adoption" min="0" max="100" step="5" value="0"
+        aria-describedby="adoption-hint">
+      <div class="ctrl-hint" id="adoption-hint">Part des conducteurs qui annoncent leur départ et reçoivent une place réservée.</div>
+    </div>
+    <div class="ctrl">
+      <div class="ctrl-top">
+        <label class="tag" for="pression">Pression automobile</label>
+        <span class="ctrl-val alt" id="pression-val">95 %</span>
+      </div>
+      <input type="range" id="pression" min="70" max="110" step="5" value="95"
+        aria-describedby="pression-hint">
+      <div class="ctrl-hint" id="pression-hint">Véhicules pour 100 places. Au-delà de 100 %, il en manque pour tout le monde.</div>
+    </div>
+    <div class="buttons">
+      <span class="speeds" role="group" aria-label="Vitesse de simulation">
+        <button type="button" data-speed="1.5" aria-pressed="false">Lent</button>
+        <button type="button" data-speed="6" aria-pressed="true">×1</button>
+        <button type="button" data-speed="18" aria-pressed="false">×3</button>
+      </span>
+      <button type="button" id="btn-play" aria-pressed="false">Pause</button>
+      <button type="button" id="btn-reset">Relancer la nuit</button>
+    </div>
+  </div>
+</section>
+
+<section class="wrap rule-top">
+  <div class="sec-head">
+    <h2>Qui gagne, qui paie</h2><hr><span class="tag">Ville B, par population</span>
+  </div>
+
+  <div class="instruments">
+    <div class="inst">
+      <div class="inst-head">
+        <h3>TEMPS DE RECHERCHE</h3>
+        <span class="tag" id="split-ctx">à 0 % d’équipement</span>
+      </div>
+      <div class="inst-body">
+        <div class="split-row">
+          <div class="split-key"><b>Équipés</b>ville B</div>
+          <div class="split-bar"><i id="bar-sub" style="background:var(--net)"></i></div>
+          <div class="split-num v-net" id="num-sub">—<u>min</u></div>
+        </div>
+        <div class="split-row">
+          <div class="split-key"><b>Non équipés</b>ville B</div>
+          <div class="split-bar"><i id="bar-non" style="background:var(--blind)"></i></div>
+          <div class="split-num v-blind" id="num-non">—<u>min</u></div>
+        </div>
+        <div class="split-row">
+          <div class="split-key"><b>Témoin</b>ville A</div>
+          <div class="split-bar"><i id="bar-ctl" style="background:var(--ink-faint)"></i></div>
+          <div class="split-num" style="color:var(--ink-dim)" id="num-ctl">—<u>min</u></div>
+        </div>
+        <p class="verdict" id="verdict">Montez l’équipement de la ville B pour séparer les deux populations.</p>
+      </div>
+      <dl class="counters">
+        <div>
+          <dt>Km à vide · A</dt><dd class="v-blind" id="km-a">—</dd>
+          <small>depuis le dernier réglage</small>
+        </div>
+        <div>
+          <dt>Km à vide · B</dt><dd class="v-net" id="km-b">—</dd>
+          <small id="km-gain">—</small>
+        </div>
+        <div>
+          <dt>Places soufflées</dt><dd class="v-warn" id="stolen">—</dd>
+          <small>réservations prises par un non-équipé</small>
+        </div>
+      </dl>
+    </div>
+
+    <div class="inst">
+      <div class="inst-head">
+        <h3>LA COURBE</h3>
+        <span class="tag" id="sweep-ctx">temps de recherche selon l’équipement</span>
+      </div>
+      <div class="inst-body">
+        <canvas id="courbe" width="900" height="480" role="img"
+          aria-label="Graphique du temps de recherche moyen en fonction du taux d’équipement, pour les conducteurs équipés, non équipés, et la ville entière."></canvas>
+        <div class="legend">
+          <span><i style="background:var(--net)"></i>Équipés</span>
+          <span><i style="background:var(--blind)"></i>Non équipés</span>
+          <span><i style="background:var(--cool)"></i>Ville entière</span>
+        </div>
+        <div class="sweep-bar"><i id="sweep-prog"></i></div>
+        <div style="display:flex;gap:0;align-items:center;margin-top:14px;flex-wrap:wrap;">
+          <button type="button" id="btn-sweep" class="wide">Lancer le balayage</button>
+          <span class="ctrl-hint" id="sweep-note" style="margin:0;">
+            22 simulations complètes, hors écran, à la pression actuelle.
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap rule-top">
+  <div class="sec-head">
+    <h2>Ce que dit le modèle</h2><hr><span class="tag">Résultats</span>
+  </div>
+  <div class="findings">
+    <div class="finding">
+      <div>
+        <h4>Le bénéfice privé est immédiat</h4>
+        <p>Dès les premiers pourcents d’équipement, un abonné cherche environ
+        <em>deux fois moins longtemps</em> que son voisin — et roule deux fois moins.
+        Il n’a besoin de personne d’autre pour en profiter : il lui suffit que
+        quelques conducteurs annoncent leur départ.</p>
+      </div>
+    </div>
+    <div class="finding">
+      <div>
+        <h4>Le bénéfice collectif est lent</h4>
+        <p>Le temps moyen de la ville, lui, ne bouge presque pas avant qu’une
+        large majorité soit équipée. La raison est bête : <em>le réseau ne crée
+        aucune place.</em> Il ne fait que réattribuer celles qui existent, un peu
+        plus vite et sans détour.</p>
+      </div>
+    </div>
+    <div class="finding">
+      <div>
+        <h4>Le non-équipé paie l’addition</h4>
+        <p>Plus les autres s’équipent, plus lui tourne : les places changent de
+        mains avant qu’il puisse les voir. <em>Ce n’est pas une hypothèse du
+        modèle</em> — aucune règle ne pénalise qui que ce soit. C’est ce qui sort
+        de la simulation quand l’information cesse d’être également répartie.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="closer">
+    <p>
+      Un service comme ParkAlert ne fabrique pas de places. Il déplace de
+      l’information — et l’information, contrairement au bitume, a un propriétaire.
+    </p>
+    <p>
+      C’est un argument de conception plus qu’un argument commercial : si l’avantage
+      de l’abonné se paie en minutes prises à celui qui n’a pas l’application, alors
+      l’annonce de départ a intérêt à rester gratuite, publique et facile — sans quoi
+      le service optimise un quartier pour les uns en le dégradant pour les autres.
+    </p>
+  </div>
+</section>
+
+<section class="wrap rule-top">
+  <div class="sec-head">
+    <h2>Notes de laboratoire</h2><hr><span class="tag">Hypothèses</span>
+  </div>
+  <div class="notes">
+    <div>
+      <h3>Ce que le modèle fait <span>/ oui</span></h3>
+      <ul>
+        <li>Une grille de <b>49 intersections</b>, 84 tronçons de 110 m, quatre places au trottoir par tronçon.</li>
+        <li>La demande est <b>concentrée au centre</b> (loi gaussienne) : c’est cette concentration, et elle seule, qui fabrique la chasse.</li>
+        <li>Chaque conducteur a une destination et n’accepte qu’une place à distance de marche acceptable. Sa <b>patience s’élargit d’un pâté de maisons toutes les 6 minutes</b>.</li>
+        <li>Durée de stationnement tirée au sort, loi exponentielle, moyenne 28 min, minimum 5.</li>
+        <li>Un équipé <b>annonce son départ 3 minutes à l’avance</b> et se voit réserver la place libre acceptable la plus proche, avec l’itinéraire.</li>
+        <li>Un non-équipé ne voit une place qu’en passant devant — et peut <b>prendre une place réservée sans le savoir</b>.</li>
+        <li>Les deux villes partagent la graine : mêmes véhicules, mêmes destinations, mêmes durées, dans le même ordre.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Ce qu’il ne fait pas <span>/ non</span></h3>
+      <ul class="no">
+        <li><b>Aucun embouteillage.</b> La vitesse ne baisse pas quand les chasseurs s’accumulent. C’est l’omission la plus lourde, et elle joue contre le réseau : le modèle <b>sous-estime</b> son effet.</li>
+        <li>Ni parkings souterrains, ni stationnement payant, ni zones de livraison, ni horodateurs.</li>
+        <li>Personne ne ment sur son heure de départ, personne ne réserve deux places, personne n’abandonne sa recherche.</li>
+        <li>Une grille en damier n’est pas une ville : pas de sens uniques, pas de boulevard, pas de gare.</li>
+        <li>Les chiffres affichés sont ceux de <b>cette ville-jouet</b>. Ils illustrent un mécanisme ; ils ne mesurent aucune ville réelle.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer class="wrap">
+  <span class="tag">ParkAlert · Laboratoire</span>
+  <span class="tag" id="foot-seed">graine 4711</span>
+</footer>
+
+<script>
+__SIM__
+
+/* ── mise en forme française ───────────────────────────────────────────────── */
+const fr = (v, d) => (isFinite(v) ? v.toFixed(d === undefined ? 1 : d).replace('.', ',') : '—');
+const frInt = v => isFinite(v) ? Math.round(v).toLocaleString('fr-FR') : '—';
+
+/* ── état ──────────────────────────────────────────────────────────────────── */
+const SEED = 4711;
+let adoption = 0, pression = 0.95, speed = 6, running = true;
+// Les deux villes sont construites une fois pour toutes : « relancer » les
+// réinitialise sur place, ce qui garantit que les plaques ne perdent jamais
+// la référence vers leur ville.
+const A = new World(SEED, 0), B = new World(SEED, 0);
+const nSpots = A.g.nSpots;
+
+document.getElementById('sp-n').textContent = A.g.N;
+document.getElementById('sp-e').textContent = A.g.edges.length;
+document.getElementById('sp-s').textContent = nSpots;
+document.getElementById('foot-seed').textContent = 'graine ' + SEED;
+
+function vehicles() { return Math.round(pression * nSpots); }
+
+function bootstrap() {
+  const V = vehicles();
+  A.adoption = 0; B.adoption = adoption;
+  A.init(V); B.init(V);
+  // la nuit a déjà commencé : 90 minutes de chauffe avant d'ouvrir les plaques
+  for (let i = 0; i < 1800; i++) { A.step(0.05); B.step(0.05); }
+  clearMetrics(); settle = SETTLE;
+  for (const p of [plateA, plateB]) if (p) { p.clear(); p.bg = null; }
+  document.getElementById('sp-v').textContent = V;
+}
+
+function clearMetrics() {
+  for (const w of [A, B]) {
+    for (const g of [w.m.sub, w.m.non]) { g.T.clear(); g.D.clear(); g.W.clear(); g.done = 0; }
+    w.resetAcc();
+    w.cruiseMeters = 0; w.stolen = 0;
+  }
+}
+
+/* Changer un réglage met la ville hors d'équilibre. On jette les minutes de
+   transitoire, puis on mesure — sinon l'affichage raconte n'importe quoi. */
+let settle = 0;
+const SETTLE = 45;          // minutes simulées
+const MIN_N = 140;          // recherches avant d'oser afficher une moyenne
+function requestSettle() { settle = SETTLE; clearMetrics(); }
+
+/* ── rendu d'une ville ─────────────────────────────────────────────────────── */
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+
+class Plate {
+  constructor(canvasId, world) {
+    this.cv = document.getElementById(canvasId);
+    this.ctx = this.cv.getContext('2d');
+    this.world = world;
+    this.heat = document.createElement('canvas');
+    this.hctx = this.heat.getContext('2d');
+    this.resize();
+  }
+  resize() {
+    const css = this.cv.clientWidth || 380;
+    const px = Math.round(css * DPR);
+    if (this.px === px) return;
+    this.px = px;
+    this.cv.width = px; this.cv.height = px;
+    this.heat.width = Math.round(px / 3); this.heat.height = Math.round(px / 3);
+    this.hctx.clearRect(0, 0, this.heat.width, this.heat.height);
+    this.m = px * 0.085;
+    this.cell = (px - 2 * this.m) / Math.max(1, this.world.cfg.GW - 1);
+    this.bg = null;
+  }
+  clear() { this.hctx.clearRect(0, 0, this.heat.width, this.heat.height); }
+
+  nodeXY(i) {
+    const n = this.world.g.nodes[i];
+    return [this.m + n.x * this.cell, this.m + n.y * this.cell];
+  }
+  edgePt(e, t) {
+    const E = this.world.g.edges[e];
+    const [ax, ay] = this.nodeXY(E.a), [bx, by] = this.nodeXY(E.b);
+    return [ax + (bx - ax) * t, ay + (by - ay) * t, bx - ax, by - ay];
+  }
+
+  /* fond : rues + halo de demande, dessiné une seule fois */
+  buildBg() {
+    const px = this.px, g = this.world.g;
+    const c = document.createElement('canvas');
+    c.width = px; c.height = px;
+    const x = c.getContext('2d');
+    x.fillStyle = '#070d19'; x.fillRect(0, 0, px, px);
+
+    // halo de la demande, au centre
+    const cx = px / 2, cy = px / 2;
+    const grd = x.createRadialGradient(cx, cy, 0, cx, cy, px * 0.42);
+    grd.addColorStop(0, 'rgba(139,140,240,0.17)');
+    grd.addColorStop(.55, 'rgba(139,140,240,0.055)');
+    grd.addColorStop(1, 'rgba(139,140,240,0)');
+    x.fillStyle = grd; x.fillRect(0, 0, px, px);
+
+    // chaussée
+    x.lineCap = 'round';
+    x.strokeStyle = '#101a2e';
+    x.lineWidth = Math.max(3, px * 0.0125);
+    for (const E of g.edges) {
+      const [ax, ay] = this.nodeXY(E.a), [bx, by] = this.nodeXY(E.b);
+      x.beginPath(); x.moveTo(ax, ay); x.lineTo(bx, by); x.stroke();
+    }
+    // intersections
+    x.fillStyle = '#16223a';
+    for (let i = 0; i < g.N; i++) {
+      const [nx, ny] = this.nodeXY(i);
+      x.beginPath(); x.arc(nx, ny, px * 0.0042, 0, 6.2832); x.fill();
+    }
+    // repères de cadrage
+    x.strokeStyle = 'rgba(61,75,100,0.5)'; x.lineWidth = 1;
+    const tk = px * 0.022, off = px * 0.028;
+    [[off, off, 1, 1], [px - off, off, -1, 1], [off, px - off, 1, -1], [px - off, px - off, -1, -1]]
+      .forEach(([qx, qy, sx, sy]) => {
+        x.beginPath();
+        x.moveTo(qx + sx * tk, qy); x.lineTo(qx, qy); x.lineTo(qx, qy + sy * tk);
+        x.stroke();
+      });
+    this.bg = c;
+  }
+
+  draw(showHeat) {
+    const w = this.world, g = w.g, px = this.px, ctx = this.ctx;
+    if (!this.bg) this.buildBg();
+    ctx.clearRect(0, 0, px, px);
+    ctx.drawImage(this.bg, 0, 0);
+
+    // rémanence des trajectoires
+    if (showHeat) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(this.heat, 0, 0, px, px);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // places
+    const sw = Math.max(1.6, px * 0.0056), sl = Math.max(2.4, px * 0.009);
+    const off = px * 0.0068;
+    for (const E of g.edges) {
+      for (const s of E.spots) {
+        const [sx, sy, dx, dy] = this.edgePt(E.i, s.t);
+        const len = Math.hypot(dx, dy) || 1;
+        const pxv = -dy / len, pyv = dx / len;
+        const side = (s.k % 2) ? 1 : -1;
+        const X = sx + pxv * off * side, Y = sy + pyv * off * side;
+        const libre = s.occ === null;
+        // libre : vert · réservée : ambre · départ annoncé : ambre voilé · occupée : ardoise
+        ctx.fillStyle = libre
+          ? (s.res !== null ? '#f59e0b' : '#4ade80')
+          : (s.ann ? 'rgba(245,158,11,0.7)' : '#182338');
+        if (libre && s.res === null) {          // halo des places réellement disponibles
+          ctx.fillStyle = 'rgba(74,222,128,0.16)';
+          ctx.fillRect(X - sl / 2, Y - sl / 2, sl, sl);
+          ctx.fillStyle = '#4ade80';
+        }
+        ctx.fillRect(X - sw / 2, Y - sw / 2, sw, sw);
+      }
+    }
+
+    // véhicules
+    const r = Math.max(1.7, px * 0.0058);
+    const coff = px * 0.0034;
+    for (const c of w.cars) {
+      if (c.st !== 'CRUISE') continue;
+      const E = g.edges[c.e];
+      const t = E.a === c.from ? c.u : 1 - c.u;
+      const [cx, cy, dx, dy] = this.edgePt(c.e, t);
+      const len = Math.hypot(dx, dy) || 1;
+      const sgn = E.a === c.from ? 1 : -1;
+      const X = cx + (-dy / len) * coff * sgn, Y = cy + (dx / len) * coff * sgn;
+      c.px = X; c.py = Y;
+      const sub = w.isSub(c);
+      if (sub && c.tgt) {
+        const [tx, ty] = this.edgePt(c.tgt.e, c.tgt.t);
+        ctx.strokeStyle = 'rgba(74,222,128,0.13)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(tx, ty); ctx.stroke();
+      }
+      ctx.fillStyle = c.waiting ? '#ffffff' : (sub ? '#4ade80' : '#f43f5e');
+      ctx.beginPath(); ctx.arc(X, Y, r, 0, 6.2832); ctx.fill();
+    }
+  }
+
+  /* dépôt de chaleur : chaque véhicule en recherche noircit la plaque */
+  deposit(dt) {
+    const h = this.hctx, k = this.heat.width / this.px, w = this.world;
+    h.globalCompositeOperation = 'destination-out';
+    h.fillStyle = 'rgba(0,0,0,' + Math.min(.5, 0.012 * dt) + ')';
+    h.fillRect(0, 0, this.heat.width, this.heat.height);
+    h.globalCompositeOperation = 'lighter';
+    const a = Math.min(.5, 0.055 * dt);
+    for (const c of w.cars) {
+      if (c.st !== 'CRUISE' || !c.px) continue;
+      h.fillStyle = w.isSub(c)
+        ? 'rgba(44,168,98,' + a + ')'
+        : 'rgba(226,42,88,' + (a * 1.45) + ')';
+      h.fillRect(c.px * k - 1, c.py * k - 1, 2, 2);
+    }
+    h.globalCompositeOperation = 'source-over';
+  }
+}
+
+let plateA = null, plateB = null;
+
+/* ── boucle ────────────────────────────────────────────────────────────────── */
+let last = performance.now(), acc = 0, hudAcc = 0;
+const MAXDT = 0.05;
+
+function frame(now) {
+  const real = Math.min(0.1, (now - last) / 1000);
+  last = now;
+
+  if (running) {
+    const simDt = real * speed;
+    const steps = Math.max(1, Math.ceil(simDt / MAXDT));
+    const d = simDt / steps;
+    for (let i = 0; i < steps; i++) { A.step(d); B.step(d); }
+    if (settle > 0) { settle -= simDt; if (settle <= 0) clearMetrics(); }
+  }
+
+  plateA.resize(); plateB.resize();
+  plateA.draw(true); plateB.draw(true);
+  if (running) { plateA.deposit(real * speed); plateB.deposit(real * speed); }
+
+  hudAcc += real;
+  if (hudAcc > 0.22) { hudAcc = 0; updateHUD(); }
+  if (sweep) tickSweep();
+  requestAnimationFrame(frame);
+}
+
+/* ── relevés ───────────────────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+
+function setVal(el, v, d, unit) {
+  el.innerHTML = (isFinite(v) && v > 0 ? fr(v, d) : '—') + (unit ? '<u>' + unit + '</u>' : '');
+}
+
+function updateHUD() {
+  const sa = A.stats(), sb = B.stats();
+  const ca = A.cumulative(), cb = B.cumulative();
+  const hh = Math.floor(A.t / 60) % 24, mm = Math.floor(A.t % 60);
+  $('sp-t').textContent = String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+
+  const readyA = settle <= 0 && ca.all.n >= MIN_N;
+  const readyB = settle <= 0 && cb.all.n >= MIN_N;
+
+  setVal($('A-t'), readyA ? ca.all.T : NaN, 1, 'min');
+  setVal($('A-d'), readyA ? ca.all.D : NaN, 0, 'm');
+  $('A-c').textContent = sa.cruising;
+  setVal($('A-o'), sa.occ * 100, 0, '%');
+
+  setVal($('B-t'), readyB ? cb.all.T : NaN, 1, 'min');
+  setVal($('B-d'), readyB ? cb.all.D : NaN, 0, 'm');
+  $('B-c').textContent = sb.cruising;
+  setVal($('B-o'), sb.occ * 100, 0, '%');
+
+  $('stabA').style.opacity = readyA ? 0 : 1;
+  $('stabB').style.opacity = readyB ? 0 : 1;
+
+  // populations de la ville B, comparées au témoin
+  const mx = Math.max(ca.all.T || 0, cb.sub.T || 0, cb.non.T || 0, 1) * 1.08;
+  const rows = [
+    ['bar-sub', 'num-sub', cb.sub.T, cb.sub.n],
+    ['bar-non', 'num-non', cb.non.T, cb.non.n],
+    ['bar-ctl', 'num-ctl', ca.all.T, ca.all.n],
+  ];
+  for (const [bar, num, v, n] of rows) {
+    const ok = settle <= 0 && n >= 60 && isFinite(v) && v > 0;
+    $(bar).style.width = ok ? (100 * v / mx) + '%' : '0%';
+    setVal($(num), ok ? v : NaN, 1, 'min');
+  }
+  $('split-ctx').textContent = 'à ' + Math.round(adoption * 100) + " % d\u2019équipement";
+
+  setVal($('km-a'), sa.km, 0, '');
+  setVal($('km-b'), sb.km, 0, '');
+  $('km-gain').textContent = readyA && readyB && sb.km > 0
+    ? fr(sa.km / sb.km, 2) + ' fois moins qu\u2019en A'
+    : 'depuis le dernier réglage';
+  $('stolen').textContent = frInt(sb.stolen);
+
+  const v = $('verdict');
+  if (settle > 0) {
+    v.innerHTML = '<b>Stabilisation.</b> La ville digère le nouveau réglage ; les moyennes repartent de zéro dans '
+      + Math.ceil(settle) + ' minutes simulées.';
+  } else if (adoption === 0) {
+    v.innerHTML = 'À <b>0 %</b>, la ville B est la ville A. Les deux relevés convergent vers la même valeur : c\u2019est le contrôle de l\u2019expérience.';
+  } else if (adoption >= 1) {
+    v.innerHTML = 'Tout le monde est équipé : plus personne ne tourne à l\u2019aveugle, et la ville entière gagne. C\u2019est le seul régime où le gain est partagé.';
+  } else if (readyA && cb.sub.n >= 60 && cb.non.n >= 60) {
+    const gain = ca.all.T / cb.sub.T, perte = cb.non.T / ca.all.T;
+    v.innerHTML = 'L\u2019équipé cherche <b>' + fr(gain, 2) + ' fois moins longtemps</b> que dans la ville témoin. '
+      + 'Au même instant, son voisin non équipé cherche <b>' + fr(perte, 2) + ' fois plus longtemps</b> '
+      + 'qu\u2019il ne l\u2019aurait fait si personne n\u2019avait l\u2019application.';
+  }
+
+  $('twinNote').style.opacity = adoption === 0 ? 1 : 0;
+  $('twinNote').style.pointerEvents = adoption === 0 ? 'auto' : 'none';
+}
+
+/* ── commandes ─────────────────────────────────────────────────────────────── */
+$('adoption').addEventListener('input', e => {
+  adoption = +e.target.value / 100;
+  $('adoption-val').textContent = Math.round(adoption * 100) + ' %';
+  $('B-badge').textContent = Math.round(adoption * 100) + ' % équipés';
+  B.setAdoption(adoption);
+  requestSettle();
+});
+
+$('pression').addEventListener('input', e => {
+  pression = +e.target.value / 100;
+  $('pression-val').textContent = e.target.value + ' %';
+  const V = vehicles();
+  A.setV(V); B.setV(V);
+  $('sp-v').textContent = V;
+  requestSettle();
+  resetSweep();
+});
+
+document.querySelectorAll('[data-speed]').forEach(b => {
+  b.addEventListener('click', () => {
+    speed = +b.dataset.speed;
+    document.querySelectorAll('[data-speed]').forEach(o =>
+      o.setAttribute('aria-pressed', String(o === b)));
+  });
+});
+
+$('btn-play').addEventListener('click', () => {
+  running = !running;
+  $('btn-play').textContent = running ? 'Pause' : 'Reprendre';
+  $('btn-play').setAttribute('aria-pressed', String(!running));
+});
+
+$('btn-reset').addEventListener('click', () => { bootstrap(); });
+
+/* ── balayage hors écran ───────────────────────────────────────────────────── */
+const LEVELS = [0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1];
+const SWEEP_SEEDS = [4711, 90210];
+const WARM = 260, MEAS = 620;
+let sweep = null, curve = null;
+
+function resetSweep() { sweep = null; curve = null; $('sweep-prog').style.width = '0%'; drawCurve(); }
+
+function startSweep() {
+  const jobs = [];
+  for (const lv of LEVELS) for (const sd of SWEEP_SEEDS) jobs.push({ lv, sd });
+  sweep = { jobs, i: 0, w: null, phase: 'warm', t: 0, out: LEVELS.map(() => ({ sub: [], non: [], all: [], km: [] })) };
+  curve = null;
+  $('btn-sweep').textContent = 'Balayage…';
+  $('btn-sweep').disabled = true;
+}
+
+function tickSweep() {
+  const t0 = performance.now();
+  while (performance.now() - t0 < 11) {
+    if (sweep.i >= sweep.jobs.length) { finishSweep(); return; }
+    const job = sweep.jobs[sweep.i];
+    if (!sweep.w) {
+      sweep.w = new World(job.sd, job.lv);
+      sweep.w.init(vehicles());
+      sweep.phase = 'warm'; sweep.t = 0;
+    }
+    const w = sweep.w;
+    for (let k = 0; k < 40; k++) { w.step(0.05); sweep.t += 0.05; }
+    if (sweep.phase === 'warm' && sweep.t >= WARM) {
+      // fin de la chauffe : on remet les compteurs à zéro et on mesure
+      // sur l'intervalle entier, pas sur la fenêtre glissante de l'affichage
+      sweep.phase = 'meas'; sweep.t = 0;
+      w.resetAcc(); w.cruiseMeters = 0;
+    }
+    if (sweep.phase === 'meas' && sweep.t >= MEAS) {
+      const cum = w.cumulative();
+      const slot = sweep.out[LEVELS.indexOf(job.lv)];
+      if (cum.sub.n > 40) slot.sub.push(cum.sub.T);
+      if (cum.non.n > 40) slot.non.push(cum.non.T);
+      if (cum.all.n > 40) slot.all.push(cum.all.T);
+      slot.km.push(w.cruiseMeters / 1000);
+      sweep.w = null; sweep.i++;
+      $('sweep-prog').style.width = (100 * sweep.i / sweep.jobs.length) + '%';
+    }
+  }
+}
+
+function finishSweep() {
+  const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN;
+  curve = LEVELS.map((lv, i) => ({
+    lv,
+    sub: mean(sweep.out[i].sub),
+    non: mean(sweep.out[i].non),
+    all: mean(sweep.out[i].all),
+    km: mean(sweep.out[i].km),
+  }));
+  sweep = null;
+  $('btn-sweep').textContent = 'Relancer le balayage';
+  $('btn-sweep').disabled = false;
+  $('sweep-prog').style.width = '0%';
+  const k0 = curve[0].km, k1 = curve[curve.length - 1].km;
+  $('sweep-note').innerHTML = 'Pression ' + Math.round(pression * 100) + ' %. '
+    + 'Kilomètres roulés à vide sur la même durée : <b>' + frInt(k0) + ' km</b> sans personne d\u2019équipé, '
+    + '<b>' + frInt(k1) + ' km</b> quand tout le monde l\u2019est.';
+  drawCurve();
+}
+
+$('btn-sweep').addEventListener('click', startSweep);
+
+/* ── tracé de la courbe ────────────────────────────────────────────────────── */
+const cvC = document.getElementById('courbe');
+const cx = cvC.getContext('2d');
+
+function drawCurve() {
+  const cssW = cvC.clientWidth || 560;
+  const W = Math.round(cssW * DPR), H = Math.round(W * 0.53);
+  if (cvC.width !== W) { cvC.width = W; cvC.height = H; }
+  const g = cx;
+  g.clearRect(0, 0, W, H);
+  const L = 44 * DPR, R = W - 14 * DPR, T = 14 * DPR, Bm = H - 30 * DPR;
+
+  const maxY = curve
+    ? Math.max(...curve.flatMap(p => [p.sub, p.non, p.all]).filter(isFinite)) * 1.15
+    : 8;
+  const X = v => L + (R - L) * v;
+  const Y = v => Bm - (Bm - T) * (v / maxY);
+
+  // grille
+  g.strokeStyle = '#0f1729'; g.lineWidth = 1;
+  g.fillStyle = '#3d4b64';
+  g.font = (10 * DPR) + 'px ' + getComputedStyle(document.body).fontFamily;
+  g.textAlign = 'right'; g.textBaseline = 'middle';
+  const stepY = maxY > 6 ? 2 : 1;
+  for (let v = 0; v <= maxY; v += stepY) {
+    const y = Y(v);
+    g.beginPath(); g.moveTo(L, y); g.lineTo(R, y); g.stroke();
+    g.fillText(fr(v, 0) + ' min', L - 7 * DPR, y);
+  }
+  g.textAlign = 'center'; g.textBaseline = 'top';
+  for (let p = 0; p <= 100; p += 25) {
+    const x = X(p / 100);
+    g.strokeStyle = '#0f1729';
+    g.beginPath(); g.moveTo(x, T); g.lineTo(x, Bm); g.stroke();
+    g.fillText(p + ' %', x, Bm + 8 * DPR);
+  }
+  g.textAlign = 'left';
+  g.fillStyle = '#3d4b64';
+  g.fillText("taux d'équipement", L, Bm + 20 * DPR);
+
+  if (!curve) {
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = '#3d4b64';
+    g.font = (11 * DPR) + 'px ' + getComputedStyle(document.body).fontFamily;
+    g.fillText(sweep ? 'balayage en cours…' : 'lancez le balayage pour tracer la courbe',
+      (L + R) / 2, (T + Bm) / 2);
+    return;
+  }
+
+  // repère : le temps de recherche quand personne n'est équipé
+  const base = curve[0] && curve[0].all;
+  if (isFinite(base)) {
+    const y = Y(base);
+    g.save();
+    g.setLineDash([4 * DPR, 4 * DPR]);
+    g.strokeStyle = 'rgba(124,139,163,0.55)'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(L, y); g.lineTo(R, y); g.stroke();
+    g.restore();
+    g.fillStyle = '#7c8ba3'; g.textAlign = 'right'; g.textBaseline = 'bottom';
+    g.font = (9.5 * DPR) + 'px ' + getComputedStyle(document.body).fontFamily;
+    g.fillText('sans réseau · ' + fr(base, 1) + ' min', R - 2 * DPR, y - 4 * DPR);
+  }
+
+  const series = [
+    ['non', '#f43f5e'],
+    ['all', '#38bdf8'],
+    ['sub', '#4ade80'],
+  ];
+  for (const [key, col] of series) {
+    const pts = curve.filter(p => isFinite(p[key]));
+    if (pts.length < 2) continue;
+    g.strokeStyle = col; g.lineWidth = 1.6 * DPR;
+    g.beginPath();
+    pts.forEach((p, i) => { const x = X(p.lv), y = Y(p[key]); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+    g.stroke();
+    g.fillStyle = col;
+    for (const p of pts) {
+      g.beginPath(); g.arc(X(p.lv), Y(p[key]), 2.4 * DPR, 0, 6.2832); g.fill();
+    }
+  }
+}
+
+window.addEventListener('resize', () => { drawCurve(); });
+
+/* ── départ ────────────────────────────────────────────────────────────────── */
+plateA = new Plate('cvA', A);
+plateB = new Plate('cvB', B);
+bootstrap();
+drawCurve();
+
+if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  running = false;
+  $('btn-play').textContent = 'Reprendre';
+  $('btn-play').setAttribute('aria-pressed', 'true');
+}
+
+requestAnimationFrame(frame);
+</script>
