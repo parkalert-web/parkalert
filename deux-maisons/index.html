@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Deux Maisons</title>
+<meta name="description" content="Calendrier de garde alternée : rythmes personnalisés, partage des vacances, comptage des nuits, export agenda. Tout se calcule dans le navigateur, sans serveur et sans compte."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;600;700&family=Public+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"/>
+<style>
+/* ─────────────── tokens ─────────────── */
+:root{
+  --bg:#edeff2; --panel:#ffffff; --panel-2:#f6f8fa; --ink:#151a1f; --muted:#5f6873;
+  --line:#d9dee4; --line-strong:#c3cad2; --ring:#2e6e8e;
+  --ok:#3d7a55; --warn:#9a6b12;
+  --shadow:0 1px 2px rgba(17,24,32,.06), 0 12px 28px -20px rgba(17,24,32,.45);
+  --tile-mix:#ffffff;
+  --radius:12px;
+  --f-display:'Familjen Grotesk','Segoe UI Semibold',Verdana,sans-serif;
+  --f-body:'Public Sans','Helvetica Neue',Arial,sans-serif;
+  --f-data:'IBM Plex Mono','SFMono-Regular',Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1216; --panel:#161b21; --panel-2:#1b2129; --ink:#e4e8ec; --muted:#939ca7;
+    --line:#242b33; --line-strong:#333c47; --ring:#6fb3d2;
+    --ok:#69b083; --warn:#d1a03f;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 16px 32px -24px rgba(0,0,0,.9);
+    --tile-mix:#161b21;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1216; --panel:#161b21; --panel-2:#1b2129; --ink:#e4e8ec; --muted:#939ca7;
+  --line:#242b33; --line-strong:#333c47; --ring:#6fb3d2;
+  --ok:#69b083; --warn:#d1a03f;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 16px 32px -24px rgba(0,0,0,.9);
+  --tile-mix:#161b21;
+}
+
+*,*::before,*::after{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--f-body); font-size:16px; line-height:1.55;
+}
+h1,h2,h3,h4{font-family:var(--f-display); font-weight:600; margin:0; text-wrap:balance; letter-spacing:-.01em;}
+button,input,select,textarea{font:inherit; color:inherit;}
+:focus-visible{outline:2px solid var(--ring); outline-offset:2px; border-radius:4px;}
+.wrap{max-width:1120px; margin:0 auto; padding:0 20px;}
+
+/* ─────────────── header ─────────────── */
+.topbar{border-bottom:1px solid var(--line); background:var(--panel);}
+.topbar .wrap{display:flex; align-items:center; gap:16px; min-height:64px; flex-wrap:wrap;}
+.brand{display:flex; align-items:baseline; gap:10px; margin-right:auto;}
+.brand h1{font-size:21px; letter-spacing:-.02em;}
+.brand .roofs{display:inline-flex; gap:3px; align-items:flex-end; transform:translateY(1px);}
+.brand .roofs i{display:block; width:11px; height:11px; border-radius:2px 2px 0 0;}
+.brand .roofs i:first-child{background:var(--ca);}
+.brand .roofs i:last-child{background:var(--cb); height:8px;}
+.brand small{font-family:var(--f-body); font-size:12px; color:var(--muted); letter-spacing:.02em;}
+.tool{
+  display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:9px;
+  border:1px solid var(--line); background:var(--panel-2); color:var(--ink);
+  font-size:13px; font-weight:500; cursor:pointer;
+}
+.tool:hover{border-color:var(--line-strong);}
+.tool svg{width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round;}
+
+/* ─────────────── status band ─────────────── */
+.band{background:var(--panel); border-bottom:1px solid var(--line);}
+.band .wrap{display:flex; gap:20px; align-items:stretch; flex-wrap:wrap; padding-top:14px; padding-bottom:14px;}
+.tonight{
+  flex:1 1 320px; display:flex; align-items:center; gap:14px;
+  border-left:5px solid var(--now-c,var(--ca)); padding:6px 0 6px 14px;
+}
+.tonight .lab{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted);}
+.tonight .who{font-family:var(--f-display); font-size:27px; line-height:1.15; letter-spacing:-.02em;}
+.tonight .who em{font-style:normal; color:var(--now-t,var(--ca));}
+.next{
+  flex:0 1 auto; display:flex; align-items:center; gap:16px; padding:6px 0;
+  font-size:13px; color:var(--muted);
+}
+.next b{display:block; color:var(--ink); font-family:var(--f-data); font-size:14px; font-weight:500;}
+.next .cd{
+  font-family:var(--f-data); font-size:12px; padding:3px 9px; border-radius:99px;
+  border:1px solid var(--line); background:var(--panel-2); color:var(--ink); white-space:nowrap;
+}
+
+/* ─────────────── tabs ─────────────── */
+.tabs{position:sticky; top:0; z-index:30; background:var(--bg); border-bottom:1px solid var(--line);}
+.tabs .wrap{display:flex; gap:4px; overflow-x:auto; scrollbar-width:thin;}
+.tab{
+  border:0; background:none; padding:13px 14px 11px; cursor:pointer; white-space:nowrap;
+  font-family:var(--f-display); font-size:14px; font-weight:600; color:var(--muted);
+  border-bottom:2px solid transparent;
+}
+.tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--ink);}
+.tab:hover{color:var(--ink);}
+
+main{padding:24px 0 64px;}
+.view[hidden]{display:none;}
+.card{
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:18px;
+}
+.card + .card{margin-top:18px;}
+.card > h2{font-size:16px; letter-spacing:-.005em;}
+.card > h2 + p.hint{margin-top:4px;}
+p.hint{color:var(--muted); font-size:13px; margin:0 0 14px;}
+
+/* ─────────────── calendar ─────────────── */
+.calhead{display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;}
+.calhead h2{font-size:20px; text-transform:capitalize; min-width:190px;}
+.nav-btn{
+  width:34px; height:34px; border-radius:9px; border:1px solid var(--line); background:var(--panel-2);
+  cursor:pointer; display:grid; place-items:center; font-family:var(--f-data); line-height:1;
+}
+.nav-btn:hover{border-color:var(--line-strong);}
+.spacer{margin-left:auto;}
+
+.dow{
+  display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:6px;
+  font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); text-align:center;
+}
+.grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px;}
+.day{
+  position:relative; min-height:76px; border-radius:9px; border:1px solid var(--line);
+  background:var(--panel-2); padding:6px 7px; text-align:left; cursor:pointer;
+  display:flex; flex-direction:column; gap:2px; font:inherit; color:inherit; overflow:hidden;
+}
+.day.out{opacity:.35;}
+.day.assigned{border-color:transparent; box-shadow:inset 4px 0 0 var(--c);}
+.day .n{font-family:var(--f-data); font-size:14px; font-weight:500;}
+.day .who{font-size:11px; font-weight:600; color:var(--ct,var(--c)); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.day .tag{font-size:10px; color:var(--muted); letter-spacing:.02em; line-height:1.3; margin-top:auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.day.today{outline:2px solid var(--ink); outline-offset:-2px;}
+.day .arrive{
+  position:absolute; top:5px; right:6px; font-family:var(--f-data); font-size:9.5px;
+  color:var(--ct,var(--c)); letter-spacing:-.02em;
+}
+.day.swap{border:1.5px dashed var(--c);}
+.day.swap .n::before{content:"✱ "; font-size:9px; color:var(--ct,var(--c));}
+.day.striped::after{
+  content:""; position:absolute; inset:0; pointer-events:none; opacity:.5;
+  background:repeating-linear-gradient(135deg,transparent 0 7px,var(--stripe) 7px 8px);
+}
+.day.holiday .n::after{content:"•"; color:var(--warn); margin-left:3px;}
+.day.vac{border-bottom:2px dashed var(--line-strong);}
+
+.legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:14px; font-size:12px; color:var(--muted); align-items:center;}
+.chip{display:inline-flex; align-items:center; gap:7px; color:var(--ink); font-weight:500;}
+.chip i{width:13px; height:13px; border-radius:4px; display:block;}
+.chip.b i{background-image:repeating-linear-gradient(135deg,transparent 0 3px,rgba(255,255,255,.55) 3px 4px);}
+
+/* ─────────────── year view ─────────────── */
+.year{display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:18px;}
+.mini h3{font-size:13px; text-transform:capitalize; margin-bottom:6px; letter-spacing:.01em;}
+.mini .mg{display:grid; grid-template-columns:repeat(7,1fr); gap:2px;}
+.mini .mg span{
+  aspect-ratio:1; border-radius:3px; display:grid; place-items:center;
+  font-family:var(--f-data); font-size:9.5px; color:var(--ink); background:var(--panel-2);
+}
+.mini .mg span.pad{background:none;}
+.mini .mg span.st{background-image:repeating-linear-gradient(135deg,transparent 0 3px,var(--stripe) 3px 4.6px);}
+.mini .mg span.td{outline:1.5px solid var(--ink); outline-offset:-1.5px;}
+.mini .dowmini{display:grid; grid-template-columns:repeat(7,1fr); gap:2px; font-size:8px; color:var(--muted); text-align:center; margin-bottom:2px; letter-spacing:.04em;}
+.mini .mtot{margin-top:5px; font-family:var(--f-data); font-size:10px; color:var(--muted); display:flex; gap:5px; font-variant-numeric:tabular-nums;}
+
+/* ─────────────── stats ─────────────── */
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px;}
+.stat{border:1px solid var(--line); border-radius:10px; padding:12px 14px; background:var(--panel-2);}
+.stat .k{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted);}
+.stat .v{font-family:var(--f-display); font-size:26px; font-variant-numeric:tabular-nums; line-height:1.2;}
+.stat .s{font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums;}
+
+.split{height:22px; border-radius:6px; overflow:hidden; display:flex; border:1px solid var(--line); margin:6px 0 4px;}
+.split div{display:grid; place-items:center; font-family:var(--f-data); font-size:11px; color:#fff; min-width:0;}
+.months{display:grid; gap:7px; margin-top:6px;}
+.mrow{display:grid; grid-template-columns:78px 1fr 108px; gap:10px; align-items:center; font-size:12.5px;}
+.mrow .name{color:var(--muted); text-transform:capitalize;}
+.mrow .bar{height:14px; border-radius:4px; overflow:hidden; display:flex; background:var(--panel-2); border:1px solid var(--line);}
+.mrow .num{font-family:var(--f-data); font-size:11.5px; color:var(--muted); text-align:right; font-variant-numeric:tabular-nums;}
+
+/* ─────────────── agenda ─────────────── */
+.per{display:flex; gap:14px; padding:11px 0; border-bottom:1px solid var(--line); align-items:baseline;}
+.per:last-child{border-bottom:0;}
+.per .rail{width:5px; align-self:stretch; border-radius:3px; background:var(--c); flex:0 0 5px;}
+.per .txt{flex:1; min-width:0;}
+.per .txt b{font-weight:600; color:var(--ct,var(--c));}
+.per .dates{font-family:var(--f-data); font-size:12.5px; color:var(--muted);}
+.per .len{font-family:var(--f-data); font-size:12px; color:var(--muted); white-space:nowrap;}
+
+/* ─────────────── forms ─────────────── */
+.field{display:flex; flex-direction:column; gap:5px; margin-bottom:12px;}
+.field > label{font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted);}
+input[type="text"],input[type="date"],input[type="time"],input[type="number"],select,textarea{
+  border:1px solid var(--line); background:var(--panel-2); border-radius:9px; padding:9px 11px; width:100%;
+}
+input[type="color"]{width:44px; height:38px; padding:2px; border:1px solid var(--line); border-radius:9px; background:var(--panel-2); cursor:pointer;}
+.row2{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:0 16px;}
+.parent-row{display:flex; gap:10px; align-items:flex-end;}
+.parent-row .field{flex:1; margin-bottom:0;}
+.checks{display:flex; flex-direction:column; gap:9px;}
+.check{display:flex; gap:9px; align-items:flex-start; font-size:14px; cursor:pointer;}
+.check input{margin-top:3px; accent-color:var(--ring);}
+.check span small{display:block; color:var(--muted); font-size:12px;}
+
+.rhythms{display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:10px; margin-bottom:14px;}
+.rh{
+  text-align:left; border:1px solid var(--line); background:var(--panel-2); border-radius:10px;
+  padding:11px 12px; cursor:pointer; display:flex; flex-direction:column; gap:5px;
+}
+.rh:hover{border-color:var(--line-strong);}
+.rh[aria-pressed="true"]{border-color:var(--ring); box-shadow:inset 0 0 0 1px var(--ring); background:var(--panel);}
+.rh b{font-family:var(--f-display); font-size:14px;}
+.rh small{color:var(--muted); font-size:11.5px; line-height:1.4;}
+.rh .strip{display:flex; height:7px; border-radius:99px; overflow:hidden; margin-top:2px;}
+
+table.vacs{width:100%; border-collapse:collapse; font-size:13px;}
+table.vacs th{text-align:left; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:500; padding:0 8px 7px 0;}
+table.vacs td{padding:5px 8px 5px 0; vertical-align:middle; border-top:1px solid var(--line);}
+table.vacs input,table.vacs select{padding:7px 9px; font-size:13px;}
+.icon-btn{border:1px solid var(--line); background:var(--panel-2); border-radius:8px; width:32px; height:32px; cursor:pointer; display:grid; place-items:center;}
+.icon-btn:hover{border-color:var(--line-strong); color:var(--warn);}
+.tablewrap{overflow-x:auto;}
+
+.btn{
+  border:1px solid var(--line-strong); background:var(--panel-2); border-radius:9px;
+  padding:9px 14px; cursor:pointer; font-weight:600; font-size:14px; font-family:var(--f-display);
+}
+.btn:hover{border-color:var(--ink);}
+.btn.primary{background:var(--ink); color:var(--panel); border-color:var(--ink);}
+.btn.primary:hover{opacity:.9;}
+.btnrow{display:flex; gap:9px; flex-wrap:wrap;}
+.danger{color:#b3341f;}
+:root[data-theme="dark"] .danger,:root:not([data-theme="light"]) .danger{color:#e08b78;}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .danger{color:#b3341f;}}
+
+.note{
+  border-left:3px solid var(--line-strong); padding:2px 0 2px 12px; color:var(--muted);
+  font-size:13px; margin:12px 0 0;
+}
+.kbd{font-family:var(--f-data); font-size:12px; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:1px 5px;}
+
+/* ─────────────── modal ─────────────── */
+.modal[hidden]{display:none;}
+.modal{position:fixed; inset:0; z-index:100; background:rgba(10,14,18,.55); display:grid; place-items:center; padding:20px;}
+.modal .box{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; max-width:640px; width:100%; max-height:86vh; overflow:auto; box-shadow:var(--shadow);}
+.modal h2{font-size:18px; margin-bottom:6px;}
+.modal textarea{font-family:var(--f-data); font-size:11.5px; height:200px; resize:vertical; white-space:pre;}
+
+/* kid view */
+.kid{position:fixed; inset:0; z-index:110; background:var(--bg); overflow:auto; padding:22px;}
+.kid[hidden]{display:none;}
+.kid .k-wrap{max-width:760px; margin:0 auto;}
+.kid h2{font-size:24px; margin-bottom:14px;}
+.kid .k-list{display:grid; gap:10px;}
+.kid .k-row{
+  display:flex; align-items:center; gap:16px; border-radius:14px; padding:16px 18px;
+  border:1px solid var(--line); box-shadow:inset 6px 0 0 var(--c);
+}
+.kid .k-row .d{font-family:var(--f-data); font-size:13px; color:var(--muted); width:120px; text-transform:capitalize;}
+.kid .k-row .p{font-family:var(--f-display); font-size:24px; color:var(--ct,var(--c));}
+.kid .k-row.first .p{font-size:34px;}
+.toast{
+  position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:200;
+  background:var(--ink); color:var(--bg); padding:10px 16px; border-radius:99px; font-size:13.5px; box-shadow:var(--shadow);
+}
+.toast[hidden]{display:none;}
+
+footer{border-top:1px solid var(--line); color:var(--muted); font-size:12.5px; padding:20px 0 40px;}
+footer p{margin:0 0 6px; max-width:70ch;}
+
+@media (max-width:640px){
+  .day{min-height:60px; padding:4px 5px;}
+  .day .who{font-size:10px;}
+  .day .tag{display:none;}
+  .tonight .who{font-size:22px;}
+  .mrow{grid-template-columns:56px 1fr 92px;}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important; animation:none !important;}}
+
+@media print{
+  :root{--bg:#fff; --panel:#fff; --panel-2:#fff; --ink:#000; --muted:#444; --line:#bbb; --tile-mix:#ffffff;}
+  body{background:#fff;}
+  .topbar .tool,.tabs,.no-print,footer .no-print,.band{display:none !important;}
+  .card{box-shadow:none; border:0; padding:0;}
+  .card + .card{margin-top:14px;}
+  .year{grid-template-columns:repeat(4,1fr); gap:12px;}
+  .day{min-height:54px;}
+  *{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
+  @page{margin:12mm;}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar no-print-border">
+  <div class="wrap">
+    <div class="brand">
+      <span class="roofs" aria-hidden="true"><i></i><i></i></span>
+      <h1>Deux Maisons</h1>
+      <small>calendrier de garde alternée</small>
+    </div>
+    <button class="tool no-print" id="btn-kid" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg>
+      Vue enfant
+    </button>
+    <button class="tool no-print" id="btn-print" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 17h12v4H6z"/></svg>
+      Imprimer
+    </button>
+    <button class="tool no-print" id="btn-theme" type="button" aria-label="Changer de thème">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></svg>
+      <span id="theme-label">Thème</span>
+    </button>
+  </div>
+</header>
+
+<section class="band">
+  <div class="wrap">
+    <div class="tonight" id="tonight">
+      <div>
+        <div class="lab">Cette nuit</div>
+        <div class="who" id="tonight-who">—</div>
+      </div>
+    </div>
+    <div class="next">
+      <div>
+        <div class="lab" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">Prochain échange</div>
+        <b id="next-when">—</b>
+      </div>
+      <span class="cd" id="next-cd">—</span>
+    </div>
+  </div>
+</section>
+
+<nav class="tabs no-print" aria-label="Vues">
+  <div class="wrap" role="tablist">
+    <button class="tab" role="tab" id="tab-mois" aria-controls="v-mois" aria-selected="true">Mois</button>
+    <button class="tab" role="tab" id="tab-annee" aria-controls="v-annee" aria-selected="false">Année</button>
+    <button class="tab" role="tab" id="tab-agenda" aria-controls="v-agenda" aria-selected="false">Périodes</button>
+    <button class="tab" role="tab" id="tab-equilibre" aria-controls="v-equilibre" aria-selected="false">Équilibre</button>
+    <button class="tab" role="tab" id="tab-reglages" aria-controls="v-reglages" aria-selected="false">Réglages</button>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- ══ MOIS ══ -->
+  <section class="view" id="v-mois" role="tabpanel" aria-labelledby="tab-mois">
+    <div class="card">
+      <div class="calhead">
+        <button class="nav-btn no-print" id="m-prev" type="button" aria-label="Mois précédent">‹</button>
+        <button class="nav-btn no-print" id="m-next" type="button" aria-label="Mois suivant">›</button>
+        <h2 id="m-title">—</h2>
+        <button class="tool no-print spacer" id="m-today" type="button">Aujourd'hui</button>
+      </div>
+      <div class="dow"><span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span></div>
+      <div class="grid" id="m-grid"></div>
+      <div class="legend" id="m-legend"></div>
+      <p class="note no-print">Une case = <strong>une nuit</strong> (du soir au lendemain matin). Cliquez une case pour forcer un échange ponctuel : automatique → parent 1 → parent 2 → automatique.</p>
+    </div>
+  </section>
+
+  <!-- ══ ANNÉE ══ -->
+  <section class="view" id="v-annee" role="tabpanel" aria-labelledby="tab-annee" hidden>
+    <div class="card">
+      <div class="calhead">
+        <button class="nav-btn no-print" id="y-prev" type="button" aria-label="Année précédente">‹</button>
+        <button class="nav-btn no-print" id="y-next" type="button" aria-label="Année suivante">›</button>
+        <h2 id="y-title">—</h2>
+        <div class="spacer legend" id="y-legend"></div>
+      </div>
+      <div class="year" id="y-grid"></div>
+    </div>
+    <div class="card">
+      <h2>Bilan de l'année</h2>
+      <div class="stats" id="y-stats"></div>
+    </div>
+  </section>
+
+  <!-- ══ PÉRIODES ══ -->
+  <section class="view" id="v-agenda" role="tabpanel" aria-labelledby="tab-agenda" hidden>
+    <div class="card">
+      <h2>Les 12 prochains mois, période par période</h2>
+      <p class="hint">Chaque ligne correspond à un séjour continu chez le même parent, avec l'heure d'échange configurée.</p>
+      <div id="a-list"></div>
+    </div>
+  </section>
+
+  <!-- ══ ÉQUILIBRE ══ -->
+  <section class="view" id="v-equilibre" role="tabpanel" aria-labelledby="tab-equilibre" hidden>
+    <div class="card">
+      <div class="calhead"><h2 id="e-title">—</h2><div class="spacer"></div></div>
+      <div class="stats" id="e-stats"></div>
+      <h2 style="margin-top:22px;font-size:15px">Répartition des nuits, mois par mois</h2>
+      <p class="hint">Utile pour repérer un déséquilibre créé par les vacances ou par un échange ponctuel.</p>
+      <div class="months" id="e-months"></div>
+    </div>
+    <div class="card">
+      <h2>Détail</h2>
+      <div class="stats" id="e-extra"></div>
+      <p class="note">Les nuits de week-end comptent les nuits de vendredi et de samedi : ce sont elles qui déséquilibrent le plus un planning, même quand le total de nuits est parfaitement partagé.</p>
+    </div>
+  </section>
+
+  <!-- ══ RÉGLAGES ══ -->
+  <section class="view" id="v-reglages" role="tabpanel" aria-labelledby="tab-reglages" hidden>
+
+    <div class="card">
+      <h2>Les deux maisons</h2>
+      <p class="hint">Les noms s'affichent partout dans le calendrier. Les couleurs restent lisibles en noir et blanc : la seconde maison est hachurée.</p>
+      <div class="row2">
+        <div class="parent-row" style="margin-bottom:12px">
+          <div class="field"><label for="a-name">Maison 1</label><input type="text" id="a-name" placeholder="Papa"/></div>
+          <input type="color" id="a-color" aria-label="Couleur de la maison 1"/>
+        </div>
+        <div class="parent-row" style="margin-bottom:12px">
+          <div class="field"><label for="b-name">Maison 2</label><input type="text" id="b-name" placeholder="Maman"/></div>
+          <input type="color" id="b-color" aria-label="Couleur de la maison 2"/>
+        </div>
+      </div>
+      <div class="field" style="max-width:340px"><label for="child-name">Prénom de l'enfant (facultatif)</label><input type="text" id="child-name" placeholder="Léa"/></div>
+    </div>
+
+    <div class="card">
+      <h2>Rythme de base</h2>
+      <p class="hint">Le rythme se répète en boucle. Les vacances et les échanges ponctuels viennent ensuite par-dessus.</p>
+      <div class="rhythms" id="rh-list"></div>
+      <div class="row2">
+        <div class="field"><label for="p-start">Début du cycle (première nuit)</label><input type="date" id="p-start"/></div>
+        <div class="field"><label for="p-first">Cette première nuit se passe chez</label><select id="p-first"></select></div>
+        <div class="field"><label for="p-hour">Heure de l'échange</label><input type="time" id="p-hour" step="300"/></div>
+        <div class="field" id="custom-field" hidden><label for="p-custom">Cycle personnalisé (nuits, en alternance)</label><input type="text" id="p-custom" placeholder="ex. 2,2,3"/></div>
+      </div>
+      <p class="note" id="rh-hint"></p>
+    </div>
+
+    <div class="card">
+      <h2>Vacances et périodes particulières</h2>
+      <p class="hint">Ajoutez chaque période réelle (vacances scolaires, ponts, séjour à l'étranger). Elle remplace le rythme de base sur ses dates.</p>
+      <div class="tablewrap">
+        <table class="vacs">
+          <thead><tr><th style="min-width:130px">Période</th><th>De la nuit du</th><th>À la nuit du</th><th>Partage</th><th>Chez</th><th>Alterner</th><th></th></tr></thead>
+          <tbody id="vac-body"></tbody>
+        </table>
+      </div>
+      <div class="btnrow" style="margin-top:14px">
+        <button class="btn" id="vac-add" type="button">+ Ajouter une période</button>
+        <button class="btn" id="vac-preset" type="button">+ Les 5 vacances scolaires</button>
+        <button class="btn" id="vac-dup" type="button">Dupliquer sur l'année suivante</button>
+      </div>
+      <p class="note"><strong>Alterner</strong> inverse automatiquement le partage une année sur deux (années paires / impaires) : c'est la formule la plus courante dans les conventions parentales. « Dupliquer » décale toutes les périodes de 364 jours, ce qui conserve les jours de la semaine.</p>
+    </div>
+
+    <div class="card">
+      <h2>Échanges ponctuels</h2>
+      <p class="hint">Les nuits que vous avez forcées à la main depuis le calendrier.</p>
+      <div id="ov-list"></div>
+    </div>
+
+    <div class="card">
+      <h2>Affichage</h2>
+      <div class="checks">
+        <label class="check"><input type="checkbox" id="opt-stripes"/><span>Hachurer la seconde maison<small>Rend le calendrier lisible imprimé en noir et blanc, et pour les daltoniens.</small></span></label>
+        <label class="check"><input type="checkbox" id="opt-holidays"/><span>Afficher les jours fériés français<small>Calculés (y compris Pâques et l'Ascension), aucune donnée téléchargée.</small></span></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Agenda, partage, sauvegarde</h2>
+      <p class="hint">Tout reste sur cet appareil. Rien n'est envoyé nulle part : il n'y a pas de serveur derrière cette page.</p>
+      <div class="row2">
+        <div class="field"><label for="x-from">Exporter du</label><input type="date" id="x-from"/></div>
+        <div class="field"><label for="x-to">au</label><input type="date" id="x-to"/></div>
+      </div>
+      <div class="checks" style="margin-bottom:14px">
+        <label class="check"><input type="checkbox" id="x-allday"/><span>Événements « journée entière »<small>Sinon, chaque séjour démarre et se termine à l'heure d'échange.</small></span></label>
+        <label class="check"><input type="checkbox" id="x-alarm"/><span>Rappel 2 h avant chaque échange</span></label>
+      </div>
+      <div class="btnrow">
+        <button class="btn primary" id="btn-ics" type="button">Exporter vers l'agenda (.ics)</button>
+        <button class="btn" id="btn-share" type="button">Copier le lien du planning</button>
+        <button class="btn" id="btn-json" type="button">Sauvegarder un fichier</button>
+        <button class="btn" id="btn-load" type="button">Restaurer un fichier</button>
+        <button class="btn danger" id="btn-reset" type="button">Tout effacer</button>
+      </div>
+      <input type="file" id="file-in" accept=".json,application/json" hidden/>
+      <p class="note">Le <strong>lien du planning</strong> contient toute la configuration encodée dans l'adresse elle-même. L'autre parent l'ouvre et voit exactement le même calendrier, sans compte ni application. Un lien reçu est une copie : les modifications de chacun restent chez lui.</p>
+    </div>
+
+    <div class="card">
+      <h2>Comment lire les rythmes</h2>
+      <p class="hint" style="margin-bottom:8px">Les nombres indiquent des nuits consécutives, en alternance entre les deux maisons.</p>
+      <ul style="margin:0;padding-left:18px;color:var(--muted);font-size:13.5px;line-height:1.7">
+        <li><strong>7 / 7</strong> — une semaine chacun, un seul échange par semaine.</li>
+        <li><strong>2-2-3</strong> — l'enfant ne reste jamais plus de trois nuits loin d'un parent ; le week-end alterne. Souvent conseillé pour les jeunes enfants.</li>
+        <li><strong>2-2-5-5</strong> — mêmes jours de semaine fixes toutes les semaines (utile pour les activités), week-ends alternés.</li>
+        <li><strong>Week-ends alternés</strong> — résidence principale chez une maison, l'autre prend un week-end sur deux (12 nuits / 2 nuits).</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>Deux Maisons</strong> fonctionne entièrement dans votre navigateur. Aucun compte, aucun serveur, aucune donnée transmise : enregistrez la page (<span class="kbd">Ctrl</span>+<span class="kbd">S</span>) et elle marche hors connexion.</p>
+    <p class="no-print">Cet outil aide à organiser et à vérifier un planning. Il ne remplace pas une convention parentale ni une décision de justice, qui restent seules opposables.</p>
+  </div>
+</footer>
+
+<div class="modal" id="modal" hidden>
+  <div class="box">
+    <h2 id="modal-title">—</h2>
+    <p class="hint" id="modal-hint"></p>
+    <textarea id="modal-text" readonly spellcheck="false"></textarea>
+    <div class="btnrow" style="margin-top:12px">
+      <button class="btn primary" id="modal-copy" type="button">Copier</button>
+      <a class="btn" id="modal-dl" download>Télécharger</a>
+      <button class="btn" id="modal-close" type="button">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="kid" id="kid" hidden>
+  <div class="k-wrap">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+      <h2 id="kid-title">Où je dors ?</h2>
+      <button class="tool" id="kid-close" type="button" style="margin-left:auto">Fermer</button>
+    </div>
+    <div class="k-list" id="kid-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+"use strict";
+/* ════════════════════════════════════════════════════════════
+   Deux Maisons — moteur de planning de garde alternée
+   Tout est calculé localement. Aucune requête réseau.
+   Unité de base : la NUIT, désignée par son jour de départ.
+   ════════════════════════════════════════════════════════════ */
+
+/* ── dates : un entier = un jour (jours depuis 1970, ancré en UTC) ── */
+var DAYMS = 86400000;
+function P(iso){ var p = String(iso).split("-").map(Number); return Date.UTC(p[0], p[1] - 1, p[2]) / DAYMS; }
+function ISO(n){ return new Date(n * DAYMS).toISOString().slice(0, 10); }
+function D(n){ return new Date(n * DAYMS); }
+function dow(n){ return (D(n).getUTCDay() + 6) % 7; }              // 0 = lundi
+function yearOf(n){ return D(n).getUTCFullYear(); }
+function monthOf(n){ return D(n).getUTCMonth(); }
+function dateOf(n){ return D(n).getUTCDate(); }
+function mkDay(y, m, d){ return Date.UTC(y, m, d) / DAYMS; }
+function today(){ var t = new Date(); return mkDay(t.getFullYear(), t.getMonth(), t.getDate()); }
+function fmt(n, opt){
+  var o = Object.assign({ timeZone: "UTC" }, opt);
+  return new Intl.DateTimeFormat("fr-FR", o).format(D(n));
+}
+function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+function other(p){ return p === "a" ? "b" : "a"; }
+
+/* ── jours fériés français, calculés (comput de Pâques, Meeus/Jones/Butcher) ── */
+function easter(y){
+  var a = y % 19, b = Math.floor(y / 100), c = y % 100;
+  var d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  var g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  var i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+  var m = Math.floor((a + 11 * h + 22 * l) / 451);
+  var mo = Math.floor((h + l - 7 * m + 114) / 31), da = ((h + l - 7 * m + 114) % 31) + 1;
+  return mkDay(y, mo - 1, da);
+}
+var holidayCache = {};
+function holidays(y){
+  if (holidayCache[y]) return holidayCache[y];
+  var E = easter(y), h = {};
+  h[mkDay(y, 0, 1)]   = "Jour de l'an";
+  h[E + 1]            = "Lundi de Pâques";
+  h[mkDay(y, 4, 1)]   = "Fête du Travail";
+  h[mkDay(y, 4, 8)]   = "Victoire 1945";
+  h[E + 39]           = "Ascension";
+  h[E + 50]           = "Lundi de Pentecôte";
+  h[mkDay(y, 6, 14)]  = "Fête nationale";
+  h[mkDay(y, 7, 15)]  = "Assomption";
+  h[mkDay(y, 10, 1)]  = "Toussaint";
+  h[mkDay(y, 10, 11)] = "Armistice";
+  h[mkDay(y, 11, 25)] = "Noël";
+  holidayCache[y] = h;
+  return h;
+}
+function holidayName(n){ return holidays(yearOf(n))[n] || null; }
+
+/* ── rythmes proposés ── */
+var RHYTHMS = [
+  { id: "7-7",     name: "1 semaine / 1 semaine", segs: [7, 7],            snap: 4, desc: "Un échange par semaine, le vendredi." },
+  { id: "14-14",   name: "Quinzaine",             segs: [14, 14],          snap: 6, desc: "Deux semaines chacun, pour les longues distances." },
+  { id: "2-2-3",   name: "2-2-3",                 segs: [2, 2, 3, 2, 2, 3], snap: 0, desc: "Jamais plus de 3 nuits sans se voir. Week-ends alternés." },
+  { id: "2-2-5-5", name: "2-2-5-5",               segs: [2, 2, 5, 5],      snap: 0, desc: "Mêmes jours de semaine chaque semaine, week-ends alternés." },
+  { id: "3-4-4-3", name: "3-4-4-3",               segs: [3, 4, 4, 3],      snap: 0, desc: "Alternance hebdomadaire adoucie, échange en milieu de semaine." },
+  { id: "12-2",    name: "Week-ends alternés",    segs: [12, 2],           snap: 6, desc: "Résidence principale + un week-end sur deux." },
+  { id: "custom",  name: "Personnalisé",          segs: [7, 7],            snap: null, desc: "Écrivez votre propre cycle, par exemple 2,2,3." }
+];
+function rhythmById(id){
+  for (var i = 0; i < RHYTHMS.length; i++) if (RHYTHMS[i].id === id) return RHYTHMS[i];
+  return RHYTHMS[0];
+}
+
+/* ── état ── */
+function defaultState(){
+  var t = today();
+  var start = t + ((4 - dow(t)) + 7) % 7;                          // prochain vendredi
+  return {
+    v: 1,
+    a: { name: "Papa",  color: "#2e6e8e" },
+    b: { name: "Maman", color: "#b65c25" },
+    child: "",
+    rhythm: "7-7",
+    segs: [7, 7],
+    start: ISO(start),
+    first: "a",
+    hour: "18:00",
+    vacations: [],
+    overrides: {},
+    stripes: true,
+    showHolidays: true,
+    icsAllDay: false,
+    icsAlarm: true
+  };
+}
+var S = defaultState();
+
+/* ── qui dort où : priorité échange ponctuel > vacances > rythme ── */
+function fromPattern(n){
+  var segs = S.segs && S.segs.length ? S.segs : [7, 7];
+  var cycle = 0, i;
+  for (i = 0; i < segs.length; i++) cycle += segs[i];
+  if (cycle <= 0) return S.first;
+  var off = ((n - P(S.start)) % cycle + cycle) % cycle;
+  var idx = 0;
+  while (off >= segs[idx]) { off -= segs[idx]; idx++; }
+  return idx % 2 === 0 ? S.first : other(S.first);
+}
+function vacationOwner(n, v){
+  if (!v.start || !v.end) return null;
+  var s = P(v.start), e = P(v.end);
+  if (e < s || n < s || n > e) return null;
+  var who = v.who === "b" ? "b" : "a";
+  if (v.alt && yearOf(s) % 2 === 1) who = other(who);
+  if (v.rule === "whole") return who;
+  var firstLen = Math.ceil((e - s + 1) / 2);                        // moitié / moitié
+  return n < s + firstLen ? who : other(who);
+}
+function assign(n){
+  var key = ISO(n);
+  if (S.overrides[key] === "a" || S.overrides[key] === "b") return { p: S.overrides[key], src: "swap", label: "échange ponctuel" };
+  for (var i = 0; i < S.vacations.length; i++) {
+    var o = vacationOwner(n, S.vacations[i]);
+    if (o) return { p: o, src: "vac", label: S.vacations[i].label || "vacances" };
+  }
+  return { p: fromPattern(n), src: "base", label: "" };
+}
+
+/* ── découpage en périodes continues ── */
+function periods(from, to){
+  var out = [], cur = null;
+  for (var n = from; n <= to; n++) {
+    var a = assign(n);
+    if (cur && cur.p === a.p) { cur.end = n; cur.nights++; }
+    else { if (cur) out.push(cur); cur = { p: a.p, start: n, end: n, nights: 1 }; }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+function nextChange(from){
+  var cur = assign(from).p;
+  for (var n = from + 1; n <= from + 400; n++) if (assign(n).p !== cur) return n;
+  return null;
+}
+
+/* ── statistiques sur une plage ── */
+function tally(from, to){
+  var r = {
+    a: 0, b: 0, weekend: { a: 0, b: 0 }, vac: { a: 0, b: 0 },
+    changes: 0, gap: { a: 0, b: 0 }, months: [], total: 0
+  };
+  var prev = null, run = { a: 0, b: 0 };
+  var mIndex = {};
+  for (var n = from; n <= to; n++) {
+    var x = assign(n), p = x.p, d = dow(n);
+    r[p]++; r.total++;
+    if (d === 4 || d === 5) r.weekend[p]++;
+    if (x.src === "vac") r.vac[p]++;
+    if (prev !== null && prev !== p) r.changes++;
+    run[p]++; run[other(p)] = 0;
+    if (run[p] > r.gap[other(p)]) r.gap[other(p)] = run[p];          // plus longue absence pour l'autre
+    var mk = yearOf(n) + "-" + monthOf(n);
+    if (!mIndex[mk]) { mIndex[mk] = { key: mk, at: n, a: 0, b: 0 }; r.months.push(mIndex[mk]); }
+    mIndex[mk][p]++;
+    prev = p;
+  }
+  return r;
+}
+
+/* ── couleurs ── */
+function hex2rgb(h){
+  h = String(h).replace("#", "");
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  var v = parseInt(h, 16);
+  if (isNaN(v)) v = 0;
+  return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+}
+function mix(c1, c2, t){
+  var A = hex2rgb(c1), B = hex2rgb(c2);
+  return "rgb(" + A.map(function(x, i){ return Math.round(x * t + B[i] * (1 - t)); }).join(",") + ")";
+}
+function tileBg(p){
+  var css = getComputedStyle(document.documentElement).getPropertyValue("--tile-mix").trim() || "#ffffff";
+  var dark = isDark();
+  return mix(S[p].color, css, dark ? 0.26 : 0.16);
+}
+/* couleur du texte : la teinte du parent, éclaircie sur fond sombre, appuyée sur fond clair */
+function tileInk(p){
+  return isDark() ? mix(S[p].color, "#ffffff", 0.5) : mix(S[p].color, "#000000", 0.86);
+}
+function isDark(){
+  var t = document.documentElement.getAttribute("data-theme");
+  if (t === "dark") return true;
+  if (t === "light") return false;
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+function nameOf(p){ return (S[p].name || "").trim() || (p === "a" ? "Maison 1" : "Maison 2"); }
+
+/* ════════════ persistance ════════════ */
+var LS = "deux-maisons.v1";
+/* confirm() peut être bloqué dans un cadre restreint : on choisit alors le repli le plus sûr */
+function ask(question, fallback){
+  try { return confirm(question); } catch (e) { return fallback; }
+}
+function save(){
+  try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {}
+}
+function load(){
+  try {
+    var raw = localStorage.getItem(LS);
+    if (raw) S = Object.assign(defaultState(), JSON.parse(raw));
+  } catch (e) {}
+}
+function b64enc(str){
+  var bytes = new TextEncoder().encode(str), bin = "";
+  for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function b64dec(s){
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  var bin = atob(s), bytes = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+function readHash(){
+  var h = location.hash.replace(/^#p=/, "");
+  if (!h || h === location.hash) return false;
+  var obj = null;
+  try { obj = JSON.parse(b64dec(h)); } catch (e) { return false; }
+  if (!obj || !obj.a || !obj.b) return false;
+  var hadLocal = false;
+  try { hadLocal = !!localStorage.getItem(LS); } catch (e) {}
+  // le lien est une copie : on n'écrase un planning déjà enregistré qu'avec l'accord de la personne
+  if (hadLocal && !ask("Ce lien contient un planning partagé. L'ouvrir remplacera le planning enregistré sur cet appareil. Continuer ?", false)) {
+    history.replaceState(null, "", location.pathname + location.search);
+    return false;
+  }
+  S = Object.assign(defaultState(), obj);
+  // on retire le lien de l'adresse, sinon un rechargement annulerait les modifications suivantes
+  history.replaceState(null, "", location.pathname + location.search);
+  return true;
+}
+
+/* ════════════ export agenda (.ics) ════════════ */
+function pad(x){ return String(x).length < 2 ? "0" + x : String(x); }
+function icsDate(n){ var d = D(n); return "" + d.getUTCFullYear() + pad(d.getUTCMonth() + 1) + pad(d.getUTCDate()); }
+function icsFold(line){
+  var out = [], s = line;
+  while (s.length > 73) { out.push(s.slice(0, 73)); s = " " + s.slice(73); }
+  out.push(s);
+  return out.join("\r\n");
+}
+function icsEscape(s){ return String(s).replace(/[\\;,]/g, "\\$&").replace(/\n/g, "\\n"); }
+function buildICS(from, to){
+  var hm = (S.hour || "18:00").split(":");
+  var hh = pad(parseInt(hm[0], 10) || 0), mm = pad(parseInt(hm[1], 10) || 0);
+  var stamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  var L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Deux Maisons//FR", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"];
+  L.push(icsFold("X-WR-CALNAME:" + icsEscape("Garde — " + nameOf("a") + " / " + nameOf("b"))));
+  var list = periods(from, to);
+  for (var i = 0; i < list.length; i++) {
+    var pr = list[i];
+    var title = (S.child ? S.child.trim() + " chez " : "Chez ") + nameOf(pr.p);
+    L.push("BEGIN:VEVENT");
+    L.push("UID:dm-" + icsDate(pr.start) + "-" + pr.p + "@deux-maisons");
+    L.push("DTSTAMP:" + stamp);
+    if (S.icsAllDay) {
+      L.push("DTSTART;VALUE=DATE:" + icsDate(pr.start));
+      L.push("DTEND;VALUE=DATE:" + icsDate(pr.end + 1));
+    } else {
+      L.push("DTSTART:" + icsDate(pr.start) + "T" + hh + mm + "00");
+      L.push("DTEND:" + icsDate(pr.end + 1) + "T" + hh + mm + "00");
+    }
+    L.push(icsFold("SUMMARY:" + icsEscape(title)));
+    L.push(icsFold("DESCRIPTION:" + icsEscape(pr.nights + (pr.nights > 1 ? " nuits" : " nuit") + " — planning Deux Maisons")));
+    L.push("TRANSP:TRANSPARENT");
+    if (S.icsAlarm && !S.icsAllDay) {
+      L.push("BEGIN:VALARM", "TRIGGER:-PT2H", "ACTION:DISPLAY", icsFold("DESCRIPTION:" + icsEscape("Échange : " + title)), "END:VALARM");
+    }
+    L.push("END:VEVENT");
+  }
+  L.push("END:VCALENDAR");
+  return L.join("\r\n") + "\r\n";
+}
+
+/* ════════════ rendu ════════════ */
+var el = function(id){ return document.getElementById(id); };
+var monthCursor = null, yearCursor = null;
+
+function applyColors(){
+  document.documentElement.style.setProperty("--ca", S.a.color);
+  document.documentElement.style.setProperty("--cb", S.b.color);
+  document.documentElement.style.setProperty("--stripe", isDark() ? "rgba(255,255,255,.22)" : "rgba(0,0,0,.16)");
+}
+
+function renderBand(){
+  var t = today(), x = assign(t);
+  var who = nameOf(x.p);
+  var kid = S.child ? S.child.trim() : "";
+  el("tonight-who").innerHTML = (kid ? kid + " dort chez <em>" : "Chez <em>") + escapeHTML(who) + "</em>";
+  el("tonight").style.setProperty("--now-c", S[x.p].color);
+  el("tonight").style.setProperty("--now-t", tileInk(x.p));
+  var nc = nextChange(t);
+  if (nc === null) { el("next-when").textContent = "aucun changement prévu"; el("next-cd").textContent = "—"; return; }
+  var to = assign(nc).p;
+  el("next-when").textContent = cap(fmt(nc, { weekday: "long", day: "numeric", month: "long" })) + " à " + (S.hour || "18:00").replace(":", " h ") + " → " + nameOf(to);
+  var days = nc - t;
+  el("next-cd").textContent = days === 0 ? "ce soir" : days === 1 ? "demain" : "dans " + days + " jours";
+}
+
+function escapeHTML(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+  });
+}
+
+function renderMonth(){
+  var cur = monthCursor, y = yearOf(cur), m = monthOf(cur);
+  el("m-title").textContent = cap(fmt(cur, { month: "long", year: "numeric" }));
+  var first = mkDay(y, m, 1), lead = dow(first), last = mkDay(y, m + 1, 0);
+  var startCell = first - lead, cells = Math.ceil((lead + (last - first + 1)) / 7) * 7;
+  var g = el("m-grid");
+  g.textContent = "";
+  var t = today();
+  for (var i = 0; i < cells; i++) {
+    var n = startCell + i, x = assign(n), inMonth = monthOf(n) === m;
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "day assigned" + (inMonth ? "" : " out") + (n === t ? " today" : "");
+    b.style.setProperty("--c", S[x.p].color);
+    b.style.setProperty("--ct", tileInk(x.p));
+    b.style.background = tileBg(x.p);
+    if (S.stripes && x.p === "b") b.className += " striped";
+    if (x.src === "vac") b.className += " vac";
+    if (x.src === "swap") b.className += " swap";
+    var hol = S.showHolidays ? holidayName(n) : null;
+    if (hol) b.className += " holiday";
+    b.setAttribute("aria-label", fmt(n, { weekday: "long", day: "numeric", month: "long" }) + " — nuit chez " + nameOf(x.p)
+      + (x.src === "swap" ? ", échange ponctuel" : x.src === "vac" ? ", " + x.label : "") + (hol ? ", " + hol : ""));
+
+    var head = document.createElement("span");
+    head.className = "n";
+    head.textContent = dateOf(n);
+    b.appendChild(head);
+
+    var w = document.createElement("span");
+    w.className = "who";
+    w.textContent = nameOf(x.p);
+    b.appendChild(w);
+
+    var tagTxt = hol ? hol : (x.src === "vac" ? x.label : "");
+    if (tagTxt) { var tg = document.createElement("span"); tg.className = "tag"; tg.textContent = tagTxt; b.appendChild(tg); }
+    if (assign(n - 1).p !== x.p) {                                   // première nuit d'un séjour : heure d'arrivée
+      var ar = document.createElement("span");
+      ar.className = "arrive";
+      ar.textContent = "↦ " + (S.hour || "18:00").replace(":", " h ").replace(/ h 00$/, " h");
+      b.appendChild(ar);
+    }
+
+    (function(day){
+      b.addEventListener("click", function(){
+        var k = ISO(day), o = S.overrides[k];
+        if (!o) S.overrides[k] = "a";
+        else if (o === "a") S.overrides[k] = "b";
+        else delete S.overrides[k];
+        save(); renderAll();
+      });
+    })(n);
+    g.appendChild(b);
+  }
+  var lg = el("m-legend");
+  lg.innerHTML = "";
+  lg.appendChild(chip("a")); lg.appendChild(chip("b"));
+  var marks = document.createElement("span");
+  marks.style.color = "var(--muted)";
+  marks.textContent = "↦ heure d'arrivée · ✱ échange ponctuel";
+  lg.appendChild(marks);
+  var stat = tally(first, last);
+  var extra = document.createElement("span");
+  extra.style.color = "var(--muted)";
+  extra.textContent = "Ce mois-ci : " + stat.a + " nuit" + (stat.a > 1 ? "s" : "") + " / " + stat.b + " nuit" + (stat.b > 1 ? "s" : "") + " · " + stat.changes + " échange" + (stat.changes > 1 ? "s" : "");
+  lg.appendChild(extra);
+}
+function chip(p){
+  var s = document.createElement("span");
+  s.className = "chip" + (p === "b" && S.stripes ? " b" : "");
+  var i = document.createElement("i");
+  i.style.background = S[p].color;
+  s.appendChild(i);
+  s.appendChild(document.createTextNode(nameOf(p)));
+  return s;
+}
+
+function renderYear(){
+  var y = yearCursor;
+  el("y-title").textContent = y;
+  var lg = el("y-legend");
+  lg.innerHTML = "";
+  lg.appendChild(chip("a")); lg.appendChild(chip("b"));
+  var g = el("y-grid");
+  g.textContent = "";
+  var t = today();
+  for (var m = 0; m < 12; m++) {
+    var box = document.createElement("div");
+    box.className = "mini";
+    var h = document.createElement("h3");
+    h.textContent = fmt(mkDay(y, m, 1), { month: "long" });
+    box.appendChild(h);
+    var dh = document.createElement("div");
+    dh.className = "dowmini";
+    ["L", "M", "M", "J", "V", "S", "D"].forEach(function(d){ var s = document.createElement("span"); s.textContent = d; dh.appendChild(s); });
+    box.appendChild(dh);
+    var mg = document.createElement("div");
+    mg.className = "mg";
+    var first = mkDay(y, m, 1), lead = dow(first), last = mkDay(y, m + 1, 0);
+    for (var i = 0; i < lead; i++) { var pad0 = document.createElement("span"); pad0.className = "pad"; mg.appendChild(pad0); }
+    var count = { a: 0, b: 0 };
+    for (var n = first; n <= last; n++) {
+      var x = assign(n), s = document.createElement("span");
+      count[x.p]++;
+      s.textContent = dateOf(n);
+      s.style.background = tileBg(x.p);
+      s.style.setProperty("--stripe", isDark() ? "rgba(255,255,255,.32)" : "rgba(0,0,0,.3)");
+      if (S.stripes && x.p === "b") s.className = "st";
+      if (n === t) s.className += " td";
+      s.title = fmt(n, { day: "numeric", month: "long" }) + " — " + nameOf(x.p);
+      mg.appendChild(s);
+    }
+    box.appendChild(mg);
+    var tot = document.createElement("div");
+    tot.className = "mtot";
+    ["a", "b"].forEach(function(p, i){
+      var sp = document.createElement("span");
+      sp.style.color = tileInk(p);
+      sp.textContent = (i ? "/ " : "") + count[p] + (i ? " n." : "");
+      tot.appendChild(sp);
+    });
+    box.appendChild(tot);
+    g.appendChild(box);
+  }
+  var st = tally(mkDay(y, 0, 1), mkDay(y, 11, 31));
+  el("y-stats").innerHTML = statBlocks(st, y);
+}
+
+function pct(x, tot){ return tot ? Math.round(x / tot * 1000) / 10 : 0; }
+function statBlocks(st, label){
+  function box(k, v, s){ return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="s">' + s + '</div></div>'; }
+  return [
+    box("Nuits chez " + escapeHTML(nameOf("a")), st.a, pct(st.a, st.total).toString().replace(".", ",") + " % de " + label),
+    box("Nuits chez " + escapeHTML(nameOf("b")), st.b, pct(st.b, st.total).toString().replace(".", ",") + " % de " + label),
+    box("Écart", (st.a > st.b ? "+" : "") + (st.a - st.b), "nuits en faveur de " + escapeHTML(nameOf(st.a >= st.b ? "a" : "b"))),
+    box("Échanges", st.changes, "trajets sur la période")
+  ].join("");
+}
+
+function renderAgenda(){
+  var from = today(), to = from + 365;
+  var list = periods(from, to), box = el("a-list");
+  box.textContent = "";
+  var hm = (S.hour || "18:00").replace(":", " h ");
+  for (var i = 0; i < list.length; i++) {
+    var pr = list[i];
+    var row = document.createElement("div");
+    row.className = "per";
+    row.style.setProperty("--c", S[pr.p].color);
+    row.style.setProperty("--ct", tileInk(pr.p));
+    var rail = document.createElement("div"); rail.className = "rail"; row.appendChild(rail);
+    var txt = document.createElement("div"); txt.className = "txt";
+    var b = document.createElement("b"); b.textContent = nameOf(pr.p); txt.appendChild(b);
+    var dts = document.createElement("div"); dts.className = "dates";
+    dts.textContent = "du " + fmt(pr.start, { weekday: "short", day: "numeric", month: "short" }) + " " + hm
+                    + " au " + fmt(pr.end + 1, { weekday: "short", day: "numeric", month: "short" }) + " " + hm;
+    txt.appendChild(dts);
+    row.appendChild(txt);
+    var len = document.createElement("div"); len.className = "len";
+    len.textContent = pr.nights + " nuit" + (pr.nights > 1 ? "s" : "");
+    row.appendChild(len);
+    box.appendChild(row);
+  }
+}
+
+function renderBalance(){
+  var y = yearCursor;
+  el("e-title").textContent = "Équilibre " + y;
+  var st = tally(mkDay(y, 0, 1), mkDay(y, 11, 31));
+  el("e-stats").innerHTML = statBlocks(st, y);
+  var mBox = el("e-months");
+  mBox.textContent = "";
+  st.months.forEach(function(m){
+    var row = document.createElement("div"); row.className = "mrow";
+    var name = document.createElement("div"); name.className = "name";
+    name.textContent = fmt(m.at, { month: "long" });
+    var bar = document.createElement("div"); bar.className = "bar";
+    var tot = m.a + m.b;
+    ["a", "b"].forEach(function(p){
+      var d = document.createElement("div");
+      d.style.width = (tot ? m[p] / tot * 100 : 50) + "%";
+      d.style.background = S[p].color;
+      if (p === "b" && S.stripes) d.style.backgroundImage = "repeating-linear-gradient(135deg,transparent 0 4px,rgba(255,255,255,.35) 4px 5px)";
+      bar.appendChild(d);
+    });
+    var num = document.createElement("div"); num.className = "num";
+    num.textContent = m.a + " / " + m.b;
+    row.appendChild(name); row.appendChild(bar); row.appendChild(num);
+    mBox.appendChild(row);
+  });
+  function box(k, v, s){ return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="s">' + s + '</div></div>'; }
+  var wTot = st.weekend.a + st.weekend.b, vTot = st.vac.a + st.vac.b;
+  el("e-extra").innerHTML = [
+    box("Nuits de week-end", st.weekend.a + " / " + st.weekend.b, wTot ? pct(st.weekend.a, wTot).toString().replace(".", ",") + " % pour " + escapeHTML(nameOf("a")) : "—"),
+    box("Nuits de vacances", st.vac.a + " / " + st.vac.b, vTot ? "sur " + vTot + " nuits déclarées" : "aucune période déclarée"),
+    box("Plus longue absence", st.gap.a + " j / " + st.gap.b + " j", "sans voir " + escapeHTML(nameOf("a")) + " / " + escapeHTML(nameOf("b"))),
+    box("Échanges ponctuels", Object.keys(S.overrides).length, "nuits forcées à la main")
+  ].join("");
+}
+
+function renderSettings(){
+  el("a-name").value = S.a.name; el("a-color").value = S.a.color;
+  el("b-name").value = S.b.name; el("b-color").value = S.b.color;
+  el("child-name").value = S.child || "";
+  el("p-start").value = S.start;
+  el("p-hour").value = S.hour;
+  el("p-custom").value = S.segs.join(",");
+  el("custom-field").hidden = S.rhythm !== "custom";
+  var sel = el("p-first");
+  sel.innerHTML = '<option value="a">' + escapeHTML(nameOf("a")) + "</option><option value=\"b\">" + escapeHTML(nameOf("b")) + "</option>";
+  sel.value = S.first;
+  el("opt-stripes").checked = !!S.stripes;
+  el("opt-holidays").checked = !!S.showHolidays;
+  el("x-allday").checked = !!S.icsAllDay;
+  el("x-alarm").checked = !!S.icsAlarm;
+
+  var rl = el("rh-list");
+  rl.textContent = "";
+  RHYTHMS.forEach(function(r){
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "rh";
+    b.setAttribute("aria-pressed", String(S.rhythm === r.id));
+    var t = document.createElement("b"); t.textContent = r.name; b.appendChild(t);
+    var strip = document.createElement("div"); strip.className = "strip";
+    var segs = r.id === "custom" ? S.segs : r.segs;
+    var totalSeg = segs.reduce(function(x, y){ return x + y; }, 0) || 1;
+    segs.forEach(function(len, i){
+      var d = document.createElement("div");
+      d.style.width = (len / totalSeg * 100) + "%";
+      d.style.background = S[i % 2 === 0 ? "a" : "b"].color;
+      strip.appendChild(d);
+    });
+    b.appendChild(strip);
+    var s = document.createElement("small"); s.textContent = r.desc; b.appendChild(s);
+    b.addEventListener("click", function(){
+      S.rhythm = r.id;
+      if (r.id !== "custom") {
+        S.segs = r.segs.slice();
+        if (r.snap !== null && r.snap !== undefined) {
+          var s0 = P(S.start);
+          S.start = ISO(s0 + ((r.snap - dow(s0)) + 7) % 7);
+        }
+      }
+      save(); renderAll();
+    });
+    rl.appendChild(b);
+  });
+  var rr = rhythmById(S.rhythm);
+  var days = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
+  el("rh-hint").textContent = "Cycle de " + S.segs.reduce(function(x, y){ return x + y; }, 0) + " nuits ("
+    + S.segs.join(" + ") + "), premier échange un " + days[dow(P(S.start) + S.segs[0])] + "."
+    + (rr.snap !== null && rr.snap !== undefined ? " Départ calé sur un " + days[rr.snap] + ", modifiable ci-dessus." : "");
+
+  renderVacs();
+  renderOverrides();
+  if (!el("x-from").value) { el("x-from").value = ISO(today()); el("x-to").value = ISO(today() + 365); }
+}
+
+function renderVacs(){
+  var tb = el("vac-body");
+  tb.textContent = "";
+  if (!S.vacations.length) {
+    var tr0 = document.createElement("tr");
+    var td0 = document.createElement("td");
+    td0.colSpan = 7; td0.style.color = "var(--muted)"; td0.style.paddingTop = "12px";
+    td0.textContent = "Aucune période déclarée : le rythme de base s'applique toute l'année.";
+    tr0.appendChild(td0); tb.appendChild(tr0);
+    return;
+  }
+  S.vacations.forEach(function(v, i){
+    var tr = document.createElement("tr");
+    tr.appendChild(cell(inp("text", v.label, function(val){ v.label = val; }, "Vacances")));
+    tr.appendChild(cell(inp("date", v.start, function(val){ v.start = val; })));
+    tr.appendChild(cell(inp("date", v.end, function(val){ v.end = val; })));
+    tr.appendChild(cell(sel([["half", "Moitié / moitié"], ["whole", "Toute la période"]], v.rule, function(val){ v.rule = val; })));
+    tr.appendChild(cell(sel([["a", nameOf("a")], ["b", nameOf("b")]], v.who, function(val){ v.who = val; })));
+    var wrap = document.createElement("label");
+    wrap.className = "check"; wrap.style.margin = "0";
+    var cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = !!v.alt;
+    cb.addEventListener("change", function(){ v.alt = cb.checked; save(); renderAll(); });
+    wrap.appendChild(cb);
+    var sp = document.createElement("span");
+    sp.style.fontSize = "12px"; sp.textContent = yearOf(P(v.start || S.start)) % 2 === 0 ? "années paires" : "années impaires";
+    wrap.appendChild(sp);
+    tr.appendChild(cell(wrap));
+    var del = document.createElement("button");
+    del.type = "button"; del.className = "icon-btn"; del.title = "Supprimer"; del.textContent = "✕";
+    del.addEventListener("click", function(){ S.vacations.splice(i, 1); save(); renderAll(); });
+    tr.appendChild(cell(del));
+    tb.appendChild(tr);
+  });
+  function cell(node){ var td = document.createElement("td"); td.appendChild(node); return td; }
+  function inp(type, val, on, ph){
+    var e = document.createElement("input");
+    e.type = type; e.value = val || ""; if (ph) e.placeholder = ph;
+    e.addEventListener("change", function(){ on(e.value); save(); renderAll(); });
+    return e;
+  }
+  function sel(opts, val, on){
+    var e = document.createElement("select");
+    opts.forEach(function(o){
+      var op = document.createElement("option");
+      op.value = o[0]; op.textContent = o[1];
+      e.appendChild(op);
+    });
+    e.value = val || opts[0][0];
+    e.addEventListener("change", function(){ on(e.value); save(); renderAll(); });
+    return e;
+  }
+}
+
+function renderOverrides(){
+  var box = el("ov-list");
+  box.textContent = "";
+  var keys = Object.keys(S.overrides).sort();
+  if (!keys.length) {
+    var p = document.createElement("p");
+    p.className = "hint"; p.style.margin = "0";
+    p.textContent = "Aucun échange ponctuel. Cliquez une case du calendrier mensuel pour en créer un.";
+    box.appendChild(p);
+    return;
+  }
+  keys.forEach(function(k){
+    var row = document.createElement("div");
+    row.className = "per";
+    row.style.setProperty("--c", S[S.overrides[k]].color);
+    row.style.setProperty("--ct", tileInk(S.overrides[k]));
+    var rail = document.createElement("div"); rail.className = "rail"; row.appendChild(rail);
+    var txt = document.createElement("div"); txt.className = "txt";
+    txt.innerHTML = "<b>" + escapeHTML(nameOf(S.overrides[k])) + "</b><div class=\"dates\">nuit du " + fmt(P(k), { weekday: "long", day: "numeric", month: "long", year: "numeric" }) + "</div>";
+    row.appendChild(txt);
+    var del = document.createElement("button");
+    del.type = "button"; del.className = "icon-btn"; del.textContent = "✕"; del.title = "Annuler cet échange";
+    del.addEventListener("click", function(){ delete S.overrides[k]; save(); renderAll(); });
+    row.appendChild(del);
+    box.appendChild(row);
+  });
+  var clear = document.createElement("button");
+  clear.type = "button"; clear.className = "btn danger"; clear.style.marginTop = "12px";
+  clear.textContent = "Annuler tous les échanges ponctuels";
+  clear.addEventListener("click", function(){ S.overrides = {}; save(); renderAll(); });
+  box.appendChild(clear);
+}
+
+function renderAll(){
+  applyColors();
+  renderBand();
+  renderMonth();
+  renderYear();
+  renderAgenda();
+  renderBalance();
+  renderSettings();
+}
+
+/* ════════════ interactions ════════════ */
+function toast(msg){
+  var t = el("toast");
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toast._t);
+  toast._t = setTimeout(function(){ t.hidden = true; }, 2600);
+}
+function showModal(title, hint, text, filename, mime){
+  el("modal-title").textContent = title;
+  el("modal-hint").textContent = hint;
+  el("modal-text").value = text;
+  var dl = el("modal-dl");
+  dl.href = "data:" + mime + ";charset=utf-8," + encodeURIComponent(text);
+  dl.setAttribute("download", filename);
+  el("modal").hidden = false;
+  el("modal-copy").focus();
+}
+el("modal-close").addEventListener("click", function(){ el("modal").hidden = true; });
+el("modal").addEventListener("click", function(e){ if (e.target === el("modal")) el("modal").hidden = true; });
+el("modal-copy").addEventListener("click", function(){
+  var ta = el("modal-text");
+  ta.removeAttribute("readonly"); ta.select();
+  var done = false;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(ta.value).then(function(){ toast("Copié"); }, function(){ fallback(); });
+    done = true;
+  }
+  if (!done) fallback();
+  ta.setAttribute("readonly", "readonly");
+  function fallback(){ try { document.execCommand("copy"); toast("Copié"); } catch (e) { toast("Sélectionnez puis copiez le texte"); } }
+});
+document.addEventListener("keydown", function(e){
+  if (e.key === "Escape") { el("modal").hidden = true; el("kid").hidden = true; }
+});
+
+/* onglets */
+var TABS = ["mois", "annee", "agenda", "equilibre", "reglages"];
+TABS.forEach(function(id){
+  el("tab-" + id).addEventListener("click", function(){
+    TABS.forEach(function(o){
+      el("tab-" + o).setAttribute("aria-selected", String(o === id));
+      el("v-" + o).hidden = o !== id;
+    });
+  });
+});
+
+/* navigation calendrier */
+el("m-prev").addEventListener("click", function(){ monthCursor = mkDay(yearOf(monthCursor), monthOf(monthCursor) - 1, 1); renderMonth(); });
+el("m-next").addEventListener("click", function(){ monthCursor = mkDay(yearOf(monthCursor), monthOf(monthCursor) + 1, 1); renderMonth(); });
+el("m-today").addEventListener("click", function(){ monthCursor = mkDay(yearOf(today()), monthOf(today()), 1); renderMonth(); });
+el("y-prev").addEventListener("click", function(){ yearCursor--; renderYear(); renderBalance(); });
+el("y-next").addEventListener("click", function(){ yearCursor++; renderYear(); renderBalance(); });
+
+/* réglages : champs simples */
+function bind(id, fn, evt){
+  el(id).addEventListener(evt || "change", function(){ fn(el(id).value, el(id).checked); save(); renderAll(); });
+}
+bind("a-name", function(v){ S.a.name = v; }, "input");
+bind("b-name", function(v){ S.b.name = v; }, "input");
+bind("child-name", function(v){ S.child = v; }, "input");
+bind("a-color", function(v){ S.a.color = v; });
+bind("b-color", function(v){ S.b.color = v; });
+bind("p-start", function(v){ if (v) S.start = v; });
+bind("p-first", function(v){ S.first = v === "b" ? "b" : "a"; });
+bind("p-hour", function(v){ if (v) S.hour = v; });
+bind("p-custom", function(v){
+  var segs = v.split(/[^0-9]+/).map(Number).filter(function(x){ return x > 0; });
+  if (segs.length) S.segs = segs;
+});
+bind("opt-stripes", function(v, c){ S.stripes = c; });
+bind("opt-holidays", function(v, c){ S.showHolidays = c; });
+bind("x-allday", function(v, c){ S.icsAllDay = c; });
+bind("x-alarm", function(v, c){ S.icsAlarm = c; });
+
+/* vacances */
+el("vac-add").addEventListener("click", function(){
+  var t = today();
+  S.vacations.push({ label: "Vacances", start: ISO(t), end: ISO(t + 13), rule: "half", who: "a", alt: true });
+  save(); renderAll();
+});
+el("vac-preset").addEventListener("click", function(){
+  var y = yearOf(today());
+  [["Toussaint", 9, 18, 13], ["Noël", 11, 20, 15], ["Hiver", 1, 7, 15], ["Printemps", 3, 11, 15], ["Été", 6, 5, 55]].forEach(function(v, i){
+    var yy = (v[1] < 9 ? y + 1 : y);
+    var s = mkDay(yy, v[1], v[2]);
+    S.vacations.push({ label: v[0], start: ISO(s), end: ISO(s + v[3]), rule: i === 4 ? "half" : "half", who: i % 2 === 0 ? "a" : "b", alt: true });
+  });
+  save(); renderAll();
+  toast("Cinq périodes ajoutées — ajustez les dates de votre zone");
+});
+el("vac-dup").addEventListener("click", function(){
+  var copy = S.vacations.map(function(v){
+    return { label: v.label, start: ISO(P(v.start) + 364), end: ISO(P(v.end) + 364), rule: v.rule, who: v.who, alt: v.alt };
+  });
+  S.vacations = S.vacations.concat(copy);
+  save(); renderAll();
+  toast("Périodes dupliquées (+364 jours)");
+});
+
+/* export / partage */
+el("btn-ics").addEventListener("click", function(){
+  var from = P(el("x-from").value || ISO(today())), to = P(el("x-to").value || ISO(today() + 365));
+  if (to < from) { toast("La date de fin précède la date de début"); return; }
+  if (to - from > 1830) { toast("Limitez l'export à 5 ans"); return; }
+  var text = buildICS(from, to);
+  showModal("Fichier agenda (.ics)",
+    "Téléchargez-le puis ouvrez-le dans Google Agenda, Apple Calendrier ou Outlook. Si le téléchargement est bloqué, copiez le texte dans un fichier « garde.ics ».",
+    text, "garde-" + yearOf(from) + ".ics", "text/calendar");
+});
+el("btn-share").addEventListener("click", function(){
+  var url = location.href.split("#")[0] + "#p=" + b64enc(JSON.stringify(S));
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(function(){ toast("Lien copié — envoyez-le à l'autre parent"); },
+      function(){ showModal("Lien du planning", "Copiez cette adresse et envoyez-la.", url, "lien.txt", "text/plain"); });
+  } else {
+    showModal("Lien du planning", "Copiez cette adresse et envoyez-la.", url, "lien.txt", "text/plain");
+  }
+});
+el("btn-json").addEventListener("click", function(){
+  showModal("Sauvegarde", "Conservez ce fichier : il contient toute votre configuration.", JSON.stringify(S, null, 2), "deux-maisons.json", "application/json");
+});
+el("btn-load").addEventListener("click", function(){ el("file-in").click(); });
+el("file-in").addEventListener("change", function(){
+  var f = el("file-in").files[0];
+  if (!f) return;
+  var r = new FileReader();
+  r.onload = function(){
+    try {
+      var obj = JSON.parse(r.result);
+      if (!obj || !obj.a || !obj.b) throw new Error("format");
+      S = Object.assign(defaultState(), obj);
+      save(); renderAll(); toast("Planning restauré");
+    } catch (e) { toast("Fichier illisible : ce n'est pas une sauvegarde Deux Maisons"); }
+  };
+  r.readAsText(f);
+  el("file-in").value = "";
+});
+el("btn-reset").addEventListener("click", function(){
+  if (!ask("Effacer le planning et revenir aux réglages par défaut ?", true)) return;
+  S = defaultState();
+  try { localStorage.removeItem(LS); } catch (e) {}
+  history.replaceState(null, "", location.pathname + location.search);
+  renderAll(); toast("Planning réinitialisé");
+});
+
+/* thème */
+function setTheme(t){
+  if (t) document.documentElement.setAttribute("data-theme", t);
+  else document.documentElement.removeAttribute("data-theme");
+  try { t ? localStorage.setItem(LS + ".theme", t) : localStorage.removeItem(LS + ".theme"); } catch (e) {}
+  el("theme-label").textContent = t === "dark" ? "Sombre" : t === "light" ? "Clair" : "Thème";
+  applyColors(); renderMonth(); renderYear();
+}
+el("btn-theme").addEventListener("click", function(){
+  var cur = document.documentElement.getAttribute("data-theme");
+  setTheme(cur === "dark" ? "light" : cur === "light" ? null : "dark");
+});
+el("btn-print").addEventListener("click", function(){ window.print(); });
+
+/* vue enfant */
+el("btn-kid").addEventListener("click", function(){
+  var t = today(), list = el("kid-list");
+  el("kid-title").textContent = S.child ? "Où dort " + S.child.trim() + " ?" : "Où je dors ?";
+  list.textContent = "";
+  for (var i = 0; i < 7; i++) {
+    var n = t + i, x = assign(n);
+    var row = document.createElement("div");
+    row.className = "k-row" + (i === 0 ? " first" : "");
+    row.style.setProperty("--c", S[x.p].color);
+    row.style.setProperty("--ct", tileInk(x.p));
+    row.style.background = tileBg(x.p);
+    var d = document.createElement("div");
+    d.className = "d";
+    d.textContent = i === 0 ? "ce soir" : i === 1 ? "demain" : fmt(n, { weekday: "long", day: "numeric" });
+    var p = document.createElement("div");
+    p.className = "p";
+    p.textContent = nameOf(x.p);
+    row.appendChild(d); row.appendChild(p);
+    list.appendChild(row);
+  }
+  el("kid").hidden = false;
+});
+el("kid-close").addEventListener("click", function(){ el("kid").hidden = true; });
+
+/* ════════════ démarrage ════════════ */
+(function init(){
+  try {
+    var th = localStorage.getItem(LS + ".theme");
+    if (th) document.documentElement.setAttribute("data-theme", th);
+    el("theme-label").textContent = th === "dark" ? "Sombre" : th === "light" ? "Clair" : "Thème";
+  } catch (e) {}
+  load();
+  var fromLink = readHash();
+  monthCursor = mkDay(yearOf(today()), monthOf(today()), 1);
+  yearCursor = yearOf(today());
+  renderAll();
+  if (fromLink) { save(); toast("Planning ouvert depuis un lien partagé"); }
+  if (window.matchMedia) {
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    var onChange = function(){ applyColors(); renderMonth(); renderYear(); };
+    if (mq.addEventListener) mq.addEventListener("change", onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+  }
+})();
+</script>
+</body>
+</html>
