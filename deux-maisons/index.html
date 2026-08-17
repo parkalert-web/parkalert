@@ -1213,13 +1213,36 @@ function toast(msg){
   clearTimeout(toast._t);
   toast._t = setTimeout(function(){ t.hidden = true; }, 2600);
 }
+/* Certaines visionneuses en cadre restreint interdisent les téléchargements directs
+   et n'offrent qu'un enregistrement encadré, limité à quelques extensions.
+   Dans ce cas on masque un bouton qui ne ferait rien : le copier-coller reste la voie sûre. */
+var HOST_SAVE = null;
+var HOSTED = !!(window.claude && typeof window.claude.use === "function");
+if (HOSTED) {
+  try { window.claude.use("downloads").then(function(d){ HOST_SAVE = d; }, function(){}); } catch (e) {}
+}
 function showModal(title, hint, text, filename, mime){
   el("modal-title").textContent = title;
   el("modal-hint").textContent = hint;
   el("modal-text").value = text;
   var dl = el("modal-dl");
-  dl.href = "data:" + mime + ";charset=utf-8," + encodeURIComponent(text);
-  dl.setAttribute("download", filename);
+  var ext = (filename.split(".").pop() || "").toLowerCase();
+  if (HOSTED) {
+    var canSave = HOST_SAVE && (ext === "json" || ext === "txt");
+    dl.removeAttribute("href");
+    dl.removeAttribute("download");
+    dl.hidden = !canSave;
+    dl.onclick = canSave ? function(){
+      HOST_SAVE.save({ filename: filename, data: text }).then(function(){ toast("Fichier enregistré"); }, function(err){
+        toast(err && err.code === "declined" ? "Enregistrement annulé" : "Enregistrement impossible ici — utilisez Copier");
+      });
+    } : null;
+  } else {
+    dl.hidden = false;
+    dl.onclick = null;
+    dl.href = "data:" + mime + ";charset=utf-8," + encodeURIComponent(text);
+    dl.setAttribute("download", filename);
+  }
   el("modal").hidden = false;
   el("modal-copy").focus();
 }
@@ -1312,7 +1335,9 @@ el("btn-ics").addEventListener("click", function(){
   if (to - from > 1830) { toast("Limitez l'export à 5 ans"); return; }
   var text = buildICS(from, to);
   showModal("Fichier agenda (.ics)",
-    "Téléchargez-le puis ouvrez-le dans Google Agenda, Apple Calendrier ou Outlook. Si le téléchargement est bloqué, copiez le texte dans un fichier « garde.ics ».",
+    HOSTED
+      ? "Copiez ce texte, collez-le dans un fichier nommé « garde.ics », puis ouvrez ce fichier dans Google Agenda, Apple Calendrier ou Outlook."
+      : "Téléchargez-le puis ouvrez-le dans Google Agenda, Apple Calendrier ou Outlook. Si le téléchargement est bloqué, copiez le texte dans un fichier « garde.ics ».",
     text, "garde-" + yearOf(from) + ".ics", "text/calendar");
 });
 el("btn-share").addEventListener("click", function(){
