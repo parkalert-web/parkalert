@@ -1,0 +1,2910 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>FOUDRE — tu ne tombes pas, tu bondis</title>
+<meta name="description" content="Un jeu d'orage au tour par tour. Tu es un éclair : tu ne peux exister que sur un conducteur, et tout ce que tu quittes se consume. Bondis de flaque en arbre en bête, sans jamais te retrouver sans rien où aller.">
+<meta name="theme-color" content="#070a11">
+<style>
+:root{
+  --nuit:#070a11; --nuit2:#0d1220; --ardoise:#161c2b;
+  --encre:#e8f2ff; --gris:#8ea2c0; --gris2:#5d6e8c;
+  --cyan:#7fd8ff; --cyan2:#bfeaff; --or:#ffd45e; --or2:#ffe9a8;
+  --vert:#c9f36a; --rouge:#ff6a6a; --violet:#c9a3ff; --rose:#ff9ed6;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
+  --titre:"Arial Black","Arial Bold",Impact,system-ui,sans-serif;
+  --t1:clamp(42px,13vw,104px); --t2:clamp(20px,5.4vw,38px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--nuit)}
+body{font-family:var(--mono);color:var(--encre);
+  -webkit-user-select:none;user-select:none;touch-action:none}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+
+/* ---------------- le bandeau du haut ---------------- */
+#haut{position:fixed;top:0;left:0;right:0;z-index:20;pointer-events:none;
+  display:flex;align-items:flex-start;gap:8px;
+  padding:calc(env(safe-area-inset-top) + 10px) 12px 8px;
+  background:linear-gradient(180deg,rgba(7,10,17,.92),rgba(7,10,17,.55) 62%,rgba(7,10,17,0))}
+.bloc{display:flex;flex-direction:column;gap:2px;min-width:0}
+.bloc span{font-size:8.5px;letter-spacing:.22em;color:var(--gris2);font-weight:700;
+  white-space:nowrap}
+.bloc b{font-family:var(--titre);line-height:1;font-variant-numeric:tabular-nums;
+  white-space:nowrap}
+#hScore{font-size:clamp(26px,7vw,42px);color:var(--or);
+  text-shadow:0 0 22px rgba(255,212,94,.35)}
+#hOrage{font-size:clamp(12px,3vw,17px);color:var(--cyan)}
+#hTour{font-size:clamp(11px,2.6vw,15px);color:var(--encre)}
+.pousse{flex:1}
+#hCharge{display:flex;gap:5px;font-style:normal}
+#hCharge i{font-style:normal;display:block;width:clamp(11px,2.8vw,15px);
+  height:clamp(19px,4.6vw,26px);background:rgba(140,170,210,.20);
+  clip-path:polygon(62% 0,16% 56%,44% 56%,34% 100%,86% 40%,54% 40%);
+  transition:background .2s,filter .2s}
+#hCharge i.on{background:var(--cyan2);filter:drop-shadow(0 0 7px rgba(127,216,255,.95))}
+#hjauge{width:min(38vw,190px)}
+.hbar{display:block;height:5px;border-radius:3px;background:rgba(140,170,210,.16);
+  overflow:hidden;margin-top:5px}
+.hbar u{display:block;height:100%;border-radius:3px;text-decoration:none;
+  background:linear-gradient(90deg,var(--cyan),var(--or));transition:width .25s}
+#hPouvoirs{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;
+  max-width:min(44vw,240px)}
+#hPouvoirs i{font-style:normal;font-size:12px;line-height:1;padding:3px 5px;
+  border:1px solid rgba(127,216,255,.28);border-radius:6px;
+  background:rgba(127,216,255,.07);position:relative}
+#hPouvoirs i u{text-decoration:none;font-size:8px;color:var(--or);margin-left:1px}
+#hQuot{font-size:9px;letter-spacing:.18em;color:var(--rose);font-weight:700;
+  border:1px solid rgba(255,158,214,.4);border-radius:6px;padding:3px 7px;
+  align-self:flex-start;display:none}
+
+/* ---------------- le bandeau du bas ---------------- */
+#bas{position:fixed;left:0;right:0;bottom:0;z-index:20;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;
+  padding:8px 12px calc(env(safe-area-inset-bottom) + 12px);
+  background:linear-gradient(0deg,rgba(7,10,17,.94),rgba(7,10,17,.55) 60%,rgba(7,10,17,0))}
+.bt{pointer-events:auto;padding:11px 18px;border:2px solid rgba(127,216,255,.30);
+  border-radius:12px;background:rgba(16,24,40,.86);color:var(--encre);
+  font:700 11.5px/1 var(--mono);letter-spacing:.14em;cursor:pointer;
+  display:flex;align-items:center;gap:7px;transition:border-color .15s,transform .1s}
+.bt:hover{border-color:var(--cyan);transform:translateY(-1px)}
+.bt:active{transform:translateY(1px)}
+.bt em{font-style:normal;font-size:9px;color:var(--gris2);letter-spacing:.1em}
+.bt.or{border-color:rgba(255,212,94,.45);color:var(--or2)}
+#hPortee{font:700 11px var(--mono);letter-spacing:.1em;color:var(--gris);
+  padding:9px 12px;border-radius:10px;background:rgba(16,24,40,.7);
+  border:1px solid rgba(140,170,210,.14)}
+
+/* ---------------- les messages ---------------- */
+#flash{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 96px);
+  transform:translateX(-50%);z-index:22;pointer-events:none;
+  display:flex;flex-direction:column;align-items:center;gap:6px;width:max-content;
+  max-width:92vw}
+.msg{padding:9px 17px;border-radius:22px;background:rgba(10,15,26,.94);
+  border:1px solid rgba(127,216,255,.35);color:var(--cyan2);
+  font:700 11.5px/1.4 var(--mono);letter-spacing:.09em;text-align:center;
+  animation:pop .32s both;box-shadow:0 6px 26px rgba(0,0,0,.55)}
+@keyframes pop{0%{opacity:0;transform:translateY(-10px) scale(.94)}
+  100%{opacity:1;transform:none}}
+
+body:not(.enJeu) #haut,body:not(.enJeu) #bas,body:not(.enJeu) #flash{display:none}
+
+/* ---------------- les écrans ---------------- */
+.screen{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;
+  align-items:center;padding:26px 16px 40px;overflow-y:auto;
+  background:radial-gradient(120% 70% at 50% 0%,rgba(40,80,140,.22),rgba(0,0,0,0) 60%),
+    linear-gradient(180deg,rgba(7,10,17,.975),rgba(7,10,17,.995))}
+.screen.on{display:flex}
+/* Le menu laisse voir la partie qui se joue derrière : on montre le verbe du
+   jeu au lieu de l'expliquer. Le voile est plus épais en haut, là où le titre
+   doit rester lisible, et presque transparent en bas. */
+#menu{background:
+  radial-gradient(130% 60% at 50% 2%,rgba(60,120,200,.34),rgba(0,0,0,0) 62%),
+  linear-gradient(180deg,rgba(7,10,17,.93) 0%,rgba(7,10,17,.80) 34%,
+    rgba(7,10,17,.55) 62%,rgba(7,10,17,.34) 100%)}
+.screen>*{flex-shrink:0}
+h1{font-family:var(--titre);font-size:var(--t1);line-height:.86;text-align:center;
+  letter-spacing:-.02em;color:#fff;
+  text-shadow:0 0 40px rgba(127,216,255,.55),0 0 90px rgba(60,140,255,.35),
+    0 5px 0 rgba(20,60,110,.7)}
+h1 u{text-decoration:none;color:var(--cyan2)}
+.eyebrow{font-size:10px;letter-spacing:.36em;color:var(--cyan);margin-bottom:10px;
+  font-weight:700;text-align:center}
+.sous{font-size:11.5px;letter-spacing:.1em;color:var(--gris);text-align:center;
+  margin-top:12px;line-height:1.9;max-width:600px}
+.sous b{color:var(--cyan2)}
+.verbe{margin-top:20px;max-width:560px;width:100%;padding:16px 20px;border-radius:16px;
+  background:rgba(13,19,33,.86);border:1px solid rgba(127,216,255,.22);
+  font-size:12.5px;line-height:2;color:var(--encre);text-align:center}
+.verbe b{color:var(--or2)}
+.verbe em{font-style:normal;color:var(--cyan2)}
+
+.gros{margin-top:22px;width:min(420px,100%);padding:20px 24px;border:0;border-radius:16px;
+  cursor:pointer;background:linear-gradient(160deg,#2f7fd6,#1a4e91);color:#fff;
+  box-shadow:0 6px 0 #12335e,0 14px 40px rgba(30,100,190,.45);
+  text-align:left;display:flex;flex-direction:column;gap:4px;
+  transition:transform .1s,box-shadow .1s}
+.gros b{font-family:var(--titre);font-size:23px;letter-spacing:.02em}
+.gros span{font-size:10.5px;letter-spacing:.09em;color:rgba(255,255,255,.72)}
+.gros:hover{transform:translateY(-2px);box-shadow:0 8px 0 #12335e,0 18px 46px rgba(30,100,190,.5)}
+.gros:active{transform:translateY(3px);box-shadow:0 3px 0 #12335e}
+.gros.quot{margin-top:10px;background:linear-gradient(160deg,#8e3f9e,#5a2470);
+  box-shadow:0 6px 0 #3d1550,0 14px 40px rgba(140,60,180,.35)}
+.gros.quot:hover{box-shadow:0 8px 0 #3d1550,0 18px 46px rgba(140,60,180,.42)}
+.gros.quot:active{box-shadow:0 3px 0 #3d1550}
+.gros.repr{margin-top:10px;background:linear-gradient(160deg,#2b4560,#1a2b3f);
+  box-shadow:0 6px 0 #101c2a,0 14px 40px rgba(20,40,70,.4)}
+.gros.repr:hover{box-shadow:0 8px 0 #101c2a,0 18px 46px rgba(20,40,70,.5)}
+.gros.repr:active{box-shadow:0 3px 0 #101c2a}
+.liens{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+.lien{background:none;border:1px solid rgba(140,170,210,.18);color:var(--gris);
+  font:700 10.5px/1 var(--mono);letter-spacing:.16em;cursor:pointer;padding:10px 14px;
+  border-radius:9px}
+.lien:hover{border-color:var(--cyan);color:var(--cyan2)}
+#meRang{display:flex;align-items:center;gap:9px;margin-top:16px;padding:8px 16px;
+  border-radius:12px;background:rgba(13,19,33,.8);border:1px solid rgba(127,216,255,.16)}
+#meRang span{font-size:18px}
+#meRang b{font-family:var(--titre);font-size:14px;letter-spacing:.04em}
+#meRang u{text-decoration:none;font-size:10px;color:var(--or);letter-spacing:.1em}
+
+/* ---------------- les cartes de pouvoir ---------------- */
+#poCartes{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:20px;
+  width:100%;max-width:900px}
+.carte{flex:1 1 240px;max-width:290px;min-height:190px;padding:18px 18px 20px;
+  border-radius:16px;cursor:pointer;text-align:left;
+  background:linear-gradient(170deg,rgba(22,32,52,.96),rgba(12,18,30,.96));
+  border:2px solid rgba(127,216,255,.26);color:var(--encre);
+  display:flex;flex-direction:column;gap:8px;
+  transition:transform .12s,border-color .12s,box-shadow .12s}
+.carte:hover{transform:translateY(-4px);border-color:var(--cyan);
+  box-shadow:0 14px 40px rgba(40,110,190,.35)}
+.carte em{font-style:normal;font-size:30px;line-height:1}
+.carte b{font-family:var(--titre);font-size:16px;letter-spacing:.02em;color:#fff}
+.carte b u{text-decoration:none;font-size:10px;color:var(--gris)}
+.carte .eff{font-size:12px;line-height:1.6;color:var(--cyan2)}
+.carte .pq{font-size:10.5px;line-height:1.7;color:var(--gris);margin-top:auto}
+.carte.peu{border-color:rgba(201,163,255,.4)}
+.carte.peu:hover{border-color:var(--violet);box-shadow:0 14px 40px rgba(140,80,220,.3)}
+.carte.rare{border-color:rgba(255,212,94,.5)}
+.carte.rare:hover{border-color:var(--or);box-shadow:0 14px 40px rgba(200,150,30,.3)}
+
+/* ---------------- les cartes de fin ---------------- */
+.grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;
+  margin-top:16px;width:100%;max-width:660px}
+.cell{padding:11px 13px;border-radius:11px;background:rgba(15,22,38,.85);
+  border:1px solid rgba(140,170,210,.14)}
+.cell span{display:block;font-size:8.5px;letter-spacing:.2em;color:var(--gris2);
+  font-weight:700}
+.cell b{display:block;font-family:var(--titre);font-size:20px;margin-top:3px;
+  font-variant-numeric:tabular-nums}
+.bloc2{width:100%;max-width:660px;margin-top:14px;padding:16px 18px;border-radius:14px;
+  background:rgba(13,19,33,.86);border:1px solid rgba(140,170,210,.13)}
+.bloc2 .sur{font-size:9px;letter-spacing:.22em;color:var(--gris2);font-weight:700;
+  margin-bottom:8px}
+.rl{display:flex;align-items:center;gap:11px;padding:7px 0;
+  border-bottom:1px dashed rgba(140,170,210,.13)}
+.rl:last-child{border-bottom:0}
+.rl .re{font-size:17px;width:24px;text-align:center;flex:0 0 auto}
+.rl .rt{flex:1;min-width:0}
+.rl .rt b{display:block;font-size:11px;letter-spacing:.1em}
+.rl .rt span{display:block;font-size:10px;color:var(--gris);line-height:1.55;margin-top:2px}
+.rl .rv{font-family:var(--titre);font-size:15px;flex:0 0 auto;color:var(--or)}
+#fPouvoirs{display:flex;gap:6px;flex-wrap:wrap}
+#fPouvoirs i{font-style:normal;font-size:10.5px;padding:5px 9px;border-radius:8px;
+  background:rgba(127,216,255,.08);border:1px solid rgba(127,216,255,.22);
+  color:var(--cyan2);letter-spacing:.06em}
+#fPartage{width:100%;max-width:660px;margin-top:14px;padding:14px 16px;border-radius:12px;
+  background:rgba(6,9,16,.9);border:1px dashed rgba(127,216,255,.3);
+  font:700 12px/1.9 var(--mono);color:var(--cyan2);white-space:pre-wrap;text-align:center}
+.relance{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:20px}
+.relance .gros{margin-top:0;width:auto;min-width:190px;padding:15px 22px;
+  align-items:center;text-align:center}
+.relance .gros b{font-size:17px}
+
+/* ---------------- profil et succès ---------------- */
+.entete{display:flex;align-items:center;gap:14px;width:100%}
+.entete .av{font-size:34px;width:62px;height:62px;border-radius:18px;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(127,216,255,.10);border:2px solid rgba(127,216,255,.28)}
+.entete .id{flex:1;min-width:0}
+.entete .id h2{font-family:var(--titre);font-size:19px;letter-spacing:.02em}
+.entete .id p{font-size:10.5px;color:var(--gris);line-height:1.6;margin-top:3px}
+.entete .id p.pt{color:var(--cyan);letter-spacing:.06em;margin-top:5px}
+.barre{height:6px;border-radius:3px;background:rgba(140,170,210,.16);overflow:hidden;
+  margin-top:7px}
+.barre i{display:block;height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--cyan),var(--or))}
+.ligne{display:flex;justify-content:space-between;align-items:center;font-size:11px;
+  padding:8px 0;margin-top:8px;border-top:1px dashed rgba(140,170,210,.13)}
+#suListe{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;
+  width:100%;max-width:660px;margin-top:14px}
+.suc{padding:11px 13px;border-radius:11px;background:rgba(15,22,38,.8);
+  border-left:4px solid rgba(140,170,210,.2);opacity:.55}
+.suc.ok{opacity:1;border-left-color:var(--or)}
+.suc b{display:block;font-size:10.5px;letter-spacing:.1em}
+.suc span{display:block;font-size:9.5px;color:var(--gris);margin-top:4px;line-height:1.5}
+
+/* ---------------- les règles ---------------- */
+.regl{width:100%;max-width:680px;margin-top:14px;padding:18px 20px;border-radius:14px;
+  background:rgba(13,19,33,.86);border:1px solid rgba(140,170,210,.13);
+  font-size:12px;line-height:2;color:var(--encre)}
+.regl h3{font-family:var(--titre);font-size:15px;letter-spacing:.03em;color:var(--cyan2);
+  margin-bottom:8px}
+.regl b{color:var(--or2)}
+.regl .cle{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+kbd{background:rgba(127,216,255,.09);border:1px solid rgba(127,216,255,.26);
+  border-radius:6px;padding:2px 7px;font:700 10.5px var(--mono);color:var(--cyan2)}
+.sols{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;
+  margin-top:12px}
+.sol{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:10px;
+  background:rgba(8,12,22,.7)}
+.sol i{width:24px;height:24px;border-radius:7px;flex:0 0 auto;display:block}
+.sol div{min-width:0}
+.sol b{display:block;font-size:10px;letter-spacing:.12em}
+.sol span{display:block;font-size:9.5px;color:var(--gris);line-height:1.5;margin-top:2px}
+.regs{width:100%;max-width:680px;display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.reg{display:flex;justify-content:space-between;align-items:center;gap:14px;
+  padding:12px 15px;border-radius:11px;background:rgba(13,19,33,.86)}
+.reg h4{font-size:11px;letter-spacing:.14em}
+.reg p{font-size:10px;color:var(--gris);margin-top:4px;line-height:1.6;max-width:340px}
+.danger{color:var(--rouge)}
+
+@media (max-width:640px){
+  .verbe{font-size:11.5px;line-height:1.95;padding:14px 16px}
+  .carte{min-height:0;flex:1 1 100%;max-width:none}
+  .relance .gros{min-width:150px}
+  #hPouvoirs{max-width:110px}
+}
+@media (max-height:560px){
+  #haut{padding-top:calc(env(safe-area-inset-top) + 4px);padding-bottom:4px}
+  #hScore{font-size:22px}
+  #hjauge{width:min(30vw,150px)}
+  #bas{padding:5px 10px calc(env(safe-area-inset-bottom) + 6px)}
+  .bt{padding:8px 13px;font-size:10px}
+  #hPortee{padding:7px 10px}
+  #flash{top:calc(env(safe-area-inset-top) + 52px)}
+  h1{font-size:clamp(34px,9vw,60px)}
+  .screen{padding-top:14px}
+  .verbe{margin-top:12px;padding:11px 14px;line-height:1.75}
+  .gros{margin-top:12px;padding:14px 18px}
+  .gros b{font-size:19px}
+  #meRang{margin-top:10px}
+}
+/* Un téléphone couché : le plateau est un carré au milieu, et il reste une
+   colonne vide de chaque côté. Les messages vont s'y loger plutôt que de
+   passer devant le jeu. */
+@media (max-height:560px) and (min-aspect-ratio:13/10){
+  /* 74 px : juste sous la dernière ligne du bandeau, le compteur de tours */
+  #flash{left:12px;top:calc(env(safe-area-inset-top) + 74px);
+    transform:none;align-items:flex-start;max-width:min(27vw,230px)}
+  .msg{text-align:left}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="haut">
+  <div class="bloc"><span>SCORE</span><b id="hScore">0</b></div>
+  <div class="bloc" id="hjauge" style="margin-left:14px">
+    <span>ORAGE</span><b id="hOrage">1 · BRUINE</b>
+    <i class="hbar"><u id="hBar"></u></i>
+    <span style="margin-top:4px;color:var(--gris)" id="hTour">20 TOURS</span>
+  </div>
+  <div class="pousse"></div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+    <div class="bloc" style="align-items:flex-end"><span>CHARGE</span>
+      <b id="hCharge"></b></div>
+    <div id="hPouvoirs"></div>
+    <div id="hQuot">ORAGE DU JOUR</div>
+  </div>
+</div>
+
+<div id="flash"></div>
+
+<div id="bas">
+  <div id="hPortee">⟶ 2</div>
+  <button class="bt" id="bAttendre">ATTENDRE<em>ESPACE</em></button>
+  <button class="bt or" id="bTour" style="display:none">🗼 0</button>
+  <button class="bt" id="bRegles">RÈGLES<em>R</em></button>
+</div>
+
+<div class="screen on" id="menu">
+  <h1>FOU<u>DRE</u></h1>
+  <div class="eyebrow" style="margin-top:12px">TU NE TOMBES PAS · TU BONDIS</div>
+  <div id="meRang"></div>
+  <div class="verbe">
+    Tu es un éclair. Tu ne peux exister que sur <em>ce qui conduit</em> — une
+    flaque, un arbre, un bout de ferraille, une bête —<br>
+    et <b>tout ce que tu quittes se consume.</b><br>
+    Chaque bond détruit une case du monde. La pluie est la seule chose qui en
+    rende.
+  </div>
+  <button class="gros" id="meJouer"><b>ORAGE LIBRE</b>
+    <span>Une partie normale, tirée au hasard. Elle se garde si tu la quittes.</span></button>
+  <button class="gros quot" id="meQuot"><b>ORAGE DU JOUR</b>
+    <span>Le même orage pour tout le monde</span></button>
+  <button class="gros repr" id="meReprendre" style="display:none"><b>REPRENDRE</b>
+    <span>—</span></button>
+  <div class="liens">
+    <button class="lien" id="meRegles">RÈGLES</button>
+    <button class="lien" id="meProfil">PROFIL</button>
+    <button class="lien" id="meSucces">SUCCÈS</button>
+  </div>
+</div>
+
+<div class="screen" id="pouvoirs">
+  <div class="eyebrow">L'ORAGE EST PASSÉ</div>
+  <h1 style="font-size:var(--t2)" id="poTitre">ORAGE 1 PASSÉ</h1>
+  <div class="sous" id="poSous"></div>
+  <div id="poCartes"></div>
+  <div class="sous" style="margin-top:18px;font-size:10.5px">
+    Un seul des trois. Aucun ne frappe plus fort — ils donnent tous de la
+    <b>place</b>, et la place est la seule chose qui manque.
+  </div>
+</div>
+
+<div class="screen" id="fin">
+  <div class="eyebrow" id="fEye"></div>
+  <h1 style="font-size:var(--t2)" id="fTitre">ÉTEINT</h1>
+  <div class="grille" id="fGrille"></div>
+  <div class="bloc2" id="fRecord"></div>
+  <div class="bloc2"><div class="sur">ORAGE PAR ORAGE</div><div id="fJournal"></div></div>
+  <div class="bloc2"><div class="sur">CE QUE TU AVAIS PRIS</div>
+    <div id="fPouvoirs"></div></div>
+  <div class="bloc2" id="fCarriere"></div>
+  <div id="fPartage"></div>
+  <div class="relance">
+    <button class="gros" id="fRejouer"><b>RECOMMENCER</b></button>
+    <button class="gros repr" id="fCopier" style="min-width:210px"><b>COPIER LE RÉSULTAT</b></button>
+    <button class="gros repr" id="fMenu"><b>MENU</b></button>
+  </div>
+</div>
+
+<div class="screen" id="profil">
+  <div class="eyebrow">CE QUI RESTE</div>
+  <h1 style="font-size:var(--t2)">PROFIL</h1>
+  <div class="bloc2" id="prTete"></div>
+  <div class="grille" id="prGrille"></div>
+  <div class="relance"><button class="gros repr" id="prRetour"><b>RETOUR</b></button></div>
+</div>
+
+<div class="screen" id="succes">
+  <div class="eyebrow">TABLEAU DE CHASSE</div>
+  <h1 style="font-size:var(--t2)">SUCCÈS</h1>
+  <div class="bloc2" id="suTete"></div>
+  <div id="suListe"></div>
+  <div class="relance"><button class="gros repr" id="suRetour"><b>RETOUR</b></button></div>
+</div>
+
+<div class="screen" id="regles">
+  <div class="eyebrow">MODE D'EMPLOI</div>
+  <h1 style="font-size:var(--t2)">COMMENT ÇA MARCHE</h1>
+
+  <div class="regl">
+    <h3>UNE SEULE RÈGLE</h3>
+    Tu ne peux te poser que sur <b>ce qui conduit</b>. Et <b>ce que tu quittes se
+    consume</b> : la case où tu étais devient de la cendre, où plus rien ne
+    passera.<br>
+    Tout le jeu est là. Se déplacer, c'est détruire son propre terrain — et
+    perdre, c'est se retrouver sans une seule case où aller.
+  </div>
+
+  <div class="regl">
+    <h3>CE QUI CONDUIT</h3>
+    <div class="sols">
+      <div class="sol"><i style="background:#2f6f9e"></i><div><b>FLAQUE</b>
+        <span>Conduit — et propage. Frappe une flaque et TOUT l'ensemble part
+        d'un coup. Tu te poses sur la plus éloignée : c'est un transport.</span></div></div>
+      <div class="sol"><i style="background:#2f6d45"></i><div><b>ARBRE</b>
+        <span>Conduit, puis s'enflamme. Le feu se transmet d'arbre en arbre et
+        conduit encore deux tours : un réseau qui s'éteint tout seul — et qui
+        tue les bêtes prises dedans.</span></div></div>
+      <div class="sol"><i style="background:#8e9bb0"></i><div><b>FERRAILLE</b>
+        <span>Conduit une fois, puis fond.</span></div></div>
+      <div class="sol"><i style="background:#ffd45e"></i><div><b>PARATONNERRE</b>
+        <span>Ne se consume JAMAIS. Il y en a trois sur la plaine. Tout se joue
+        autour d'eux — c'est le seul appui qui dure.</span></div></div>
+      <div class="sol"><i style="background:#c9f36a"></i><div><b>LES BÊTES</b>
+        <span>Une bête conduit. Bondir dessus la tue et te sert d'appui : elles
+        sont des ponts qui marchent vers toi.</span></div></div>
+      <div class="sol"><i style="background:#1c2231"></i><div><b>TERRE, ROCHE, CENDRE</b>
+        <span>Rien n'y passe. La pluie transforme la terre et la cendre en
+        flaques — jamais la roche.</span></div></div>
+    </div>
+  </div>
+
+  <div class="regl">
+    <h3>LE TOUR</h3>
+    Tu bondis (ou tu attends), <b>puis</b> le monde joue : le feu se propage, la
+    pluie tombe, les bêtes avancent d'une case et frappent si elles te touchent.<br>
+    Rien d'aléatoire n'arrive pendant ton coup — <b>on ne perd jamais sur un
+    dé</b>, seulement sur un mauvais calcul.
+  </div>
+
+  <div class="regl">
+    <h3>PERDRE</h3>
+    Tu as trois <b>charges</b>. Tu en perds une quand une bête te touche, et une
+    par tour si <b>plus rien n'est à portée</b>. À zéro, tu t'éteins.<br>
+    Un orage dure une vingtaine de tours ; le passer donne une prime et un
+    <b>pouvoir</b> au choix. Les orages suivants sont plus longs, plus peuplés —
+    et surtout <b>il y pleut moins</b>.
+  </div>
+
+  <div class="regl">
+    <h3>LES POINTS</h3>
+    Une bête vaut ce qu'elle vaut. Une <b>chaîne d'eau vaut son carré</b> : deux
+    flaques 16 points, cinq flaques 100, dix flaques 400, quinze 900.<br>
+    Une bête <b>brûlée</b> dans un incendie rapporte 60 % de sa valeur : le feu
+    chasse, lui aussi — moins bien qu'un coup préparé, mais tout seul.<br>
+    C'est déraisonnable exprès. Le jeu ne récompense pas la prudence, il
+    récompense le coup préparé.
+  </div>
+
+  <div class="regl">
+    <h3>COMMANDES</h3>
+    <div class="cle">
+      <kbd>clic</kbd><kbd>appui</kbd> désigner une case
+      <kbd>↑ ↓ ← →</kbd> viser <kbd>Entrée</kbd> bondir
+      <kbd>Espace</kbd> attendre <kbd>P</kbd> paratonnerre <kbd>R</kbd> règles
+    </div>
+    Au doigt : un premier appui montre ce que le coup ferait, un second le joue.
+  </div>
+
+  <div class="regs">
+    <div class="reg"><div><h4>SON</h4><p>Pluie, tonnerre, et le claquement de
+      l'arc. Rien d'autre.</p></div>
+      <button class="lien" id="sonBtn">SON : ACTIVÉ</button></div>
+    <div class="reg"><div><h4>VOLUME</h4><p>Si le tonnerre sature, baisse-le ici.</p></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="range" id="volIn" min="0" max="100" step="5" style="width:120px">
+        <span id="volVal" style="font:700 11px var(--mono);color:var(--cyan);width:44px;
+          text-align:right">65 %</span></div></div>
+    <div class="reg"><div><h4 class="danger">EFFACER</h4><p>Rang, records, succès et
+      partie en cours.</p></div>
+      <button class="lien danger" id="effacer">TOUT EFFACER</button></div>
+  </div>
+  <div class="relance"><button class="gros repr" id="reRetour"><b>RETOUR</b></button></div>
+</div>
+
+<script>
+
+/* ==========================================================================
+   FOUDRE — tu ne tombes pas, tu bondis
+   ==========================================================================
+   Un seul fichier, aucune dépendance, aucune image ni son téléchargé.
+
+   Le verbe du jeu tient en une phrase : TU NE PEUX EXISTER QUE SUR UN
+   CONDUCTEUR, ET CE QUE TU QUITTES SE CONSUME.
+
+   Tout en découle. Se déplacer, c'est détruire le chemin derrière soi. Frapper
+   une bête, c'est s'en servir comme d'une pierre de gué. La pluie est la seule
+   chose qui reconstruit le monde, et elle tombe au hasard. Le paratonnerre est
+   la seule case qui ne brûle jamais — c'est autour de lui que tout se joue.
+
+   Il n'y a donc pas de « bon coup » et de « mauvais coup » : il y a des coups
+   qui laissent une suite et des coups qui n'en laissent pas. C'est un jeu de
+   tour par tour, sans réflexes, où l'on perd toujours par manque de place.
+   ========================================================================== */
+
+const cv=document.getElementById('c');
+let ctx=cv.getContext('2d',{alpha:false});
+let VW=0, VH=0, DPR=1;
+const TAU=Math.PI*2;
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const MONO='ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace';
+const TITRE='"Arial Black","Arial Bold",Impact,system-ui,sans-serif';
+
+/* ==========================================================================
+   LE HASARD, MAÎTRISÉ
+   ==========================================================================
+   Deux générateurs. Celui de la partie est SEMÉ : en mode quotidien, la même
+   date donne exactement le même orage à tout le monde — mêmes flaques, même
+   pluie, mêmes bêtes, au coup près. C'est ce qui rend un score comparable.
+   Celui de l'ambiance (étincelles, gouttes à l'écran) ne l'est pas : il ne
+   touche à rien de jouable. */
+function semeur(a){
+  return function(){
+    a|=0; a=a+0x6D2B79F5|0;
+    let t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+let RNG=semeur(Date.now()&0x7fffffff);
+const rnd=(a,b)=>a+RNG()*(b-a);
+const ri=(a,b)=>Math.floor(a+RNG()*(b-a+1));
+const pick=l=>l[Math.floor(RNG()*l.length)];
+/* le hasard décoratif : il ne doit jamais décaler la partie semée */
+let DECO=semeur(12345);
+const drnd=(a,b)=>a+DECO()*(b-a);
+const dri=(a,b)=>Math.floor(a+DECO()*(b-a+1));
+
+/* un bruit stable, pour le grain du sol : même case, même grain, toujours */
+function hash2(x,y,g){
+  let h=(x*374761393+y*668265263+(g|0)*1442695040)|0;
+  h=(h^(h>>13))*1274126177;
+  return ((h^(h>>16))>>>0)/4294967295;
+}
+const nb=n=>{
+  n=Math.round(n);
+  const s=Math.abs(n).toString();
+  let o='';
+  for(let i=0;i<s.length;i++) o+=(i&&(s.length-i)%3===0?' ':'')+s[i];
+  return (n<0?'−':'')+o;
+};
+
+/* ==========================================================================
+   LA PLAINE
+   ==========================================================================
+   Quatorze cases de côté. C'est petit, et c'est voulu : on doit pouvoir lire
+   le plateau entier d'un coup d'œil, sur un téléphone comme sur un écran, sans
+   jamais faire défiler. Tout le jeu tient dans ce carré. */
+const GX=14, GY=14;
+const idx=(x,y)=>y*GX+x;
+const dedans=(x,y)=>x>=0&&y>=0&&x<GX&&y<GY;
+/* la distance de Tchebychev : un carré, pas un cercle. Un éclair ne s'excuse
+   pas d'aller en diagonale, et un joueur compte plus vite des cases qu'une
+   racine carrée. */
+const dist=(ax,ay,bx,by)=>Math.max(Math.abs(ax-bx),Math.abs(ay-by));
+
+/* la vue : le plateau est toujours centré et entier */
+let TUILE=44, OX=0, OY=0;
+function cadrer(){
+  /* Ces trois marges doivent coller EXACTEMENT à ce que la feuille de style
+     réserve, sinon on rogne le plateau pour rien. Les seuils ci-dessous sont
+     ceux des media queries : un écran court fait maigrir les deux bandeaux, et
+     le plateau doit récupérer la place ainsi libérée. */
+  const court=VH<=560;                       // un téléphone couché
+  const etroit=Math.min(VW,VH)<620;
+  const marge=etroit?10:22;
+  const hautHUD=court?58:(etroit?86:96);
+  const basHUD=court?46:(etroit?76:78);
+  const dispoW=VW-marge*2;
+  const dispoH=VH-hautHUD-basHUD;
+  TUILE=Math.max(16,Math.floor(Math.min(dispoW/GX,dispoH/GY)));
+  OX=Math.round((VW-GX*TUILE)/2);
+  OY=Math.round(hautHUD+(dispoH-GY*TUILE)/2);
+}
+const px=x=>OX+x*TUILE;
+const py=y=>OY+y*TUILE;
+const cx=x=>OX+(x+.5)*TUILE;
+const cy=y=>OY+(y+.5)*TUILE;
+function caseSous(sx,sy){
+  return [Math.floor((sx-OX)/TUILE), Math.floor((sy-OY)/TUILE)];
+}
+
+function redim(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  VW=window.innerWidth; VH=window.innerHeight;
+  cv.width=Math.round(VW*DPR); cv.height=Math.round(VH*DPR);
+  ctx=cv.getContext('2d',{alpha:false});
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  cadrer();
+  CIEL=null;
+}
+addEventListener('resize',redim);
+
+let ecranActif='menu';
+let P=null;                        // la partie
+let horloge=0, last=performance.now();
+let CIEL=null;                     // le fond, peint une fois
+
+
+/* ==========================================================================
+   3. LE SON
+   ==========================================================================
+   Tout est synthétisé. Un orage n'a que trois sons, et ils sont tous du bruit
+   filtré : la pluie (bruit rose continu), le tonnerre (bruit très grave qui
+   roule), et le claquement de l'arc (bruit très aigu, très court). Le reste
+   n'est que du silence — c'est le silence entre deux coups qui rend le coup
+   suivant impressionnant, donc on ne met pas de musique. */
+const SND={
+  ctx:null, maitre:null, pluieG:null, on:true, muet:false, volume:.65, prochain:0,
+  init(){
+    if(this.ctx) return;
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC) return;
+    this.ctx=new AC();
+    this.maitre=this.ctx.createGain();
+    this.maitre.gain.value=this.volume;
+    const comp=this.ctx.createDynamicsCompressor();
+    comp.threshold.value=-14; comp.ratio.value=8;
+    this.maitre.connect(comp); comp.connect(this.ctx.destination);
+    /* la pluie : un bruit blanc passé au filtre, en boucle, qui ne s'arrête
+       jamais tant qu'on joue. C'est le lit sur lequel tout le reste se pose. */
+    const n=this.ctx.createBufferSource();
+    const b=this.ctx.createBuffer(1,this.ctx.sampleRate*3,this.ctx.sampleRate);
+    const d=b.getChannelData(0);
+    let v=0;
+    for(let i=0;i<d.length;i++){ v=v*.86+(Math.random()*2-1)*.14; d[i]=v*2.2; }
+    n.buffer=b; n.loop=true;
+    const f=this.ctx.createBiquadFilter(); f.type='bandpass';
+    f.frequency.value=2400; f.Q.value=.32;
+    this.pluieG=this.ctx.createGain(); this.pluieG.gain.value=0;
+    n.connect(f); f.connect(this.pluieG); this.pluieG.connect(this.maitre);
+    n.start();
+  },
+  reprendre(){ if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume(); },
+  vol(v){ this.volume=v; if(this.maitre) this.maitre.gain.value=v; },
+  pluie(v){
+    if(!this.pluieG||!this.ctx) return;
+    this.pluieG.gain.setTargetAtTime(this.on?v*.16:0,this.ctx.currentTime,.6);
+  },
+  silence(){ this.pluie(0); },
+  note(f,t0,dur,type,g,glisse){
+    if(!this.on||this.muet||!this.ctx) return;
+    const o=this.ctx.createOscillator(), a=this.ctx.createGain();
+    o.type=type||'sine'; o.frequency.setValueAtTime(f,t0);
+    if(glisse) o.frequency.exponentialRampToValueAtTime(Math.max(20,glisse),t0+dur);
+    a.gain.setValueAtTime(0,t0);
+    a.gain.linearRampToValueAtTime(g||.1,t0+.006);
+    a.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+    o.connect(a); a.connect(this.maitre);
+    o.start(t0); o.stop(t0+dur+.02);
+  },
+  bruit(t0,dur,freq,g,q,type){
+    if(!this.on||this.muet||!this.ctx) return;
+    const n=this.ctx.createBufferSource();
+    const len=Math.max(1,Math.floor(this.ctx.sampleRate*dur));
+    const b=this.ctx.createBuffer(1,len,this.ctx.sampleRate);
+    const d=b.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,1.6);
+    n.buffer=b;
+    const f=this.ctx.createBiquadFilter(); f.type=type||'bandpass';
+    f.frequency.value=freq||1800; f.Q.value=q||1.1;
+    const a=this.ctx.createGain(); a.gain.value=g||.1;
+    n.connect(f); f.connect(a); a.connect(this.maitre);
+    n.start(t0);
+  },
+  /* le claquement : très court, très haut, suivi d'un creux grave. La force
+     monte avec la taille du coup — c'est la seule récompense sonore du jeu. */
+  arc(force){
+    if(!this.ctx) return;
+    const t=this.ctx.currentTime;
+    const f=clamp(force||1,1,10);
+    this.bruit(t,.05+f*.012,5200-f*220,.13+f*.02,.7,'highpass');
+    this.bruit(t+.02,.16+f*.05,900-f*40,.09+f*.02,.8);
+    this.note(160-f*6,t+.01,.30+f*.05,'sine',.09+f*.012,42);
+    if(f>=4){
+      /* les grosses chaînes traînent : une queue de résonance qui descend */
+      this.bruit(t+.10,.5+f*.06,320,.05,.6,'lowpass');
+      this.note(70,t+.09,.7,'sine',.08,30);
+    }
+  },
+  crepite(){
+    if(!this.ctx) return;
+    const t=this.ctx.currentTime;
+    if(t<this.prochain) return;
+    this.prochain=t+.05;
+    this.bruit(t,.03,6000,.05,3,'highpass');
+  },
+  /* le tonnerre : lointain, il roule. Il ne veut rien dire, il fait l'orage. */
+  tonnerre(loin){
+    if(!this.ctx) return;
+    const t=this.ctx.currentTime;
+    const g=loin?.05:.11;
+    this.bruit(t,1.4,loin?110:190,g,.5,'lowpass');
+    this.bruit(t+.25,1.1,loin?80:140,g*.7,.5,'lowpass');
+    this.note(48,t,1.6,'sine',g*.7,26);
+  },
+  eau(n){
+    if(!this.ctx) return;
+    const t=this.ctx.currentTime;
+    for(let i=0;i<Math.min(10,n);i++)
+      this.bruit(t+i*.035,.09,1500+i*260,.05,2.4);
+  },
+  feu(){
+    if(!this.ctx) return;
+    const t=this.ctx.currentTime;
+    this.bruit(t,.34,760,.07,.7);
+    this.bruit(t+.06,.5,420,.05,.6,'lowpass');
+  },
+  clic(){ if(this.ctx) this.note(1180,this.ctx.currentTime,.045,'square',.05); },
+  refus(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(150,t,.10,'sawtooth',.07); this.note(112,t+.07,.16,'sawtooth',.06); } },
+  bien(){ if(this.ctx){ const t=this.ctx.currentTime;
+    [0,4,7,12].forEach((k,i)=>this.note(440*Math.pow(2,(67+k-69)/12),t+i*.07,.3,'triangle',.09)); } },
+  mal(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.bruit(t,.7,240,.10,.6,'lowpass');
+    [0,-4,-9].forEach((k,i)=>this.note(440*Math.pow(2,(60+k-69)/12),t+i*.16,.5,'sawtooth',.08)); } },
+  /* la charge perdue : un grésillement qui s'effondre. On doit le sentir. */
+  degat(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.bruit(t,.30,2200,.11,1.2,'highpass');
+    this.note(320,t,.34,'sawtooth',.10,60); } },
+  gain(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(880,t,.16,'triangle',.09,1760);
+    this.note(1320,t+.05,.2,'sine',.05,2640); } }
+};
+
+
+/* ==========================================================================
+   2. CE QUI CONDUIT, CE QUI NE CONDUIT PAS
+   ==========================================================================
+   Huit natures de sol. La seule question qu'on se pose à chaque tour est
+   « est-ce que ça conduit ? », et la réponse doit se lire à la couleur, sans
+   légende : ce qui conduit est clair et froid, ce qui ne conduit pas est
+   sombre et mat. Le feu est la seule exception — il conduit et il est chaud,
+   parce qu'il est en train de disparaître. */
+const TERRE=0, ROCHE=1, EAU=2, ARBRE=3, FEU=4, CENDRE=5, METAL=6, TOUR=7;
+
+const SOLS={
+ [TERRE]:{nom:'TERRE', cond:false, col:'#22283a',
+   d:'De la boue. Rien n\'y passe. La pluie finira par y faire une flaque.'},
+ [ROCHE]:{nom:'ROCHE', cond:false, col:'#2f3446',
+   d:'Sèche et morte. Le feu ne la traverse pas, la pluie n\'y tient pas.'},
+ [EAU]:{nom:'FLAQUE', cond:true, col:'#2f6f9e',
+   d:'Conduit — et propage. Frappe une flaque et tout l\'ensemble d\'un coup.'},
+ [ARBRE]:{nom:'ARBRE', cond:true, col:'#2f6d45',
+   d:'Conduit, puis s\'enflamme. Le feu se transmet d\'arbre en arbre.'},
+ [FEU]:{nom:'FEU', cond:true, col:'#e2701f',
+   d:'Conduit encore, deux tours. Tue ce qui y entre. Puis il ne reste rien.'},
+ [CENDRE]:{nom:'CENDRE', cond:false, col:'#191c27',
+   d:'Ce que tu as consumé. Plus rien n\'y passera, sauf une flaque de pluie.'},
+ [METAL]:{nom:'FERRAILLE', cond:true, col:'#8e9bb0',
+   d:'Une charrue rouillée, un rail. Conduit une fois, puis fond.'},
+ [TOUR]:{nom:'PARATONNERRE', cond:true, sur:true, col:'#ffd45e',
+   d:'La seule case qui ne se consume JAMAIS. Tout se joue autour d\'elle.'}
+};
+function conduit(s){ return !!SOLS[s].cond; }
+
+/* ==========================================================================
+   LES BÊTES
+   ==========================================================================
+   Elles ne sont pas là pour être tuées : elles sont là pour être TRAVERSÉES.
+   Une bête est un conducteur qui marche vers toi — donc un pont mobile, et une
+   menace, selon l'ordre dans lequel tu t'en sers. C'est le cœur tactique du
+   jeu et il tient dans cette phrase. */
+const BETES={
+ gresillon:{nom:'GRÉSILLON', pv:1, vit:1, pts:25, col:'#c9f36a', taille:.36,
+   d:'Avance d\'une case vers toi, chaque tour. Le pont le plus simple.'},
+ crapaud:{nom:'CRAPAUD', pv:1, vit:1, pts:32, col:'#5fbf7a', taille:.40, mouille:1,
+   d:'Laisse une flaque derrière lui. Le tuer trop tôt, c\'est tuer ta pluie.'},
+ corbeau:{nom:'CORBEAU', pv:1, vit:2, pts:55, col:'#b58cf0', taille:.38, vole:1,
+   d:'Deux cases par tour, et rien ne l\'arrête. Il arrive toujours trop vite.'},
+ sanglier:{nom:'BÊTE DE FER', pv:2, vit:1, pts:75, col:'#e0894a', taille:.46, lourd:1,
+   d:'Deux décharges pour l\'abattre. La première ne fait que l\'arrêter.'},
+ follet:{nom:'FOLLET', pv:1, vit:1, pts:60, col:'#ff7ab8', taille:.34, boit:1,
+   d:'Il va aux flaques et il les boit. Il ne t\'attaque pas : il t\'affame.'},
+ colosse:{nom:'COLOSSE', pv:4, vit:1, pts:260, col:'#ff5a5a', taille:.58, lourd:1,
+   lent:1, d:'Quatre décharges. Il avance un tour sur deux, et il ne dévie pas.'}
+};
+const CLES_BETES=Object.keys(BETES);
+
+/* ==========================================================================
+   LES ORAGES
+   ==========================================================================
+   Une partie est une suite d'orages. Chacun dure un nombre de tours ; le
+   survivre en entier le fait passer, et on choisit alors un pouvoir. La
+   difficulté ne monte pas en donnant plus de bêtes : elle monte en donnant
+   MOINS DE PLUIE. C'est la seule ressource qui reconstruit le plateau, et
+   c'est en la resserrant qu'on serre la gorge. */
+function orageDe(n){
+  return {
+    n,
+    tours: 20+Math.min(16,n*2),
+    /* LA PLUIE EST LE RÉGLAGE CENTRAL DU JEU. Le joueur consume au moins une
+       case par tour ; s'il pleut davantage, la plaine s'inonde et le jeu perd
+       son sujet. On pleut donc un peu moins qu'une case par tour dès le début,
+       et de moins en moins ensuite : le monde se referme tout seul, et les
+       grandes chaînes — qui évaporent tout un bassin — coûtent d'autant plus
+       cher qu'elles rapportent. */
+    pluie: Math.max(.55, 1.55-n*.12),
+    /* ce qui rôde au départ, et ce qui arrive ensuite */
+    depart: Math.min(9, 2+Math.floor(n*.9)),
+    cadence: Math.max(2.6, 8.4-n*.55),
+    pool: poolDe(n),
+    boss: n>0&&n%5===0
+  };
+}
+function poolDe(n){
+  const l=['gresillon','gresillon','gresillon'];
+  if(n>=2) l.push('crapaud','crapaud');
+  if(n>=3) l.push('corbeau');
+  if(n>=4) l.push('sanglier','corbeau');
+  if(n>=6) l.push('follet','sanglier');
+  if(n>=8) l.push('corbeau','follet','sanglier');
+  return l;
+}
+/* le nom de l'orage : c'est plus court à lire qu'un numéro, et ça se raconte */
+const NOMS_ORAGE=['BRUINE','AVERSE','GRAIN','BOURRASQUE','TONNERRE','DÉLUGE',
+ 'TEMPÊTE','FURIE','CATACLYSME','APOCALYPSE'];
+function nomOrage(n){
+  return NOMS_ORAGE[Math.min(NOMS_ORAGE.length-1,n-1)]
+    +(n>NOMS_ORAGE.length?' '+(n-NOMS_ORAGE.length+1):'');
+}
+
+/* ==========================================================================
+   LES POUVOIRS
+   ==========================================================================
+   Trois au choix après chaque orage. Aucun ne donne « plus de dégâts » : il
+   n'y a pas de dégâts dans ce jeu. Ils donnent tous de la PLACE — une case de
+   plus où aller, un tour de plus avant d'être coincé. C'est la seule monnaie
+   qui compte, et c'est ce qui rend les choix difficiles. */
+const POUVOIRS={
+ portee:{nom:'ARC LONG', ico:'⟶', max:3, rare:0,
+   d:n=>'Portée '+(PORTEE_BASE+n)+' cases au lieu de '+(PORTEE_BASE+n-1),
+   d2:'Chaque case de portée en plus est une survie en plus. Le pouvoir le plus sûr.'},
+ diag:{nom:'RUISSELLEMENT', ico:'≈', max:1, rare:1,
+   d:()=>'L\'eau se propage aussi en diagonale',
+   d2:'Les flaques se rejoignent bien plus souvent. Les chaînes doublent.'},
+ sillage:{nom:'SILLAGE', ico:'💧', max:2, rare:1,
+   d:n=>'Une bête foudroyée laisse une flaque ('+(n*45)+' % du temps)',
+   d2:'Tes proies deviennent ton terrain. C\'est le moteur des longues parties.'},
+ braise:{nom:'BRAISE LENTE', ico:'🔥', max:2, rare:0,
+   d:n=>'Le feu brûle '+(2+n)+' tours au lieu de '+(1+n),
+   d2:'Un incendie est un réseau de conducteurs qui s\'éteint tout seul. Fais-le durer.'},
+ charge:{nom:'TROISIÈME FIL', ico:'⚡', max:3, rare:0,
+   d:n=>'+'+n+' charge'+(n>1?'s':''),
+   d2:'Une décharge encaissée de plus. Simple, et ça ne trompe jamais.'},
+ gratuit:{nom:'PAS DE CÔTÉ', ico:'↺', max:2, rare:1,
+   d:n=>'Un bond sur '+(7-n*2)+' ne consume pas la case quittée',
+   d2:'Le seul pouvoir qui rende une case au plateau. Compte tes bonds.'},
+ tour:{nom:'PORTE-FOUDRE', ico:'🗼', max:2, rare:1,
+   d:n=>'Pose '+n+' paratonnerre'+(n>1?'s':'')+' par orage (touche P)',
+   d2:'Une case éternelle, où tu veux. Un abri qu\'on se fabrique.'},
+ pluie:{nom:'APPEL DE PLUIE', ico:'☔', max:3, rare:0,
+   d:n=>'+'+(n*.9).toFixed(1)+' goutte par tour',
+   d2:'Contre l\'assèchement des derniers orages, il n\'y a que ça.'},
+ proche:{nom:'ARC DE PROXIMITÉ', ico:'✳', max:2, rare:1,
+   d:n=>'Foudroyer une bête électrocute celles à '+n+' case'+(n>1?'s':''),
+   d2:'Les nuées de grésillons deviennent des feux d\'artifice.'},
+ fonte:{nom:'FERRAILLE FROIDE', ico:'⛓', max:1, rare:1,
+   d:()=>'La ferraille ne fond pas : elle devient conductrice à vie',
+   d2:'Chaque bout de métal du plateau devient un second paratonnerre.'},
+ racine:{nom:'BOIS VERT', ico:'🌲', max:2, rare:0,
+   d:n=>'La pluie fait pousser un arbre tous les '+(9-n*3)+' tours',
+   d2:'Le seul pouvoir qui crée du conducteur ailleurs que sous la pluie.'},
+ aimant:{nom:'AIMANT', ico:'🧲', max:2, rare:1,
+   d:n=>'Les bêtes à '+n+' case de ta cible sont attirées vers toi',
+   d2:'On ne fuit pas les bêtes : on les range là où on veut sauter.'},
+ echo:{nom:'ÉCHO', ico:'◎', max:1, rare:2,
+   d:()=>'Une chaîne d\'eau de 4 flaques ou plus rend 1 charge',
+   d2:'La récompense des grands coups. Rare, et elle change une partie.'},
+ semelle:{nom:'PIED SEC', ico:'👣', max:1, rare:2,
+   d:()=>'Attendre ne consume rien et repousse les bêtes adjacentes d\'une case',
+   d2:'Attendre devient un vrai coup. Le pouvoir des joueurs patients.'}
+};
+const CLES_POUVOIRS=Object.keys(POUVOIRS);
+function nivPouvoir(k){ return (P&&P.pouvoirs&&P.pouvoirs[k])||0; }
+function P_(k){ return nivPouvoir(k); }
+
+/* trois propositions, jamais deux fois la même, jamais une déjà au maximum */
+function tirerPouvoirs(){
+  const dispo=CLES_POUVOIRS.filter(k=>nivPouvoir(k)<POUVOIRS[k].max
+    && POUVOIRS[k].rare<=(P.orage>=4?2:P.orage>=2?1:0));
+  const l=[];
+  const pool=dispo.slice();
+  for(let i=0;i<3&&pool.length;i++){
+    /* les rares restent rares : on tire deux fois et on garde le moins rare
+       la moitié du temps, ce qui suffit à les espacer sans les cacher */
+    let j=Math.floor(RNG()*pool.length);
+    const j2=Math.floor(RNG()*pool.length);
+    if(POUVOIRS[pool[j2]].rare<POUVOIRS[pool[j]].rare&&RNG()<.5) j=j2;
+    l.push(pool.splice(j,1)[0]);
+  }
+  return l;
+}
+
+/* ==========================================================================
+   LE COMPTE DES POINTS
+   ==========================================================================
+   Une bête vaut ce qu'elle vaut. Une CHAÎNE vaut son carré : deux flaques
+   valent 20, cinq en valent 125, dix en valent 500. C'est délibérément
+   déraisonnable — c'est ce qui pousse à préparer un grand coup au lieu de
+   sauter au plus près, et c'est ce dont on parle après une partie. */
+function pointsChaine(n){ return n<2?0:Math.round(4*n*n); }
+function pointsBete(k){ return BETES[k].pts; }
+
+/* ==========================================================================
+   LES RANGS ET LES SUCCÈS
+   ========================================================================== */
+const RANGS=[
+ {s:0,      nom:'ÉTINCELLE',  ico:'·',  d:'On grésille et on s\'éteint.'},
+ {s:6000,   nom:'ARC',        ico:'⌒',  d:'On tient deux ou trois orages.'},
+ {s:25000,  nom:'DÉCHARGE',   ico:'⚡', d:'On voit le plateau deux coups à l\'avance.'},
+ {s:70000,  nom:'FOUDRE',     ico:'🗲',  d:'On choisit où l\'on frappe, et pourquoi.'},
+ {s:160000, nom:'ORAGE',      ico:'☁',  d:'Le plateau travaille pour toi.'},
+ {s:340000, nom:'CIEL ENTIER',ico:'✵',  d:'Il n\'y a plus rien à t\'apprendre.'}
+];
+function rangDe(s){ let r=RANGS[0]; for(const x of RANGS) if(s>=x.s) r=x; return r; }
+function rangSuivant(s){ for(const x of RANGS) if(s<x.s) return x; return null; }
+
+const SUCCES=[
+ {id:'premier',  nom:'PREMIÈRE DÉCHARGE', d:'Foudroyer une première bête'},
+ {id:'chaine5',  nom:'RUISSEAU',          d:'Une chaîne de 5 flaques'},
+ {id:'chaine9',  nom:'RIVIÈRE',           d:'Une chaîne de 9 flaques'},
+ {id:'chaine14', nom:'CRUE',              d:'Une chaîne de 14 flaques'},
+ {id:'triple',   nom:'TROIS D\'UN COUP',  d:'Trois bêtes dans une seule chaîne'},
+ {id:'six',      nom:'HÉCATOMBE',         d:'Six bêtes dans une seule chaîne'},
+ {id:'orage3',   nom:'LE GRAIN PASSÉ',    d:'Survivre à trois orages'},
+ {id:'orage6',   nom:'LE DÉLUGE',         d:'Survivre à six orages'},
+ {id:'orage10',  nom:'APOCALYPSE',        d:'Survivre à dix orages'},
+ {id:'colosse',  nom:'LE COLOSSE TOMBE',  d:'Abattre un colosse'},
+ {id:'incendie', nom:'INCENDIE',          d:'Douze arbres en feu en même temps'},
+ {id:'tour',     nom:'ANCRÉ',             d:'Finir un orage sans quitter un paratonnerre plus de 3 tours'},
+ {id:'sansmal',  nom:'INTOUCHABLE',       d:'Passer un orage entier sans perdre de charge'},
+ {id:'jeune',    nom:'À SEC',             d:'Survivre 5 tours sans une seule flaque sur le plateau'},
+ {id:'plein',    nom:'ARSENAL',           d:'Avoir six pouvoirs différents'},
+ {id:'gros',     nom:'CENT MILLE',        d:'Cent mille points en une partie'},
+ {id:'quot',     nom:'RENDEZ-VOUS',       d:'Jouer un orage quotidien'},
+ {id:'quot7',    nom:'HABITUÉ',           d:'Jouer sept orages quotidiens'}
+];
+
+/* ==========================================================================
+   LES RÉGLAGES DE DÉPART
+   ========================================================================== */
+const PORTEE_BASE=3;               // + le pouvoir ARC LONG
+const CHARGE_BASE=3;
+const FEU_DUREE=2;                 // tours qu'un arbre brûle avant la cendre
+const TOURS_INVULN=1;
+
+
+/* ==========================================================================
+   4. LA PLAINE, LA PLUIE, LE FEU
+   ==========================================================================
+   Le plateau n'est pas un décor : c'est la ressource. Il ne fait que deux
+   choses — il se consume quand on le quitte, et il repousse quand il pleut.
+   Toute la difficulté d'un orage se règle sur le rapport entre ces deux
+   vitesses, et sur rien d'autre. */
+
+const CLE='foudre:v1';
+const Store={
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+};
+
+function nouvellePartie(mode,graine){
+  RNG=semeur(graine!=null?graine:((Date.now()^(Math.random()*1e9))&0x7fffffff));
+  P={
+    mode: mode||'libre',            // 'libre' ou 'quotidien'
+    graine: graine,
+    sol:new Uint8Array(GX*GY),
+    feu:new Uint8Array(GX*GY),      // tours de combustion restants
+    betes:[],
+    x:0, y:0,                       // le joueur
+    charge:CHARGE_BASE, chargeMax:CHARGE_BASE,
+    orage:1, tour:0, toursTotal:0,
+    o:null,                         // l'orage en cours
+    pouvoirs:{}, tours:0,           // 'tours' = paratonnerres posés ce tour-ci
+    score:0, betesTuees:0, meilleureChaine:0, chainesTotal:0,
+    bondsDepuisGratuit:0,
+    fini:false, cause:'', invuln:0,
+    sansDegat:true, ancre:0, sansEau:0,
+    journal:[],                     // ce qui s'est passé, pour l'écran de fin
+    arcs:[], parts:[], flottants:[], secousse:0, eclair:0,
+    attente:0, aTire:0
+  };
+  P.o=orageDe(1);
+  genererPlaine();
+  placerJoueur();
+  peuplerOrage(P.o,true);
+  P.journal.push({orage:1, nom:nomOrage(1), score:0});
+  return P;
+}
+
+/* ==========================================================================
+   LA GÉNÉRATION
+   ==========================================================================
+   Une plaine détrempée : de la terre, des mares, des bosquets, de la ferraille
+   abandonnée, deux ou trois paratonnerres. Rien n'est symétrique et rien n'est
+   uniforme — ce sont les amas qui font les bons coups. On génère donc par
+   TACHES, pas case par case, et on garantit à la fin qu'il existe assez de
+   conducteurs pour que le premier tour ne soit pas déjà perdu. */
+function genererPlaine(){
+  P.sol.fill(TERRE);
+  P.feu.fill(0);
+  const tache=(cible,n,taille)=>{
+    for(let i=0;i<n;i++){
+      let x=ri(1,GX-2), y=ri(1,GY-2);
+      const g=ri(taille[0],taille[1]);
+      for(let j=0;j<g;j++){
+        if(dedans(x,y)) P.sol[idx(x,y)]=cible;
+        /* une marche au hasard : c'est ce qui donne des mares en virgule
+           plutôt que des ronds, et une virgule se traverse mieux qu'un rond */
+        x+=ri(-1,1); y+=ri(-1,1);
+        x=clamp(x,0,GX-1); y=clamp(y,0,GY-1);
+      }
+    }
+  };
+  tache(ROCHE,ri(3,5),[3,7]);
+  tache(EAU,ri(4,5),[3,6]);
+  tache(ARBRE,ri(6,8),[4,9]);
+  tache(METAL,ri(2,3),[1,2]);
+  /* les paratonnerres, écartés les uns des autres : trois abris qui se
+     répondent valent mieux que trois abris côte à côte */
+  const tours=[];
+  let garde=0;
+  while(tours.length<3&&garde++<400){
+    const x=ri(2,GX-3), y=ri(2,GY-3);
+    if(tours.some(t=>dist(t[0],t[1],x,y)<4)) continue;
+    tours.push([x,y]);
+    P.sol[idx(x,y)]=TOUR;
+  }
+  P.toursDepart=tours;
+}
+function placerJoueur(){
+  /* on démarre sur un paratonnerre : la première case du jeu est celle qui ne
+     brûle pas, et c'est la leçon la plus importante à faire passer */
+  const t=P.toursDepart&&P.toursDepart[0];
+  if(t){ P.x=t[0]; P.y=t[1]; return; }
+  for(let i=0;i<600;i++){
+    const x=ri(1,GX-2), y=ri(1,GY-2);
+    if(conduit(P.sol[idx(x,y)])){ P.x=x; P.y=y; return; }
+  }
+  P.x=GX>>1; P.y=GY>>1; P.sol[idx(P.x,P.y)]=TOUR;
+}
+
+/* ==========================================================================
+   LES BÊTES
+   ==========================================================================
+   Elles arrivent par les bords, jamais à côté du joueur : on doit toujours
+   avoir un tour pour les voir venir. */
+function bordLibre(){
+  for(let i=0;i<300;i++){
+    const c=ri(0,3);
+    const x=c===0?0:c===1?GX-1:ri(0,GX-1);
+    const y=c===2?0:c===3?GY-1:ri(0,GY-1);
+    if(dist(x,y,P.x,P.y)<4) continue;
+    if(beteEn(x,y)) continue;
+    return [x,y];
+  }
+  return null;
+}
+function beteEn(x,y){
+  for(const b of P.betes) if(b.x===x&&b.y===y&&b.pv>0) return b;
+  return null;
+}
+function faireBete(k,x,y){
+  const d=BETES[k];
+  const b={k, d, x, y, pv:d.pv, ph:drnd(0,TAU), dx:0, dy:0, ax:x, ay:y, t:0,
+    lentT:0, neuf:1};
+  P.betes.push(b);
+  return b;
+}
+function peuplerOrage(o,depart){
+  const n=depart?o.depart:0;
+  for(let i=0;i<n;i++){
+    const p=bordLibre();
+    if(p) faireBete(pick(o.pool),p[0],p[1]);
+  }
+  if(o.boss){
+    const p=bordLibre();
+    if(p) faireBete('colosse',p[0],p[1]);
+  }
+}
+
+/* ==========================================================================
+   LA PLUIE
+   ==========================================================================
+   Elle tombe sur la terre et sur la cendre, jamais sur la roche. C'est la
+   seule chose qui rende des cases au plateau, et c'est pour ça qu'elle est
+   aléatoire : si le joueur pouvait choisir où il pleut, il n'y aurait plus de
+   jeu. Le compte est fractionnaire et s'accumule — une pluie de 1,5 donne une
+   goutte un tour sur deux et deux l'autre, sans jamais être régulière. */
+function pleuvoir(){
+  P.pluieAcc=(P.pluieAcc||0)+P.o.pluie+P_('pluie')*.9;
+  const l=[];
+  let garde=0;
+  while(P.pluieAcc>=1&&garde++<40){
+    P.pluieAcc-=1;
+    let mis=false;
+    for(let i=0;i<60&&!mis;i++){
+      const x=ri(0,GX-1), y=ri(0,GY-1);
+      const t=idx(x,y);
+      const s=P.sol[t];
+      if(s!==TERRE&&s!==CENDRE) continue;
+      if(x===P.x&&y===P.y) continue;
+      P.sol[t]=EAU;
+      l.push([x,y]);
+      mis=true;
+    }
+  }
+  /* BOIS VERT : de temps en temps, la pluie fait pousser au lieu de mouiller */
+  const bv=P_('racine');
+  if(bv){
+    P.pousseT=(P.pousseT||0)+1;
+    if(P.pousseT>=9-bv*3){
+      P.pousseT=0;
+      for(let i=0;i<40;i++){
+        const x=ri(0,GX-1), y=ri(0,GY-1), t=idx(x,y);
+        if(P.sol[t]!==TERRE&&P.sol[t]!==CENDRE) continue;
+        if(x===P.x&&y===P.y) continue;
+        P.sol[t]=ARBRE;
+        l.push([x,y]);
+        break;
+      }
+    }
+  }
+  return l;
+}
+
+/* ==========================================================================
+   LE FEU
+   ==========================================================================
+   Un arbre foudroyé brûle deux tours, puis il ne reste rien. Tant qu'il brûle
+   il conduit encore — un incendie est donc un réseau de conducteurs à durée
+   déterminée, et savoir s'en servir avant qu'il s'éteigne est le geste avancé
+   du jeu. Il se propage aux arbres voisins, jamais à l'eau ni à la roche. */
+function allumer(x,y){
+  const t=idx(x,y);
+  if(P.sol[t]!==ARBRE) return false;
+  P.sol[t]=FEU;
+  P.feu[t]=FEU_DUREE+P_('braise');
+  return true;
+}
+function pasFeu(){
+  const neuf=[];
+  for(let y=0;y<GY;y++) for(let x=0;x<GX;x++){
+    const t=idx(x,y);
+    if(P.sol[t]!==FEU) continue;
+    P.feu[t]--;
+    /* il se propage tant qu'il lui reste du temps : un feu mourant ne
+       contamine plus, ce qui empêche l'incendie de tout emporter */
+    if(P.feu[t]>0){
+      for(let j=-1;j<=1;j++) for(let i=-1;i<=1;i++){
+        if(!i&&!j) continue;
+        const xx=x+i, yy=y+j;
+        if(!dedans(xx,yy)) continue;
+        const u=idx(xx,yy);
+        if(P.sol[u]===ARBRE&&RNG()<.34) neuf.push(u);
+      }
+    }
+    if(P.feu[t]<=0){ P.sol[t]=CENDRE; P.feu[t]=0; }
+  }
+  for(const u of neuf){
+    if(P.sol[u]!==ARBRE) continue;
+    P.sol[u]=FEU; P.feu[u]=FEU_DUREE+P_('braise');
+  }
+  /* et le feu tue ce qui reste dedans. Ça compte : incendier la forêt est une
+     façon de chasser, la seule qui tue à retardement. Un peu moins cher qu'un
+     coup direct, parce qu'on n'en tire ni chaîne ni appui — mais ça compte. */
+  let brulees=0;
+  for(const b of P.betes){
+    if(b.pv<=0) continue;
+    if(P.sol[idx(b.x,b.y)]!==FEU) continue;
+    b.pv=0; brulees++;
+    P.betesTuees++;
+    ajouterScore(Math.round(pointsBete(b.k)*.6), b.x, b.y, BETES[b.k].nom+' AU FEU');
+    marquer(b,'brûlée');
+  }
+  if(brulees){
+    /* on les sort de la liste tout de suite : une bête morte qui traîne serait
+       dessinée, et repartirait vivante d'une sauvegarde */
+    P.betes=P.betes.filter(b=>b.pv>0);
+    decrocher('premier');
+    SND.gain();
+  }
+  return neuf.length;
+}
+function nbFeux(){
+  let n=0;
+  for(let t=0;t<GX*GY;t++) if(P.sol[t]===FEU) n++;
+  return n;
+}
+function nbEau(){
+  let n=0;
+  for(let t=0;t<GX*GY;t++) if(P.sol[t]===EAU) n++;
+  return n;
+}
+
+/* ==========================================================================
+   CE QUE LE JOUEUR PEUT ATTEINDRE
+   ==========================================================================
+   Un carré de côté 2R+1 autour de lui, moins sa propre case. Une case est
+   atteignable si elle conduit, OU si une bête s'y tient — une bête est un
+   conducteur, c'est toute l'astuce du jeu. */
+function portee(){ return PORTEE_BASE+P_('portee'); }
+function atteignable(x,y){
+  if(!dedans(x,y)) return false;
+  if(x===P.x&&y===P.y) return false;
+  if(dist(x,y,P.x,P.y)>portee()) return false;
+  if(beteEn(x,y)) return true;
+  return conduit(P.sol[idx(x,y)]);
+}
+function cibles(){
+  const l=[];
+  const r=portee();
+  for(let y=P.y-r;y<=P.y+r;y++) for(let x=P.x-r;x<=P.x+r;x++)
+    if(atteignable(x,y)) l.push([x,y]);
+  return l;
+}
+function coince(){ return cibles().length===0; }
+
+/* ==========================================================================
+   LA PROPAGATION DANS L'EAU
+   ==========================================================================
+   Toutes les flaques qui se touchent ne forment qu'une seule cible. On les
+   ramasse en largeur depuis la case frappée ; l'arc les parcourt toutes, tue
+   tout ce qui est dessus, les évapore — et dépose le joueur sur la PLUS
+   ÉLOIGNÉE. C'est ce qui fait de l'eau un moyen de transport autant qu'une
+   arme, et c'est le cœur du plaisir du jeu. */
+function grappeEau(x0,y0){
+  const vus=new Uint8Array(GX*GY);
+  const file=[[x0,y0]];
+  const l=[];
+  vus[idx(x0,y0)]=1;
+  const diag=P_('diag');
+  while(file.length){
+    const [x,y]=file.shift();
+    l.push([x,y]);
+    for(let j=-1;j<=1;j++) for(let i=-1;i<=1;i++){
+      if(!i&&!j) continue;
+      if(!diag&&i&&j) continue;
+      const xx=x+i, yy=y+j;
+      if(!dedans(xx,yy)) continue;
+      const t=idx(xx,yy);
+      if(vus[t]||P.sol[t]!==EAU) continue;
+      vus[t]=1;
+      file.push([xx,yy]);
+    }
+  }
+  return l;
+}
+
+
+/* ==========================================================================
+   5. LE TOUR
+   ==========================================================================
+   Un tour de FOUDRE tient en deux temps et jamais plus :
+
+     1. LE JOUEUR bondit sur un conducteur, ou attend.
+     2. LE MONDE joue : le feu se propage, la pluie tombe, les bêtes avancent
+        et frappent.
+
+   Il n'y a pas d'initiative, pas de jet, pas de hasard dans le coup du joueur.
+   Tout ce qui est aléatoire (la pluie, l'apparition des bêtes) arrive APRÈS
+   son coup, jamais pendant : on ne perd jamais une partie sur un dé. */
+
+function marquer(b,cause){
+  P.parts.push({x:cx(b.x), y:cy(b.y), n:8, col:b.d.col, k:'mort'});
+}
+
+/* ---------------------------------------------------------------- le bond */
+function peutBondir(x,y){ return !P.fini && !P.anim && atteignable(x,y); }
+
+function bondir(x,y){
+  if(!peutBondir(x,y)){ SND.refus(); return false; }
+
+  const dep=[P.x,P.y];
+  const solDep=P.sol[idx(P.x,P.y)];
+  /* PAS DE CÔTÉ : un bond sur n ne consume pas la case de départ */
+  const gr=P_('gratuit');
+  P.bondsDepuisGratuit++;
+  let gratuit=false;
+  if(gr&&P.bondsDepuisGratuit>=7-gr*2){ gratuit=true; P.bondsDepuisGratuit=0; }
+
+  /* on consume ce qu'on quitte — sauf le paratonnerre, sauf un pas de côté,
+     et sauf la ferraille si on a FERRAILLE FROIDE */
+  if(!gratuit && solDep!==TOUR && !(solDep===METAL&&P_('fonte'))){
+    P.sol[idx(P.x,P.y)]=(solDep===ARBRE||solDep===FEU)?CENDRE:CENDRE;
+    P.feu[idx(P.x,P.y)]=0;
+  }
+
+  const touches=[];      // les cases traversées, pour dessiner l'arc
+  const morts=[];
+  let chaine=0;
+  let arrivee=[x,y];
+
+  const cible=beteEn(x,y);
+  const solCible=P.sol[idx(x,y)];
+
+  if(solCible===EAU){
+    /* la grappe entière part d'un coup */
+    const g=grappeEau(x,y);
+    chaine=g.length;
+    /* on se pose sur la flaque la plus éloignée de l'entrée : l'arc traverse */
+    let best=g[0], bd=-1;
+    for(const c of g){
+      const d=dist(c[0],c[1],x,y);
+      if(d>bd){ bd=d; best=c; }
+    }
+    arrivee=best;
+    for(const c of g){
+      touches.push(c);
+      const b=beteEn(c[0],c[1]);
+      if(b&&b.pv>0) morts.push(b);
+      /* tout s'évapore sauf la case d'arrivée, qui devient notre appui */
+      if(c[0]!==arrivee[0]||c[1]!==arrivee[1]) P.sol[idx(c[0],c[1])]=TERRE;
+    }
+    SND.eau(chaine);
+    if(chaine>=4&&P_('echo')) rendreCharge(1);
+  } else {
+    touches.push([x,y]);
+    if(cible&&cible.pv>0) morts.push(cible);
+    if(solCible===ARBRE) allumer(x,y);
+  }
+
+  /* ARC DE PROXIMITÉ : la décharge saute aux bêtes voisines des bêtes touchées */
+  const pr=P_('proche');
+  if(pr&&morts.length){
+    const vus=new Set(morts.map(b=>b.x+','+b.y));
+    for(const m of morts.slice()){
+      for(const b of P.betes){
+        if(b.pv<=0||vus.has(b.x+','+b.y)) continue;
+        if(dist(b.x,b.y,m.x,m.y)<=pr){
+          vus.add(b.x+','+b.y);
+          morts.push(b);
+          touches.push([b.x,b.y]);
+        }
+      }
+    }
+  }
+
+  /* on encaisse les bêtes : les lourdes prennent deux décharges */
+  let tuees=0;
+  for(const b of morts){
+    if(b.pv<=0) continue;
+    b.pv--;
+    b.touche=1;
+    if(b.pv<=0){
+      tuees++;
+      P.betesTuees++;
+      ajouterScore(pointsBete(b.k), b.x, b.y, BETES[b.k].nom);
+      marquer(b,'foudroyée');
+      if(b.k==='colosse') decrocher('colosse');
+      /* SILLAGE : la bête laisse une flaque là où elle tombe */
+      const si=P_('sillage');
+      if(si&&RNG()<si*.45){
+        const t=idx(b.x,b.y);
+        if(P.sol[t]===TERRE||P.sol[t]===CENDRE) P.sol[t]=EAU;
+      }
+    } else {
+      P.parts.push({x:cx(b.x), y:cy(b.y), n:4, col:'#fff', k:'choc'});
+    }
+  }
+
+  /* la case d'arrivée porte une bête morte → elle devient de la cendre */
+  const ta=idx(arrivee[0],arrivee[1]);
+  if(!conduit(P.sol[ta])) P.sol[ta]=CENDRE;
+
+  if(chaine>=2){
+    const pts=pointsChaine(chaine);
+    ajouterScore(pts, arrivee[0], arrivee[1], 'CHAÎNE ×'+chaine);
+    P.meilleureChaine=Math.max(P.meilleureChaine,chaine);
+    P.chainesTotal++;
+    if(chaine>=5) decrocher('chaine5');
+    if(chaine>=9) decrocher('chaine9');
+    if(chaine>=14) decrocher('chaine14');
+  }
+  if(tuees>=3) decrocher('triple');
+  if(tuees>=6) decrocher('six');
+  if(P.betesTuees>0) decrocher('premier');
+
+  /* AIMANT : les bêtes proches de la cible sont tirées d'une case vers nous */
+  const ai=P_('aimant');
+  if(ai){
+    for(const b of P.betes){
+      if(b.pv<=0) continue;
+      if(dist(b.x,b.y,arrivee[0],arrivee[1])>ai) continue;
+      pasVers(b,arrivee[0],arrivee[1],1);
+    }
+  }
+
+  /* l'arc à dessiner, et la secousse : plus le coup est gros, plus ça remue */
+  const force=1+chaine*.55+tuees*1.1;
+  P.arcs.push({dep, touches:touches.slice(), arrivee, t:0, force,
+    graine:dri(0,9999)});
+  P.secousse=Math.min(16,P.secousse+2+force*.9);
+  P.eclair=Math.min(1,.20+force*.06);
+  SND.arc(force);
+
+  P.x=arrivee[0]; P.y=arrivee[1];
+  P.betes=P.betes.filter(b=>b.pv>0);
+  P.aTire=1;
+  finirTour();
+  return true;
+}
+
+/* --------------------------------------------------------------- attendre */
+function attendre(){
+  if(P.fini||P.anim) return false;
+  P.attente++;
+  /* PIED SEC : attendre devient un vrai coup — il repousse ce qui est collé */
+  if(P_('semelle')){
+    for(const b of P.betes){
+      if(dist(b.x,b.y,P.x,P.y)>1) continue;
+      const dx=Math.sign(b.x-P.x), dy=Math.sign(b.y-P.y);
+      const nx=b.x+dx, ny=b.y+dy;
+      if(dedans(nx,ny)&&!beteEn(nx,ny)){ b.ax=b.x; b.ay=b.y; b.x=nx; b.y=ny; b.t=0; }
+    }
+  }
+  SND.crepite();
+  finirTour();
+  return true;
+}
+
+/* --------------------------------------------------- poser un paratonnerre */
+function poserTour(){
+  if(P.fini||P.anim) return false;
+  const max=P_('tour');
+  if(!max){ SND.refus(); return false; }
+  if((P.toursPoses||0)>=max){ message('Plus de paratonnerre cet orage'); SND.refus(); return false; }
+  const t=idx(P.x,P.y);
+  if(P.sol[t]===TOUR){ message('Tu es déjà sur un paratonnerre'); SND.refus(); return false; }
+  P.sol[t]=TOUR;
+  P.toursPoses=(P.toursPoses||0)+1;
+  P.parts.push({x:cx(P.x), y:cy(P.y), n:10, col:'#ffd45e', k:'tour'});
+  SND.gain();
+  message('PARATONNERRE POSÉ');
+  majHUD();
+  return true;
+}
+
+/* ==========================================================================
+   LE MONDE JOUE
+   ========================================================================== */
+function finirTour(){
+  P.tour++; P.toursTotal++;
+  P.score+=2;                                   // deux points par tour tenu
+
+  pasFeu();
+  const gouttes=pleuvoir();
+  for(const g of gouttes)
+    P.parts.push({x:cx(g[0]), y:cy(g[1]), n:3, col:'#7fd8ff', k:'goutte'});
+
+  /* les renforts : une cadence, pas un compteur — l'orage respire */
+  P.spawn=(P.spawn||0)+1;
+  if(P.spawn>=P.o.cadence&&P.tour<P.o.tours-1){
+    P.spawn=0;
+    const p=bordLibre();
+    if(p) faireBete(pick(P.o.pool),p[0],p[1]);
+  }
+
+  pasBetes();
+
+  /* L'étroitesse : on mesure ce qui reste à portée. C'est l'indicateur qui dit
+     si le joueur meurt des bêtes ou du désert qu'il a fait autour de lui, et
+     c'est celui qu'on lui montre à la fin. */
+  const reste=cibles().length;
+  P.dernierReste=reste;
+  if(reste<=3) P.etroit=(P.etroit||0)+1;
+  if(!reste&&!P.fini) perdreCharge('ÉPUISEMENT');
+
+  /* le suivi des succès qui se mesurent dans la durée */
+  if(nbEau()===0) P.sansEau++; else P.sansEau=0;
+  if(P.sansEau>=5) decrocher('jeune');
+  if(nbFeux()>=12) decrocher('incendie');
+  if(P.sol[idx(P.x,P.y)]===TOUR) P.ancre=0; else P.ancre++;
+  if(P.ancre>3) P.ancreCassee=1;
+
+  if(P.tour>=P.o.tours&&!P.fini) finirOrage();
+  else majHUD();
+  if(P.mode!=='quotidien') sauverPartie();
+}
+
+function pasVers(b,tx,ty,pas){
+  for(let i=0;i<(pas||1);i++){
+    const dx=Math.sign(tx-b.x), dy=Math.sign(ty-b.y);
+    let nx=b.x+dx, ny=b.y+dy;
+    /* si la case est prise, on essaie de glisser sur un seul axe : les bêtes
+       ne se marchent pas dessus et ne restent pas bloquées pour autant */
+    if(!libreBete(nx,ny)){
+      if(dx&&libreBete(b.x+dx,b.y)) { nx=b.x+dx; ny=b.y; }
+      else if(dy&&libreBete(b.x,b.y+dy)) { nx=b.x; ny=b.y+dy; }
+      else return;
+    }
+    b.ax=b.x; b.ay=b.y; b.x=nx; b.y=ny; b.t=0;
+  }
+}
+function libreBete(x,y){
+  if(!dedans(x,y)) return false;
+  if(beteEn(x,y)) return false;
+  return true;
+}
+function eauProche(b){
+  let best=null, bd=99;
+  for(let y=0;y<GY;y++) for(let x=0;x<GX;x++){
+    if(P.sol[idx(x,y)]!==EAU) continue;
+    const d=dist(x,y,b.x,b.y);
+    if(d<bd){ bd=d; best=[x,y]; }
+  }
+  return best;
+}
+
+function pasBetes(){
+  for(const b of P.betes){
+    b.neuf=0; b.touche=0;
+    if(b.pv<=0) continue;
+    const d=b.d;
+    if(d.lent){ b.lentT=(b.lentT+1)%2; if(b.lentT) continue; }
+
+    if(d.boit){
+      /* le follet ne te chasse pas : il va boire tes flaques. C'est la seule
+         bête qui attaque la ressource plutôt que le joueur, et c'est celle
+         qu'il faut tuer en premier même si elle ne fait aucun mal. */
+      const e=eauProche(b);
+      if(e){
+        if(b.x===e[0]&&b.y===e[1]){ P.sol[idx(b.x,b.y)]=TERRE;
+          P.parts.push({x:cx(b.x), y:cy(b.y), n:4, col:'#ff7ab8', k:'boit'}); }
+        else pasVers(b,e[0],e[1],1);
+      } else pasVers(b,P.x,P.y,1);
+      continue;
+    }
+    if(d.mouille){
+      /* le crapaud mouille derrière lui : il fabrique ton terrain en marchant */
+      const t=idx(b.x,b.y);
+      if((P.sol[t]===TERRE||P.sol[t]===CENDRE)&&RNG()<.45) P.sol[t]=EAU;
+    }
+    const pas=d.vole?d.vit:d.vit;
+    pasVers(b,P.x,P.y,pas);
+  }
+
+  /* puis elles frappent : une bête collée décharge, et on perd un fil */
+  if(P.invuln>0){ P.invuln--; return; }
+  let cogne=0;
+  for(const b of P.betes){
+    if(b.pv<=0) continue;
+    if(dist(b.x,b.y,P.x,P.y)<=1) cogne++;
+  }
+  if(cogne>0) perdreCharge('MORSURE');
+}
+
+function perdreCharge(cause){
+  P.charge--;
+  P.sansDegat=false;
+  P.invuln=TOURS_INVULN;
+  P.secousse=Math.min(20,P.secousse+11);
+  SND.degat();
+  message(cause==='ÉPUISEMENT'?'TU T\'ÉPUISES — plus rien à portée':'TU ENCAISSES');
+  P.parts.push({x:cx(P.x), y:cy(P.y), n:14, col:'#ff5a5a', k:'degat'});
+  if(P.charge<=0) perdre(cause==='ÉPUISEMENT'
+    ? 'Plus rien ne conduisait autour de toi.'
+    : ((P.dernierReste||0)<=3
+      ? 'Acculé : il ne te restait que '+(P.dernierReste||0)+' case'
+        +((P.dernierReste||0)>1?'s':'')+' où aller.'
+      : 'Les bêtes ont eu ta dernière charge.'));
+  else majHUD();
+}
+function rendreCharge(n){
+  if(P.charge>=P.chargeMax) return;
+  P.charge=Math.min(P.chargeMax,P.charge+n);
+  SND.gain();
+  P.parts.push({x:cx(P.x), y:cy(P.y), n:10, col:'#7fe3ff', k:'gain'});
+}
+
+function ajouterScore(n,x,y,txt){
+  P.score+=n;
+  if(!txt) return;
+  const t=txt+'  +'+nb(n);
+  /* On MESURE l'étiquette avant de la poser. Sur un téléphone couché une case
+     fait vingt pixels et un mot en fait cent : sans mesure, deux gains voisins
+     s'écrivent l'un par-dessus l'autre et on lit « GRÉSILLONCHAÎNE ×4 ». */
+  const taille=Math.max(11,Math.round(TUILE*.30));
+  ctx.save();
+  ctx.font='700 '+taille+'px '+TITRE;
+  const w=ctx.measureText(t).width;
+  ctx.restore();
+  const h=taille*1.5;
+  /* horizontalement d'abord : une étiquette ne sort jamais de l'écran */
+  const bx=Math.min(VW/2, w/2+8);
+  const lx=clamp(cx(x), bx, VW-bx);
+  /* verticalement ensuite : on cherche le premier cran libre, au-dessus de la
+     case en priorité (c'est là que l'œil va), en dessous si le haut est pris
+     ou hors cadre. Les bornes sont celles des deux bandeaux. */
+  const hautMin=(VH<=560?58:96)+h*.5, basMax=VH-(VH<=560?46:78)-4;
+  const base=clamp(cy(y),hautMin,basMax);
+  let ly=base;
+  for(let k=0;k<9;k++){
+    const d=Math.ceil(k/2)*h*(k%2?-1:1);     // 0, −h, +h, −2h, +2h…
+    const essai=base+d;
+    if(essai<hautMin||essai>basMax) continue;
+    let libre=true;
+    for(const f of P.flottants){
+      if(f.vie<=.35) continue;               // celle-là s'efface déjà
+      if(Math.abs(f.x-lx)<(f.w+w)/2+10&&Math.abs(f.y-essai)<h){ libre=false; break; }
+    }
+    if(libre){ ly=essai; break; }
+  }
+  P.flottants.push({x:lx, y:ly, w, t, vie:1.6, col:n>=200?'#ffd45e':'#dff6ff'});
+  /* et on ne garde jamais plus de huit étiquettes à l'écran */
+  while(P.flottants.length>8) P.flottants.shift();
+}
+
+/* ==========================================================================
+   LA FIN D'UN ORAGE, LA FIN D'UNE PARTIE
+   ========================================================================== */
+function finirOrage(){
+  /* la démonstration ne choisit pas de pouvoir : elle repart sur une plaine
+     neuve, sinon l'écran des cartes s'ouvrirait par-dessus le menu */
+  if(P.demo){ demoNouvelle(); return; }
+  const prime=200*P.orage;
+  P.score+=prime;
+  if(P.sansDegat) decrocher('sansmal');
+  if(!P.ancreCassee) decrocher('tour');
+  /* on garde le score du DÉBUT de l'orage : c'est lui qui permet de dire ce
+     que chaque orage a rapporté. On note seulement qu'il est passé. */
+  P.journal[P.journal.length-1].fini=1;
+  P.journal[P.journal.length-1].fin=P.score;
+  if(P.orage>=3) decrocher('orage3');
+  if(P.orage>=6) decrocher('orage6');
+  if(P.orage>=10) decrocher('orage10');
+  if(P.score>=100000) decrocher('gros');
+  SND.bien();
+  SND.tonnerre(true);
+  P.anim=1;
+  P.primeOrage=prime;
+  montrerPouvoirs();
+}
+function orageSuivant(){
+  P.orage++;
+  P.o=orageDe(P.orage);
+  P.tour=0; P.spawn=0; P.sansDegat=true; P.ancreCassee=0; P.toursPoses=0;
+  P.anim=0;
+  /* on ne remet pas le plateau à neuf : on hérite de ce qu'on a brûlé. Mais on
+     rend une charge, sinon la partie n'est qu'une descente. */
+  rendreCharge(1);
+  peuplerOrage(P.o,true);
+  P.journal.push({orage:P.orage, nom:nomOrage(P.orage), score:P.score});
+  message('ORAGE '+P.orage+' — '+nomOrage(P.orage));
+  SND.tonnerre(false);
+  majHUD();
+  if(P.mode!=='quotidien') sauverPartie();
+}
+function perdre(txt){
+  P.fini=true;
+  /* la démonstration meurt sans bilan : ni effacement, ni carrière, ni écran.
+     demoCoup s'en apercevra au prochain battement et recommencera. */
+  if(P.demo) return;
+  P.cause=txt;
+  P.journal[P.journal.length-1].fin=P.score;
+  SND.mal();
+  SND.pluie(.25);
+  effacerPartie();
+  finPartieCarriere();
+  /* On laisse voir la mort avant d'ouvrir le bilan. Mais si le joueur a déjà
+     relancé pendant ces sept dixièmes de seconde, l'écran ne doit surtout pas
+     s'ouvrir par-dessus la partie neuve : on vérifie que c'est bien la même. */
+  const partie=P;
+  setTimeout(()=>{ if(P===partie&&P.fini) montrerFin(); },700);
+}
+
+/* ==========================================================================
+   L'ANIMATION
+   ==========================================================================
+   Le jeu est au tour par tour : rien n'attend l'animation, elle ne fait que
+   suivre. Un arc vit un tiers de seconde, une bête glisse vers sa nouvelle
+   case en deux dixièmes, et la secousse retombe toute seule. Si l'on clique
+   trois fois vite, les trois coups sont joués — on ne perd jamais un coup
+   parce qu'une jolie chose était en train de se dessiner. */
+function pasAnim(dt){
+  if(!P) return;
+  P.secousse=Math.max(0,P.secousse-dt*38);
+  P.eclair=Math.max(0,P.eclair-dt*2.6);
+  for(let i=P.arcs.length-1;i>=0;i--){
+    P.arcs[i].t+=dt;
+    if(P.arcs[i].t>.42) P.arcs.splice(i,1);
+  }
+  for(const b of P.betes) b.t=Math.min(1,b.t+dt*6);
+  for(let i=P.parts.length-1;i>=0;i--){
+    const q=P.parts[i];
+    if(q.p===undefined){
+      q.p=[];
+      for(let j=0;j<q.n;j++)
+        q.p.push({x:q.x, y:q.y, vx:drnd(-70,70), vy:drnd(-70,70), vie:drnd(.3,.8)});
+    }
+    let vivant=0;
+    for(const p of q.p){
+      p.vie-=dt;
+      if(p.vie<=0) continue;
+      vivant++;
+      p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=110*dt;
+    }
+    if(!vivant) P.parts.splice(i,1);
+  }
+  for(let i=P.flottants.length-1;i>=0;i--){
+    const f=P.flottants[i];
+    f.vie-=dt; f.y-=dt*22;
+    if(f.vie<=0) P.flottants.splice(i,1);
+  }
+}
+
+
+/* ==========================================================================
+   6. LE RENDU
+   ==========================================================================
+   Une nuit d'orage vue de dessus. Deux règles tiennent toute l'image :
+
+     — CE QUI CONDUIT EST CLAIR ET FROID, ce qui ne conduit pas est sombre et
+       mat. Le joueur doit pouvoir jouer sans lire un seul mot ;
+     — L'ÉCLAIR EST LA SEULE SOURCE DE LUMIÈRE. Tout le reste est éteint, et
+       c'est ce qui rend un coup spectaculaire : pendant un dixième de seconde,
+       la plaine entière se voit.
+
+   L'éclair lui-même est un déplacement de milieu : on prend un segment, on
+   pousse son milieu au hasard, on recommence cinq fois. C'est le plus vieux
+   truc du monde et il n'y en a pas de meilleur. */
+
+function rgba(h,a){
+  const n=parseInt(h.slice(1),16);
+  return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
+}
+function teinte(h,f){
+  const n=parseInt(h.slice(1),16);
+  let r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+  if(f>0){ r+=(255-r)*f; g+=(255-g)*f; b+=(255-b)*f; }
+  else { r*=(1+f); g*=(1+f); b*=(1+f); }
+  return 'rgb('+(r|0)+','+(g|0)+','+(b|0)+')';
+}
+function arrondi(g,x,y,w,h,r){
+  const rr=Math.max(0,Math.min(r,w/2,h/2));
+  g.beginPath();
+  g.moveTo(x+rr,y); g.lineTo(x+w-rr,y); g.quadraticCurveTo(x+w,y,x+w,y+rr);
+  g.lineTo(x+w,y+h-rr); g.quadraticCurveTo(x+w,y+h,x+w-rr,y+h);
+  g.lineTo(x+rr,y+h); g.quadraticCurveTo(x,y+h,x,y+h-rr);
+  g.lineTo(x,y+rr); g.quadraticCurveTo(x,y,x+rr,y);
+  g.closePath();
+}
+
+/* ---------------------------------------------------------------- la pluie */
+const PLUIE=[];
+function semerPluie(){
+  PLUIE.length=0;
+  const n=Math.round(VW*VH/9000);
+  for(let i=0;i<n;i++) PLUIE.push({
+    x:drnd(-60,VW+60), y:drnd(-VH,VH),
+    v:drnd(620,1150), l:drnd(9,26), a:drnd(.08,.30)
+  });
+}
+function pasPluie(dt){
+  if(!PLUIE.length) semerPluie();
+  for(const g of PLUIE){
+    g.y+=g.v*dt; g.x+=g.v*dt*.22;
+    if(g.y>VH+30){ g.y=drnd(-140,-10); g.x=drnd(-60,VW+60); }
+    if(g.x>VW+60) g.x-=VW+120;
+  }
+}
+function dessinerPluie(){
+  ctx.lineWidth=1.1;
+  ctx.lineCap='round';
+  for(const g of PLUIE){
+    ctx.strokeStyle='rgba(160,205,240,'+g.a+')';
+    ctx.beginPath();
+    ctx.moveTo(g.x,g.y);
+    ctx.lineTo(g.x-g.l*.22,g.y-g.l);
+    ctx.stroke();
+  }
+}
+
+/* --------------------------------------------------------------- le fond */
+function dessinerCiel(){
+  if(!CIEL||CIEL.width!==Math.round(VW*DPR)){
+    CIEL=document.createElement('canvas');
+    CIEL.width=Math.round(VW*DPR); CIEL.height=Math.round(VH*DPR);
+    const g=CIEL.getContext('2d');
+    g.setTransform(DPR,0,0,DPR,0,0);
+    const gr=g.createLinearGradient(0,0,0,VH);
+    gr.addColorStop(0,'#080b14');
+    gr.addColorStop(.42,'#0d1220');
+    gr.addColorStop(1,'#070a11');
+    g.fillStyle=gr; g.fillRect(0,0,VW,VH);
+    /* des nuages : trois couches d'ellipses très sombres, jamais nettes */
+    for(let i=0;i<80;i++){
+      const x=drnd(-100,VW+100), y=drnd(-40,VH*.55);
+      const rx=drnd(70,260), ry=drnd(24,80);
+      g.fillStyle='rgba(28,36,58,'+drnd(.05,.16).toFixed(3)+')';
+      g.beginPath(); g.ellipse(x,y,rx,ry,drnd(-.3,.3),0,TAU); g.fill();
+    }
+    g.globalAlpha=1;
+  }
+  ctx.drawImage(CIEL,0,0,VW,VH);
+}
+
+/* ==========================================================================
+   L'ÉCLAIR
+   ==========================================================================
+   Un polyligne obtenu par déplacement de milieu, dessiné trois fois : un halo
+   large et sourd, un trait de couleur, et un cœur blanc très fin. Le cœur est
+   ce qu'on voit ; le halo est ce qu'on ressent. */
+function chemin(x1,y1,x2,y2,rugosite,graine){
+  let pts=[[x1,y1],[x2,y2]];
+  let dec=rugosite;
+  const R=semeur(graine|0);
+  for(let it=0;it<5;it++){
+    const neuf=[pts[0]];
+    for(let i=1;i<pts.length;i++){
+      const a=pts[i-1], b=pts[i];
+      const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2;
+      const dx=b[0]-a[0], dy=b[1]-a[1];
+      const L=Math.hypot(dx,dy)||1;
+      const nx=-dy/L, ny=dx/L;
+      const d=(R()*2-1)*dec;
+      neuf.push([mx+nx*d, my+ny*d]);
+      neuf.push(b);
+    }
+    pts=neuf;
+    dec*=.56;
+  }
+  return pts;
+}
+function traitEclair(pts,largeur,couleur,alpha){
+  ctx.strokeStyle=couleur;
+  ctx.globalAlpha=alpha;
+  ctx.lineWidth=largeur;
+  ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0],pts[0][1]);
+  for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]);
+  ctx.stroke();
+  ctx.globalAlpha=1;
+}
+function dessinerArc(a){
+  const u=clamp(a.t/.42,0,1);
+  /* la vie d'un arc : il claque à plein, puis il s'efface en clignotant */
+  const vie=u<.12?1:Math.pow(1-(u-.12)/.88,1.7)*(u>.5?(dri(0,10)>2?1:.45):1);
+  if(vie<=.02) return;
+  const suite=[[cx(a.dep[0]),cy(a.dep[1])]];
+  for(const c of a.touches) suite.push([cx(c[0]),cy(c[1])]);
+  const rug=TUILE*.46;
+  for(let i=1;i<suite.length;i++){
+    const p=chemin(suite[i-1][0],suite[i-1][1],suite[i][0],suite[i][1],rug,
+      a.graine+i*97);
+    traitEclair(p,TUILE*.42,'rgba(90,170,255,1)',.13*vie);
+    traitEclair(p,TUILE*.20,'rgba(140,215,255,1)',.30*vie);
+    traitEclair(p,Math.max(2,TUILE*.075),'#bfeaff',.85*vie);
+    traitEclair(p,Math.max(1,TUILE*.032),'#ffffff',vie);
+    /* les ramifications : elles partent d'un point sur trois et meurent vite */
+    if(u<.34){
+      for(let j=6;j<p.length-6;j+=11){
+        const R=semeur(a.graine+i*31+j);
+        if(R()>.5) continue;
+        const ang=Math.atan2(p[j+1][1]-p[j][1],p[j+1][0]-p[j][0])+(R()*2-1)*1.2;
+        const L=TUILE*(.4+R()*.9);
+        const q=chemin(p[j][0],p[j][1],p[j][0]+Math.cos(ang)*L,p[j][1]+Math.sin(ang)*L,
+          TUILE*.2,a.graine+j*7);
+        traitEclair(q,Math.max(1,TUILE*.05),'#a9ddff',.5*vie);
+      }
+    }
+  }
+}
+
+/* ==========================================================================
+   LES CASES
+   ========================================================================== */
+function dessinerCase(x,y,T){
+  const s=P.sol[idx(x,y)];
+  const X=px(x), Y=py(y), W=TUILE, H=TUILE;
+  const h=hash2(x,y,3);
+  const d=SOLS[s];
+
+  if(s===EAU){
+    /* l'eau : sombre au fond, un liseré clair, et un reflet qui ondule. C'est
+       la seule case qui bouge toute seule, et c'est ce qui attire l'œil. */
+    ctx.fillStyle='#16324a';
+    arrondi(ctx,X+1,Y+1,W-2,H-2,TUILE*.24); ctx.fill();
+    ctx.fillStyle=teinte('#2f6f9e',.06+Math.sin(T*1.6+h*9)*.05);
+    arrondi(ctx,X+2,Y+2,W-4,H-4,TUILE*.22); ctx.fill();
+    ctx.strokeStyle='rgba(150,225,255,.42)';
+    ctx.lineWidth=Math.max(1,TUILE*.045);
+    arrondi(ctx,X+2,Y+2,W-4,H-4,TUILE*.22); ctx.stroke();
+    ctx.globalAlpha=.30+Math.sin(T*2.2+h*13)*.12;
+    ctx.strokeStyle='#cdf2ff';
+    ctx.lineWidth=Math.max(.8,TUILE*.035);
+    ctx.beginPath();
+    ctx.moveTo(X+W*.24,Y+H*(.38+Math.sin(T*2+h*7)*.04));
+    ctx.quadraticCurveTo(X+W*.5,Y+H*(.30+Math.cos(T*1.7+h*5)*.05),
+      X+W*.76,Y+H*(.40+Math.sin(T*2.4+h*3)*.04));
+    ctx.stroke();
+    ctx.globalAlpha=1;
+    return;
+  }
+  if(s===TOUR){
+    /* le paratonnerre : la seule chose dorée du plateau, et elle pulse */
+    ctx.fillStyle='#241f16';
+    arrondi(ctx,X+1,Y+1,W-2,H-2,TUILE*.2); ctx.fill();
+    const pu=.55+Math.sin(T*2.4+h*4)*.22;
+    ctx.globalAlpha=.20*pu;
+    ctx.fillStyle='#ffd45e';
+    arrondi(ctx,X-2,Y-2,W+4,H+4,TUILE*.3); ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.strokeStyle='rgba(255,212,94,'+(.55+pu*.35)+')';
+    ctx.lineWidth=Math.max(1.2,TUILE*.06);
+    arrondi(ctx,X+2.5,Y+2.5,W-5,H-5,TUILE*.18); ctx.stroke();
+    /* le mât et ses trois pointes */
+    ctx.strokeStyle='#ffe9a8';
+    ctx.lineWidth=Math.max(1.4,TUILE*.075);
+    ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(X+W*.5,Y+H*.76); ctx.lineTo(X+W*.5,Y+H*.24);
+    ctx.moveTo(X+W*.5,Y+H*.30); ctx.lineTo(X+W*.32,Y+H*.16);
+    ctx.moveTo(X+W*.5,Y+H*.30); ctx.lineTo(X+W*.68,Y+H*.16);
+    ctx.stroke();
+    return;
+  }
+  if(s===FEU){
+    ctx.fillStyle='#2a1408';
+    arrondi(ctx,X+1,Y+1,W-2,H-2,TUILE*.18); ctx.fill();
+    const n=3;
+    for(let i=0;i<n;i++){
+      const ph=h*9+i*2.1;
+      const fx=X+W*(.28+i*.22)+Math.sin(T*5+ph)*W*.05;
+      const fh=H*(.42+Math.abs(Math.sin(T*4.4+ph))*.34);
+      ctx.fillStyle=i===1?'rgba(255,226,140,.92)':'rgba(255,140,44,.86)';
+      ctx.beginPath();
+      ctx.moveTo(fx-W*.10,Y+H*.86);
+      ctx.quadraticCurveTo(fx-W*.13,Y+H*.86-fh*.6,fx,Y+H*.86-fh);
+      ctx.quadraticCurveTo(fx+W*.13,Y+H*.86-fh*.6,fx+W*.10,Y+H*.86);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha=.22+Math.sin(T*6+h*3)*.08;
+    ctx.fillStyle='#ff9a3c';
+    arrondi(ctx,X-3,Y-3,W+6,H+6,TUILE*.3); ctx.fill();
+    ctx.globalAlpha=1;
+    /* le compte à rebours : autant de braises que de tours restants */
+    const r=P.feu[idx(x,y)];
+    for(let i=0;i<r;i++){
+      ctx.fillStyle='#ffd97a';
+      ctx.beginPath();
+      ctx.arc(X+W*.22+i*W*.16,Y+H*.90,Math.max(1,TUILE*.045),0,TAU);
+      ctx.fill();
+    }
+    return;
+  }
+  if(s===ARBRE){
+    ctx.fillStyle='#161d1a';
+    arrondi(ctx,X+1,Y+1,W-2,H-2,TUILE*.18); ctx.fill();
+    ctx.fillStyle='#2f6d45';
+    const R=TUILE*.30;
+    ctx.beginPath();
+    ctx.arc(X+W*.42,Y+H*.44,R,0,TAU);
+    ctx.arc(X+W*.62,Y+H*.52,R*.78,0,TAU);
+    ctx.arc(X+W*.52,Y+H*.66,R*.66,0,TAU);
+    ctx.fill();
+    ctx.fillStyle='rgba(140,220,160,.30)';
+    ctx.beginPath(); ctx.arc(X+W*.36,Y+H*.38,R*.44,0,TAU); ctx.fill();
+    ctx.fillStyle='#3a2a1c';
+    ctx.fillRect(X+W*.47,Y+H*.66,Math.max(1.4,W*.07),H*.22);
+    return;
+  }
+  if(s===METAL){
+    ctx.fillStyle='#191d26';
+    arrondi(ctx,X+1,Y+1,W-2,H-2,TUILE*.18); ctx.fill();
+    ctx.fillStyle='#6c7788';
+    ctx.save();
+    ctx.translate(X+W*.5,Y+H*.5);
+    ctx.rotate(h*TAU);
+    ctx.fillRect(-W*.28,-H*.065,W*.56,H*.13);
+    ctx.fillStyle='#9aa6b8';
+    ctx.fillRect(-W*.28,-H*.065,W*.56,H*.04);
+    ctx.fillStyle='#596475';
+    ctx.fillRect(-W*.075,-H*.22,W*.15,H*.44);
+    ctx.restore();
+    return;
+  }
+  if(s===ROCHE){
+    ctx.fillStyle='#2b3042';
+    arrondi(ctx,X+1,Y+1,W-2,H-2,TUILE*.2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.05)';
+    ctx.beginPath();
+    ctx.moveTo(X+W*.2,Y+H*.72); ctx.lineTo(X+W*.44,Y+H*.26);
+    ctx.lineTo(X+W*.72,Y+H*.68); ctx.closePath(); ctx.fill();
+    return;
+  }
+  /* terre et cendre : mates, sans relief, elles doivent DISPARAÎTRE de l'œil */
+  ctx.fillStyle=s===CENDRE?'#141621':'#1c2231';
+  arrondi(ctx,X+1,Y+1,W-2,H-2,TUILE*.16); ctx.fill();
+  if(s===CENDRE){
+    ctx.fillStyle='rgba(120,120,140,.10)';
+    for(let i=0;i<3;i++)
+      ctx.fillRect(X+W*(.22+i*.22)+h*4,Y+H*(.3+((i*7+h*13)%1)*.4),
+        Math.max(1,W*.09),Math.max(1,H*.05));
+  } else if(h>.72){
+    ctx.fillStyle='rgba(255,255,255,.028)';
+    ctx.fillRect(X+W*.3,Y+H*.42,W*.34,Math.max(1,H*.06));
+  }
+}
+
+/* ------------------------------------------------------------- les bêtes */
+function dessinerBete(b,T){
+  const u=b.t;
+  const bx=lerp(cx(b.ax),cx(b.x),u), by=lerp(cy(b.ay),cy(b.y),u);
+  const d=b.d;
+  const R=TUILE*d.taille;
+  const saut=d.vole?Math.sin(T*6+b.ph)*TUILE*.10:0;
+  /* l'ombre : c'est elle qui pose la bête sur le sol */
+  ctx.fillStyle='rgba(0,0,0,.36)';
+  ctx.beginPath();
+  ctx.ellipse(bx,by+R*.72,R*.86,R*.34,0,0,TAU);
+  ctx.fill();
+  const respire=1+Math.sin(T*3.2+b.ph)*.05;
+  ctx.fillStyle=b.touche?'#ffffff':d.col;
+  ctx.beginPath();
+  if(d.lourd){
+    arrondi(ctx,bx-R*respire,by-R*respire-saut,R*2*respire,R*1.8*respire,R*.36);
+    ctx.fill();
+  } else {
+    ctx.ellipse(bx,by-saut,R*respire,R*.92*respire,0,0,TAU);
+    ctx.fill();
+  }
+  /* les yeux : deux fentes claires. Rien ne rend une forme vivante aussi vite. */
+  ctx.fillStyle='#0b0d14';
+  const ey=by-saut-R*.16;
+  ctx.beginPath();
+  ctx.ellipse(bx-R*.30,ey,R*.15,R*.20,0,0,TAU);
+  ctx.ellipse(bx+R*.30,ey,R*.15,R*.20,0,0,TAU);
+  ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.85)';
+  ctx.beginPath();
+  ctx.arc(bx-R*.27,ey-R*.05,R*.055,0,TAU);
+  ctx.arc(bx+R*.33,ey-R*.05,R*.055,0,TAU);
+  ctx.fill();
+  /* les points de vie restants, pour les bêtes qui en ont plus d'un */
+  if(d.pv>1){
+    for(let i=0;i<b.pv;i++){
+      ctx.fillStyle='#fff';
+      ctx.fillRect(bx-R*.5+i*R*.34,by-R*1.25-saut,Math.max(2,R*.22),Math.max(2,R*.10));
+    }
+  }
+  /* le follet boit : on le montre, sinon on ne comprend pas ce qu'il fait */
+  if(d.boit){
+    ctx.globalAlpha=.5+Math.sin(T*7+b.ph)*.3;
+    ctx.strokeStyle='#ff7ab8';
+    ctx.lineWidth=Math.max(1,TUILE*.04);
+    ctx.beginPath(); ctx.arc(bx,by-saut,R*1.45,0,TAU); ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+}
+
+/* ------------------------------------------------------------- le joueur */
+function dessinerJoueur(T){
+  const jx=cx(P.x), jy=cy(P.y);
+  const R=TUILE*.30;
+  const pu=.75+Math.sin(T*9)*.25;
+  /* le halo : trois cercles concentriques, c'est tout ce qu'il faut */
+  const g=ctx.createRadialGradient(jx,jy,0,jx,jy,TUILE*1.9);
+  g.addColorStop(0,'rgba(210,245,255,.55)');
+  g.addColorStop(.35,'rgba(120,200,255,.20)');
+  g.addColorStop(1,'rgba(60,140,255,0)');
+  ctx.fillStyle=g;
+  ctx.fillRect(jx-TUILE*2,jy-TUILE*2,TUILE*4,TUILE*4);
+  /* les filaments : quatre petits éclairs qui grésillent autour de lui */
+  ctx.globalAlpha=.75;
+  for(let i=0;i<4;i++){
+    const a=T*2.2+i*TAU/4;
+    const p=chemin(jx,jy,jx+Math.cos(a)*R*2.4,jy+Math.sin(a)*R*2.4,R*.7,
+      (Math.floor(T*14)+i*13)|0);
+    traitEclair(p,Math.max(1,TUILE*.035),'#bfeaff',.55);
+  }
+  ctx.globalAlpha=1;
+  ctx.fillStyle='#eaf9ff';
+  ctx.beginPath(); ctx.arc(jx,jy,R*pu,0,TAU); ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(jx,jy,R*.52*pu,0,TAU); ctx.fill();
+  /* l'invulnérabilité : un anneau qui tourne */
+  if(P.invuln>0){
+    ctx.strokeStyle='rgba(255,255,255,.55)';
+    ctx.lineWidth=Math.max(1.4,TUILE*.055);
+    ctx.setLineDash([TUILE*.24,TUILE*.18]);
+    ctx.lineDashOffset=-T*30;
+    ctx.beginPath(); ctx.arc(jx,jy,R*1.7,0,TAU); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+/* ------------------------------------------------------- les cases visées */
+function dessinerCibles(T){
+  if(P.fini||(P.demo&&ecranActif!=='jeu')) return;
+  const l=cibles();
+  for(const [x,y] of l){
+    const X=px(x), Y=py(y);
+    const b=beteEn(x,y);
+    const survol=(souris.g[0]===x&&souris.g[1]===y);
+    const eau=P.sol[idx(x,y)]===EAU;
+    const col=b?'#ff9a9a':eau?'#7fd8ff':'#cfe9ff';
+    /* un voile, un cercle plein au coin, et un contour franc : de loin on doit
+       voir la FORME de ce qui est atteignable, pas la chercher */
+    ctx.globalAlpha=survol?.20:.09+Math.sin(T*2.4+x*.7+y*.5)*.025;
+    ctx.fillStyle=col;
+    arrondi(ctx,X+2,Y+2,TUILE-4,TUILE-4,TUILE*.22); ctx.fill();
+    ctx.globalAlpha=survol?1:.80;
+    ctx.strokeStyle=col;
+    ctx.lineWidth=Math.max(1.4,TUILE*(survol?.085:.055));
+    arrondi(ctx,X+2.5,Y+2.5,TUILE-5,TUILE-5,TUILE*.22);
+    ctx.stroke();
+    /* le petit point d'angle : il se voit même quand la case est claire */
+    ctx.globalAlpha=survol?1:.9;
+    ctx.fillStyle=col;
+    ctx.beginPath();
+    ctx.arc(X+TUILE*.5,Y+TUILE*.5,Math.max(1.4,TUILE*(survol?.10:.06)),0,TAU);
+    ctx.fill();
+    ctx.globalAlpha=1;
+    /* la case survolée : on montre TOUT ce que le coup va faire */
+    if(survol){
+      ctx.fillStyle=rgba(col.slice(0,7),.14);
+      arrondi(ctx,X+3,Y+3,TUILE-6,TUILE-6,TUILE*.22); ctx.fill();
+      if(eau){
+        const g=grappeEau(x,y);
+        for(const c of g){
+          const CX=px(c[0]), CY=py(c[1]);
+          ctx.globalAlpha=.55;
+          ctx.strokeStyle='#7fd8ff';
+          ctx.lineWidth=Math.max(1,TUILE*.045);
+          arrondi(ctx,CX+4,CY+4,TUILE-8,TUILE-8,TUILE*.2); ctx.stroke();
+          ctx.globalAlpha=1;
+        }
+        if(g.length>=2){
+          const pts=pointsChaine(g.length);
+          etiquette(cx(x),py(y)-TUILE*.30,'CHAÎNE ×'+g.length+'  +'+nb(pts),'#7fd8ff');
+        }
+      } else if(b){
+        etiquette(cx(x),py(y)-TUILE*.30,b.d.nom+'  +'+nb(b.d.pts),'#ff9a9a');
+      }
+    }
+  }
+  /* et si plus rien n'est atteignable, on le dit très fort */
+  if(!l.length){
+    ctx.globalAlpha=.55+Math.sin(T*7)*.30;
+    ctx.strokeStyle='#ff5a5a';
+    ctx.lineWidth=Math.max(2,TUILE*.09);
+    arrondi(ctx,px(P.x)-2,py(P.y)-2,TUILE+4,TUILE+4,TUILE*.28);
+    ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+}
+function etiquette(x,y,txt,col){
+  ctx.font='700 '+Math.max(9,Math.round(TUILE*.26))+'px '+MONO;
+  const w=ctx.measureText(txt).width+TUILE*.28;
+  const h=TUILE*.40;
+  ctx.fillStyle='rgba(6,9,16,.90)';
+  arrondi(ctx,x-w/2,y-h,w,h,h*.34); ctx.fill();
+  ctx.strokeStyle=rgba(col,.6);
+  ctx.lineWidth=1;
+  arrondi(ctx,x-w/2,y-h,w,h,h*.34); ctx.stroke();
+  ctx.fillStyle=col;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(txt,x,y-h/2);
+  ctx.textBaseline='alphabetic';
+}
+
+/* ==========================================================================
+   LA SCÈNE
+   ========================================================================== */
+function dessiner(dt){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  const T=horloge;
+  dessinerCiel();
+  if(!P){ pasPluie(dt); dessinerPluie(); return; }
+
+  /* la secousse : elle s'applique à tout sauf au ciel et à la pluie */
+  const s=P.secousse;
+  const sx=s?drnd(-s,s)*.5:0, sy=s?drnd(-s,s)*.5:0;
+  ctx.save();
+  ctx.translate(sx,sy);
+
+  /* le cadre du plateau */
+  ctx.fillStyle='rgba(4,6,12,.55)';
+  arrondi(ctx,px(0)-6,py(0)-6,GX*TUILE+12,GY*TUILE+12,14); ctx.fill();
+  ctx.strokeStyle='rgba(120,170,220,.14)';
+  ctx.lineWidth=1;
+  arrondi(ctx,px(0)-6,py(0)-6,GX*TUILE+12,GY*TUILE+12,14); ctx.stroke();
+
+  for(let y=0;y<GY;y++) for(let x=0;x<GX;x++) dessinerCase(x,y,T);
+  dessinerCibles(T);
+  for(const b of P.betes) dessinerBete(b,T);
+  dessinerJoueur(T);
+  for(const a of P.arcs) dessinerArc(a);
+
+  /* les éclats */
+  for(const q of P.parts){
+    if(!q.p) continue;
+    for(const p of q.p){
+      if(p.vie<=0) continue;
+      ctx.globalAlpha=clamp(p.vie*1.6,0,1);
+      ctx.fillStyle=q.col;
+      const r=Math.max(1,TUILE*.06);
+      ctx.fillRect(p.x-r,p.y-r,r*2,r*2);
+    }
+  }
+  ctx.globalAlpha=1;
+  /* la démonstration du menu ne compte pas ses points à voix haute : les
+     étiquettes passeraient sous le titre et on ne saurait plus quoi lire */
+  const muet=(P.demo&&ecranActif!=='jeu');
+  for(const f of (muet?[]:P.flottants)){
+    ctx.globalAlpha=clamp(f.vie,0,1);
+    /* la même police que celle qui a servi à mesurer la largeur : sans quoi
+       l'anti-chevauchement calculerait sur une étiquette imaginaire */
+    ctx.font='700 '+Math.max(11,Math.round(TUILE*.30))+'px '+TITRE;
+    ctx.textAlign='center';
+    ctx.fillStyle='rgba(0,0,0,.65)';
+    ctx.fillText(f.t,f.x+1,f.y+1);
+    ctx.fillStyle=f.col;
+    ctx.fillText(f.t,f.x,f.y);
+  }
+  ctx.globalAlpha=1;
+  ctx.restore();
+
+  pasPluie(dt);
+  dessinerPluie();
+
+  /* le flash : la plaine entière s'éclaire un dixième de seconde */
+  if(P.eclair>0){
+    ctx.fillStyle='rgba(190,225,255,'+(P.eclair*.34)+')';
+    ctx.fillRect(0,0,VW,VH);
+  }
+  /* la vignette, qui ramène l'œil au centre */
+  const g=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*.34,
+    VW/2,VH/2,Math.max(VW,VH)*.78);
+  g.addColorStop(0,'rgba(0,0,0,0)');
+  g.addColorStop(1,'rgba(0,0,0,.60)');
+  ctx.fillStyle=g;
+  ctx.fillRect(0,0,VW,VH);
+}
+
+
+/* ==========================================================================
+   7. L'INTERFACE
+   ==========================================================================
+   Le plateau dit presque tout : ce qui conduit est clair, ce qui est
+   atteignable est cerclé, ce qu'un coup va faire est écrit sur la case visée.
+   L'interface n'a donc que trois choses à porter — le score, la charge, et où
+   l'on en est dans l'orage — et elle doit disparaître le reste du temps. */
+
+const souris={x:0, y:0, g:[-1,-1]};
+
+function ecrans(id){
+  ['menu','pouvoirs','fin','profil','succes','regles'].forEach(k=>{
+    const e=$(k); if(e) e.classList.toggle('on',k===id);
+  });
+  document.body.classList.toggle('enJeu',id===null);
+}
+function message(txt,dur){
+  /* rien ne s'annonce par-dessus le titre : la démonstration se joue en silence */
+  if(P&&P.demo&&ecranActif!=='jeu') return;
+  const d=document.createElement('div');
+  d.className='msg';
+  d.textContent=txt;
+  $('flash').appendChild(d);
+  setTimeout(()=>{ d.style.transition='opacity .4s,transform .4s';
+    d.style.opacity='0'; d.style.transform='translateY(-6px)';
+    setTimeout(()=>d.remove(),420); },dur||1700);
+  while($('flash').children.length>3) $('flash').firstChild.remove();
+}
+
+/* ---------------------------------------------------------------- le HUD */
+const hudC={};
+function poser1(id,v){ const e=$(id); if(e&&hudC[id]!==v){ hudC[id]=v; e.textContent=v; } }
+function majHUD(){
+  if(!P) return;
+  poser1('hScore',nb(P.score));
+  poser1('hOrage',P.orage+' · '+nomOrage(P.orage));
+  poser1('hTour',(P.o.tours-P.tour)+' TOURS');
+  const u=clamp(P.tour/P.o.tours,0,1);
+  const bf=$('hBar'); if(bf) bf.style.width=Math.round(u*100)+'%';
+  /* la charge : des éclairs pleins et des éclairs vides, jamais un nombre */
+  let c='';
+  for(let i=0;i<P.chargeMax;i++)
+    c+='<i class="'+(i<P.charge?'on':'')+'"></i>';
+  const ch=$('hCharge');
+  if(ch&&ch.innerHTML!==c) ch.innerHTML=c;
+  poser1('hPortee','⟶ '+portee());
+  /* les pouvoirs acquis, en petit, toujours visibles */
+  const l=Object.keys(P.pouvoirs).filter(k=>P.pouvoirs[k]>0);
+  const pv=l.map(k=>'<i title="'+POUVOIRS[k].nom+'">'+POUVOIRS[k].ico
+    +(P.pouvoirs[k]>1?'<u>'+P.pouvoirs[k]+'</u>':'')+'</i>').join('');
+  const pe=$('hPouvoirs');
+  if(pe&&pe.innerHTML!==pv) pe.innerHTML=pv;
+  /* le bouton paratonnerre n'apparaît que si on en a */
+  const bt=$('bTour');
+  if(bt){
+    const max=P_('tour');
+    bt.style.display=max?'':'none';
+    bt.textContent='🗼 '+Math.max(0,max-(P.toursPoses||0));
+  }
+  const bq=$('hQuot');
+  if(bq) bq.style.display=P.mode==='quotidien'?'':'none';
+}
+
+/* ==========================================================================
+   LE CHOIX DES POUVOIRS
+   ==========================================================================
+   Trois cartes, une seule à prendre. Chacune dit ce qu'elle fait ET pourquoi
+   on la voudrait — la deuxième ligne compte autant que la première, parce que
+   c'est elle qui apprend le jeu à celui qui débute. */
+function montrerPouvoirs(){
+  const l=tirerPouvoirs();
+  ecranActif='pouvoirs';
+  $('poTitre').textContent='ORAGE '+P.orage+' PASSÉ';
+  $('poSous').innerHTML='<b>'+nomOrage(P.orage)+'</b> — '+nb(P.primeOrage)
+    +' points de prime. Le plateau reste comme tu l\'as laissé : '
+    +'ce que tu as brûlé ne repoussera qu\'à la pluie.';
+  if(!l.length){
+    $('poCartes').innerHTML='<div class="carte"><b>PLUS RIEN À APPRENDRE</b>'
+      +'<span>Tu as tout pris. Il ne reste que l\'orage.</span></div>';
+  } else {
+    $('poCartes').innerHTML=l.map(k=>{
+      const p=POUVOIRS[k], n=nivPouvoir(k)+1;
+      return '<button class="carte'+(p.rare>=2?' rare':p.rare?' peu':'')+'" data-p="'+k+'">'
+        +'<em>'+p.ico+'</em>'
+        +'<b>'+p.nom+(p.max>1?' <u>'+n+'/'+p.max+'</u>':'')+'</b>'
+        +'<span class="eff">'+p.d(n)+'</span>'
+        +'<span class="pq">'+p.d2+'</span></button>';
+    }).join('');
+    $('poCartes').querySelectorAll('[data-p]').forEach(b=>{
+      b.onclick=()=>{
+        const k=b.getAttribute('data-p');
+        P.pouvoirs[k]=(P.pouvoirs[k]||0)+1;
+        if(k==='charge'){ P.chargeMax++; P.charge++; }
+        SND.gain();
+        if(Object.keys(P.pouvoirs).length>=6) decrocher('plein');
+        ecranActif='jeu'; ecrans(null);
+        orageSuivant();
+      };
+    });
+  }
+  ecrans('pouvoirs');
+}
+
+/* ==========================================================================
+   LA FIN
+   ==========================================================================
+   On ne se contente pas d'un score : on rejoue la partie en trois chiffres et
+   on donne une ligne à recopier quelque part. C'est ce qui fait qu'on en
+   reparle. */
+function montrerFin(){
+  ecranActif='fin';
+  $('fTitre').textContent=P.orage>=6?'BEL ORAGE':P.orage>=3?'ÇA A TENU':'ÉTEINT';
+  $('fEye').textContent=P.cause;
+  const c=(t,v,col)=>'<div class="cell"><span>'+t+'</span><b'
+    +(col?' style="color:'+col+'"':'')+'>'+v+'</b></div>';
+  $('fGrille').innerHTML=
+     c('SCORE',nb(P.score),'#ffd45e')
+    +c('ORAGES',(()=>{ const n=P.orage-(P.tour<P.o.tours?1:0);
+        return n+(n>1?' passés':' passé'); })(),'#7fd8ff')
+    +c('TOURS TENUS',nb(P.toursTotal))
+    +c('BÊTES FOUDROYÉES',nb(P.betesTuees),'#c9f36a')
+    +c('PLUS LONGUE CHAÎNE',P.meilleureChaine?('×'+P.meilleureChaine):'—','#7fd8ff')
+    +c('POUVOIRS',Object.keys(P.pouvoirs).length+' pris','#c9a3ff');
+
+  /* le record, et ce qu'il a manqué */
+  const rec=P.recordAvant||0;
+  const bat=P.score>rec;
+  $('fRecord').innerHTML=bat
+    ? '<div class="rl"><span class="re">🏆</span><div class="rt"><b style="color:#ffd45e">'
+      +'NOUVEAU RECORD</b><span>Ancien : '+nb(rec)+' points.</span></div></div>'
+    : '<div class="rl"><span class="re">·</span><div class="rt"><b>RECORD</b>'
+      +'<span>'+nb(rec)+' points'+(rec>P.score?(' — il t\'en manquait '
+        +nb(rec-P.score)):'')+'.</span></div></div>';
+
+  /* le journal : un orage par ligne, ce qu'on y a gagné */
+  let hj='';
+  for(let i=0;i<P.journal.length;i++){
+    const j=P.journal[i];
+    const gagne=(j.fin!=null?j.fin:P.score)-j.score;
+    hj+='<div class="rl"><span class="re">'+(j.fini?'⚡':'✖')+'</span>'
+      +'<div class="rt"><b'+(j.fini?'':' style="color:#ff7a7a"')+'>ORAGE '+j.orage
+      +' · '+j.nom+'</b><span>'+(j.fini?'passé':'c\'est là que tu t\'es éteint')
+      +'</span></div><span class="rv">+'+nb(gagne)+'</span></div>';
+  }
+  $('fJournal').innerHTML=hj;
+
+  /* les pouvoirs de la partie, pour se rappeler ce qui a marché */
+  const lp=Object.keys(P.pouvoirs).filter(k=>P.pouvoirs[k]>0);
+  $('fPouvoirs').innerHTML=lp.length
+    ? lp.map(k=>'<i>'+POUVOIRS[k].ico+' '+POUVOIRS[k].nom
+        +(P.pouvoirs[k]>1?' ×'+P.pouvoirs[k]:'')+'</i>').join('')
+    : '<i style="opacity:.5">aucun — tu n\'as pas passé le premier orage</i>';
+
+  const g=P.gainCarriere||{pts:0, rang:rangDe(0)};
+  $('fCarriere').innerHTML='<div class="rl"><span class="re">'+g.rang.ico+'</span>'
+    +'<div class="rt"><b style="color:#7fd8ff">'+g.rang.nom+'</b><span>'
+    +(rangSuivant(SAVE.carriere||0)
+      ? nb(rangSuivant(SAVE.carriere||0).s-(SAVE.carriere||0))+' points de carrière avant '
+        +rangSuivant(SAVE.carriere||0).nom+'.'
+      : 'Plus haut rang. '+g.rang.d)
+    +'</span></div><span class="rv" style="color:#7fd8ff">+'+nb(g.pts)+'</span></div>';
+
+  $('fPartage').textContent=textePartage();
+  $('fRejouer').innerHTML='<b>'+(P.mode==='quotidien'?'ORAGE LIBRE':'RECOMMENCER')+'</b>';
+  ecrans('fin');
+}
+
+/* la ligne qu'on recopie : lisible, courte, et elle raconte la partie */
+function textePartage(){
+  const barres=P.journal.map(j=>j.fini?'⚡':'✖').join('');
+  const t=P.mode==='quotidien'
+    ? 'FOUDRE quotidien '+(P.dateQuot||'')
+    : 'FOUDRE';
+  const no=P.orage-(P.tour<P.o.tours?1:0);
+  return t+' — '+nb(P.score)+' pts\n'
+    +barres+'  '+no+(no>1?' orages, ':' orage, ')
+    +P.betesTuees+' bêtes'
+    +(P.meilleureChaine>1?', chaîne ×'+P.meilleureChaine:'');
+}
+
+/* ==========================================================================
+   LES ÉCRANS DE CARRIÈRE
+   ========================================================================== */
+function enteteCarriere(){
+  const s=SAVE.carriere||0, r=rangDe(s), su=rangSuivant(s);
+  const u=su?clamp((s-r.s)/Math.max(1,su.s-r.s),0,1):1;
+  return '<div class="entete"><span class="av">'+r.ico+'</span>'
+    +'<div class="id"><h2>'+r.nom+'</h2><p>'+r.d+'</p>'
+    +'<div class="barre"><i style="width:'+Math.round(u*100)+'%"></i></div>'
+    +'<p class="pt">'+(su?nb(su.s-s)+' points avant '+su.nom:'rang maximum')+'</p>'
+    +'</div></div>';
+}
+function montrerProfil(){
+  const c=(t,v,col)=>'<div class="cell"><span>'+t+'</span><b'
+    +(col?' style="color:'+col+'"':'')+'>'+v+'</b></div>';
+  $('prTete').innerHTML=enteteCarriere();
+  $('prGrille').innerHTML=
+     c('MEILLEUR SCORE',nb(SAVE.meilleur||0),'#ffd45e')
+    +c('PARTIES',nb(SAVE.parties||0))
+    +c('ORAGES PASSÉS',nb(SAVE.orages||0),'#7fd8ff')
+    +c('BÊTES FOUDROYÉES',nb(SAVE.betes||0),'#c9f36a')
+    +c('PLUS LONGUE CHAÎNE',(SAVE.chaine||0)?('×'+SAVE.chaine):'—','#7fd8ff')
+    +c('MEILLEUR ORAGE',nb(SAVE.orageMax||0),'#c9a3ff')
+    +c('QUOTIDIENS JOUÉS',nb(SAVE.quotJoues||0),'#ff9ed6')
+    +c('SUCCÈS',succesN()+' / '+SUCCES.length,'#ffd45e');
+  ecranActif='profil'; ecrans('profil');
+}
+function succesN(){ return SUCCES.filter(x=>succesFait(x.id)).length; }
+function montrerSucces(){
+  const n=succesN();
+  $('suTete').innerHTML=enteteCarriere()
+    +'<div class="ligne"><span>Décrochés</span><b>'+n+' / '+SUCCES.length+'</b></div>'
+    +'<div class="barre"><i style="width:'+Math.round(n/SUCCES.length*100)+'%"></i></div>';
+  $('suListe').innerHTML=SUCCES.map(x=>{
+    const ok=succesFait(x.id);
+    return '<div class="suc'+(ok?' ok':'')+'"><b>'+(ok?'✓ ':'')+x.nom+'</b>'
+      +'<span>'+x.d+'</span></div>';
+  }).join('');
+  ecranActif='succes'; ecrans('succes');
+}
+function montrerMenu(){
+  ecranActif='menu';
+  if(P) P.enCours=0;                 // on ne reprendra pas une partie quittée
+  const s=SAVE.carriere||0, r=rangDe(s);
+  $('meRang').innerHTML='<span>'+r.ico+'</span><b>'+r.nom+'</b>'
+    +(SAVE.meilleur?'<u>record '+nb(SAVE.meilleur)+'</u>':'');
+  /* le quotidien : un bouton qui dit s'il est déjà fait, et avec quel score */
+  const d=dateDuJour();
+  const fait=SAVE.quotDate===d;
+  const bq=$('meQuot');
+  bq.innerHTML=fait
+    ? '<b>ORAGE DU JOUR — DÉJÀ JOUÉ</b><span>'+nb(SAVE.quotScore||0)+' points · rejouer</span>'
+    : '<b>ORAGE DU JOUR</b><span>Le même orage pour tout le monde, une fois par jour</span>';
+  /* la reprise d'une partie en cours */
+  const rb=$('meReprendre');
+  const pa=SAVE.partie;
+  if(pa&&pa.orage){
+    rb.style.display='';
+    rb.innerHTML='<b>REPRENDRE</b><span>orage '+pa.orage+' · '+nb(pa.score)+' points</span>';
+  } else rb.style.display='none';
+  ecrans('menu');
+}
+function majReglages(){
+  $('sonBtn').textContent=SAVE.son?'SON : ACTIVÉ':'SON : COUPÉ';
+  $('volIn').value=Math.round((SAVE.volume||.65)*100);
+  $('volVal').textContent=Math.round((SAVE.volume||.65)*100)+' %';
+}
+
+
+/* ==========================================================================
+   8. CE QUI RESTE ENTRE LES PARTIES
+   ==========================================================================
+   Un rang, des records, dix-huit succès, et une partie en cours qu'on retrouve
+   là où on l'a laissée. Rien qui rende plus fort : FOUDRE n'a pas de boutique
+   et pas de déblocage. Une partie neuve part exactement avec les mêmes armes
+   que la centième — sinon le score du quotidien ne voudrait rien dire. */
+
+const SAVE_DEF={ son:true, volume:.65,
+  carriere:0, parties:0, meilleur:0, orages:0, orageMax:0, betes:0, chaine:0,
+  quotDate:'', quotScore:0, quotBest:0, quotJoues:0, quotSerie:0, quotDernier:'',
+  succes:{}, partie:null, vu:0 };
+let SAVE=Object.assign({},SAVE_DEF);
+
+function charger(){
+  try{ const b=Store.get(CLE); if(b) SAVE=Object.assign({},SAVE_DEF,JSON.parse(b)); }catch(e){}
+}
+function sauver(){ try{ Store.set(CLE,JSON.stringify(SAVE)); }catch(e){} }
+
+function succesFait(id){ return !!(SAVE.succes&&SAVE.succes[id]); }
+function decrocher(id){
+  if(P&&P.demo) return;              // la démonstration ne joue pas pour toi
+  if(succesFait(id)) return;
+  const s=SUCCES.find(x=>x.id===id); if(!s) return;
+  SAVE.succes=SAVE.succes||{}; SAVE.succes[id]=1;
+  sauver();
+  message('SUCCÈS · '+s.nom,2400);
+  SND.gain();
+}
+
+/* ==========================================================================
+   L'ORAGE DU JOUR
+   ==========================================================================
+   La date fait la graine. Tout ce qui est tiré au sort dans une partie passe
+   par ce générateur : la plaine, la pluie, les bêtes, les pouvoirs proposés.
+   Deux personnes qui jouent le même jour jouent donc exactement le même orage,
+   coup pour coup — c'est la seule façon de comparer deux scores honnêtement. */
+function dateDuJour(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')
+    +'-'+String(d.getDate()).padStart(2,'0');
+}
+function graineDuJour(){
+  const s=dateDuJour();
+  let h=2166136261;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); }
+  return h>>>1;
+}
+
+/* ==========================================================================
+   LA PARTIE GARDÉE AU CHAUD
+   ==========================================================================
+   On enregistre à la fin de chaque tour. Le plateau tient dans deux chaînes de
+   cent quatre-vingt-seize caractères — c'est plus court que n'importe quel
+   JSON, et ça se relit à l'œil quand quelque chose cloche. Le mode quotidien,
+   lui, ne s'enregistre pas : on le joue d'un trait ou on le recommence. */
+function sauverPartie(){
+  /* P.demo : la partie qui tourne derrière le menu n'est pas la partie du
+     joueur. Sans ce garde-fou elle écrase la sienne en moins d'une seconde. */
+  if(!P||P.demo||P.fini||P.mode==='quotidien') return;
+  try{
+    let sol='', feu='';
+    for(let t=0;t<GX*GY;t++){ sol+=P.sol[t]; feu+=Math.min(9,P.feu[t]); }
+    SAVE.partie={
+      v:1, sol, feu,
+      x:P.x, y:P.y, charge:P.charge, chargeMax:P.chargeMax,
+      orage:P.orage, tour:P.tour, toursTotal:P.toursTotal,
+      pouvoirs:P.pouvoirs, score:P.score, betesTuees:P.betesTuees,
+      meilleureChaine:P.meilleureChaine, chainesTotal:P.chainesTotal,
+      toursPoses:P.toursPoses||0, bonds:P.bondsDepuisGratuit,
+      spawn:P.spawn||0, pluieAcc:P.pluieAcc||0, pousseT:P.pousseT||0,
+      sansDegat:P.sansDegat?1:0, ancre:P.ancre, ancreCassee:P.ancreCassee?1:0,
+      betes:P.betes.map(b=>[b.k,b.x,b.y,b.pv,b.lentT|0]),
+      journal:P.journal
+    };
+    sauver();
+  }catch(e){ SAVE.partie=null; }
+}
+function effacerPartie(){ SAVE.partie=null; sauver(); }
+function reprendrePartie(){
+  const d=SAVE.partie;
+  if(!d||!d.sol||d.sol.length!==GX*GY) return false;
+  /* On vérifie AVANT de reconstruire. Une sauvegarde trafiquée ou tronquée ne
+     se rafistole pas à coups de clamp : on la refuse, et le joueur repart sur
+     une partie neuve plutôt que sur une plaine impossible. */
+  if(!/^[0-7]{196}$/.test(d.sol)||!/^[0-9]{196}$/.test(d.feu)) return false;
+  if(!(d.x>=0&&d.x<GX&&d.y>=0&&d.y<GY)) return false;
+  if(!(d.chargeMax>=1&&d.chargeMax<=12)||!(d.charge>=1&&d.charge<=d.chargeMax))
+    return false;
+  if(!(d.orage>=1&&d.orage<=99)||!(d.score>=0)) return false;
+  if(d.betes&&!Array.isArray(d.betes)) return false;
+  try{
+    nouvellePartie('libre');
+    for(let t=0;t<GX*GY;t++){
+      const s=+d.sol[t];
+      P.sol[t]=(s>=0&&s<=7)?s:TERRE;
+      P.feu[t]=+d.feu[t]||0;
+    }
+    P.x=clamp(d.x|0,0,GX-1); P.y=clamp(d.y|0,0,GY-1);
+    P.chargeMax=Math.max(1,d.chargeMax|0);
+    P.charge=clamp(d.charge|0,1,P.chargeMax);
+    P.orage=Math.max(1,d.orage|0);
+    P.o=orageDe(P.orage);
+    P.tour=clamp(d.tour|0,0,P.o.tours);
+    P.toursTotal=d.toursTotal|0;
+    P.pouvoirs=d.pouvoirs||{};
+    P.score=d.score|0;
+    P.betesTuees=d.betesTuees|0;
+    P.meilleureChaine=d.meilleureChaine|0;
+    P.chainesTotal=d.chainesTotal|0;
+    P.toursPoses=d.toursPoses|0;
+    P.bondsDepuisGratuit=d.bonds|0;
+    P.spawn=d.spawn||0; P.pluieAcc=d.pluieAcc||0; P.pousseT=d.pousseT||0;
+    P.sansDegat=!!d.sansDegat; P.ancre=d.ancre|0; P.ancreCassee=!!d.ancreCassee;
+    P.betes=[];
+    for(const a of (d.betes||[])){
+      if(!BETES[a[0]]||(a[3]|0)<=0) continue;   // pas de résurrection
+      const b=faireBete(a[0],clamp(a[1]|0,0,GX-1),clamp(a[2]|0,0,GY-1));
+      b.pv=Math.max(1,a[3]|0); b.lentT=a[4]|0; b.t=1;
+    }
+    P.journal=(d.journal&&d.journal.length)?d.journal
+      :[{orage:P.orage, nom:nomOrage(P.orage), score:P.score}];
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ==========================================================================
+   LE COMPTE D'UNE PARTIE FINIE
+   ========================================================================== */
+function finPartieCarriere(){
+  /* le record d'AVANT, gardé pour l'écran de fin : sans lui on se compare à
+     soi-même et on n'a jamais battu personne */
+  P.recordAvant=P.mode==='quotidien'?(SAVE.quotBest||0):(SAVE.meilleur||0);
+  SAVE.parties=(SAVE.parties||0)+1;
+  const passes=P.orage-(P.tour<P.o.tours?1:0);
+  SAVE.orages=(SAVE.orages||0)+Math.max(0,passes);
+  SAVE.orageMax=Math.max(SAVE.orageMax||0,Math.max(0,passes));
+  SAVE.betes=(SAVE.betes||0)+P.betesTuees;
+  SAVE.chaine=Math.max(SAVE.chaine||0,P.meilleureChaine);
+  /* les points de carrière : le score, mais pas tout le score. On ne veut pas
+     qu'un seul gros coup fasse monter d'un rang. */
+  const pts=Math.round(P.score*.35+passes*220);
+  SAVE.carriere=(SAVE.carriere||0)+pts;
+  P.gainCarriere={pts, rang:rangDe(SAVE.carriere)};
+  if(P.mode==='quotidien'){
+    SAVE.quotJoues=(SAVE.quotJoues||0)+1;
+    SAVE.quotBest=Math.max(SAVE.quotBest||0,P.score);
+    if(SAVE.quotDate!==P.dateQuot){
+      SAVE.quotDate=P.dateQuot;
+      SAVE.quotScore=P.score;
+    } else SAVE.quotScore=Math.max(SAVE.quotScore||0,P.score);
+    decrocher('quot');
+    if(SAVE.quotJoues>=7) decrocher('quot7');
+  } else {
+    SAVE.meilleur=Math.max(SAVE.meilleur||0,P.score);
+  }
+  sauver();
+}
+
+
+/* ==========================================================================
+   9. LES ENTRÉES ET LA BOUCLE
+   ==========================================================================
+   Un seul geste : désigner une case. À la souris, au doigt, au clavier — c'est
+   toujours le même geste, et il n'y en a pas d'autre. Le reste (attendre,
+   poser un paratonnerre) tient dans deux boutons qu'on peut ignorer toute une
+   partie sans rien perdre. */
+
+function viser(x,y){
+  souris.g=[x,y];
+}
+function cliquer(sx,sy){
+  if(ecranActif!=='jeu'||!P||P.fini) return;
+  const [x,y]=caseSous(sx,sy);
+  if(!dedans(x,y)) return;
+  SND.init(); SND.reprendre();
+  if(x===P.x&&y===P.y){
+    /* se désigner soi-même, c'est attendre : le geste le plus naturel du monde
+       pour dire « je ne bouge pas » */
+    attendre();
+    return;
+  }
+  if(atteignable(x,y)) bondir(x,y);
+  else { SND.refus(); secouerRefus(x,y); }
+}
+let refus=null;
+function secouerRefus(x,y){
+  refus={x,y,t:0};
+  const s=P.sol[idx(x,y)];
+  message(dist(x,y,P.x,P.y)>portee()
+    ? 'TROP LOIN — portée '+portee()+' cases'
+    : SOLS[s].nom+' — ça ne conduit pas',1200);
+}
+
+function cabler(){
+  cv.addEventListener('mousemove',e=>{
+    souris.x=e.clientX; souris.y=e.clientY;
+    const [x,y]=caseSous(e.clientX,e.clientY);
+    viser(x,y);
+    cv.style.cursor=(P&&!P.fini&&dedans(x,y)&&(atteignable(x,y)||(x===P.x&&y===P.y)))
+      ?'pointer':'default';
+  });
+  cv.addEventListener('mousedown',e=>{
+    if(e.button!==0) return;
+    cliquer(e.clientX,e.clientY);
+  });
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+  cv.addEventListener('touchstart',e=>{
+    const t=e.touches[0];
+    if(!t) return;
+    souris.x=t.clientX; souris.y=t.clientY;
+    const [x,y]=caseSous(t.clientX,t.clientY);
+    viser(x,y);
+    /* au doigt, on montre d'abord ce que ferait le coup ; c'est le second
+       appui sur la même case qui le joue. Sans ça, on frappe au hasard. */
+    if(P&&!P.fini&&dedans(x,y)){
+      if(dernierDoigt&&dernierDoigt[0]===x&&dernierDoigt[1]===y
+         &&performance.now()-dernierDoigtT<2600){
+        cliquer(t.clientX,t.clientY);
+        dernierDoigt=null;
+      } else {
+        dernierDoigt=[x,y]; dernierDoigtT=performance.now();
+        if(!atteignable(x,y)&&!(x===P.x&&y===P.y)){ dernierDoigt=null; SND.refus();
+          secouerRefus(x,y); }
+        else SND.crepite();
+      }
+    }
+    if(e.cancelable) e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('touchmove',e=>{ if(e.cancelable) e.preventDefault(); },{passive:false});
+
+  addEventListener('keydown',e=>{
+    if(e.target&&e.target.tagName==='INPUT') return;
+    if(e.code==='Escape'){
+      if(ecranActif==='regles'||ecranActif==='profil'||ecranActif==='succes')
+        revenir();
+      return;
+    }
+    if(ecranActif!=='jeu'||!P||P.fini) return;
+    const bouge=(dx,dy)=>{
+      const v=souris.g;
+      let x=(v[0]<0?P.x:v[0])+dx, y=(v[1]<0?P.y:v[1])+dy;
+      x=clamp(x,P.x-portee(),P.x+portee());
+      y=clamp(y,P.y-portee(),P.y+portee());
+      viser(clamp(x,0,GX-1),clamp(y,0,GY-1));
+      SND.crepite();
+    };
+    if(e.code==='ArrowLeft'||e.code==='KeyA'){ bouge(-1,0); e.preventDefault(); }
+    if(e.code==='ArrowRight'||e.code==='KeyD'){ bouge(1,0); e.preventDefault(); }
+    if(e.code==='ArrowUp'||e.code==='KeyW'||e.code==='KeyZ'){ bouge(0,-1); e.preventDefault(); }
+    if(e.code==='ArrowDown'||e.code==='KeyS'){ bouge(0,1); e.preventDefault(); }
+    if(e.code==='Enter'){
+      const v=souris.g;
+      if(dedans(v[0],v[1])&&atteignable(v[0],v[1])) bondir(v[0],v[1]);
+      else SND.refus();
+      e.preventDefault();
+    }
+    if(e.code==='Space'){ attendre(); e.preventDefault(); }
+    if(e.code==='KeyP'){ poserTour(); }
+    if(e.code==='KeyR'){ montrerReglesJeu(); }
+  });
+
+  /* les boutons du bas */
+  $('bAttendre').onclick=()=>{ SND.init(); SND.reprendre(); attendre(); };
+  $('bTour').onclick=()=>{ SND.init(); poserTour(); };
+  $('bRegles').onclick=()=>montrerReglesJeu();
+
+  /* les entrées du menu */
+  $('meJouer').onclick=()=>{ SND.init(); SND.reprendre(); demarrer('libre'); };
+  $('meQuot').onclick=()=>{ SND.init(); SND.reprendre(); demarrer('quotidien'); };
+  $('meReprendre').onclick=()=>{
+    SND.init(); SND.reprendre();
+    if(reprendrePartie()){
+      ecranActif='jeu'; ecrans(null); SND.pluie(1); majHUD();
+      message('ORAGE '+P.orage+' — '+nomOrage(P.orage));
+    } else { message('Sauvegarde illisible'); SAVE.partie=null; sauver(); montrerMenu(); }
+  };
+  $('meProfil').onclick=()=>{ SND.init(); montrerProfil(); };
+  $('meSucces').onclick=()=>{ SND.init(); montrerSucces(); };
+  $('meRegles').onclick=()=>{ SND.init(); ecranActif='regles'; ecrans('regles'); };
+  $('prRetour').onclick=()=>revenir();
+  $('suRetour').onclick=()=>revenir();
+  $('reRetour').onclick=()=>revenir();
+  $('fRejouer').onclick=()=>{ SND.init(); demarrer('libre'); };
+  $('fMenu').onclick=()=>{ demoNouvelle(); SND.pluie(.2); montrerMenu(); };
+  $('fCopier').onclick=()=>{
+    const t=textePartage();
+    try{
+      navigator.clipboard.writeText(t);
+      $('fCopier').innerHTML='<b>COPIÉ ✓</b>';
+      setTimeout(()=>{ const b=$('fCopier');
+        if(b) b.innerHTML='<b>COPIER LE RÉSULTAT</b>'; },1800);
+    }catch(err){ $('fCopier').innerHTML='<b>COPIE IMPOSSIBLE</b>'; }
+  };
+  $('sonBtn').onclick=()=>{
+    SAVE.son=!SAVE.son; SND.on=SAVE.son;
+    if(!SAVE.son) SND.silence(); else if(P&&!P.fini) SND.pluie(1);
+    sauver(); majReglages();
+  };
+  $('volIn').oninput=e=>{
+    SAVE.volume=+e.target.value/100; SND.vol(SAVE.volume);
+    $('volVal').textContent=Math.round(SAVE.volume*100)+' %';
+    sauver();
+  };
+  $('effacer').onclick=()=>{
+    if(!confirm('Effacer le rang, les records, les succès et la partie en cours ?')) return;
+    SAVE=Object.assign({},SAVE_DEF,{succes:{},partie:null});
+    sauver(); montrerMenu();
+  };
+  addEventListener('beforeunload',()=>{ try{ sauverPartie(); }catch(e){} });
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){ try{ sauverPartie(); }catch(e){} }
+  });
+}
+let dernierDoigt=null, dernierDoigtT=0;
+
+function montrerReglesJeu(){
+  if(P&&!P.demo&&!P.fini) P.enCours=1;
+  ecranActif='regles'; ecrans('regles');
+}
+
+/* Revenir, c'est reprendre la partie qu'on avait mise en pause pour lire — ou,
+   s'il n'y en a pas, retourner au menu. La démonstration du menu ne compte
+   jamais comme une partie qu'on reprend : sinon on « joue » un plateau qu'on
+   n'a pas commencé. */
+function revenir(){
+  if(P&&!P.demo&&!P.fini&&P.enCours){ ecranActif='jeu'; ecrans(null); }
+  else montrerMenu();
+}
+
+function demarrer(mode){
+  const quot=mode==='quotidien';
+  nouvellePartie(mode, quot?graineDuJour():undefined);
+  P.demo=0;
+  if(quot){ P.dateQuot=dateDuJour(); decrocher('quot'); }
+  ecranActif='jeu';
+  ecrans(null);
+  SND.pluie(1);
+  majHUD();
+  hudC.hScore=null;
+  message(quot?('ORAGE DU JOUR — '+dateDuJour()):('ORAGE 1 — '+nomOrage(1)),2200);
+  /* la première fois, on explique en une phrase et on laisse jouer */
+  if(!SAVE.vu){
+    SAVE.vu=1; sauver();
+    setTimeout(()=>message('Tu es sur un paratonnerre : il ne brûle jamais',3200),1400);
+    setTimeout(()=>message('Bondis sur une case cerclée — ce que tu quittes se consume',4200),4200);
+  }
+}
+
+/* ==========================================================================
+   LA DÉMONSTRATION
+   ==========================================================================
+   Une partie ordinaire, jouée par une machine très simple, un coup toutes les
+   huit dixièmes de seconde. Elle ne cherche pas à bien jouer : elle cherche à
+   faire de belles chaînes, parce que c'est ça qu'il faut montrer. Et quand
+   elle meurt ou qu'elle s'ennuie, elle recommence. */
+let demoT=0;
+function demoNouvelle(){
+  nouvellePartie('libre');
+  P.demo=1;
+  /* une plaine plus généreuse : la démonstration doit briller, pas souffrir */
+  for(let i=0;i<26;i++){
+    const x=ri(0,GX-1), y=ri(0,GY-1), t=idx(x,y);
+    if(P.sol[t]===TERRE) P.sol[t]=RNG()<.6?EAU:ARBRE;
+  }
+  P.chargeMax=9; P.charge=9;
+  demoT=0;
+}
+function demoCoup(){
+  if(!P||!P.demo) return;
+  if(P.fini||P.toursTotal>110){ demoNouvelle(); return; }
+  const l=cibles();
+  if(!l.length){ attendre(); return; }
+  let best=l[0], bs=-1;
+  for(const [x,y] of l){
+    let s=RNG()*3;
+    if(P.sol[idx(x,y)]===EAU) s+=grappeEau(x,y).length*4;
+    if(beteEn(x,y)) s+=7;
+    if(P.sol[idx(x,y)]===ARBRE) s+=2;
+    if(P.sol[idx(x,y)]===TOUR) s+=3;
+    if(s>bs){ bs=s; best=[x,y]; }
+  }
+  souris.g=best;
+  bondir(best[0],best[1]);
+  /* la démonstration ne meurt pas d'usure : on lui rend sa charge */
+  P.charge=P.chargeMax;
+  P.fini=false;
+}
+
+/* ---------------------------------------------------------------- la boucle */
+function boucle(now){
+  const dt=Math.min(.05,(now-last)/1000);
+  last=now;
+  horloge+=dt;
+  /* la démonstration du menu : muette (sauf la pluie, qui est un gain continu
+     et pas une note), et elle ne touche à rien qui se garde */
+  SND.muet=!!(P&&P.demo&&ecranActif!=='jeu');
+  if(P&&P.demo&&ecranActif!=='jeu'){
+    demoT-=dt;
+    if(demoT<=0){ demoT=.8; try{ demoCoup(); }catch(e){ demoNouvelle(); } }
+  }
+  if(P) pasAnim(dt);
+  dessiner(dt);
+  /* le tonnerre lointain, de temps en temps : c'est ce qui fait l'orage */
+  if(P&&!P.fini&&ecranActif==='jeu'&&!P.demo){
+    P.tonT=(P.tonT||6)-dt;
+    if(P.tonT<=0){ P.tonT=drnd(9,22); SND.tonnerre(true);
+      P.eclair=Math.max(P.eclair,.10); }
+  }
+  requestAnimationFrame(boucle);
+}
+
+/* ---------------------------------------------------------------- départ */
+charger();
+SND.on=SAVE.son;
+SND.volume=SAVE.volume;
+redim();
+cabler();
+demoNouvelle();
+montrerMenu();
+majReglages();
+requestAnimationFrame(boucle);
+
+</script>
+</body>
+</html>
