@@ -6,7 +6,7 @@
 <title>Zone Morte — jeu de survie zombie gratuit dans le navigateur</title>
 <meta name="description" content="Zone Morte est un jeu de survie zombie gratuit et sans installation. 14 terrains, 9 boss, 14 talents de survivants à délivrer, éditeur de cartes et pass de combat. Jouable au clavier et au doigt.">
 <meta name="keywords" content="jeu zombie gratuit, jeu de survie navigateur, roguelite français, jeu html5 sans installation, zone morte">
-<meta name="author" content="Zone Morte">
+<meta name="author" content="VanNDM Creations">
 <meta name="theme-color" content="#0a0c0a">
 <link rel="canonical" href="https://zonemorte.netlify.app/">
 <!-- Balise de propriété AdSense : elle relie ce site au compte éditeur. -->
@@ -1538,8 +1538,8 @@ body.paysage{}
   <h1 style="font-size:var(--t2)">MENTIONS LÉGALES</h1>
   <div class="legal">
     <h3>Éditeur</h3>
-    <p>Ce site est édité à titre non professionnel sous le nom <b>Zone Morte</b>.
-    Le jeu est gratuit, sans compte et sans installation.</p>
+    <p>Ce site est édité à titre non professionnel sous le nom
+    <b>VanNDM Creations</b>. Le jeu est gratuit, sans compte et sans installation.</p>
 
     <h3>Nous écrire</h3>
     <p id="legalContact"></p>
@@ -1559,7 +1559,8 @@ body.paysage{}
     détaillés dans la <a href="#" id="legalVersConfid">politique de confidentialité</a>.</p>
 
     <h3>Propriété</h3>
-    <p>Le code, les dessins, les sons et les textes de Zone Morte sont l'œuvre de leur auteur.</p>
+    <p>Le code, les dessins, les sons et les textes de Zone Morte sont l'œuvre de
+    <b>VanNDM Creations</b>.</p>
   </div>
 </div>
 
@@ -9558,14 +9559,15 @@ $('voirConfid').onclick=()=>montrer('confid');
 /* >>> UNE SEULE LIGNE À REMPLIR <<<
    L'adresse de contact publique du site. Tant qu'elle est vide, les mentions
    légales le disent en toutes lettres plutôt que de faire semblant. */
-const ADRESSE_CONTACT='';
+const ADRESSE_CONTACT='cours2gtmathis78@gmail.com';
 
 (function(){
   const p=$('legalContact');
   if(!p) return;
   if(ADRESSE_CONTACT){
-    /* l'adresse est assemblée par le script : les ramasseurs de spam lisent le
-       HTML livré, pas ce qu'on y écrit après coup */
+    /* l'adresse est posée par le script plutôt qu'écrite en dur dans un lien
+       mailto: du HTML livré. Ça arrête les ramasseurs de spam les plus simples
+       — pas tous : la chaîne reste lisible dans le source de la page. */
     p.textContent='Pour toute question sur le site, la publicité ou tes données : ';
     const a=document.createElement('a');
     a.href='mailto:'+ADRESSE_CONTACT;

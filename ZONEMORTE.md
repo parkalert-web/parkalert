@@ -229,13 +229,36 @@ Le consentement était déjà correct et n'a pas été touché : Consent Mode v2
 tous les signaux à `denied` par défaut, CMP certifié IAB TCF v2.2 (Funding
 Choices), et le script AdSense n'est chargé qu'une fois le verdict rendu.
 
-### Ce qui reste à faire hors du code
+L'éditeur déclaré est **VanNDM Creations**, joignable à
+`cours2gtmathis78@gmail.com`. L'adresse tient dans une constante unique,
+`ADRESSE_CONTACT`, en haut du script : elle est posée par le code au lieu d'être
+écrite en dur dans un lien `mailto:` du HTML livré, ce qui arrête les ramasseurs
+de spam les plus simples — pas tous.
 
-1. **Renseigner `ADRESSE_CONTACT`** dans le fichier. Tant qu'elle est vide,
-   l'écran affiche en rouge « ADRESSE DE CONTACT À RENSEIGNER » : un site
-   publicitaire sans moyen de contact est refusé.
-2. **Déposer `ads.txt`** à la racine servie du domaine.
-3. **Dans AdSense → Annonces → Auto ads : désactiver les annonces
-   interstitielles (vignettes).** Elles s'ouvrent en plein écran sur navigation
-   et couvriraient une partie en cours. Les annonces d'ancrage peuvent rester,
-   les commandes du jeu sont protégées.
+### `ads.txt` et le sous-domaine
+
+`netlify.app` figure sur la
+[Public Suffix List](https://publicsuffix.org/list/). `zonemorte.netlify.app`
+compte donc comme un domaine racine à part entière pour les robots qui s'y
+réfèrent — dont celui de Google. Le fichier servi à
+`https://zonemorte.netlify.app/ads.txt` est au bon endroit, et il n'y a rien à
+demander à Netlify.
+
+### Ce qui reste à faire dans AdSense
+
+L'ordre compte, et ce n'est pas celui qu'on croit : **on n'active pas les Auto
+ads depuis l'onglet « Annonces »**. Un site n'y apparaît que s'il a d'abord été
+ajouté *et* approuvé.
+
+1. **AdSense → Sites → Ajouter un site** : `zonemorte.netlify.app`.
+2. Vérifier la propriété. La balise `<meta name="google-adsense-account">` est
+   déjà dans la page — il suffit de choisir cette méthode.
+3. **Demander l'examen** (« Request review »). C'est là que les mentions
+   légales, la politique de confidentialité et le contact comptent.
+4. Une fois le site approuvé : **Sites → la ligne du site → Modifier →
+   Paramètres des annonces → activer les Auto ads**. C'est le seul endroit d'où
+   on les active.
+5. Dans ces mêmes paramètres, **désactiver les annonces interstitielles
+   (vignettes)** : elles s'ouvrent en plein écran et couvriraient une partie en
+   cours. Les annonces d'ancrage peuvent rester, les commandes du jeu sont
+   protégées.
