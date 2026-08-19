@@ -8,8 +8,11 @@
 <meta name="keywords" content="jeu zombie gratuit, jeu de survie navigateur, roguelite français, jeu html5 sans installation, zone morte">
 <meta name="author" content="Zone Morte">
 <meta name="theme-color" content="#0a0c0a">
-<link rel="canonical" href="./index.html">
+<link rel="canonical" href="https://zonemorte.netlify.app/">
+<!-- Balise de propriété AdSense : elle relie ce site au compte éditeur. -->
+<meta name="google-adsense-account" content="ca-pub-5640171592773109">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://zonemorte.netlify.app/">
 <meta property="og:title" content="Zone Morte — jeu de survie zombie gratuit">
 <meta property="og:description" content="14 terrains, 9 boss, un camp de survivants à constituer. Gratuit, sans installation, dans le navigateur.">
 <meta property="og:locale" content="fr_FR">
@@ -873,8 +876,6 @@ h1,h4,.pbTitre,.cinT,.bTerrain{text-wrap:balance}
 /* respiration verticale */
 .screen{gap:0}
 .liste{gap:11px}
-.pubZone{width:100%;max-width:760px;margin:24px 0 4px;min-height:60px}
-.pubZone:empty{display:none}
 .legal{max-width:680px;width:100%;text-align:left;margin-top:14px}
 .legal h3{font-family:var(--titre);font-size:15px;color:var(--ambre);margin:22px 0 6px;
   letter-spacing:.01em}
@@ -1295,13 +1296,6 @@ body.paysage{}
   <div class="sectionTitre" style="--ac:#8e948a"><b>LE RESTE</b><i></i></div>
   <div class="tuiles mineur" id="tuilesMineur"></div>
   <div class="rec" id="rec"></div>
-  <div class="pubZone" id="pubMenu">
-    <ins class="adsbygoogle" style="display:block"
-         data-ad-client="ca-pub-5640171592773109"
-         data-ad-slot="0000000000"
-         data-ad-format="auto"
-         data-full-width-responsive="true"></ins>
-  </div>
 </div>
 
 <div class="screen" id="serie">
@@ -1525,12 +1519,48 @@ body.paysage{}
     <p>Aucune donnée personnelle n'étant transmise ni conservée sur un serveur, il n'y a pas de
     demande d'accès ou d'effacement à nous adresser. Pour les données publicitaires, adresse-toi
     à Google via les liens ci-dessus.</p>
+    <p>Pour toute autre question, l'adresse de l'éditeur figure dans les
+    <a href="#" id="confidVersLegal">mentions légales</a>.</p>
 
     <h3>Hébergement</h3>
     <p>Le site est hébergé par Netlify, Inc., 512 2nd Street, Suite 200, San Francisco, CA 94107,
     États-Unis.</p>
   </div>
-  <button class="btn ghost" id="gererConsent2">GÉRER MES CHOIX PUBLICITAIRES</button>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+    <button class="btn ghost" id="gererConsent2">GÉRER MES CHOIX PUBLICITAIRES</button>
+    <button class="btn ghost" id="versLegal">MENTIONS LÉGALES</button>
+  </div>
+</div>
+
+<div class="screen" id="legal">
+  <div class="btnHaut"><button id="closeLegal">RETOUR</button></div>
+  <div class="eyebrow">QUI PUBLIE CE SITE</div>
+  <h1 style="font-size:var(--t2)">MENTIONS LÉGALES</h1>
+  <div class="legal">
+    <h3>Éditeur</h3>
+    <p>Ce site est édité à titre non professionnel sous le nom <b>Zone Morte</b>.
+    Le jeu est gratuit, sans compte et sans installation.</p>
+
+    <h3>Nous écrire</h3>
+    <p id="legalContact"></p>
+    <p>Un bug, une annonce mal placée, un contenu qui te paraît de trop : écris à cette
+    adresse, on répond.</p>
+
+    <h3>Hébergeur</h3>
+    <p>Netlify, Inc., 512 2nd Street, Suite 200, San Francisco, CA 94107, États-Unis.</p>
+
+    <h3>Publicité</h3>
+    <p>Les annonces de ce site sont fournies par <b>Google AdSense</b>, identifiant éditeur
+    <b>ca-pub-5640171592773109</b>. Elles sont choisies et placées par Google, jamais par
+    nous, et Google les signale toujours comme des annonces.</p>
+    <p>Nous ne te demandons jamais de cliquer dessus, nous ne les déguisons pas en éléments
+    du jeu, et aucune récompense n'est liée au fait de les regarder.</p>
+    <p>Ce que Google dépose sur ton appareil, et la façon de revenir sur ton choix, sont
+    détaillés dans la <a href="#" id="legalVersConfid">politique de confidentialité</a>.</p>
+
+    <h3>Propriété</h3>
+    <p>Le code, les dessins, les sons et les textes de Zone Morte sont l'œuvre de leur auteur.</p>
+  </div>
 </div>
 
 <div class="screen" id="reglages">
@@ -1621,6 +1651,7 @@ body.paysage{}
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
         <button class="lien" id="revoirConsent">GÉRER MES CHOIX</button>
         <button class="lien" id="voirConfid">POLITIQUE DE CONFIDENTIALITÉ</button>
+        <button class="lien" id="voirLegal">MENTIONS LÉGALES</button>
       </div></div>
     <div class="reg" id="adminPanel" style="display:none"><div><h4>PANNEAU ADMINISTRATEUR</h4>
       <p>Créditer des pièces sur ce profil.</p></div>
@@ -1727,13 +1758,6 @@ body.paysage{}
   <div class="rec" id="fBonus"></div>
   <div class="rec" id="fRec"></div>
   <div class="relance"><button class="btn" id="again">RECOMMENCER</button></div>
-  <div class="pubZone" id="pubFin">
-    <ins class="adsbygoogle" style="display:block"
-         data-ad-client="ca-pub-5640171592773109"
-         data-ad-slot="0000000000"
-         data-ad-format="auto"
-         data-full-width-responsive="true"></ins>
-  </div>
   <button class="btn ghost" id="accueil">RETOUR À L'ACCUEIL</button>
   <div class="finbtns">
     <button class="lien" id="toCad">OUVRIR MA CAISSE</button>
@@ -4461,13 +4485,16 @@ const TUILES=[
  {id:'confid', ic:'\u{1F512}', col:'#8e948a', nom:'CONFIDENTIALITÉ',
   sous:()=>'Données et publicité',
   go:()=>montrer('confid')},
+ {id:'legal', ic:'\u{1F4C4}', col:'#8e948a', nom:'MENTIONS LÉGALES',
+  sous:()=>'Éditeur, contact, publicité',
+  go:()=>montrer('legal')},
  {id:'reglages', ic:'\u{2699}', col:'#9aa094', nom:'RÉGLAGES',
   sous:()=>'Tir, difficulté, compte',
   go:()=>{ majSon(); majLangue(); majAdmin(); montrer('reglages'); }}
 ];
 const GROUPES={combat:['recrues','sac','maps','arsenal','editeur'],
                reco:['cadeaux','shop'],
-               mineur:['contrats','succes','bestiaire','stats','reglages','confid']};
+               mineur:['contrats','succes','bestiaire','stats','reglages','confid','legal']};
 function construireTuiles(){
   ['Combat','Reco','Mineur'].forEach(g=>{ const b=$('tuiles'+g); if(b) b.innerHTML=''; });
   majPassBan(); majSerieBan(); majDefiBan();
@@ -9521,6 +9548,47 @@ $('revoirConsent').onclick=gererConsentement;
 $('gererConsent2').onclick=gererConsentement;
 $('voirConfid').onclick=()=>montrer('confid');
 
+/* ==========================================================================
+   MENTIONS LÉGALES, CONTACT, ET LA PLACE DES ANNONCES
+   ==========================================================================
+   Un site qui affiche de la publicité doit pouvoir être joint : c'est une
+   obligation légale, et Google refuse l'inscription d'un site sans éditeur
+   identifiable ni moyen de contact. */
+
+/* >>> UNE SEULE LIGNE À REMPLIR <<<
+   L'adresse de contact publique du site. Tant qu'elle est vide, les mentions
+   légales le disent en toutes lettres plutôt que de faire semblant. */
+const ADRESSE_CONTACT='';
+
+(function(){
+  const p=$('legalContact');
+  if(!p) return;
+  if(ADRESSE_CONTACT){
+    /* l'adresse est assemblée par le script : les ramasseurs de spam lisent le
+       HTML livré, pas ce qu'on y écrit après coup */
+    p.textContent='Pour toute question sur le site, la publicité ou tes données : ';
+    const a=document.createElement('a');
+    a.href='mailto:'+ADRESSE_CONTACT;
+    a.textContent=ADRESSE_CONTACT;
+    p.appendChild(a);
+  } else {
+    p.innerHTML='<b style="color:var(--sang-vif)">ADRESSE DE CONTACT À RENSEIGNER</b>'
+      +' — remplis la constante <b>ADRESSE_CONTACT</b> dans le fichier avant la mise'
+      +' en ligne : sans elle, AdSense refusera le site.';
+  }
+})();
+
+/* Les annonces d'ancrage des Auto ads se collent au bas de l'écran. Le bouton
+   d'esquive et celui de rotation y sont aussi : sans ce marqueur, une annonce
+   viendrait se poser exactement sur eux, et chaque esquive deviendrait un clic
+   publicitaire involontaire — ce que Google compte comme trafic invalide. */
+(function(){
+  for(const id of ['stick','rotBtn','actions','ammo','kit','sacRapide']){
+    const e=$(id);
+    if(e) e.classList.add('adsbygoogle-noablate');
+  }
+})();
+
 /* --- codes secrets --- */
 const CODES_SECRETS={
   'lesdebutsdujeu':{nom:'LES DÉBUTS DU JEU', pieces:500, jetons:1,
@@ -9557,6 +9625,13 @@ $('codeSecretIn').addEventListener('keydown',e=>{
   if(e.key==='Enter') $('codeSecretOk').click();
 });
 $('closeConfid').onclick=()=>retour('confid');
+$('closeLegal').onclick=()=>retour('legal');
+$('versLegal').onclick=()=>{ $('confid').classList.remove('on'); montrer('legal'); };
+$('voirLegal').onclick=()=>montrer('legal');
+$('legalVersConfid').onclick=e=>{ e.preventDefault();
+  $('legal').classList.remove('on'); montrer('confid'); };
+$('confidVersLegal').onclick=e=>{ e.preventDefault();
+  $('confid').classList.remove('on'); montrer('legal'); };
 $('expSave').onclick=()=>{ exporterSauvegarde();
   $('impMsg').textContent='Fichier enregistré. Garde-le en lieu sûr.'; };
 $('impSave').onclick=()=>$('impFile').click();

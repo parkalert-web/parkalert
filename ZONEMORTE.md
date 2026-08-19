@@ -190,3 +190,52 @@ un compte à rebours qui descend sous les yeux.
   HTML du HUD et s'affichait à l'écran ; et l'écran de mort portait les libellés
   de l'écran de victoire — « DÉLIVRÉS » au-dessus du niveau, « NIVEAU » au-dessus
   de la meilleure série.
+
+---
+
+## Conformité aux règles AdSense
+
+Le jeu est monétisé par Google AdSense. Les
+[règles du programme](https://support.google.com/adsense/answer/48182) ont été
+relues ligne à ligne ; six manquements ont été corrigés.
+
+| Ce qui n'allait pas | La règle | Ce qui a été fait |
+|---|---|---|
+| Le bloc d'annonce de l'écran de mort était **coincé entre « RECOMMENCER » et « RETOUR À L'ACCUEIL »**, là où le joueur tape le plus vite | *Ad placement* — « ads implemented in placements that are intuitively meant for navigation » | Les deux blocs manuels sont supprimés ; Google place lui-même |
+| `data-ad-format="auto"` **sans hauteur réservée** : l'annonce poussait les boutons sous le doigt en se chargeant | Clics involontaires | Plus de bloc en flux, donc plus de décalage |
+| Aucun libellé, même fond que le jeu | « Format ads so that they become indistinguishable from other content » | Auto ads : Google signale toujours ses annonces |
+| **Aucun `push({})` nulle part**, et les blocs vivaient dans des écrans `display:none` | Bloc de taille nulle, impression jamais servie | Blocs supprimés |
+| `data-ad-slot="0000000000"` | Identifiants factices | Supprimés |
+| Ni `ads.txt`, ni éditeur identifié, ni contact | Inventaire non autorisé ; site jugé « non-content » | `ads.txt` à la racine, écran **MENTIONS LÉGALES** complet |
+
+Ce qui a été ajouté :
+
+- **`ads.txt`** à la racine du domaine, déclarant Google comme seul vendeur
+  autorisé. Sans lui, l'inventaire est classé « non autorisé » et cesse d'être
+  acheté.
+- **Un écran MENTIONS LÉGALES** accessible du menu, des réglages et de la
+  politique de confidentialité : éditeur, contact, hébergeur, régie et
+  identifiant éditeur, et l'engagement explicite de ne jamais inciter au clic
+  ni déguiser une annonce en élément de jeu.
+- **`<meta name="google-adsense-account">`** et une **URL canonique absolue**
+  (`https://zonemorte.netlify.app/` — elle pointait vers `./index.html`).
+- **`adsbygoogle-noablate`** sur les six commandes fixes du jeu (esquive,
+  rotation, actions, munitions, kit, sac rapide). Les annonces d'ancrage des
+  Auto ads se collent au bas de l'écran, exactement là où se trouve le bouton
+  de rotation : sans ce marqueur, chaque esquive serait devenue un clic
+  publicitaire involontaire — c'est-à-dire du trafic invalide.
+
+Le consentement était déjà correct et n'a pas été touché : Consent Mode v2 avec
+tous les signaux à `denied` par défaut, CMP certifié IAB TCF v2.2 (Funding
+Choices), et le script AdSense n'est chargé qu'une fois le verdict rendu.
+
+### Ce qui reste à faire hors du code
+
+1. **Renseigner `ADRESSE_CONTACT`** dans le fichier. Tant qu'elle est vide,
+   l'écran affiche en rouge « ADRESSE DE CONTACT À RENSEIGNER » : un site
+   publicitaire sans moyen de contact est refusé.
+2. **Déposer `ads.txt`** à la racine servie du domaine.
+3. **Dans AdSense → Annonces → Auto ads : désactiver les annonces
+   interstitielles (vignettes).** Elles s'ouvrent en plein écran sur navigation
+   et couvriraient une partie en cours. Les annonces d'ancrage peuvent rester,
+   les commandes du jeu sont protégées.

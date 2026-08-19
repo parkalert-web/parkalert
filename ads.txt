@@ -1,0 +1,6 @@
+# Zone Morte — https://zonemorte.netlify.app/
+# Déclare Google comme seul vendeur autorisé de l'inventaire publicitaire de ce
+# site. Sans ce fichier, Google classe les annonces en « inventaire non
+# autorisé » et cesse d'acheter. Il doit rester servi à la racine du domaine :
+# https://zonemorte.netlify.app/ads.txt
+google.com, pub-5640171592773109, DIRECT, f08c47fec0942fa0
