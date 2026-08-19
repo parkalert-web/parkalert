@@ -678,3 +678,66 @@ tous les six rayons — et **passe deux commandes par jour**, une à l'ouverture
 une vers quatorze heures, comme un vrai gérant qui voit son rayon se vider. Il sort une ligne par journée : clients, tickets, articles,
 chiffre d'affaires, achats, casse, charges, résultat, caisse, étoiles,
 satisfaction, ruptures, caddies abandonnés, et les deux reproches dominants.
+
+---
+
+## Conformité aux règles AdSense
+
+Le jeu est monétisé par Google AdSense sur `supermarchetycoon.netlify.app`. Il
+n'avait aucune des pièces exigées : ni consentement, ni page légale, ni identité
+d'éditeur, ni balise de propriété. Tout a été ajouté d'un bloc.
+
+### Le consentement, avant toute annonce
+
+- **Consent Mode v2** avec `ad_storage`, `ad_user_data` et `ad_personalization`
+  à `denied` par défaut, plus `ads_data_redaction`.
+- **CMP certifié IAB TCF v2.2** (Google Funding Choices).
+- **Le script AdSense n'est chargé qu'une fois le verdict rendu.** Un filet à
+  2,5 s couvre les régions hors zone TCF, où aucune fenêtre ne s'affiche.
+- Un bouton **GÉRER MES CHOIX** dans les règles et sur la page confidentialité
+  rouvre la fenêtre du CMP à tout moment.
+
+### L'identité du site
+
+- Écran **MENTIONS LÉGALES** (menu et règles) : éditeur *VanNDM Creations*,
+  contact, hébergeur, régie et identifiant éditeur, et l'engagement explicite de
+  ne jamais inciter au clic ni déguiser une annonce en élément de jeu.
+- Écran **CONFIDENTIALITÉ** : ce qui reste dans le navigateur, ce que Google
+  dépose, comment revenir sur son choix, la mention des moins de treize ans.
+- Balise `google-adsense-account`, URL canonique absolue, `og:` complet et
+  données structurées `VideoGame`.
+
+### Les annonces ne peuvent pas se poser sur les commandes
+
+Les Auto ads placent des **annonces d'ancrage** en bas de l'écran — exactement
+là où vivent la palette de construction, les compteurs de caisse et le bandeau
+du patron. Sans marqueur, une annonce viendrait se poser dessus et chaque geste
+de jeu deviendrait un clic publicitaire involontaire, que Google compte comme
+**trafic invalide**. Les six éléments fixes portent donc la classe
+`adsbygoogle-noablate`.
+
+Aucun bloc d'annonce n'est posé à la main dans le jeu : c'est Google qui place,
+selon ses propres règles.
+
+### Ce qui reste à faire hors du code
+
+1. Déposer `ads.txt` à la racine de **`supermarchetycoon.netlify.app`**. Le
+   contenu est identique à celui de l'autre site — c'est le même identifiant
+   éditeur — mais chaque domaine doit servir le sien.
+2. **AdSense → Sites → Ajouter un site** : `supermarchetycoon.netlify.app`.
+   C'est un site distinct de zonemorte : il demande sa propre approbation.
+3. Vérifier la propriété (la balise `google-adsense-account` est déjà dans la
+   page), puis **demander l'examen**.
+4. Une fois approuvé : **Sites → la ligne du site → Modifier → Paramètres des
+   annonces → activer les Auto ads**, et **désactiver les vignettes**
+   (interstitiels), qui s'ouvriraient en plein écran par-dessus une journée en
+   cours.
+
+### Vérification
+
+`verif-sm.js` : 90 contrôles sur trois formats d'écran — en-tête et balises,
+absence de tout bloc manuel et de tout identifiant factice, signaux de
+consentement refusés par défaut, présence du CMP, rappel de la fenêtre,
+protection des six commandes fixes, ouverture et contenu des deux écrans
+légaux, allers-retours entre eux, débordement, et le fait que le jeu se lance
+toujours. Zéro erreur console.

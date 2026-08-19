@@ -5,6 +5,71 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>SUPERMARCHÉ TYCOON — un magasin à faire tenir dix semaines</title>
 <meta name="description" content="Un local vide en zone commerciale, quatre semaines pour en faire un supermarché qui tient. Commande le stock, déplace les rayons, forme ton équipe, ouvre le magasin quand tu es prêt.">
+<meta name="theme-color" content="#e9e5db">
+<link rel="canonical" href="https://supermarchetycoon.netlify.app/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://supermarchetycoon.netlify.app/">
+<meta property="og:title" content="Supermarché Tycoon — un magasin à faire tenir dix semaines">
+<meta property="og:description" content="Monte les rayons, commande le stock, forme ton équipe, ouvre quand tu es prêt. Un jeu de gestion gratuit dans le navigateur.">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<!-- Balise de propriété AdSense : elle relie ce site au compte éditeur. -->
+<meta name="google-adsense-account" content="ca-pub-5640171592773109">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"VideoGame","name":"Supermarché Tycoon",
+"description":"Jeu de gestion de supermarché gratuit jouable dans le navigateur : rayons, commandes, personnel, clients.",
+"genre":["Gestion","Simulation","Tycoon"],"gamePlatform":"Navigateur web","inLanguage":"fr",
+"applicationCategory":"Game","operatingSystem":"Tout navigateur moderne",
+"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
+</script>
+
+<!-- Google Consent Mode v2 : tout est refusé par défaut. Le CMP certifié met
+     ensuite ces signaux à jour selon le choix réel de la personne. -->
+<script>
+window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments);}
+gtag('consent','default',{
+  ad_storage:'denied',
+  ad_user_data:'denied',
+  ad_personalization:'denied',
+  analytics_storage:'denied',
+  functionality_storage:'granted',
+  security_storage:'granted',
+  wait_for_update:2000
+});
+gtag('set','ads_data_redaction',true);
+gtag('set','url_passthrough',true);
+</script>
+
+<!-- CMP certifié IAB TCF v2.2 : Google Funding Choices.
+     À activer dans AdSense > Confidentialité et messages > Message de consentement UE. -->
+<script async src="https://fundingchoicesmessages.google.com/i/pub-5640171592773109?ers=1"></script>
+<script>(function(){function signalGooglefcPresent(){if(!window.frames['googlefcPresent']){
+if(document.body){const i=document.createElement('iframe');i.style='width:0;height:0;border:none;z-index:-1000;left:-1000px;top:-1000px;';
+i.style.display='none';i.name='googlefcPresent';document.body.appendChild(i);}else{setTimeout(signalGooglefcPresent,0);}}}
+signalGooglefcPresent();})();</script>
+<script>
+/* AdSense n'est chargé qu'une fois le CMP prêt : c'est ce que Google exige
+   pour que les annonces respectent le choix de la personne. Les Auto ads
+   placent ensuite elles-mêmes — aucun bloc n'est posé à la main dans le jeu. */
+(function(){
+  var lance=false;
+  function charger(){
+    if(lance) return; lance=true;
+    var t=document.createElement('script');
+    t.async=true; t.crossOrigin='anonymous';
+    t.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5640171592773109';
+    document.head.appendChild(t);
+  }
+  if(window.__tcfapi){
+    window.__tcfapi('addEventListener',2,function(d,ok){
+      if(ok && d && (d.eventStatus==='tcloaded'||d.eventStatus==='useractioncomplete')) charger();
+    });
+  }
+  /* filet : hors zone TCF (Canada, Japon...), le CMP ne s'affiche pas */
+  setTimeout(charger,2500);
+})();
+</script>
 <style>
 :root{
   --sol:#e9e5db; --sol2:#ded9cd; --joint:#cfc8b8;
@@ -347,6 +412,9 @@ kbd{background:var(--creme2);border:1px solid var(--bord);border-radius:4px;padd
   font:700 10px var(--mono)}
 .danger{color:var(--rouge)}
 .btnHaut{position:sticky;top:-22px;align-self:flex-start;z-index:3;padding:6px 0 10px}
+/* les liens des pages légales suivent la couleur du jeu, pas celle du navigateur */
+#confid a,#legal a{color:#7a4a20;text-underline-offset:3px}
+#confid a:hover,#legal a:hover{color:var(--rouge)}
 .btnHaut button{background:var(--creme);border:2px solid var(--bord);color:var(--encre2);
   font:700 10px/1 var(--mono);letter-spacing:.2em;padding:11px 16px;cursor:pointer;border-radius:9px}
 
@@ -573,6 +641,7 @@ body:not(.enJeu) #flash{display:none !important}
     <button class="lien" id="ouvrirBoutique">BOUTIQUE</button>
     <button class="lien" id="ouvrirSucces">SUCCÈS</button>
     <button class="lien" id="ouvrirRegl">RÈGLES</button>
+    <button class="lien" id="ouvrirLegal">MENTIONS LÉGALES</button>
   </div>
 </div>
 
@@ -740,6 +809,126 @@ body:not(.enJeu) #flash{display:none !important}
     <div class="reg"><div><h4 class="danger">EFFACER</h4><p>Carrière, succès, boutique et
       partie en cours.</p></div>
       <button class="lien danger" id="effacer">TOUT EFFACER</button></div>
+    <div class="reg"><div><h4>CONFIDENTIALITÉ</h4>
+      <p>Ce site affiche des publicités et utilise des cookies. Tu peux revoir ton
+      choix à tout moment.</p></div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+        <button class="lien" id="revoirConsent">GÉRER MES CHOIX</button>
+        <button class="lien" id="voirConfid">CONFIDENTIALITÉ</button>
+        <button class="lien" id="voirLegal">MENTIONS LÉGALES</button>
+      </div></div>
+  </div>
+</div>
+
+<div class="screen" id="confid">
+  <div class="btnHaut"><button id="fermerConfid">RETOUR</button></div>
+  <div class="eyebrow">CE QUE CE SITE FAIT DE TES DONNÉES</div>
+  <h1 style="font-size:var(--t2)">CONFIDENTIALITÉ</h1>
+  <div class="carte">
+    <div class="sur">TA PARTIE RESTE CHEZ TOI</div>
+    <div style="font-size:11.5px;line-height:1.95;color:var(--encre2)">
+      Le nom de ton enseigne, ton argent, tes rayons, ton personnel et tes
+      statistiques sont enregistrés <b>uniquement dans ton navigateur</b>. Rien
+      n'est envoyé à un serveur, rien n'est associé à ton identité. Effacer les
+      données du site supprime définitivement cette progression.
+    </div>
+  </div>
+  <div class="carte">
+    <div class="sur">AUCUN COMPTE, AUCUNE INSCRIPTION</div>
+    <div style="font-size:11.5px;line-height:1.95;color:var(--encre2)">
+      Pas d'adresse e-mail demandée, pas de mot de passe, pas de profil en ligne.
+    </div>
+  </div>
+  <div class="carte">
+    <div class="sur">PUBLICITÉ ET COOKIES</div>
+    <div style="font-size:11.5px;line-height:1.95;color:var(--encre2)">
+      Ce site affiche des annonces fournies par <b>Google AdSense</b>. Google et
+      ses partenaires peuvent déposer des cookies ou lire des identifiants pour
+      diffuser les annonces, mesurer leur performance et, si tu y consens, les
+      personnaliser.<br>
+      Tant que tu n'as pas donné ton accord, les signaux de consentement
+      publicitaire sont réglés sur <b>refusé</b> et les annonces restent non
+      personnalisées.
+    </div>
+  </div>
+  <div class="carte">
+    <div class="sur">TON CHOIX, ET COMMENT EN CHANGER</div>
+    <div style="font-size:11.5px;line-height:1.95;color:var(--encre2)">
+      Si tu es dans l'Espace économique européen, au Royaume-Uni ou en Suisse,
+      une fenêtre de consentement conforme au cadre de transparence et de
+      consentement de l'IAB (TCF v2.2) s'affiche à ta première visite. Tu peux
+      tout accepter, tout refuser, ou choisir finalité par finalité.<br>
+      <b>Pour revenir sur ton choix :</b> Règles, puis « Gérer mes choix ».
+    </div>
+  </div>
+  <div class="carte">
+    <div class="sur">EN SAVOIR PLUS CHEZ GOOGLE</div>
+    <div style="font-size:11.5px;line-height:1.95;color:var(--encre2)">
+      Tu peux consulter la page de Google sur
+      <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener nofollow">l'utilisation
+      des données par ses partenaires</a>, et régler tes préférences publicitaires
+      depuis <a href="https://adssettings.google.com" target="_blank" rel="noopener nofollow">les
+      paramètres des annonces Google</a>.
+    </div>
+  </div>
+  <div class="carte">
+    <div class="sur">ENFANTS, ET TES DROITS</div>
+    <div style="font-size:11.5px;line-height:1.95;color:var(--encre2)">
+      Ce site n'est pas destiné spécifiquement aux moins de treize ans et ne
+      collecte sciemment aucune donnée les concernant.<br>
+      Aucune donnée personnelle n'étant transmise ni conservée sur un serveur, il
+      n'y a pas de demande d'accès ou d'effacement à nous adresser. Pour les
+      données publicitaires, adresse-toi à Google via les liens ci-dessus. Pour
+      toute autre question, l'adresse de l'éditeur figure dans les
+      <a href="#" id="confidVersLegal">mentions légales</a>.
+    </div>
+  </div>
+  <button class="btn" id="gererConsent2" style="background:var(--bleu)">GÉRER MES CHOIX PUBLICITAIRES</button>
+</div>
+
+<div class="screen" id="legal">
+  <div class="btnHaut"><button id="fermerLegal">RETOUR</button></div>
+  <div class="eyebrow">QUI PUBLIE CE SITE</div>
+  <h1 style="font-size:var(--t2)">MENTIONS LÉGALES</h1>
+  <div class="carte">
+    <div class="sur">ÉDITEUR</div>
+    <div style="font-size:11.5px;line-height:1.95;color:var(--encre2)">
+      Ce site est édité à titre non professionnel sous le nom
+      <b>VanNDM Creations</b>. Le jeu est gratuit, sans compte et sans installation.
+    </div>
+  </div>
+  <div class="carte">
+    <div class="sur">NOUS ÉCRIRE</div>
+    <div style="font-size:11.5px;line-height:1.95;color:var(--encre2)" id="legalContact"></div>
+    <div style="font-size:11.5px;line-height:1.95;color:var(--encre2);margin-top:8px">
+      Un bug, une annonce mal placée, un contenu qui te paraît de trop : écris à
+      cette adresse, on répond.
+    </div>
+  </div>
+  <div class="carte">
+    <div class="sur">HÉBERGEUR</div>
+    <div style="font-size:11.5px;line-height:1.95;color:var(--encre2)">
+      Netlify, Inc., 512 2nd Street, Suite 200, San Francisco, CA 94107, États-Unis.
+    </div>
+  </div>
+  <div class="carte">
+    <div class="sur">PUBLICITÉ</div>
+    <div style="font-size:11.5px;line-height:1.95;color:var(--encre2)">
+      Les annonces de ce site sont fournies par <b>Google AdSense</b>, identifiant
+      éditeur <b>ca-pub-5640171592773109</b>. Elles sont choisies et placées par Google, jamais par
+      nous, et Google les signale toujours comme des annonces.<br>
+      Nous ne te demandons jamais de cliquer dessus, nous ne les déguisons pas en
+      éléments du jeu, et aucune récompense n'est liée au fait de les regarder.<br>
+      Ce que Google dépose sur ton appareil est détaillé dans la
+      <a href="#" id="legalVersConfid">politique de confidentialité</a>.
+    </div>
+  </div>
+  <div class="carte">
+    <div class="sur">PROPRIÉTÉ</div>
+    <div style="font-size:11.5px;line-height:1.95;color:var(--encre2)">
+      Le code, les dessins, les sons et les textes de Supermarché Tycoon sont
+      l'œuvre de leur auteur.
+    </div>
   </div>
 </div>
 
@@ -773,6 +962,28 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const lerp=(a,b,t)=>a+(b-a)*t;
 const $=id=>document.getElementById(id);
+
+/* >>> L'ADRESSE DE CONTACT PUBLIQUE DU SITE <<<
+   Une seule ligne à changer si elle bouge un jour. */
+const ADRESSE_CONTACT='cours2gtmathis78@gmail.com';
+
+/* rouvre la fenêtre du CMP certifié, quel que soit le nom qu'il s'est donné */
+function gererConsentement(){
+  let ouvert=false;
+  try{
+    if(window.googlefc&&window.googlefc.showRevocationMessage){
+      window.googlefc.showRevocationMessage(); ouvert=true;
+    } else if(window.__tcfapi){
+      window.__tcfapi('displayConsentUi',2,()=>{}); ouvert=true;
+    }
+  }catch(e){}
+  if(!ouvert){
+    const b=$('gererConsent2');
+    if(b) b.textContent='FENÊTRE INDISPONIBLE ICI';
+    setTimeout(()=>{ const c=$('gererConsent2');
+      if(c) c.textContent='GÉRER MES CHOIX PUBLICITAIRES'; },2200);
+  }
+}
 const FONT='ui-monospace,"SF Mono",Menlo,Consolas,monospace';
 const TITRE='"Arial Black","Arial Bold",Impact,system-ui,sans-serif';
 
@@ -4437,7 +4648,8 @@ let outil=null, selection=null;
 const souris={x:0,y:0,g:[0,0],down:false,bouge:false,pan:false,px:0,py:0};
 
 function ecrans(id){
-  ['menu','soir','commande','fin','reglages','profil','boutique','succes'].forEach(k=>{
+  ['menu','soir','commande','fin','reglages','profil','boutique','succes',
+   'confid','legal'].forEach(k=>{
     const e=$(k); if(e) e.classList.toggle('on',k===id);
   });
 }
@@ -6442,6 +6654,45 @@ function cabler(){
   $('ouvrirBoutique').onclick=()=>{ SND.init(); SND.clic(); montrerBoutique(); };
   $('ouvrirSucces').onclick=()=>{ SND.init(); SND.clic(); montrerSucces(); };
   $('fermerProfil').onclick=auMenu;
+
+  /* ==========================================================================
+     CONFIDENTIALITÉ, MENTIONS LÉGALES, ET LA PLACE DES ANNONCES
+     ==========================================================================
+     Un site qui affiche de la publicité doit pouvoir être joint : c'est une
+     obligation légale, et Google refuse l'inscription d'un site sans éditeur
+     identifiable ni moyen de contact. */
+  const ouvrirEcran=id=>{ SND.init(); SND.clic(); ecrans(id); ecranActif=id; };
+  $('ouvrirLegal').onclick=()=>ouvrirEcran('legal');
+  $('voirLegal').onclick=()=>ouvrirEcran('legal');
+  $('voirConfid').onclick=()=>ouvrirEcran('confid');
+  $('fermerLegal').onclick=auMenu;
+  $('fermerConfid').onclick=auMenu;
+  $('legalVersConfid').onclick=e=>{ e.preventDefault(); ouvrirEcran('confid'); };
+  $('confidVersLegal').onclick=e=>{ e.preventDefault(); ouvrirEcran('legal'); };
+  $('revoirConsent').onclick=gererConsentement;
+  $('gererConsent2').onclick=gererConsentement;
+
+  /* l'adresse de contact, posée par le script plutôt qu'écrite en dur dans un
+     lien mailto: du HTML livré. Ça arrête les ramasseurs de spam les plus
+     simples — pas tous : la chaîne reste lisible dans le source de la page. */
+  (function(){
+    const p=$('legalContact');
+    if(!p) return;
+    p.textContent='Pour toute question sur le site, la publicité ou tes données : ';
+    const a=document.createElement('a');
+    a.href='mailto:'+ADRESSE_CONTACT;
+    a.textContent=ADRESSE_CONTACT;
+    p.appendChild(a);
+  })();
+
+  /* Les annonces d'ancrage des Auto ads se collent au bas de l'écran, là où se
+     trouvent la palette de construction et les compteurs. Sans ce marqueur,
+     une annonce viendrait se poser dessus et chaque geste de jeu deviendrait un
+     clic publicitaire involontaire — ce que Google compte comme trafic invalide. */
+  for(const id of ['construire','caisseHud','patronHud','aide','prepa','barre']){
+    const e=$(id);
+    if(e) e.classList.add('adsbygoogle-noablate');
+  }
   $('fermerBoutique').onclick=auMenu;
   $('fermerSucces').onclick=auMenu;
   $('proNom').oninput=e=>{
