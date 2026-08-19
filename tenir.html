@@ -1,0 +1,2555 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>TENIR — est-ce que ça tient ?</title>
+<meta name="description" content="Construis un pont au-dessus du gouffre, appuie sur GO, et regarde s'il tient. Un jeu de physique gratuit dans le navigateur : poutres, câbles, contrainte, effondrement. Éditeur de niveaux et défi du jour.">
+<meta name="theme-color" content="#0d1117">
+<style>
+:root{
+  --nuit:#0d1117; --nuit2:#151c26; --ardoise:#1e2733; --ligne:#2b3746;
+  --encre:#eaf2fb; --gris:#8fa3bd; --gris2:#5c6f8a;
+  --bois:#c98a4b; --acier:#9fb4cf; --cable:#7fd6c3; --route:#6f7d8f;
+  --vert:#5ed17a; --jaune:#ffd44e; --orange:#ff9a3c; --rouge:#ff5964;
+  --ciel:#4a8fd6; --or:#ffd44e;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
+  --titre:"Arial Black","Arial Bold",Impact,system-ui,sans-serif;
+  --t1:clamp(46px,14vw,110px); --t2:clamp(22px,5.6vw,40px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--nuit)}
+body{font-family:var(--mono);color:var(--encre);
+  -webkit-user-select:none;user-select:none;touch-action:none}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+
+/* ---------------- bandeau du haut ---------------- */
+#haut{position:fixed;top:0;left:0;right:0;z-index:20;pointer-events:none;
+  display:flex;align-items:flex-start;gap:10px;
+  padding:calc(env(safe-area-inset-top) + 10px) 12px 20px;
+  background:linear-gradient(180deg,rgba(13,17,23,.97) 0%,rgba(13,17,23,.93) 52%,
+    rgba(13,17,23,0) 100%)}
+.bloc{display:flex;flex-direction:column;gap:2px;min-width:0}
+.bloc span{font-size:8.5px;letter-spacing:.2em;color:var(--gris2);font-weight:700;white-space:nowrap}
+.bloc b{font-family:var(--titre);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+#hNiv{font-size:clamp(13px,3.2vw,18px);color:var(--encre)}
+#hBudget{font-size:clamp(22px,6vw,34px);color:var(--vert)}
+#hBudget.serre{color:var(--jaune)}
+#hBudget.mort{color:var(--rouge)}
+.pousse{flex:1}
+#hDroite{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+#hMedaille{font-size:11px;letter-spacing:.12em;color:var(--or);font-weight:700}
+#hDefi{font-size:9px;letter-spacing:.16em;color:var(--cable);font-weight:700;
+  border:1px solid rgba(127,214,195,.42);border-radius:6px;padding:3px 7px;display:none}
+
+/* ---------------- la palette ---------------- */
+#palette{position:fixed;left:0;right:0;bottom:0;z-index:20;
+  display:flex;align-items:flex-end;justify-content:center;gap:7px;flex-wrap:wrap;
+  padding:22px 10px calc(env(safe-area-inset-bottom) + 10px);
+  background:linear-gradient(0deg,rgba(13,17,23,.97) 0%,rgba(13,17,23,.93) 58%,
+    rgba(13,17,23,0) 100%)}
+.mat{pointer-events:auto;border:2px solid var(--ligne);border-radius:11px;
+  background:rgba(21,28,38,.9);color:var(--encre);cursor:pointer;
+  padding:7px 11px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;
+  min-width:62px;transition:border-color .13s,transform .1s,background .13s}
+.mat i{display:block;width:34px;height:5px;border-radius:3px;font-style:normal}
+.mat b{font-size:9.5px;letter-spacing:.09em;font-weight:700}
+.mat u{text-decoration:none;font-size:9px;color:var(--gris2);font-variant-numeric:tabular-nums}
+.mat:hover{border-color:var(--gris)}
+.mat.on{border-color:var(--encre);background:rgba(60,80,110,.4);transform:translateY(-2px)}
+.mat.off{opacity:.32;cursor:not-allowed}
+.out{pointer-events:auto;border:2px solid var(--ligne);border-radius:11px;
+  background:rgba(21,28,38,.9);color:var(--encre);cursor:pointer;
+  font:700 11px/1 var(--mono);letter-spacing:.1em;padding:12px 13px;
+  display:flex;align-items:center;gap:6px;transition:border-color .13s,transform .1s}
+.out:hover{border-color:var(--gris)} .out:active{transform:translateY(1px)}
+.out em{font-style:normal;font-size:8.5px;color:var(--gris2)}
+.out.vert{border-color:rgba(94,209,122,.55);color:var(--vert)}
+.out.vert:hover{border-color:var(--vert)}
+#bGo{font-family:var(--titre);font-size:17px;letter-spacing:.06em;padding:11px 22px;
+  border-color:rgba(94,209,122,.6);color:var(--vert)}
+#bGo.stop{border-color:rgba(255,89,100,.6);color:var(--rouge)}
+body:not(.enJeu) #haut,body:not(.enJeu) #palette,body:not(.enJeu) #flash{display:none}
+body.roule .mat,body.roule #bAnnul,body.roule #bVider{opacity:.3;pointer-events:none}
+
+/* ---------------- messages ---------------- */
+#flash{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 92px);
+  transform:translateX(-50%);z-index:22;pointer-events:none;
+  display:flex;flex-direction:column;align-items:center;gap:6px;width:max-content;max-width:92vw}
+.msg{padding:9px 16px;border-radius:20px;background:rgba(15,21,30,.95);
+  border:1px solid rgba(143,163,189,.36);color:var(--encre);
+  font:700 11.5px/1.4 var(--mono);letter-spacing:.08em;text-align:center;
+  animation:pop .3s both;box-shadow:0 6px 24px rgba(0,0,0,.55)}
+.msg.bon{border-color:rgba(94,209,122,.6);color:var(--vert)}
+.msg.mal{border-color:rgba(255,89,100,.6);color:var(--rouge)}
+@keyframes pop{0%{opacity:0;transform:translateY(-9px) scale(.95)}100%{opacity:1;transform:none}}
+
+/* ---------------- écrans ---------------- */
+.screen{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;
+  align-items:center;padding:24px 16px 40px;overflow-y:auto;
+  background:radial-gradient(120% 70% at 50% 0%,rgba(40,90,150,.2),rgba(0,0,0,0) 60%),
+    linear-gradient(180deg,rgba(13,17,23,.976),rgba(13,17,23,.996))}
+.screen.on{display:flex}
+.screen>*{flex-shrink:0}
+#menu{background:
+  radial-gradient(130% 60% at 50% 0%,rgba(50,110,180,.32),rgba(0,0,0,0) 60%),
+  linear-gradient(180deg,rgba(13,17,23,.94) 0%,rgba(13,17,23,.8) 36%,
+    rgba(13,17,23,.52) 64%,rgba(13,17,23,.3) 100%)}
+h1{font-family:var(--titre);font-size:var(--t1);line-height:.86;text-align:center;
+  letter-spacing:-.02em;color:#fff;
+  text-shadow:0 0 36px rgba(74,143,214,.5),0 0 80px rgba(40,110,200,.3),0 5px 0 rgba(20,45,80,.7)}
+h1 u{text-decoration:none;color:var(--ciel)}
+.eyebrow{font-size:10px;letter-spacing:.34em;color:var(--ciel);margin-bottom:8px;
+  font-weight:700;text-align:center}
+.sous{font-size:11.5px;letter-spacing:.08em;color:var(--gris);text-align:center;
+  margin-top:12px;line-height:1.85;max-width:600px}
+.sous b{color:var(--encre)}
+.verbe{margin-top:18px;max-width:560px;width:100%;padding:15px 19px;border-radius:15px;
+  background:rgba(21,28,38,.88);border:1px solid rgba(74,143,214,.24);
+  font-size:12.5px;line-height:1.95;color:var(--encre);text-align:center}
+.verbe b{color:var(--jaune)} .verbe em{font-style:normal;color:var(--ciel)}
+
+.gros{margin-top:18px;width:min(430px,100%);padding:19px 23px;border:0;border-radius:15px;
+  cursor:pointer;background:linear-gradient(160deg,#2e7fd0,#17457f);color:#fff;
+  box-shadow:0 6px 0 #102c52,0 14px 38px rgba(30,100,190,.42);
+  text-align:left;display:flex;flex-direction:column;gap:4px;
+  transition:transform .1s,box-shadow .1s}
+.gros b{font-family:var(--titre);font-size:22px;letter-spacing:.02em}
+.gros span{font-size:10.5px;letter-spacing:.08em;color:rgba(255,255,255,.74)}
+.gros:hover{transform:translateY(-2px);box-shadow:0 8px 0 #102c52,0 18px 44px rgba(30,100,190,.48)}
+.gros:active{transform:translateY(3px);box-shadow:0 3px 0 #102c52}
+.gros.defi{margin-top:9px;background:linear-gradient(160deg,#1f9c86,#0d5b4e);
+  box-shadow:0 6px 0 #07382f,0 14px 38px rgba(20,150,130,.32)}
+.gros.defi:active{box-shadow:0 3px 0 #07382f}
+.gros.gris{margin-top:9px;background:linear-gradient(160deg,#31435a,#1c2735);
+  box-shadow:0 6px 0 #111a26,0 14px 38px rgba(20,35,55,.4)}
+.gros.gris:active{box-shadow:0 3px 0 #111a26}
+.liens{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+.lien{background:none;border:1px solid rgba(143,163,189,.2);color:var(--gris);
+  font:700 10.5px/1 var(--mono);letter-spacing:.15em;cursor:pointer;padding:10px 13px;border-radius:9px}
+.lien:hover{border-color:var(--ciel);color:var(--encre)}
+#meRang{display:flex;align-items:center;gap:9px;margin-top:14px;padding:8px 15px;
+  border-radius:12px;background:rgba(21,28,38,.85);border:1px solid rgba(74,143,214,.18)}
+#meRang span{font-size:17px}
+#meRang b{font-family:var(--titre);font-size:14px}
+#meRang u{text-decoration:none;font-size:10px;color:var(--or);letter-spacing:.09em}
+
+/* ---------------- la carte des niveaux ---------------- */
+#nivListe{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:9px;
+  width:100%;max-width:760px;margin-top:16px}
+.niv{padding:12px 13px;border-radius:12px;background:rgba(21,28,38,.9);
+  border:1px solid var(--ligne);cursor:pointer;text-align:left;color:var(--encre);
+  display:flex;flex-direction:column;gap:5px;transition:border-color .12s,transform .1s}
+.niv:hover{border-color:var(--ciel);transform:translateY(-2px)}
+.niv .no{font-size:8.5px;letter-spacing:.2em;color:var(--gris2);font-weight:700}
+.niv .nom{font-family:var(--titre);font-size:14px;line-height:1.15}
+.niv .bas{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:2px}
+.niv .cout{font-size:10px;color:var(--gris);font-variant-numeric:tabular-nums}
+.niv .med{font-size:14px;letter-spacing:-1px}
+.niv.fait{border-color:rgba(94,209,122,.42)}
+.niv.verr{opacity:.42;cursor:not-allowed}
+.niv.verr:hover{border-color:var(--ligne);transform:none}
+
+/* ---------------- fin de niveau ---------------- */
+.grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:8px;
+  margin-top:14px;width:100%;max-width:620px}
+.cell{padding:11px 13px;border-radius:11px;background:rgba(21,28,38,.9);border:1px solid var(--ligne)}
+.cell span{display:block;font-size:8.5px;letter-spacing:.19em;color:var(--gris2);font-weight:700}
+.cell b{display:block;font-family:var(--titre);font-size:19px;margin-top:3px;font-variant-numeric:tabular-nums}
+.bloc2{width:100%;max-width:620px;margin-top:12px;padding:15px 17px;border-radius:13px;
+  background:rgba(21,28,38,.9);border:1px solid var(--ligne)}
+.bloc2 .sur{font-size:9px;letter-spacing:.2em;color:var(--gris2);font-weight:700;margin-bottom:8px}
+.rl{display:flex;align-items:center;gap:11px;padding:7px 0;border-bottom:1px dashed rgba(143,163,189,.14)}
+.rl:last-child{border-bottom:0}
+.rl .re{font-size:17px;width:24px;text-align:center;flex:0 0 auto}
+.rl .rt{flex:1;min-width:0}
+.rl .rt b{display:block;font-size:11px;letter-spacing:.09em}
+.rl .rt span{display:block;font-size:10px;color:var(--gris);line-height:1.5;margin-top:2px}
+.rl .rv{font-family:var(--titre);font-size:15px;flex:0 0 auto;color:var(--or)}
+#fPartage{width:100%;max-width:620px;margin-top:12px;padding:13px 15px;border-radius:11px;
+  background:rgba(8,11,16,.92);border:1px dashed rgba(74,143,214,.34);
+  font:700 12px/1.85 var(--mono);color:var(--ciel);white-space:pre-wrap;text-align:center}
+.relance{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;margin-top:18px}
+.relance .gros{margin-top:0;width:auto;min-width:170px;padding:14px 20px;align-items:center;text-align:center}
+.relance .gros b{font-size:16px}
+
+/* ---------------- règles, succès ---------------- */
+.regl{width:100%;max-width:680px;margin-top:12px;padding:17px 19px;border-radius:13px;
+  background:rgba(21,28,38,.9);border:1px solid var(--ligne);font-size:12px;line-height:1.95}
+.regl h3{font-family:var(--titre);font-size:15px;color:var(--ciel);margin-bottom:7px}
+.regl b{color:var(--jaune)}
+.mats{display:grid;grid-template-columns:repeat(auto-fit,minmax(212px,1fr));gap:8px;margin-top:10px}
+.matl{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;border-radius:10px;
+  background:rgba(10,14,20,.75)}
+.matl i{width:26px;height:6px;border-radius:3px;flex:0 0 auto;margin-top:5px;font-style:normal}
+.matl b{display:block;font-size:10px;letter-spacing:.11em}
+.matl span{display:block;font-size:9.5px;color:var(--gris);line-height:1.5;margin-top:2px}
+.cle{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;align-items:center}
+kbd{background:rgba(74,143,214,.1);border:1px solid rgba(74,143,214,.28);
+  border-radius:6px;padding:2px 7px;font:700 10.5px var(--mono);color:var(--ciel)}
+#suListe{display:grid;grid-template-columns:repeat(auto-fit,minmax(198px,1fr));gap:8px;
+  width:100%;max-width:660px;margin-top:12px}
+.suc{padding:11px 13px;border-radius:11px;background:rgba(21,28,38,.86);
+  border-left:4px solid rgba(143,163,189,.2);opacity:.55}
+.suc.ok{opacity:1;border-left-color:var(--or)}
+.suc b{display:block;font-size:10.5px;letter-spacing:.1em}
+.suc span{display:block;font-size:9.5px;color:var(--gris);margin-top:4px;line-height:1.5}
+.reg{display:flex;justify-content:space-between;align-items:center;gap:14px;
+  padding:12px 15px;border-radius:11px;background:rgba(21,28,38,.9);margin-top:8px;
+  width:100%;max-width:680px}
+.reg h4{font-size:11px;letter-spacing:.13em}
+.reg p{font-size:10px;color:var(--gris);margin-top:4px;line-height:1.55;max-width:340px}
+.danger{color:var(--rouge)}
+#codeIn{background:rgba(8,11,16,.9);border:1px solid var(--ligne);border-radius:9px;
+  color:var(--encre);font:700 11px var(--mono);padding:10px 12px;width:min(420px,100%);
+  margin-top:10px;letter-spacing:.06em}
+
+@media (max-width:640px){
+  .verbe{font-size:11.5px;line-height:1.85;padding:13px 15px}
+  .relance .gros{min-width:142px}
+  .mat{min-width:56px;padding:6px 8px 7px}
+  .mat i{width:26px}
+}
+@media (max-height:560px){
+  #haut{padding-top:calc(env(safe-area-inset-top) + 4px);padding-bottom:4px}
+  #hBudget{font-size:20px}
+  #palette{padding:14px 8px calc(env(safe-area-inset-bottom) + 6px)}
+  .mat{padding:4px 8px 5px;min-width:52px} .mat i{height:4px}
+  .out{padding:9px 11px;font-size:10px} #bGo{font-size:14px;padding:9px 16px}
+  #flash{top:calc(env(safe-area-inset-top) + 50px)}
+  h1{font-size:clamp(32px,9vw,58px)}
+  .screen{padding-top:12px} .verbe{margin-top:10px;padding:10px 13px}
+  .gros{margin-top:10px;padding:13px 17px} .gros b{font-size:18px}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="haut">
+  <div class="bloc"><span>BUDGET RESTANT</span><b id="hBudget">0</b></div>
+  <div class="bloc" style="margin-left:12px"><span>CHANTIER</span><b id="hNiv">1 · —</b></div>
+  <div class="pousse"></div>
+  <div id="hDroite">
+    <div class="bloc" style="align-items:flex-end"><span>TON PONT</span>
+      <b id="hObj" style="font-size:12px;color:var(--gris)">—</b></div>
+    <div id="hMedaille"></div>
+    <div id="hDefi">PONT DU JOUR</div>
+  </div>
+</div>
+
+<div id="flash"></div>
+
+<div id="palette">
+  <button class="out" id="bAnnul">ANNULER<em>Z</em></button>
+  <button class="out" id="bVider">VIDER</button>
+  <div id="mats" style="display:flex;gap:7px;flex-wrap:wrap;justify-content:center"></div>
+  <button class="out" id="bGo">GO</button>
+  <button class="out" id="bMenu">QUITTER</button>
+</div>
+
+<div class="screen on" id="menu">
+  <h1>TE<u>NIR</u></h1>
+  <div class="eyebrow" style="margin-top:10px">EST-CE QUE ÇA TIENT ?</div>
+  <div id="meRang"></div>
+  <div class="verbe">
+    Un gouffre, un camion, et un budget.<br>
+    Tu traces des poutres, tu appuies sur <em>GO</em> — et tu regardes.<br>
+    Les poutres <b>jaunissent</b>, puis <b>rougissent</b>, puis <b>cassent</b>.<br>
+    Elles cassent presque toujours. C'est ça qui est bien.
+  </div>
+  <button class="gros" id="meJouer"><b>CHANTIERS</b>
+    <span>Vingt ponts à faire tenir, du plus simple au déraisonnable.</span></button>
+  <button class="gros defi" id="meDefi"><b>PONT DU JOUR</b>
+    <span>Le même gouffre pour tout le monde, une fois par jour</span></button>
+  <button class="gros gris" id="meBac"><b>BAC À SABLE</b>
+    <span>Budget illimité. Casse ce que tu veux.</span></button>
+  <div class="liens">
+    <button class="lien" id="meRegles">RÈGLES</button>
+    <button class="lien" id="meSucces">SUCCÈS</button>
+    <button class="lien" id="meCode">CHARGER UN PONT</button>
+  </div>
+</div>
+
+<div class="screen" id="niveaux">
+  <div class="eyebrow">VINGT GOUFFRES</div>
+  <h1 style="font-size:var(--t2)">CHANTIERS</h1>
+  <div class="sous" id="nivSous"></div>
+  <div id="nivListe"></div>
+  <div class="relance"><button class="gros gris" id="nivRetour"><b>RETOUR</b></button></div>
+</div>
+
+<div class="screen" id="fin">
+  <div class="eyebrow" id="fEye"></div>
+  <h1 style="font-size:var(--t2)" id="fTitre">ÇA TIENT</h1>
+  <div class="grille" id="fGrille"></div>
+  <div class="bloc2" id="fMedailles"></div>
+  <div class="bloc2" id="fNotes"></div>
+  <div id="fPartage"></div>
+  <div class="relance">
+    <button class="gros" id="fSuite"><b>CHANTIER SUIVANT</b></button>
+    <button class="gros gris" id="fRejouer"><b>REFAIRE</b></button>
+    <button class="gros gris" id="fCopier" style="min-width:200px"><b>COPIER LE PONT</b></button>
+    <button class="gros gris" id="fMenu"><b>MENU</b></button>
+  </div>
+</div>
+
+<div class="screen" id="succes">
+  <div class="eyebrow">TABLEAU DE CHASSE</div>
+  <h1 style="font-size:var(--t2)">SUCCÈS</h1>
+  <div class="bloc2" id="suTete"></div>
+  <div id="suListe"></div>
+  <div class="relance"><button class="gros gris" id="suRetour"><b>RETOUR</b></button></div>
+</div>
+
+<div class="screen" id="regles">
+  <div class="eyebrow">MODE D'EMPLOI</div>
+  <h1 style="font-size:var(--t2)">COMMENT ÇA MARCHE</h1>
+
+  <div class="regl">
+    <h3>UNE SEULE QUESTION</h3>
+    Tu relies les deux bords d'un gouffre, puis un camion traverse. <b>Est-ce que
+    ça tient ?</b><br>
+    Chaque poutre a une longueur au repos. Quand la charge l'étire ou la comprime,
+    elle passe du gris au <b>jaune</b>, puis à l'<b>orange</b>, puis au <b>rouge</b> —
+    et au-delà de sa limite, elle casse. La couleur, c'est la contrainte : tu vois
+    ton pont souffrir avant qu'il ne cède.
+  </div>
+
+  <div class="regl">
+    <h3>CE QUE TU PEUX POSER</h3>
+    <div class="mats" id="reMats"></div>
+  </div>
+
+  <div class="regl">
+    <h3>LES TROIS RÈGLES QU'ON OUBLIE</h3>
+    <b>1. Le triangle ne se déforme pas.</b> Un carré de poutres s'écrase comme un
+    accordéon ; un triangle, non. Tout pont qui tient est un assemblage de triangles.<br>
+    <b>2. Un câble ne pousse pas.</b> Il ne travaille qu'en traction. Suspends,
+    ne soutiens pas.<br>
+    <b>3. La route est lourde.</b> Elle doit être portée, pas juste posée.
+  </div>
+
+  <div class="regl">
+    <h3>LES MÉDAILLES</h3>
+    Chaque chantier a trois marches : <b>faire traverser le camion</b>, le faire
+    traverser <b>sous un budget serré</b>, et le faire traverser <b>sans qu'une seule
+    poutre ne rougisse</b>.<br>
+    La troisième est la vraie. Un pont qui tient de justesse tient une fois ; un pont
+    qui ne rougit pas tiendrait cent camions.
+  </div>
+
+  <div class="regl">
+    <h3>COMMANDES</h3>
+    <div class="cle">
+      <kbd>glisser</kbd> poser une poutre
+      <kbd>clic sur une poutre</kbd> l'effacer
+      <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> changer de matériau
+      <kbd>Espace</kbd> lancer / arrêter
+      <kbd>Z</kbd> annuler <kbd>Échap</kbd> retour
+    </div>
+    Au doigt : glisse d'un point à l'autre pour poser, appuie sur une poutre pour
+    l'enlever. Le pont se sauvegarde tout seul, chantier par chantier.
+  </div>
+
+  <div class="reg"><div><h4>SON</h4><p>Grincements, ruptures, moteur. Rien d'autre.</p></div>
+    <button class="lien" id="sonBtn">SON : ACTIVÉ</button></div>
+  <div class="reg"><div><h4>VOLUME</h4><p>Si les ruptures claquent trop fort.</p></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <input type="range" id="volIn" min="0" max="100" step="5" style="width:120px">
+      <span id="volVal" style="font:700 11px var(--mono);color:var(--ciel);width:44px;
+        text-align:right">65 %</span></div></div>
+  <div class="reg"><div><h4 class="danger">EFFACER</h4><p>Médailles, ponts sauvegardés, succès.</p></div>
+    <button class="lien danger" id="effacer">TOUT EFFACER</button></div>
+  <div class="relance"><button class="gros gris" id="reRetour"><b>RETOUR</b></button></div>
+</div>
+
+<div class="screen" id="code">
+  <div class="eyebrow">UN PONT DE QUELQU'UN D'AUTRE</div>
+  <h1 style="font-size:var(--t2)">CHARGER</h1>
+  <div class="sous">Colle ici un code copié depuis un écran de fin. Il contient le
+  chantier et le pont, rien d'autre.</div>
+  <input id="codeIn" placeholder="TENIR-1-…" autocomplete="off" spellcheck="false">
+  <div class="sous" id="codeMsg" style="min-height:22px"></div>
+  <div class="relance">
+    <button class="gros" id="codeOk"><b>CHARGER</b></button>
+    <button class="gros gris" id="codeRetour"><b>RETOUR</b></button>
+  </div>
+</div>
+
+<script>
+
+/* ==========================================================================
+   TENIR — est-ce que ça tient ?
+   ==========================================================================
+   Un seul fichier, aucune dépendance, aucune image ni son téléchargé.
+
+   Le jeu tient dans une question posée toutes les trente secondes : tu as
+   construit quelque chose, un camion va rouler dessus, EST-CE QUE ÇA TIENT ?
+
+   Tout le reste — le budget, les médailles, les matériaux — n'est là que pour
+   rendre la réponse intéressante. Et la réponse est presque toujours « non »,
+   parce qu'un pont qui s'effondre est plus drôle qu'un pont qui tient, et
+   qu'on le refait tout de suite.
+   ========================================================================== */
+
+const cv=document.getElementById('c');
+let ctx=cv.getContext('2d',{alpha:false});
+let VW=0, VH=0, DPR=1;
+const TAU=Math.PI*2;
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const MONO='ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace';
+const TITRE='"Arial Black","Arial Bold",Impact,system-ui,sans-serif';
+
+/* ==========================================================================
+   LE HASARD
+   ==========================================================================
+   Semé pour le pont du jour : la même date doit donner le même gouffre à tout
+   le monde, sinon comparer deux scores ne veut rien dire. Un second générateur,
+   non semé, s'occupe du décor — un nuage ne doit jamais décaler une partie. */
+function semeur(a){
+  return function(){
+    a|=0; a=a+0x6D2B79F5|0;
+    let t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+let RNG=semeur(Date.now()&0x7fffffff);
+const rnd=(a,b)=>a+RNG()*(b-a);
+const ri=(a,b)=>Math.floor(a+RNG()*(b-a+1));
+const pick=l=>l[Math.floor(RNG()*l.length)];
+let DECO=semeur(987654);
+const drnd=(a,b)=>a+DECO()*(b-a);
+const dri=(a,b)=>Math.floor(a+DECO()*(b-a+1));
+
+function hash2(x,y,g){
+  let h=(x*374761393+y*668265263+(g|0)*1442695040)|0;
+  h=(h^(h>>13))*1274126177;
+  return ((h^(h>>16))>>>0)/4294967295;
+}
+/* les nombres se lisent par tranches de trois : 12 400, pas 12400 */
+const nb=n=>{
+  n=Math.round(n);
+  const s=Math.abs(n).toString();
+  let o='';
+  for(let i=0;i<s.length;i++) o+=(i&&(s.length-i)%3===0?' ':'')+s[i];
+  return (n<0?'−':'')+o;
+};
+
+/* ==========================================================================
+   LE MONDE ET LA VUE
+   ==========================================================================
+   Le monde se mesure en mètres, pas en pixels : une poutre de six mètres reste
+   une poutre de six mètres qu'on joue sur un téléphone ou sur un écran large.
+   La caméra n'a qu'un travail, cadrer le gouffre entier — on ne fait jamais
+   défiler, parce qu'un pont qu'on ne voit pas en entier ne se juge pas. */
+let ECH=26;                 // pixels par mètre
+let CX=0, CY=0;             // décalage de la vue, en pixels
+const mx=x=>CX+x*ECH;       // mètre -> pixel
+const my=y=>CY-y*ECH;       // l'axe Y du monde monte, celui de l'écran descend
+const xm=px=>(px-CX)/ECH;   // pixel -> mètre
+const ym=py=>(CY-py)/ECH;
+
+/* la place laissée aux bandeaux, qui doit coller à ce que le CSS réserve */
+function margesUI(){
+  const court=VH<=560;
+  return { haut:court?54:92, bas:court?58:84, cote:court?10:18 };
+}
+function cadrer(){
+  if(!N) return;
+  const m=margesUI();
+  const dispoW=Math.max(80,VW-m.cote*2);
+  const dispoH=Math.max(80,VH-m.haut-m.bas);
+  /* on cadre le gouffre PLUS la zone de construction au-dessus et le vide en
+     dessous : c'est là que le pont vit, et c'est là que la chute se regarde */
+  const x0=N.vue[0], x1=N.vue[1], y0=N.vue[2], y1=N.vue[3];
+  ECH=Math.min(dispoW/(x1-x0), dispoH/(y1-y0));
+  ECH=clamp(ECH,4,90);
+  CX=m.cote+(dispoW-(x1-x0)*ECH)/2-x0*ECH;
+  CY=m.haut+(dispoH-(y1-y0)*ECH)/2+y1*ECH;
+  /* Sur un écran étroit c'est la LARGEUR qui commande l'échelle, et il reste
+     alors bien plus de hauteur que la vue n'en demande. Centrer verticalement
+     laisserait le pont flotter au milieu d'un ciel vide : on place plutôt la
+     chaussée au tiers supérieur, ce qui donne du ciel au-dessus et surtout de
+     la place en dessous pour regarder tomber. */
+  const rab=dispoH-(y1-y0)*ECH;
+  if(rab>ECH*3&&N&&isFinite(N.route)){
+    const yRoute=CY-N.route*ECH;
+    const vise=m.haut+dispoH*.34;
+    CY+=clamp(vise-yRoute,-rab*.46,rab*.46);
+  }
+}
+
+function redim(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  VW=window.innerWidth; VH=window.innerHeight;
+  cv.width=Math.round(VW*DPR); cv.height=Math.round(VH*DPR);
+  ctx=cv.getContext('2d',{alpha:false});
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  cadrer();
+  CIEL=null;
+}
+addEventListener('resize',redim);
+
+let ecranActif='menu';
+let N=null;                        // le niveau en cours
+let P=null;                        // le pont en cours de construction
+let SIM=null;                      // la simulation, quand elle tourne
+let horloge=0, last=performance.now();
+let CIEL=null;
+const souris={x:0,y:0,dedans:false};
+
+/* ---- un peu de géométrie, utilisée partout ---- */
+const dist2=(ax,ay,bx,by)=>{const dx=bx-ax,dy=by-ay;return dx*dx+dy*dy;};
+const dista=(ax,ay,bx,by)=>Math.hypot(bx-ax,by-ay);
+/* le point du segment [a,b] le plus proche de p, et où il tombe (0..1) */
+function surSegment(px,py,ax,ay,bx,by){
+  const dx=bx-ax, dy=by-ay;
+  const L2=dx*dx+dy*dy;
+  if(L2<1e-12) return {x:ax,y:ay,t:0,d:dista(px,py,ax,ay)};
+  let t=((px-ax)*dx+(py-ay)*dy)/L2;
+  t=clamp(t,0,1);
+  const x=ax+dx*t, y=ay+dy*t;
+  return {x,y,t,d:dista(px,py,x,y)};
+}
+
+
+/* ==========================================================================
+   2. LE SON
+   ==========================================================================
+   Tout est synthétisé. Il n'y a que quatre choses à entendre, et elles disent
+   toutes la même chose : où en est la structure. Le grincement monte avec la
+   contrainte, la rupture claque, le moteur peine dans la côte, et le silence
+   qui suit la chute est le vrai son du jeu. */
+const SND={
+  ctx:null, maitre:null, moteurO:null, moteurG:null, grinceG:null, grinceS:null,
+  on:true, muet:false, volume:.65, prochain:0,
+  init(){
+    if(this.ctx) return;
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC) { this.on=false; return; }
+      this.ctx=new AC();
+      this.maitre=this.ctx.createGain();
+      this.maitre.gain.value=this.volume;
+      this.maitre.connect(this.ctx.destination);
+    }catch(e){ this.on=false; }
+  },
+  reprendre(){ if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume(); },
+  vol(v){ this.volume=v; if(this.maitre) this.maitre.gain.value=v; },
+  note(f,t0,dur,type,g,glisse){
+    if(!this.on||this.muet||!this.ctx) return;
+    const o=this.ctx.createOscillator(), a=this.ctx.createGain();
+    o.type=type||'sine'; o.frequency.setValueAtTime(f,t0);
+    if(glisse) o.frequency.exponentialRampToValueAtTime(Math.max(20,glisse),t0+dur);
+    a.gain.setValueAtTime(0,t0);
+    a.gain.linearRampToValueAtTime(g||.1,t0+.006);
+    a.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+    o.connect(a); a.connect(this.maitre);
+    o.start(t0); o.stop(t0+dur+.02);
+  },
+  bruit(t0,dur,freq,g,q,type){
+    if(!this.on||this.muet||!this.ctx) return;
+    const n=this.ctx.createBufferSource();
+    const len=Math.max(1,Math.floor(this.ctx.sampleRate*dur));
+    const b=this.ctx.createBuffer(1,len,this.ctx.sampleRate);
+    const d=b.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,1.5);
+    n.buffer=b;
+    const f=this.ctx.createBiquadFilter(); f.type=type||'bandpass';
+    f.frequency.value=freq||1400; f.Q.value=q||1.2;
+    const a=this.ctx.createGain(); a.gain.value=g||.1;
+    n.connect(f); f.connect(a); a.connect(this.maitre);
+    n.start(t0);
+  },
+  /* la rupture : un claquement sec, d'autant plus grave que la poutre est
+     grosse. C'est le seul son qui fait sursauter, et c'est voulu. */
+  casse(grosseur){
+    if(!this.on||this.muet||!this.ctx) return;
+    const t=this.ctx.currentTime;
+    this.bruit(t,.09,2600-grosseur*900,.34,.7,'bandpass');
+    this.bruit(t+.01,.26,260-grosseur*80,.26,.9,'lowpass');
+    this.note(150-grosseur*40,t,.20,'triangle',.16,44);
+  },
+  /* le grincement : un bruit continu dont on ouvre le robinet quand la
+     structure souffre. Il prévient une seconde avant la rupture. */
+  grince(v){
+    if(!this.on||!this.ctx) return;
+    if(!this.grinceG){
+      const n=this.ctx.createBufferSource();
+      const len=Math.floor(this.ctx.sampleRate*2);
+      const b=this.ctx.createBuffer(1,len,this.ctx.sampleRate);
+      const d=b.getChannelData(0);
+      for(let i=0;i<len;i++) d[i]=(Math.random()*2-1);
+      n.buffer=b; n.loop=true;
+      const f=this.ctx.createBiquadFilter(); f.type='bandpass';
+      f.frequency.value=900; f.Q.value=7;
+      const g=this.ctx.createGain(); g.gain.value=0;
+      n.connect(f); f.connect(g); g.connect(this.maitre);
+      n.start();
+      this.grinceG=g; this.grinceS=f;
+    }
+    const c=clamp(v,0,1);
+    this.grinceG.gain.setTargetAtTime(this.muet?0:c*c*.13,this.ctx.currentTime,.09);
+    this.grinceS.frequency.setTargetAtTime(560+c*1500,this.ctx.currentTime,.12);
+  },
+  /* le moteur : sa hauteur monte avec la vitesse, et il force dans la pente */
+  moteur(v,charge){
+    if(!this.on||!this.ctx) return;
+    if(!this.moteurO){
+      const o=this.ctx.createOscillator(); o.type='sawtooth';
+      const f=this.ctx.createBiquadFilter(); f.type='lowpass';
+      f.frequency.value=620; f.Q.value=3;
+      const g=this.ctx.createGain(); g.gain.value=0;
+      o.connect(f); f.connect(g); g.connect(this.maitre);
+      o.start();
+      this.moteurO=o; this.moteurG=g; this.moteurF=f;
+    }
+    const t=this.ctx.currentTime;
+    this.moteurO.frequency.setTargetAtTime(48+v*46,t,.08);
+    this.moteurF.frequency.setTargetAtTime(340+charge*700,t,.1);
+    this.moteurG.gain.setTargetAtTime(this.muet?0:(v>0?.055:0),t,.09);
+  },
+  silence(){
+    if(this.moteurG) this.moteurG.gain.setTargetAtTime(0,this.ctx.currentTime,.05);
+    if(this.grinceG) this.grinceG.gain.setTargetAtTime(0,this.ctx.currentTime,.05);
+  },
+  pose(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(420,t,.05,'square',.05); this.bruit(t,.05,2200,.05,1.4); } },
+  efface(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(300,t,.06,'square',.05,180); } },
+  clic(){ if(this.ctx) this.note(1100,this.ctx.currentTime,.04,'square',.045); },
+  refus(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(190,t,.10,'square',.06,120); } },
+  /* la traversée réussie : trois notes qui montent, pas une fanfare */
+  bien(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(523,t,.14,'triangle',.11);
+    this.note(659,t+.10,.14,'triangle',.11);
+    this.note(880,t+.20,.32,'triangle',.12); } },
+  /* la chute : un fracas grave, puis plus rien */
+  chute(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.bruit(t,.5,180,.3,.7,'lowpass');
+    this.bruit(t+.07,.7,90,.24,.6,'lowpass');
+    this.note(90,t,.6,'sine',.14,38); } },
+  gain(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(880,t,.09,'triangle',.09);
+    this.note(1320,t+.07,.16,'triangle',.08); } }
+};
+
+
+/* ==========================================================================
+   3. LES MATÉRIAUX, LES CHANTIERS, LES MÉDAILLES
+   ==========================================================================
+   Quatre matériaux, pas un de plus. Chacun doit répondre à une question que les
+   trois autres ne savent pas résoudre, sinon il n'a rien à faire là. */
+
+const CLE='tenir:v1';
+const Store=(()=>{ try{ localStorage.setItem('_t','1'); localStorage.removeItem('_t');
+  return {get:k=>localStorage.getItem(k), set:(k,v)=>localStorage.setItem(k,v)};
+}catch(e){ const m={}; return {get:k=>m[k]||null, set:(k,v)=>{m[k]=v;}}; } })();
+
+/* cap     : l'effort qu'un mètre de cette barre encaisse avant de rompre.
+   raideur : ce que la barre corrige à chaque itération. Basse = elle plie.
+   masse   : ce qu'un mètre pèse, et donc ce qu'il faut porter en plus.
+   Les trois vont ensemble : le bois est mou, léger et fragile ; l'acier est
+   raide, lourd et solide ; le câble est le seul à ne travailler qu'en traction.
+
+   La masse compte autant que la capacité, et c'est contre-intuitif : sur une
+   grande portée, ajouter des barres pour renforcer AFFAIBLIT la structure,
+   parce qu'elle finit par se porter elle-même plus qu'elle ne porte le camion.
+   Un tablier deux fois trop lourd rend les longues portées impossibles quelle
+   que soit l'astuce du joueur — d'où ces valeurs, réglées pour que quarante
+   mètres restent durs mais faisables. */
+const MATS={
+  bois:  {nom:'BOIS',   cle:'1', col:'#c98a4b', col2:'#8a5a2c', ep:.30,
+          prix:11, cap:34, raideur:.62, masse:.75, route:0, cable:0,
+          d:'Pas cher, souple, et il casse tôt. On construit avec, on ne compte pas dessus.'},
+  acier: {nom:'ACIER',  cle:'2', col:'#9fb4cf', col2:'#5f748f', ep:.26,
+          prix:36, cap:105, raideur:.96, masse:1.00, route:0, cable:0,
+          d:'Trois fois le prix du bois, et il ne plie presque pas. C\'est ce qui tient vraiment.'},
+  cable: {nom:'CÂBLE',  cle:'3', col:'#7fd6c3', col2:'#3f8a7c', ep:.13,
+          prix:8,  cap:72, raideur:.88, masse:.28, route:0, cable:1,
+          d:'Il tire, il ne pousse jamais. Suspends la route au-dessus d\'elle, ne la soutiens pas.'},
+  route: {nom:'ROUTE',  cle:'4', col:'#7e8d9f', col2:'#4a5665', ep:.42,
+          prix:21, cap:58, raideur:.74, masse:1.30, route:1, cable:0,
+          d:'La seule sur laquelle le camion roule — et la plus lourde de toutes. Elle doit être portée.'}
+};
+const CLES_MATS=Object.keys(MATS);
+
+/* le camion : il ne change jamais. C'est l'unité de mesure du jeu. */
+const CAMION={ roueR:.60, empat:2.8, haut:1.15, mRoue:2.2, mCaisse:5.0,
+               vitesse:3.6, couple:.055 };
+
+const GRAV=9.4;              // m/s², un peu doux : on veut voir plier, pas voir tomber
+const PAS=1/120;             // le pas de la physique, fixe
+const ITER=14;               // relaxations par pas
+const LONG_MAX=6.0;          // une poutre ne dépasse jamais six mètres
+const GRILLE=1;              // les nœuds se posent sur un quadrillage d'un mètre
+
+function plateau(x0,x1,y,bas){ return [[x0,bas],[x0,y],[x1,y],[x1,bas]]; }
+function pilier(x0,x1,y,bas){ return [[x0,bas],[x0,y],[x1,y],[x1,bas]]; }
+
+/* ==========================================================================
+   LES VINGT CHANTIERS
+   ==========================================================================
+   Ils ne montent pas en difficulté par le budget : ils montent en portée. Un
+   gouffre de huit mètres se franchit avec trois poutres, un gouffre de quarante
+   demande de comprendre pourquoi le triangle ne se déforme pas. */
+const NIVEAUX=[
+ {nom:'LA PETITE FAILLE', budget:1200, serre:760, bas:-16,
+  sol:[plateau(-8,6,0,-16), plateau(14,28,0,-16)],
+  depart:-3, arrivee:22,
+  note:'Trois poutres suffisent. Vraiment trois.'},
+
+ {nom:'LE FOSSÉ', budget:1500, serre:1020, bas:-16,
+  sol:[plateau(-8,6,0,-16), plateau(18,32,0,-16)],
+  depart:-3, arrivee:26,
+  note:'Douze mètres. La route seule s\'affaisse : il lui faut un dessous.'},
+
+ {nom:'LE CONTREFORT', budget:1750, serre:1240, bas:-18,
+  sol:[plateau(-8,5,0,-18), pilier(12,14,-5,-18), plateau(21,34,0,-18)],
+  depart:-3, arrivee:28,
+  note:'Il y a un pilier. Sers-t\'en, il ne demande que ça.'},
+
+ {nom:'LA GORGE', budget:2200, serre:1620, bas:-20,
+  sol:[plateau(-8,5,0,-20), plateau(21,34,0,-20)],
+  depart:-3, arrivee:28,
+  note:'Le même écart, sans pilier. C\'est là que le triangle commence.'},
+
+ {nom:'LE PALIER', budget:2100, serre:1520, bas:-18,
+  sol:[plateau(-8,6,0,-18), plateau(20,34,3,-18)],
+  depart:-3, arrivee:28,
+  note:'L\'autre bord est plus haut. Le camion devra monter — il n\'aime pas ça.'},
+
+ {nom:'LA DESCENTE', budget:2100, serre:1500, bas:-20,
+  sol:[plateau(-8,6,0,-20), plateau(21,34,-4,-20)],
+  depart:-3, arrivee:28,
+  note:'En descente, le camion arrive vite. Ce n\'est pas un cadeau.'},
+
+ {nom:'LE SURPLOMB', budget:2700, serre:2000, bas:-20,
+  sol:[plateau(-8,5,0,-20), plateau(21,34,0,-20),
+       [[7,14],[7,9],[19,9],[19,14]]],
+  depart:-3, arrivee:28,
+  note:'Une dalle de roche au-dessus du vide. Le câble ne pousse pas — mais suspendu à ça, il n\'a pas à pousser.'},
+
+ {nom:'DEUX FAILLES', budget:2900, serre:2200, bas:-18,
+  sol:[plateau(-8,4,0,-18), plateau(12,16,0,-18), plateau(24,38,0,-18)],
+  depart:-3, arrivee:32,
+  note:'L\'îlot du milieu porte deux ponts. Il n\'en portera bien qu\'un seul.'},
+
+ {nom:'LE CANYON', budget:3400, serre:2600, bas:-26,
+  sol:[plateau(-8,4,0,-26), plateau(26,40,0,-26)],
+  depart:-3, arrivee:34,
+  note:'Vingt-deux mètres et rien en dessous. La chute est longue à regarder.'},
+
+ {nom:'LA BARGE', budget:3000, serre:2300, bas:-20,
+  sol:[plateau(-8,5,0,-20), plateau(21,34,0,-20)],
+  interdit:[[6,-16,20,-5]],
+  depart:-3, arrivee:28,
+  note:'Une barge passe dessous. Cinq mètres de tirant d\'eau, pas un de plus.'},
+
+ {nom:'LE VIADUC', budget:3600, serre:2800, bas:-22,
+  sol:[plateau(-8,4,0,-22), pilier(12,14,-7,-22), pilier(22,24,-7,-22),
+       plateau(32,46,0,-22)],
+  depart:-3, arrivee:40,
+  note:'Deux piliers, vingt-huit mètres. Un viaduc, ce n\'est que ça.'},
+
+ {nom:'L\'ARCHE', budget:3500, serre:2700, bas:-22,
+  sol:[plateau(-8,5,0,-22), plateau(25,38,0,-22)],
+  interdit:[[6,1,24,14]],
+  depart:-3, arrivee:32,
+  note:'Interdit de construire au-dessus de la route. Tout doit se passer dessous.'},
+
+ {nom:'LE SAUT', budget:3200, serre:2500, bas:-20,
+  sol:[plateau(-8,6,0,-20), plateau(22,36,6,-20)],
+  depart:-3, arrivee:30,
+  note:'Six mètres à monter. Une pente trop raide et le camion cale.'},
+
+ {nom:'LE GRAND ÉCART', budget:4400, serre:3500, bas:-26,
+  sol:[plateau(-8,4,0,-26), pilier(18,20,-9,-26), plateau(34,48,0,-26)],
+  depart:-3, arrivee:42,
+  note:'Trente mètres et un seul appui, bas. Deux portées de quinze.'},
+
+ {nom:'LE TOIT BAS', budget:3500, serre:2750, bas:-22,
+  sol:[plateau(-8,5,0,-22), plateau(23,36,0,-22)],
+  interdit:[[6,3,22,15]],
+  depart:-3, arrivee:30,
+  note:'Trois mètres de dégagement au-dessus de la route, pas un de plus.'},
+
+ {nom:'LA CORDE RAIDE', budget:4200, serre:3400, bas:-26,
+  sol:[plateau(-8,4,0,-26), plateau(28,42,0,-26)],
+  depart:-3, arrivee:36,
+  note:'Vingt-quatre mètres, aucun appui, aucune tour. Tout est à inventer.'},
+
+ {nom:'LA VOÛTE', budget:4800, serre:3900, bas:-24,
+  sol:[plateau(-8,4,0,-24), plateau(32,46,0,-24),
+       [[7,17],[7,11],[29,11],[29,17]]],
+  depart:-3, arrivee:40,
+  note:'Vingt-huit mètres, et onze mètres au-dessus : de quoi suspendre, si tu descends assez de câble.'},
+
+ {nom:'LE GOUFFRE', budget:7000, serre:5700, bas:-32,
+  sol:[plateau(-8,4,0,-32), plateau(38,52,0,-32)],
+  depart:-3, arrivee:46,
+  note:'Trente-quatre mètres. À ce stade, on ne bricole plus.'},
+
+ {nom:'LE PASSAGE ÉTROIT', budget:4600, serre:3700, bas:-24,
+  sol:[plateau(-8,5,0,-24), plateau(27,40,0,-24)],
+  interdit:[[6,5,26,17],[6,-14,26,-5]],
+  depart:-3, arrivee:34,
+  note:'Une fente de huit mètres autour de la route. Ni plus haut, ni plus bas.'},
+
+ {nom:'TENIR', budget:8800, serre:7200, bas:-34,
+  sol:[plateau(-8,4,0,-34), plateau(40,54,0,-34)],
+  depart:-3, arrivee:48,
+  note:'Trente-six mètres. Rien pour t\'aider. C\'est le dernier.'}
+];
+/* La vue de chaque chantier n'est PAS écrite à la main : elle se déduit du
+   terrain. Un gouffre de trente mètres de fond cadré en entier réduit la zone
+   où l'on construit à un dixième de l'écran — on montre donc une bande utile
+   autour de la chaussée, et la chute continue hors cadre. */
+NIVEAUX.forEach((n,i)=>{
+  n.n=i+1;
+  n.interdit=n.interdit||[];
+  /* Les plateaux d'approche n'ont pas besoin d'être larges : ils ne servent
+     qu'à lancer le camion et à le recevoir. Les raccourcir rapproche les deux
+     bords du gouffre à l'écran — sur un téléphone tenu debout, le pont y gagne
+     un tiers de taille, et c'est là que ça se joue. */
+  for(const s of n.sol){
+    let x0=1e9, x1=-1e9;
+    for(const p of s){ if(p[0]<x0) x0=p[0]; if(p[0]>x1) x1=p[0]; }
+    if(n.depart>=x0&&n.depart<=x1){
+      const bord=n.depart-3;
+      for(const p of s) if(Math.abs(p[0]-x0)<1e-6) p[0]=bord;
+    }
+    if(n.arrivee>=x0&&n.arrivee<=x1){
+      n.arrivee=x0+4;                       // le drapeau tout près du bord
+      const bord=n.arrivee+3;
+      for(const p of s) if(Math.abs(p[0]-x1)<1e-6) p[0]=bord;
+    }
+  }
+  let x0=1e9, x1=-1e9, hautMax=-1e9, routeMin=1e9, routeMax=-1e9;
+  for(const s of n.sol){
+    let sx0=1e9, sx1=-1e9, top=-1e9;
+    for(const p of s){
+      if(p[0]<x0) x0=p[0]; if(p[0]>x1) x1=p[0];
+      if(p[0]<sx0) sx0=p[0]; if(p[0]>sx1) sx1=p[0];
+      if(p[1]>top) top=p[1];
+    }
+    if(top>hautMax) hautMax=top;
+    /* les pièces qui portent le départ ou l'arrivée donnent le niveau de la
+       chaussée ; une dalle en surplomb ou un pilier noyé ne comptent pas */
+    if((n.depart>=sx0&&n.depart<=sx1)||(n.arrivee>=sx0&&n.arrivee<=sx1)){
+      if(top<routeMin) routeMin=top;
+      if(top>routeMax) routeMax=top;
+    }
+  }
+  if(routeMin>1e8){ routeMin=0; routeMax=0; }
+  let bas=routeMin-13, haut=Math.max(hautMax+3, routeMax+11);
+  /* une zone interdite doit rester visible en entier, sinon on ne comprend pas */
+  for(const z of n.interdit){
+    if(z[1]<bas) bas=z[1]-1;
+    if(z[3]>haut) haut=z[3]+1;
+  }
+  n.vue=[x0,x1,bas,haut];
+  n.route=routeMax;          // la ligne d'horizon, pour le dessin du fond
+});
+
+/* ==========================================================================
+   LES MÉDAILLES
+   ==========================================================================
+   Trois marches, et la dernière n'est pas une question d'argent. Un pont qui
+   passe de justesse passe une fois ; un pont dont aucune poutre n'a rougi
+   passerait cent camions. C'est la seule médaille qui parle d'ingénierie. */
+const SEUIL_ROUGE=.70;       // au-delà, la poutre est « dans le rouge »
+function medaillesGagnees(niv,res){
+  const m={bronze:0,argent:0,or:0};
+  if(!res.reussi) return m;
+  m.bronze=1;
+  if(res.cout<=niv.serre) m.argent=1;
+  if(res.contMax<SEUIL_ROUGE) m.or=1;
+  return m;
+}
+function nbMedailles(m){ return (m.bronze?1:0)+(m.argent?1:0)+(m.or?1:0); }
+const ICO_MED=['○','●','◆'];   // rien, plein, losange
+
+/* ==========================================================================
+   LES RANGS ET LES SUCCÈS
+   ========================================================================== */
+const RANGS=[
+ {s:0,  nom:'MANŒUVRE',    ico:'\u{1F528}', d:'On pose des poutres au hasard, et parfois ça marche.'},
+ {s:8,  nom:'CHARPENTIER', ico:'\u{1F6E0}', d:'On a compris le triangle.'},
+ {s:20, nom:'INGÉNIEUR',   ico:'\u{1F4D0}', d:'On sait où la charge descend.'},
+ {s:34, nom:'ARCHITECTE',  ico:'\u{1F3DB}', d:'On construit léger et ça ne bouge pas.'},
+ {s:48, nom:'BÂTISSEUR',   ico:'\u{1F309}', d:'Les gouffres commencent à manquer.'},
+ {s:60, nom:'CELUI QUI TIENT', ico:'⭐', d:'Il n\'y a plus rien à t\'apprendre.'}
+];
+function rangDe(s){ let r=RANGS[0]; for(const x of RANGS) if(s>=x.s) r=x; return r; }
+function rangSuivant(s){ for(const x of RANGS) if(s<x.s) return x; return null; }
+
+const SUCCES=[
+ {id:'premier',  nom:'PREMIÈRE TRAVERSÉE', d:'Faire passer le camion une fois'},
+ {id:'or1',      nom:'SANS UN GRINCEMENT',  d:'Décrocher une première médaille d\'or'},
+ {id:'or5',      nom:'CINQ FOIS PROPRE',    d:'Cinq médailles d\'or'},
+ {id:'or10',     nom:'DIX FOIS PROPRE',     d:'Dix médailles d\'or'},
+ {id:'tout20',   nom:'VINGT GOUFFRES',      d:'Terminer les vingt chantiers'},
+ {id:'parfait',  nom:'SANS UNE FISSURE',    d:'Les soixante médailles'},
+ {id:'radin',    nom:'À L\'ÉCONOMIE',       d:'Réussir un chantier à moins de la moitié du budget'},
+ {id:'troisp',   nom:'TROIS POUTRES',       d:'Réussir un chantier avec trois poutres ou moins'},
+ {id:'cable',    nom:'TOUT EN SUSPENS',     d:'Réussir un chantier où la moitié du coût est en câble'},
+ {id:'acier',    nom:'PLUS JAMAIS DE BOIS',  d:'Réussir un chantier sans une seule poutre de bois'},
+ {id:'ruine',    nom:'LA BELLE RUINE',      d:'Casser vingt poutres dans une seule tentative'},
+ {id:'ruine100', nom:'ENTREPRENEUR DE DÉMOLITION', d:'Casser deux cents poutres en tout'},
+ {id:'chute',    nom:'AU FOND DU TROU',     d:'Envoyer le camion au fond du gouffre'},
+ {id:'essais',   nom:'L\'ACHARNÉ',          d:'Cinquante tentatives'},
+ {id:'defi',     nom:'PONT DU JOUR',        d:'Réussir un pont du jour'},
+ {id:'defi7',    nom:'UNE SEMAINE',         d:'Sept ponts du jour réussis'},
+ {id:'bac',      nom:'POUR VOIR',           d:'Passer un moment au bac à sable'},
+ {id:'long',     nom:'LA GRANDE PORTÉE',    d:'Franchir le dernier gouffre'}
+];
+
+
+/* ==========================================================================
+   4. LA PHYSIQUE
+   ==========================================================================
+   Intégration de Verlet et relaxation de contraintes : les poutres sont des
+   distances à maintenir, et on les corrige quatorze fois par pas.
+
+   Reste à savoir ce qu'une poutre ENDURE, pour la colorer et la casser. On ne
+   peut pas lire l'erreur résiduelle : après quatorze passes le solveur a
+   pratiquement tout corrigé, et une poutre écrasée affiche la même erreur
+   qu'une poutre au repos. Ce qu'on mesure à la place, c'est le TRAVAIL qu'il a
+   fallu pour la corriger : la somme des corrections appliquées pendant le pas.
+   C'est l'impulsion de la contrainte, donc la force interne, et c'est
+   exactement ce qu'un ingénieur appellerait l'effort dans la barre.
+
+   Le pas est fixe (1/120 s). Un pas variable ferait qu'un pont tiendrait sur
+   une machine et pas sur une autre — inacceptable dans un jeu où l'on compare
+   des scores. */
+
+const AMORT=.9965;           // l'air, et un peu de bon sens numérique
+const FROT=.34;              // ce que la roue accroche sur ce qu'elle touche
+const CHASSIS={nom:'CHÂSSIS', col:'#d3a25a', col2:'#8a6428', ep:.22,
+               prix:0, cap:1e9, raideur:1, masse:0, route:0, cable:0};
+
+/* ------------------------------------------------------------ le terrain */
+function dansPoly(px,py,poly){
+  let d=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const xi=poly[i][0], yi=poly[i][1], xj=poly[j][0], yj=poly[j][1];
+    if((yi>py)!==(yj>py) && px<(xj-xi)*(py-yi)/(yj-yi)+xi) d=!d;
+  }
+  return d;
+}
+function dansSol(x,y){
+  for(const s of N.sol) if(dansPoly(x,y,s)) return true;
+  return false;
+}
+/* Un nœud posé SUR la roche y est scellé : c'est par lui que toute la charge
+   s'en va. On ne le décide PAS en regardant « y a-t-il de la roche dessous » —
+   un point tombant pile sur l'arête d'une falaise donne une réponse au hasard,
+   selon de quel côté l'algorithme du polygone se réveille. On demande donc
+   l'inverse, qui est exact : ce point est-il POSÉ SUR une arête du terrain ?
+   Bonus : ça rend les parois verticales accrochables, ce qui est juste. */
+function surTerrain(x,y){
+  for(const s of SEGS){
+    if(surSegment(x,y,s[0],s[1],s[2],s[3]).d<.02) return true;
+  }
+  return false;
+}
+function surSol(x,y){ return surTerrain(x,y); }
+/* et « enterré » veut dire : dans la roche sans être sur sa peau */
+function enterre(x,y){ return !surTerrain(x,y)&&dansSol(x,y); }
+function dansInterdit(x,y){
+  for(const z of N.interdit) if(x>=z[0]&&x<=z[2]&&y>=z[1]&&y<=z[3]) return true;
+  return false;
+}
+/* une poutre ne doit pas traverser une zone interdite : on échantillonne, ce
+   qui suffit largement pour des rectangles et des poutres de six mètres */
+function poutreInterdite(ax,ay,bx,by){
+  if(!N.interdit.length) return false;
+  const n=Math.max(4,Math.ceil(dista(ax,ay,bx,by)*4));
+  for(let i=0;i<=n;i++){
+    const t=i/n;
+    if(dansInterdit(ax+(bx-ax)*t, ay+(by-ay)*t)) return true;
+  }
+  return false;
+}
+/* ni traverser la roche. On échantillonne le long de la poutre et on demande
+   à chaque point s'il est enterré — pas seulement « dans le sol », sinon une
+   poutre posée à plat sur la falaise se ferait refuser pour rien. */
+function poutreDansSol(ax,ay,bx,by){
+  const n=Math.max(4,Math.ceil(dista(ax,ay,bx,by)*4));
+  for(let i=1;i<n;i++){
+    const t=i/n;
+    if(enterre(ax+(bx-ax)*t, ay+(by-ay)*t)) return true;
+  }
+  return false;
+}
+/* les segments du terrain, aplatis une fois pour toutes : les roues les
+   testent à chaque pas, ça ne doit pas se recalculer */
+let SEGS=[];
+function preparerSegments(){
+  SEGS=[];
+  for(const s of N.sol)
+    for(let i=0;i<s.length-1;i++)
+      SEGS.push([s[i][0],s[i][1],s[i+1][0],s[i+1][1]]);
+}
+
+/* ==========================================================================
+   LA SIMULATION
+   ========================================================================== */
+function construireSim(pont,niv){
+  const S={ pts:[], cont:[], t:0, casses:0, contMax:0, contInst:0,
+            etat:'roule', cause:'', cam:null, debris:[], secousse:0,
+            roulement:0, vmax:0 };
+
+  /* les nœuds du pont deviennent des points de Verlet */
+  for(const nd of pont.noeuds)
+    S.pts.push({x:nd.x, y:nd.y, px:nd.x, py:nd.y, m:.06, inv:0,
+                fixe:nd.fixe, roue:0, r:0});
+
+  /* les poutres deviennent des contraintes, et distribuent leur masse */
+  for(const pt of pont.poutres){
+    const a=S.pts[pt.a], b=S.pts[pt.b];
+    if(!a||!b) continue;
+    const L0=dista(a.x,a.y,b.x,b.y);
+    const mat=MATS[pt.mat];
+    const m=mat.masse*L0*.5;
+    a.m+=m; b.m+=m;
+    S.cont.push({i:pt.a, j:pt.b, L0, mat, cle:pt.mat, cont:0, pic:0, mort:0, src:pt});
+  }
+
+  /* le camion : deux roues, une caisse, et des barres qui ne cassent pas */
+  const y0=solSous(niv.depart)+CAMION.roueR+.02;
+  const base=S.pts.length;
+  const mk=(x,y,m,roue)=>{ S.pts.push({x,y,px:x,py:y,m,inv:0,fixe:0,
+    roue:roue?1:0, r:roue?CAMION.roueR:0}); return S.pts.length-1; };
+  const rA=mk(niv.depart,             y0, CAMION.mRoue, 1);
+  const rB=mk(niv.depart+CAMION.empat,y0, CAMION.mRoue, 1);
+  const cA=mk(niv.depart+.35,             y0+CAMION.haut, CAMION.mCaisse*.5, 0);
+  const cB=mk(niv.depart+CAMION.empat-.35,y0+CAMION.haut, CAMION.mCaisse*.5, 0);
+  const barre=(i,j)=>S.cont.push({i,j,L0:dista(S.pts[i].x,S.pts[i].y,S.pts[j].x,S.pts[j].y),
+    mat:CHASSIS, cle:'chassis', cont:0, pic:0, mort:0, cam:1});
+  barre(rA,rB); barre(cA,cB); barre(rA,cA); barre(rB,cB); barre(rA,cB); barre(rB,cA);
+  S.cam={rA,rB,cA,cB, base, avance:0, depart:niv.depart, arrivee:niv.arrivee};
+
+  for(const p of S.pts) p.inv=p.fixe?0:1/Math.max(.02,p.m);
+  return S;
+}
+/* l'altitude du sol sous une abscisse : sert à poser le camion au départ */
+function solSous(x){
+  let best=-1e9;
+  for(const s of SEGS){
+    const x0=Math.min(s[0],s[2]), x1=Math.max(s[0],s[2]);
+    if(x<x0-.01||x>x1+.01) continue;
+    if(Math.abs(s[2]-s[0])<1e-6) continue;
+    const t=(x-s[0])/(s[2]-s[0]);
+    const y=s[1]+(s[3]-s[1])*t;
+    if(y>best) best=y;
+  }
+  return best>-1e8?best:0;
+}
+
+/* ------------------------------------------------------------- un pas */
+function pasPhysique(S){
+  const dt2=PAS*PAS;
+  /* 1. on intègre */
+  for(const p of S.pts){
+    if(p.fixe) continue;
+    const vx=(p.x-p.px)*AMORT, vy=(p.y-p.py)*AMORT;
+    p.px=p.x; p.py=p.y;
+    p.x+=vx; p.y+=vy-GRAV*dt2;
+  }
+  /* 2. on relaxe, en cumulant au passage le travail de chaque poutre */
+  for(const c of S.cont) c.imp=0;
+  for(let k=0;k<ITER;k++){
+    for(const c of S.cont){
+      if(c.mort) continue;
+      const a=S.pts[c.i], b=S.pts[c.j];
+      const dx=b.x-a.x, dy=b.y-a.y;
+      const d=Math.hypot(dx,dy);
+      if(d<1e-9) continue;
+      /* un câble ne pousse jamais : au repos ou comprimé, il ne fait rien */
+      if(c.mat.cable&&d<=c.L0) continue;
+      const w=a.inv+b.inv;
+      if(w<=0) continue;
+      const e=d-c.L0;
+      c.imp+=Math.abs(e);            // le travail du pas, cumulé
+      const corr=e/d*c.mat.raideur;
+      const fa=a.inv/w, fb=b.inv/w;
+      a.x+=dx*corr*fa; a.y+=dy*corr*fa;
+      b.x-=dx*corr*fb; b.y-=dy*corr*fb;
+    }
+    if(k===ITER-1||k===Math.floor(ITER/2)) collisions(S);
+  }
+  /* 3. l'effort dans chaque barre, et ce qui doit casser */
+  let pire=0;
+  for(const c of S.cont){
+    if(c.mort||c.cam) continue;
+    const a=S.pts[c.i], b=S.pts[c.j];
+    /* l'impulsion rapportée au pas au carré : une force, en m/s² fois mètre.
+       Rapportée à la longueur, elle ne dépend plus que du chargement. */
+    const f=c.imp/(PAS*PAS)/Math.max(1,c.L0);
+    const inst=f/c.mat.cap;
+    c.cont=inst;
+    /* le pic redescend lentement : une poutre qui a souffert le montre encore
+       une seconde après, ce qui laisse au joueur le temps de le voir */
+    c.pic=Math.max(c.pic*.955,inst);
+    if(inst>pire) pire=inst;
+    if(c.pic>1){
+      c.mort=1;
+      S.casses++;
+      S.secousse=Math.min(20,S.secousse+3+c.mat.masse*2);
+      SND.casse(clamp(c.mat.masse/2.2,0,1));
+      débris(S,a,b,c);
+    }
+  }
+  S.contInst=pire;
+  if(pire>S.contMax) S.contMax=pire;
+  S.secousse*=.90;
+  S.t+=PAS;
+}
+
+/* les morceaux qui partent : purement décoratifs, et c'est très bien */
+function débris(S,a,b,c){
+  const n=Math.min(5,2+Math.floor(c.L0));
+  for(let k=0;k<n;k++){
+    const t=(k+.5)/n;
+    S.debris.push({x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t,
+      vx:drnd(-2.4,2.4), vy:drnd(0,3.4), a:drnd(0,TAU), va:drnd(-7,7),
+      l:c.L0/n*.8, col:c.mat.col, vie:drnd(1.6,3.2)});
+  }
+  while(S.debris.length>160) S.debris.shift();
+}
+
+/* ------------------------------------------------------ les roues et le sol */
+function collisions(S){
+  for(const w of S.pts){
+    if(!w.roue) continue;
+    /* le terrain, qui ne bouge pas */
+    for(const s of SEGS){
+      const q=surSegment(w.x,w.y,s[0],s[1],s[2],s[3]);
+      if(q.d>=w.r||q.d<1e-9) continue;
+      const nx=(w.x-q.x)/q.d, ny=(w.y-q.y)/q.d;
+      const push=w.r-q.d;
+      w.x+=nx*push; w.y+=ny*push;
+      frotter(w,nx,ny,null,null,0);
+    }
+    /* la route, qui bouge — et qui encaisse en retour */
+    for(const c of S.cont){
+      if(c.mort||!c.mat.route) continue;
+      const a=S.pts[c.i], b=S.pts[c.j];
+      const q=surSegment(w.x,w.y,a.x,a.y,b.x,b.y);
+      if(q.d>=w.r||q.d<1e-9) continue;
+      const nx=(w.x-q.x)/q.d, ny=(w.y-q.y)/q.d;
+      const push=w.r-q.d;
+      const wa=(1-q.t)*a.inv, wb=q.t*b.inv, ww=w.inv;
+      const tot=ww+wa+wb;
+      if(tot<=0) continue;
+      w.x+=nx*push*(ww/tot); w.y+=ny*push*(ww/tot);
+      a.x-=nx*push*(wa/tot); a.y-=ny*push*(wa/tot);
+      b.x-=nx*push*(wb/tot); b.y-=ny*push*(wb/tot);
+      frotter(w,nx,ny,a,b,q.t);
+    }
+  }
+}
+/* La roue accroche : on rapproche sa vitesse tangentielle de celle voulue.
+   Sans ça le camion glisse comme sur du verglas et ne monte aucune pente. */
+function frotter(w,nx,ny,a,b,t){
+  const tx=-ny, ty=nx;
+  let vx=w.x-w.px, vy=w.y-w.py;
+  /* la vitesse du support sous la roue, pour ne pas frotter contre un pont
+     qui bouge à la même vitesse que nous */
+  let sx=0, sy=0;
+  if(a&&b){ sx=(a.x-a.px)*(1-t)+(b.x-b.px)*t; sy=(a.y-a.py)*(1-t)+(b.y-b.py)*t; }
+  const vt=(vx-sx)*tx+(vy-sy)*ty;
+  /* le moteur : il pousse vers la droite, tant qu'on n'est pas à la vitesse */
+  const sens=tx>=0?1:-1;
+  const cible=SIM&&SIM.etat==='roule'?CAMION.vitesse*PAS*sens:0;
+  const corr=(cible-vt)*FROT;
+  w.px-=tx*corr; w.py-=ty*corr;
+  /* et on amortit le rebond : une roue ne fait pas de trampoline */
+  const vn=(vx-sx)*nx+(vy-sy)*ny;
+  if(vn<0){ w.px+=nx*vn*.55; w.py+=ny*vn*.55; }
+}
+
+
+/* ==========================================================================
+   5. LA CONSTRUCTION
+   ==========================================================================
+   Un seul geste : on glisse d'un point du quadrillage à un autre, et une
+   poutre apparaît. Tout le reste — le coût, les nœuds, le nettoyage des points
+   orphelins — se fait tout seul. Le joueur ne gère jamais de nœuds : il pense
+   en poutres, parce que c'est en poutres qu'on pense un pont. */
+
+let matActif='bois';
+let trace=null;              // le geste en cours : {x0,y0,x1,y1,ok,raison}
+
+function nouveauPont(niv,garder){
+  P={ noeuds:[], poutres:[], histo:[], cout:0, essais:(garder&&P?P.essais:0)|0 };
+}
+function coutPoutre(x0,y0,x1,y1,cle){
+  return Math.round(MATS[cle].prix*dista(x0,y0,x1,y1));
+}
+function budgetRestant(){
+  if(!N) return 0;
+  return (N.bacASable?999999:N.budget)-P.cout;
+}
+function snap(x,y){ return [Math.round(x/GRILLE)*GRILLE, Math.round(y/GRILLE)*GRILLE]; }
+
+function noeudEn(x,y){
+  for(let i=0;i<P.noeuds.length;i++){
+    const n=P.noeuds[i];
+    if(Math.abs(n.x-x)<1e-6&&Math.abs(n.y-y)<1e-6) return i;
+  }
+  return -1;
+}
+function ouCreerNoeud(x,y){
+  let i=noeudEn(x,y);
+  if(i>=0) return i;
+  P.noeuds.push({x,y,fixe:surSol(x,y)?1:0});
+  return P.noeuds.length-1;
+}
+function poutreEntre(a,b){
+  for(let i=0;i<P.poutres.length;i++){
+    const p=P.poutres[i];
+    if((p.a===a&&p.b===b)||(p.a===b&&p.b===a)) return i;
+  }
+  return -1;
+}
+
+/* ------------------------------------------- ce qu'on a le droit de poser */
+function verifier(x0,y0,x1,y1,cle){
+  const L=dista(x0,y0,x1,y1);
+  if(L<.5) return 'Trop court';
+  if(L>LONG_MAX+1e-6) return 'Six mètres au maximum';
+  if(enterre(x0,y0)||enterre(x1,y1)) return 'Enterré dans la roche';
+  if(poutreDansSol(x0,y0,x1,y1)) return 'Ça passe dans la roche';
+  if(dansInterdit(x0,y0)||dansInterdit(x1,y1)||poutreInterdite(x0,y0,x1,y1))
+    return 'Zone interdite';
+  const a=noeudEn(x0,y0), b=noeudEn(x1,y1);
+  if(a>=0&&b>=0&&poutreEntre(a,b)>=0) return 'Il y en a déjà une';
+  if(!N.bacASable&&coutPoutre(x0,y0,x1,y1,cle)>budgetRestant()) return 'Budget dépassé';
+  const [vx0,vx1,vy0,vy1]=N.vue;
+  for(const [px,py] of [[x0,y0],[x1,y1]])
+    if(px<vx0||px>vx1||py<vy0||py>vy1) return 'Hors du chantier';
+  return '';
+}
+
+function poser(x0,y0,x1,y1,cle){
+  const r=verifier(x0,y0,x1,y1,cle);
+  if(r){ SND.refus(); message(r,1100,'mal'); return false; }
+  const avantN=P.noeuds.length;
+  const a=ouCreerNoeud(x0,y0), b=ouCreerNoeud(x1,y1);
+  P.poutres.push({a,b,mat:cle});
+  P.cout+=coutPoutre(x0,y0,x1,y1,cle);
+  P.histo.push({t:'poser', n:P.noeuds.length-avantN});
+  while(P.histo.length>200) P.histo.shift();
+  SND.pose();
+  majHUD();
+  sauverPont();
+  return true;
+}
+
+function retirer(i){
+  if(i<0||i>=P.poutres.length) return false;
+  const p=P.poutres[i];
+  const a=P.noeuds[p.a], b=P.noeuds[p.b];
+  P.cout-=coutPoutre(a.x,a.y,b.x,b.y,p.mat);
+  P.poutres.splice(i,1);
+  /* on garde les COORDONNÉES, pas les indices : nettoyer() va renuméroter les
+     nœuds juste après, et un indice noté maintenant ne voudrait plus rien dire */
+  P.histo.push({t:'retirer', mat:p.mat,
+    xa:a.x, ya:a.y, xb:b.x, yb:b.y});
+  while(P.histo.length>200) P.histo.shift();
+  nettoyer();
+  SND.efface();
+  majHUD();
+  sauverPont();
+  return true;
+}
+
+/* les nœuds que plus aucune poutre ne touche n'existent pas : on les enlève,
+   et on renumérote. Le joueur ne doit jamais voir un point tout seul. */
+function nettoyer(){
+  const utile=new Array(P.noeuds.length).fill(false);
+  for(const p of P.poutres){ utile[p.a]=true; utile[p.b]=true; }
+  const carte=new Array(P.noeuds.length).fill(-1);
+  const neufs=[];
+  for(let i=0;i<P.noeuds.length;i++)
+    if(utile[i]){ carte[i]=neufs.length; neufs.push(P.noeuds[i]); }
+  P.noeuds=neufs;
+  for(const p of P.poutres){ p.a=carte[p.a]; p.b=carte[p.b]; }
+}
+
+function annuler(){
+  const h=P.histo.pop();
+  if(!h){ SND.refus(); return false; }
+  if(h.t==='poser'){
+    const p=P.poutres.pop();
+    if(p){
+      const a=P.noeuds[p.a], b=P.noeuds[p.b];
+      P.cout-=coutPoutre(a.x,a.y,b.x,b.y,p.mat);
+    }
+    nettoyer();
+  } else if(h.t==='retirer'){
+    /* on remet la poutre là où elle était, en recréant ses deux bouts */
+    const a=ouCreerNoeud(h.xa,h.ya), b=ouCreerNoeud(h.xb,h.yb);
+    P.poutres.push({a,b,mat:h.mat});
+    P.cout+=coutPoutre(h.xa,h.ya,h.xb,h.yb,h.mat);
+  } else if(h.t==='vider'){
+    P.noeuds=h.noeuds; P.poutres=h.poutres; P.cout=h.cout;
+  }
+  SND.efface();
+  majHUD();
+  sauverPont();
+  return true;
+}
+
+function vider(){
+  if(!P.poutres.length){ SND.refus(); return; }
+  P.histo.push({t:'vider', noeuds:P.noeuds.map(n=>({...n})),
+    poutres:P.poutres.map(p=>({...p})), cout:P.cout});
+  P.noeuds=[]; P.poutres=[]; P.cout=0;
+  SND.efface();
+  message('Chantier vidé',1000);
+  majHUD();
+  sauverPont();
+}
+
+/* ------------------------------------------- ce que la souris désigne */
+function poutreSous(wx,wy,tol){
+  let best=-1, bd=tol||.5;
+  for(let i=0;i<P.poutres.length;i++){
+    const p=P.poutres[i];
+    const a=P.noeuds[p.a], b=P.noeuds[p.b];
+    const q=surSegment(wx,wy,a.x,a.y,b.x,b.y);
+    if(q.d<bd){ bd=q.d; best=i; }
+  }
+  return best;
+}
+
+/* le coût par matériau, pour l'écran de fin et pour deux succès */
+function coutParMat(){
+  const o={};
+  for(const c of CLES_MATS) o[c]=0;
+  for(const p of P.poutres){
+    const a=P.noeuds[p.a], b=P.noeuds[p.b];
+    o[p.mat]+=coutPoutre(a.x,a.y,b.x,b.y,p.mat);
+  }
+  return o;
+}
+
+
+/* ==========================================================================
+   6. LE CHANTIER, L'ESSAI, LE VERDICT
+   ==========================================================================
+   Un chantier n'a que deux états : on construit, ou on regarde. Le passage de
+   l'un à l'autre est un seul bouton, et il ne coûte rien — on peut arrêter un
+   essai raté à la seconde où l'on comprend, sans attendre la fin du spectacle. */
+
+let TEMPS_MAX=42;            // au-delà, le camion est coincé quelque part
+
+function chargerNiveau(i,mode){
+  const src=NIVEAUX[i];
+  N=Object.assign({},src);
+  N.idx=i;
+  N.mode=mode||'chantier';
+  N.bacASable=(N.mode==='bac');
+  if(N.bacASable) N.budget=999999;
+  preparerSegments();
+  preparerGrille();
+  cadrer();
+  CIEL=null;
+  nouveauPont(N);
+  const gard=SAVE.ponts&&SAVE.ponts[cleSauvegarde()];
+  if(gard) chargerPont(gard);
+  SIM=null;
+  document.body.classList.remove('roule');
+  majHUD();
+  majPalette();
+}
+function cleSauvegarde(){
+  return N.mode==='defi'?('d'+SAVE.defiDate):(N.mode==='bac'?('b'+N.idx):('n'+N.idx));
+}
+
+/* ------------------------------------------------------------ l'essai */
+function lancer(){
+  if(!P.poutres.length){ SND.refus(); message('Il n\'y a rien à essayer',1400,'mal'); return; }
+  SIM=construireSim(P,N);
+  SIM.etat='roule';
+  P.essais=(P.essais||0)+1;
+  SAVE.essais=(SAVE.essais||0)+1;
+  if(SAVE.essais>=50) decrocher('essais');
+  document.body.classList.add('roule');
+  $('bGo').innerHTML='STOP';
+  $('bGo').classList.add('stop');
+  SND.init(); SND.reprendre();
+  majHUD();
+  sauver();
+}
+function arreter(silencieux){
+  SIM=null;
+  document.body.classList.remove('roule');
+  $('bGo').innerHTML='GO';
+  $('bGo').classList.remove('stop');
+  SND.moteur(0,0); SND.grince(0);
+  if(!silencieux) SND.clic();
+  majHUD();
+}
+function basculer(){
+  if(SIM) arreter(); else lancer();
+}
+
+/* on avance la simulation à pas fixe, quel que soit le rythme de l'écran */
+let reste=0;
+function avancerSim(dt){
+  if(!SIM) return;
+  reste+=Math.min(.10,dt);
+  let n=0;
+  while(reste>=PAS&&n<24){ reste-=PAS; unPas(); n++; if(!SIM) return; }
+  if(SIM) ambiance();
+}
+function unPas(){
+  pasPhysique(SIM);
+  /* les débris vivent leur vie */
+  for(let i=SIM.debris.length-1;i>=0;i--){
+    const d=SIM.debris[i];
+    d.vie-=PAS;
+    if(d.vie<=0){ SIM.debris.splice(i,1); continue; }
+    d.vy-=GRAV*PAS; d.x+=d.vx*PAS; d.y+=d.vy*PAS; d.a+=d.va*PAS;
+  }
+  if(SIM.etat!=='roule') return;
+
+  const c=SIM.cam, pts=SIM.pts;
+  const rA=pts[c.rA], rB=pts[c.rB];
+  const avant=Math.max(rA.x,rB.x);
+  SIM.roulement+=Math.abs((rA.x-rA.px))/CAMION.roueR;
+  const v=Math.abs(rA.x-rA.px)/PAS;
+  if(v>SIM.vmax) SIM.vmax=v;
+
+  /* arrivé ? */
+  if(avant>=c.arrivee){ finirEssai(true,'ARRIVÉ'); return; }
+  /* tombé ? */
+  const bas=Math.min(rA.y,rB.y,pts[c.cA].y,pts[c.cB].y);
+  if(bas<N.bas+1.5){ finirEssai(false,'AU FOND'); return; }
+  /* Retourné ? La caisse sous les roues. Mais on ne pose la question qu'à un
+     camion POSÉ quelque part : en chute libre les quatre points tombent
+     ensemble, l'ordre vertical ne veut plus rien dire, et on annoncerait « sur
+     le toit » un camion qui est simplement en train de plonger. */
+  const chute=Math.abs(pts[c.cA].y-pts[c.cA].py)/PAS;
+  if(pts[c.cA].y<rA.y-.2&&pts[c.cB].y<rB.y-.2&&SIM.t>1.2&&chute<2.2){
+    finirEssai(false,'SUR LE TOIT'); return;
+  }
+  /* le temps : un camion qui n'avance plus n'arrivera pas */
+  if(SIM.t>TEMPS_MAX){ finirEssai(false,'IMMOBILISÉ'); return; }
+}
+function ambiance(){
+  const c=SIM.cam, pts=SIM.pts;
+  const v=Math.abs(pts[c.rA].x-pts[c.rA].px)/PAS;
+  SND.moteur(SIM.etat==='roule'?clamp(v/CAMION.vitesse,0,1.4):0,
+             clamp(SIM.contInst,0,1));
+  SND.grince(clamp((SIM.contInst-.35)/.65,0,1));
+}
+
+/* ------------------------------------------------------------ le verdict */
+function finirEssai(reussi,cause){
+  if(!SIM||SIM.etat!=='roule') return;
+  SIM.etat=reussi?'gagne':'perdu';
+  SIM.cause=cause;
+  SND.moteur(0,0); SND.grince(0);
+  if(reussi) SND.bien(); else SND.chute();
+  if(!reussi&&cause==='AU FOND') decrocher('chute');
+  if(SIM.casses>=20) decrocher('ruine');
+  SAVE.casses=(SAVE.casses||0)+SIM.casses;
+  if(SAVE.casses>=200) decrocher('ruine100');
+
+  const res={ reussi, cause, cout:P.cout, contMax:SIM.contMax,
+              casses:SIM.casses, temps:SIM.t, poutres:P.poutres.length };
+  SIM.res=res;
+  if(N.bacASable){ sauver(); return; }
+
+  const med=medaillesGagnees(N,res);
+  SIM.med=med;
+  const cle=cleSauvegarde();
+  const av=SAVE.med[cle]||{bronze:0,argent:0,or:0};
+  SIM.nouvelles={ bronze:med.bronze&&!av.bronze, argent:med.argent&&!av.argent,
+                  or:med.or&&!av.or };
+  SAVE.med[cle]={ bronze:av.bronze|med.bronze, argent:av.argent|med.argent,
+                  or:av.or|med.or };
+  if(reussi){
+    const b=SAVE.best[cle];
+    if(!b||res.cout<b.cout) SAVE.best[cle]={cout:res.cout,poutres:res.poutres,
+      contMax:Math.round(res.contMax*100)/100};
+    decrocher('premier');
+    if(res.cout*2<=N.budget) decrocher('radin');
+    if(res.poutres<=3) decrocher('troisp');
+    const pm=coutParMat();
+    if(pm.cable>=res.cout*.5&&res.cout>0) decrocher('cable');
+    if(pm.bois===0) decrocher('acier');
+    if(N.mode==='defi'){
+      decrocher('defi');
+      if(SAVE.defiDate!==SAVE.defiFait){ SAVE.defiFait=SAVE.defiDate;
+        SAVE.defiSerie=(SAVE.defiSerie||0)+1; }
+      if(SAVE.defiSerie>=7) decrocher('defi7');
+    } else if(N.idx===NIVEAUX.length-1) decrocher('long');
+  }
+  if(med.or) decrocher('or1');
+  const tot=totalMedailles();
+  if(tot.or>=5) decrocher('or5');
+  if(tot.or>=10) decrocher('or10');
+  if(tot.bronze>=NIVEAUX.length) decrocher('tout20');
+  if(tot.bronze+tot.argent+tot.or>=NIVEAUX.length*3) decrocher('parfait');
+  sauver();
+
+  /* on laisse voir la fin — la chute vaut le coup d'œil — puis le bilan */
+  const cette=SIM;
+  setTimeout(()=>{ if(SIM===cette&&SIM.etat!=='roule') montrerFin(); },
+    reussi?900:1500);
+}
+
+function totalMedailles(){
+  const t={bronze:0,argent:0,or:0};
+  for(let i=0;i<NIVEAUX.length;i++){
+    const m=SAVE.med['n'+i];
+    if(!m) continue;
+    if(m.bronze) t.bronze++;
+    if(m.argent) t.argent++;
+    if(m.or) t.or++;
+  }
+  return t;
+}
+function scoreCarriere(){
+  const t=totalMedailles();
+  return t.bronze+t.argent+t.or;
+}
+
+
+/* ==========================================================================
+   7. LE DESSIN
+   ==========================================================================
+   Une seule information compte à l'écran, et il faut la lire sans y penser :
+   COMBIEN CETTE POUTRE SOUFFRE. Tout le reste du dessin — le ciel, la roche,
+   la brume — est là pour que cette information ressorte, et pour rien d'autre.
+   D'où le fond froid et désaturé, et le jaune-orange-rouge réservé à la seule
+   contrainte : aucune autre chose à l'écran n'a le droit d'être rouge. */
+
+function melange(c1,c2,t){
+  const h=s=>[parseInt(s.slice(1,3),16),parseInt(s.slice(3,5),16),parseInt(s.slice(5,7),16)];
+  const a=h(c1), b=h(c2);
+  return 'rgb('+Math.round(lerp(a[0],b[0],t))+','+Math.round(lerp(a[1],b[1],t))
+    +','+Math.round(lerp(a[2],b[2],t))+')';
+}
+/* du gris du matériau au rouge, en passant par le jaune : la couleur EST la
+   contrainte, et la barre de légende en bas la traduit une fois pour toutes */
+function couleurCont(mat,c){
+  if(c<=.02) return mat.col;
+  if(c<.45) return melange(mat.col,'#ffd44e',c/.45*.75);
+  if(c<.70) return melange('#ffd44e','#ff9a3c',(c-.45)/.25);
+  return melange('#ff9a3c','#ff5964',clamp((c-.70)/.30,0,1));
+}
+
+/* ------------------------------------------------------------- le ciel */
+/* La ligne d'horizon est celle de la chaussée : au-dessus c'est le ciel, en
+   dessous c'est le vide. Il faut que le vide soit franchement plus SOMBRE que
+   la roche, sinon le gouffre passe pour de la pierre et la pierre pour du
+   gouffre — c'est exactement ce qui arrivait avec un ciel qui s'éclaircissait
+   vers le bas. */
+function peindreCiel(){
+  const o=document.createElement('canvas');
+  o.width=Math.max(1,Math.round(VW)); o.height=Math.max(1,Math.round(VH));
+  const g=o.getContext('2d');
+  /* un niveau sans ligne d'horizon donnerait un NaN, et le canevas refuse un
+     dégradé non fini : on ne fait pas confiance à la donnée, on la borne */
+  const brut=my(N&&isFinite(N.route)?N.route:0);
+  const hy=isFinite(brut)?clamp(brut,VH*.12,VH*.92):VH*.5;
+  const ciel=g.createLinearGradient(0,0,0,hy);
+  ciel.addColorStop(0,'#0a1526'); ciel.addColorStop(.55,'#1b3busy'.replace('busy','a55'));
+  ciel.addColorStop(1,'#2c5478');
+  g.fillStyle=ciel; g.fillRect(0,0,VW,hy+2);
+  /* trois rangs de montagnes posés sur l'horizon */
+  const D=semeur(4242);
+  for(let couche=0;couche<3;couche++){
+    const base=hy;
+    const amp=Math.max(18,hy*(.30-couche*.07));
+    g.beginPath(); g.moveTo(-10,base+4); g.lineTo(-10,base);
+    let x=-10;
+    while(x<VW+20){
+      const l=40+D()*120;
+      g.lineTo(x+l*.5,base-amp*(.3+D()*.7));
+      g.lineTo(x+l,base-amp*.1*D());
+      x+=l;
+    }
+    g.lineTo(VW+10,base+4); g.closePath();
+    g.fillStyle=['rgba(30,56,88,.5)','rgba(23,44,70,.62)','rgba(16,31,50,.78)'][couche];
+    g.fill();
+  }
+  /* le vide : il s'assombrit vers le bas jusqu'au noir */
+  const vide=g.createLinearGradient(0,hy,0,VH);
+  vide.addColorStop(0,'#16283c'); vide.addColorStop(.35,'#0d1826');
+  vide.addColorStop(1,'#04070c');
+  g.fillStyle=vide; g.fillRect(0,hy,VW,VH-hy+2);
+  CIEL=o;
+}
+
+/* ------------------------------------------------------------ le terrain */
+function dessinerSol(){
+  for(const s of N.sol){
+    ctx.beginPath();
+    ctx.moveTo(mx(s[0][0]),my(s[0][1]));
+    for(let i=1;i<s.length;i++) ctx.lineTo(mx(s[i][0]),my(s[i][1]));
+    ctx.closePath();
+    const y0=my(s.reduce((m,p)=>Math.max(m,p[1]),-1e9));
+    /* la roche est nettement plus claire que le vide : c'est ce contraste, et
+       lui seul, qui dit au joueur où s'arrête le sol */
+    const g=ctx.createLinearGradient(0,y0,0,y0+ECH*16);
+    g.addColorStop(0,'#5b6a80'); g.addColorStop(.12,'#48566a');
+    g.addColorStop(.45,'#333f50'); g.addColorStop(1,'#212a36');
+    ctx.fillStyle=g; ctx.fill();
+    /* le grain de la roche : des traits courts, stables d'une image à l'autre */
+    ctx.save(); ctx.clip();
+    ctx.strokeStyle='rgba(15,22,32,.30)'; ctx.lineWidth=1;
+    const bb=[1e9,1e9,-1e9,-1e9];
+    for(const p of s){ bb[0]=Math.min(bb[0],p[0]); bb[1]=Math.min(bb[1],p[1]);
+      bb[2]=Math.max(bb[2],p[0]); bb[3]=Math.max(bb[3],p[1]); }
+    ctx.beginPath();
+    for(let x=Math.floor(bb[0]);x<bb[2];x++)
+      for(let y=Math.floor(bb[1]);y<bb[3];y+=2){
+        const h=hash2(x,y,7);
+        if(h<.42) continue;
+        const px=mx(x+h), py=my(y+hash2(x,y,9)*2);
+        ctx.moveTo(px,py); ctx.lineTo(px+ECH*(.4+h*.8),py+ECH*.16);
+      }
+    ctx.stroke();
+    ctx.restore();
+    /* l'arête vive du dessus : c'est elle qui dit « ici c'est solide » */
+    ctx.beginPath();
+    let bougé=false;
+    for(let i=0;i<s.length-1;i++){
+      if(Math.abs(s[i][1]-s[i+1][1])<1e-6&&s[i][1]>N.bas+1){
+        ctx.moveTo(mx(s[i][0]),my(s[i][1]));
+        ctx.lineTo(mx(s[i+1][0]),my(s[i+1][1])); bougé=true;
+      }
+    }
+    if(bougé){ ctx.strokeStyle='#a9bdd6'; ctx.lineWidth=Math.max(2,ECH*.11); ctx.stroke(); }
+    /* et une arête sombre sur les parois verticales : la falaise a un bord */
+    ctx.beginPath();
+    for(let i=0;i<s.length-1;i++)
+      if(Math.abs(s[i][0]-s[i+1][0])<1e-6){
+        ctx.moveTo(mx(s[i][0]),my(s[i][1]));
+        ctx.lineTo(mx(s[i+1][0]),my(s[i+1][1]));
+      }
+    ctx.strokeStyle='rgba(10,16,26,.55)'; ctx.lineWidth=Math.max(1.5,ECH*.07);
+    ctx.stroke();
+  }
+}
+
+function dessinerInterdit(){
+  for(const z of N.interdit){
+    const x=mx(z[0]), y=my(z[3]), w=(z[2]-z[0])*ECH, h=(z[3]-z[1])*ECH;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip();
+    ctx.fillStyle='rgba(255,89,100,.055)'; ctx.fillRect(x,y,w,h);
+    ctx.strokeStyle='rgba(255,89,100,.20)'; ctx.lineWidth=2;
+    ctx.beginPath();
+    for(let d=-h;d<w+h;d+=Math.max(9,ECH*.7)){ ctx.moveTo(x+d,y+h); ctx.lineTo(x+d+h,y); }
+    ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle='rgba(255,89,100,.5)'; ctx.lineWidth=1.5;
+    ctx.setLineDash([6,5]); ctx.strokeRect(x,y,w,h); ctx.setLineDash([]);
+  }
+}
+
+/* Le quadrillage : discret, et seulement là où l'on a le droit de bâtir.
+   Il ne change jamais pendant un chantier — le calculer à chaque image
+   reviendrait à tester trois mille points contre des polygones soixante fois
+   par seconde. On le fait une fois, à l'ouverture. */
+let PTS_GRILLE=null;
+function preparerGrille(){
+  PTS_GRILLE={libres:[],ancres:[]};
+  const [x0,x1,y0,y1]=N.vue;
+  for(let x=Math.ceil(x0);x<=x1;x++)
+    for(let y=Math.ceil(y0);y<=y1;y++){
+      if(enterre(x,y)||dansInterdit(x,y)) continue;
+      if(surSol(x,y)) PTS_GRILLE.ancres.push(x,y);
+      else if(!dansSol(x,y)) PTS_GRILLE.libres.push(x,y);
+    }
+}
+function dessinerGrille(){
+  if(SIM||!PTS_GRILLE) return;
+  const r=Math.max(.8,ECH*.035);
+  ctx.fillStyle='rgba(143,163,189,.16)';
+  ctx.beginPath();
+  const L=PTS_GRILLE.libres;
+  for(let i=0;i<L.length;i+=2){
+    const px=mx(L[i]), py=my(L[i+1]);
+    ctx.moveTo(px+r,py); ctx.arc(px,py,r,0,TAU);
+  }
+  ctx.fill();
+  /* les points d'ancrage sont jaunes et plus gros : c'est par eux que la
+     charge s'en va dans la roche, et le joueur doit les voir de loin */
+  ctx.fillStyle='rgba(255,212,78,.55)';
+  ctx.beginPath();
+  const A=PTS_GRILLE.ancres, ra=r*2.1;
+  for(let i=0;i<A.length;i+=2){
+    const px=mx(A[i]), py=my(A[i+1]);
+    ctx.moveTo(px+ra,py); ctx.arc(px,py,ra,0,TAU);
+  }
+  ctx.fill();
+}
+
+/* -------------------------------------------------------------- le pont */
+function dessinerPoutre(ax,ay,bx,by,mat,cont,mort){
+  const x1=mx(ax), y1=my(ay), x2=mx(bx), y2=my(by);
+  const ep=Math.max(1.6,mat.ep*ECH);
+  ctx.lineCap='round';
+  if(mort) return;
+  /* l'ombre portée donne du corps sans coûter cher */
+  ctx.strokeStyle='rgba(0,0,0,.34)'; ctx.lineWidth=ep;
+  ctx.beginPath(); ctx.moveTo(x1+2,y1+2); ctx.lineTo(x2+2,y2+2); ctx.stroke();
+  const col=couleurCont(mat,cont||0);
+  ctx.strokeStyle=col; ctx.lineWidth=ep;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  /* un liseré clair sur le dessus : la poutre a une épaisseur */
+  if(ep>3.2){
+    ctx.strokeStyle='rgba(255,255,255,.16)'; ctx.lineWidth=Math.max(1,ep*.24);
+    const nx=-(y2-y1), ny=(x2-x1);
+    const L=Math.hypot(nx,ny)||1;
+    const dx=nx/L*ep*.28, dy=ny/L*ep*.28;
+    ctx.beginPath(); ctx.moveTo(x1+dx,y1+dy); ctx.lineTo(x2+dx,y2+dy); ctx.stroke();
+  }
+  /* au-delà du rouge, elle vibre : c'est le dernier avertissement */
+  if(cont>.82){
+    ctx.strokeStyle='rgba(255,89,100,'+((cont-.82)/.18*.5)+')';
+    ctx.lineWidth=ep+Math.max(3,ECH*.2);
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+}
+function dessinerPont(){
+  if(SIM){
+    for(const c of SIM.cont){
+      if(c.cam||c.mort) continue;
+      const a=SIM.pts[c.i], b=SIM.pts[c.j];
+      dessinerPoutre(a.x,a.y,b.x,b.y,c.mat,c.pic,0);
+    }
+    for(const p of SIM.pts){
+      if(p.roue||!p.fixe) continue;
+      ctx.fillStyle='#ffd44e';
+      ctx.beginPath(); ctx.arc(mx(p.x),my(p.y),Math.max(2,ECH*.11),0,TAU); ctx.fill();
+    }
+    return;
+  }
+  for(const p of P.poutres){
+    const a=P.noeuds[p.a], b=P.noeuds[p.b];
+    dessinerPoutre(a.x,a.y,b.x,b.y,MATS[p.mat],0,0);
+  }
+  for(const n of P.noeuds){
+    ctx.fillStyle=n.fixe?'#ffd44e':'#c3d3e6';
+    ctx.beginPath(); ctx.arc(mx(n.x),my(n.y),Math.max(1.8,ECH*(n.fixe?.11:.075)),0,TAU);
+    ctx.fill();
+  }
+}
+
+/* --------------------------------------------------------------- le camion */
+function dessinerCamion(){
+  if(!SIM) return;
+  const c=SIM.cam, pts=SIM.pts;
+  const rA=pts[c.rA], rB=pts[c.rB], cA=pts[c.cA], cB=pts[c.cB];
+  /* la caisse */
+  ctx.beginPath();
+  ctx.moveTo(mx(rA.x),my(rA.y)); ctx.lineTo(mx(cA.x),my(cA.y));
+  ctx.lineTo(mx(cB.x),my(cB.y)); ctx.lineTo(mx(rB.x),my(rB.y));
+  ctx.closePath();
+  const g=ctx.createLinearGradient(mx(cA.x),my(cA.y),mx(rB.x),my(rB.y));
+  g.addColorStop(0,'#4d7fb8'); g.addColorStop(1,'#2a4e78');
+  ctx.fillStyle=g; ctx.fill();
+  ctx.strokeStyle='#16283c'; ctx.lineWidth=Math.max(1.4,ECH*.06); ctx.stroke();
+  /* la cabine, du côté où il va */
+  const ux=(cB.x-cA.x), uy=(cB.y-cA.y);
+  const L=Math.hypot(ux,uy)||1;
+  const hx=ux/L, hy=uy/L;
+  ctx.beginPath();
+  ctx.moveTo(mx(cB.x-hx*.5),my(cB.y-hy*.5));
+  ctx.lineTo(mx(cB.x-hx*.5+ -hy*.5),my(cB.y-hy*.5+hx*.5));
+  ctx.lineTo(mx(cB.x+ -hy*.5),my(cB.y+hx*.5));
+  ctx.lineTo(mx(cB.x),my(cB.y));
+  ctx.closePath();
+  ctx.fillStyle='#7fb4e6'; ctx.fill();
+  /* les roues, qui tournent vraiment de la distance parcourue */
+  for(const w of [rA,rB]){
+    const px=mx(w.x), py=my(w.y), r=w.r*ECH;
+    ctx.beginPath(); ctx.arc(px,py,r,0,TAU);
+    ctx.fillStyle='#1b222c'; ctx.fill();
+    ctx.strokeStyle='#3d4a5c'; ctx.lineWidth=Math.max(1.2,r*.18); ctx.stroke();
+    ctx.save(); ctx.translate(px,py); ctx.rotate(SIM.roulement);
+    ctx.strokeStyle='#6d7d92'; ctx.lineWidth=Math.max(1,r*.13);
+    ctx.beginPath();
+    for(let k=0;k<4;k++){ const a=k*Math.PI/2;
+      ctx.moveTo(Math.cos(a)*r*.22,Math.sin(a)*r*.22);
+      ctx.lineTo(Math.cos(a)*r*.72,Math.sin(a)*r*.72); }
+    ctx.stroke(); ctx.restore();
+  }
+}
+
+/* -------------------------------------------------------------- le décor */
+function dessinerRepere(x,couleur,txt){
+  const y=solSous(x);
+  const px=mx(x), py=my(y);
+  const h=ECH*2.2;
+  ctx.strokeStyle=couleur; ctx.lineWidth=Math.max(1.6,ECH*.07);
+  ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px,py-h); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(px,py-h); ctx.lineTo(px+ECH*1.35,py-h+ECH*.38); ctx.lineTo(px,py-h+ECH*.76);
+  ctx.closePath(); ctx.fillStyle=couleur; ctx.fill();
+  if(txt&&ECH>11){
+    ctx.font='700 '+Math.round(Math.max(8,ECH*.4))+'px '+MONO;
+    ctx.fillStyle=couleur; ctx.textAlign='center';
+    ctx.fillText(txt,px,py+ECH*.95);
+  }
+}
+function dessinerDebris(){
+  if(!SIM) return;
+  for(const d of SIM.debris){
+    ctx.save();
+    ctx.globalAlpha=clamp(d.vie,0,1);
+    ctx.translate(mx(d.x),my(d.y)); ctx.rotate(-d.a);
+    ctx.fillStyle=d.col;
+    const l=Math.max(2,d.l*ECH), e=Math.max(1.5,ECH*.13);
+    ctx.fillRect(-l/2,-e/2,l,e);
+    ctx.restore();
+  }
+  ctx.globalAlpha=1;
+}
+
+/* ------------------------------------------------- le geste en cours */
+function dessinerTrace(){
+  if(!trace||SIM) return;
+  const m=MATS[matActif];
+  const col=trace.raison?'#ff5964':m.col;
+  ctx.strokeStyle=col;
+  ctx.lineWidth=Math.max(1.6,m.ep*ECH);
+  ctx.globalAlpha=.62; ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(mx(trace.x0),my(trace.y0)); ctx.lineTo(mx(trace.x1),my(trace.y1));
+  ctx.stroke();
+  ctx.globalAlpha=1;
+  const L=dista(trace.x0,trace.y0,trace.x1,trace.y1);
+  if(L>.3&&ECH>9){
+    const cx=(mx(trace.x0)+mx(trace.x1))/2, cy=(my(trace.y0)+my(trace.y1))/2;
+    const t=trace.raison||(L.toFixed(1)+' m · '+nb(coutPoutre(trace.x0,trace.y0,
+      trace.x1,trace.y1,matActif))+' €');
+    ctx.font='700 '+Math.round(Math.max(9,ECH*.38))+'px '+MONO;
+    const w=ctx.measureText(t).width;
+    ctx.fillStyle='rgba(8,11,16,.85)';
+    ctx.fillRect(cx-w/2-6,cy-ECH*.9,w+12,Math.max(15,ECH*.62));
+    ctx.fillStyle=col; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(t,cx,cy-ECH*.9+Math.max(15,ECH*.62)/2);
+    ctx.textBaseline='alphabetic';
+  }
+}
+/* la poutre que le doigt survole et qui partira si l'on appuie */
+let survol=-1;
+function dessinerSurvol(){
+  if(SIM||survol<0||survol>=P.poutres.length||trace) return;
+  const p=P.poutres[survol];
+  const a=P.noeuds[p.a], b=P.noeuds[p.b];
+  ctx.strokeStyle='#ff5964';
+  ctx.lineWidth=Math.max(3,MATS[p.mat].ep*ECH+4);
+  ctx.globalAlpha=.4; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(mx(a.x),my(a.y)); ctx.lineTo(mx(b.x),my(b.y)); ctx.stroke();
+  ctx.globalAlpha=1;
+}
+
+/* ---------------------------------------------------------------- la barre */
+function dessinerLegende(){
+  if(!SIM) return;
+  const m=margesUI();
+  const w=Math.min(240,VW*.42), h=8;
+  const x=VW-w-m.cote, y=m.haut+6;
+  const g=ctx.createLinearGradient(x,0,x+w,0);
+  g.addColorStop(0,'#9fb4cf'); g.addColorStop(.45,'#ffd44e');
+  g.addColorStop(.70,'#ff9a3c'); g.addColorStop(1,'#ff5964');
+  ctx.fillStyle=g; ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle='rgba(0,0,0,.4)'; ctx.lineWidth=1; ctx.strokeRect(x,y,w,h);
+  const c=clamp(SIM.contInst,0,1.05);
+  ctx.fillStyle='#fff';
+  ctx.fillRect(x+w*c-1.5,y-4,3,h+8);
+  ctx.font='700 8.5px '+MONO; ctx.textAlign='left';
+  ctx.fillStyle='rgba(143,163,189,.8)';
+  ctx.fillText('CONTRAINTE',x,y-5);
+  ctx.textAlign='right';
+  ctx.fillText('RUPTURE',x+w,y-5);
+  ctx.textAlign='left';
+}
+
+/* ==================================================================== tout */
+function dessiner(dt){
+  if(!CIEL||CIEL.width!==Math.round(VW)) peindreCiel();
+  ctx.drawImage(CIEL,0,0);
+  if(!N) return;
+  ctx.save();
+  if(SIM&&SIM.secousse>.2){
+    ctx.translate(drnd(-1,1)*SIM.secousse*.6,drnd(-1,1)*SIM.secousse*.6);
+  }
+  dessinerSol();
+  dessinerInterdit();
+  dessinerGrille();
+  dessinerRepere(N.arrivee,'#5ed17a','ARRIVÉE');
+  dessinerPont();
+  dessinerDebris();
+  dessinerCamion();
+  dessinerTrace();
+  dessinerSurvol();
+  ctx.restore();
+  dessinerLegende();
+}
+
+
+/* ==========================================================================
+   8. CE QUI EST ÉCRIT AUTOUR
+   ==========================================================================
+   Le bandeau ne dit que trois choses, et il les dit toujours au même endroit :
+   ce qu'il reste d'argent, où l'on est, et ce qu'on cherche à décrocher. */
+
+function ecrans(id){
+  for(const s of document.querySelectorAll('.screen')) s.classList.toggle('on',s.id===id);
+  document.body.classList.toggle('enJeu',!id&&!!N);
+}
+function message(txt,dur,genre){
+  const f=$('flash');
+  const d=document.createElement('div');
+  d.className='msg'+(genre?' '+genre:'');
+  d.textContent=txt;
+  f.appendChild(d);
+  while(f.children.length>3) f.removeChild(f.firstChild);
+  setTimeout(()=>{ if(d.parentNode) d.parentNode.removeChild(d); },dur||1700);
+}
+
+function majHUD(){
+  if(!N||!P) return;
+  const r=budgetRestant();
+  const b=$('hBudget');
+  b.textContent=N.bacASable?'∞':nb(r)+' €';
+  b.className=N.bacASable?'':(r<0?'mort':(r<N.budget*.15?'serre':''));
+  $('hNiv').textContent=N.mode==='defi'?('PONT DU JOUR · '+N.nom)
+    :(N.bacASable?('BAC · '+N.nom):(N.n+' · '+N.nom));
+  $('hDefi').style.display=N.mode==='defi'?'':'none';
+  const cle=cleSauvegarde();
+  const m=SAVE.med[cle]||{bronze:0,argent:0,or:0};
+  $('hMedaille').textContent=N.bacASable?'':
+    (m.bronze?'●':'○')+(m.argent?'●':'○')+(m.or?'◆':'○');
+  $('hObj').textContent=N.bacASable?'aucun'
+    :(P.poutres.length+' poutre'+(P.poutres.length>1?'s':'')
+      +' · '+nb(P.cout)+' €');
+}
+
+/* la palette : un bouton par matériau, grisé si on n'a plus les moyens */
+function majPalette(){
+  const box=$('mats');
+  box.innerHTML='';
+  for(const cle of CLES_MATS){
+    const m=MATS[cle];
+    const b=document.createElement('button');
+    b.className='mat'+(cle===matActif?' on':'');
+    b.innerHTML='<i style="background:'+m.col+'"></i><b>'+m.nom+'</b><u>'+m.prix+' €/m</u>';
+    b.onclick=()=>{ matActif=cle; SND.clic(); majPalette(); };
+    box.appendChild(b);
+  }
+}
+
+/* ==========================================================================
+   LA LISTE DES CHANTIERS
+   ==========================================================================
+   Un chantier s'ouvre quand le précédent a été franchi une fois. On ne bloque
+   pas sur les médailles : l'or est là pour ceux qui y reviennent, pas pour
+   barrer la route à ceux qui avancent. */
+function debloque(i){
+  if(i===0) return true;
+  const m=SAVE.med['n'+(i-1)];
+  return !!(m&&m.bronze);
+}
+function montrerNiveaux(){
+  const t=totalMedailles();
+  $('nivSous').innerHTML='<b>'+(t.bronze+t.argent+t.or)+'</b> médailles sur '
+    +(NIVEAUX.length*3)+' · <b>'+t.bronze+'</b> chantiers franchis';
+  const box=$('nivListe');
+  box.innerHTML='';
+  NIVEAUX.forEach((niv,i)=>{
+    const ok=debloque(i);
+    const m=SAVE.med['n'+i]||{bronze:0,argent:0,or:0};
+    const best=SAVE.best['n'+i];
+    const d=document.createElement('button');
+    d.className='niv'+(m.bronze?' fait':'')+(ok?'':' verr');
+    d.innerHTML='<div class="no">CHANTIER '+(i+1)+'</div>'
+      +'<div class="nom">'+(ok?niv.nom:'— — —')+'</div>'
+      +'<div class="bas"><span class="cout">'
+      +(ok?(best?('record '+nb(best.cout)+' €'):(nb(niv.budget)+' € max')):'à débloquer')
+      +'</span><span class="med">'
+      +(m.bronze?'●':'○')+(m.argent?'●':'○')+(m.or?'◆':'○')+'</span></div>';
+    if(ok) d.onclick=()=>{ SND.init(); SND.clic(); ouvrirNiveau(i,'chantier'); };
+    else d.onclick=()=>{ SND.refus(); message('Franchis d\'abord le chantier '+i,1300,'mal'); };
+    box.appendChild(d);
+  });
+  ecranActif='niveaux'; ecrans('niveaux');
+}
+function ouvrirNiveau(i,mode){
+  chargerNiveau(i,mode);
+  ecranActif='jeu'; ecrans(null);
+  arreter(true);
+  message(N.mode==='defi'?('PONT DU JOUR — '+dateDuJour()):(N.n+' · '+N.nom),2000);
+  if(N.note) setTimeout(()=>{ if(ecranActif==='jeu') message(N.note,3400); },1500);
+}
+
+/* ==========================================================================
+   L'ÉCRAN DE FIN
+   ========================================================================== */
+function montrerFin(){
+  if(!SIM||!SIM.res) return;
+  const r=SIM.res, med=SIM.med||{bronze:0,argent:0,or:0};
+  const nv=SIM.nouvelles||{};
+  $('fEye').textContent=r.reussi?('LE CAMION EST PASSÉ · '+r.cause)
+    :('LE CAMION N\'EST PAS PASSÉ · '+r.cause);
+  $('fTitre').textContent=r.reussi?(med.or?'IMPECCABLE':'ÇA TIENT'):'ÇA N\'A PAS TENU';
+
+  const pc=Math.round(Math.min(r.contMax,1.4)*100);
+  $('fGrille').innerHTML=
+     cell('COÛT',nb(r.cout)+' €',r.cout<=N.serre?'var(--vert)':'')
+    +cell('POUTRES',r.poutres,'')
+    +cell('CONTRAINTE MAX',pc+' %',pc<70?'var(--vert)':(pc<100?'var(--orange)':'var(--rouge)'))
+    +cell('CASSÉES',r.casses,r.casses?'var(--rouge)':'var(--vert)')
+    +cell('DURÉE',r.temps.toFixed(1)+' s','');
+
+  $('fMedailles').innerHTML='<div class="sur">LES TROIS MARCHES</div>'
+    +ligne(med.bronze?'●':'○','TRAVERSER',
+      'Le camion atteint le drapeau.',med.bronze?'FAIT':'—',nv.bronze)
+    +ligne(med.argent?'●':'○','SOUS '+nb(N.serre)+' €',
+      'Tu as dépensé '+nb(r.cout)+' €.',med.argent?'FAIT':'—',nv.argent)
+    +ligne(med.or?'◆':'○','SANS UNE ROUGEUR',
+      'Aucune poutre au-delà de 70 % de sa limite. Ton maximum : '+pc+' %.',
+      med.or?'FAIT':'—',nv.or);
+
+  /* la note : elle dit ce qui s'est passé, pas ce qu'il faut faire */
+  let notes='';
+  if(!r.reussi&&r.casses===0)
+    notes='Rien n\'a cassé — le camion n\'est simplement jamais arrivé. Regarde la pente, ou le vide devant lui.';
+  else if(!r.reussi&&r.casses<3)
+    notes='Une ou deux poutres ont lâché et tout est parti avec. Ce sont elles qui portaient tout : donne-leur des voisines.';
+  else if(!r.reussi)
+    notes=r.casses+' poutres ont cassé. Ce n\'est pas une poutre qui manque, c\'est la forme : cherche des triangles.';
+  else if(!med.or&&pc>=100)
+    notes='Ça passe, mais quelque chose a cassé en route. Un pont qui perd des morceaux ne passerait pas deux fois.';
+  else if(!med.or)
+    notes='Ça tient franchement. Pour l\'or il faut descendre sous 70 % : une poutre de plus au bon endroit vaut mieux qu\'un matériau plus cher.';
+  else if(!med.argent)
+    notes='Structure impeccable, mais chère. Le même dessin en moins de matière, et les trois marches sont à toi.';
+  else notes='Les trois marches. Il n\'y a rien à ajouter.';
+  $('fNotes').innerHTML='<div class="sur">CE QUI S\'EST PASSÉ</div>'
+    +'<div style="font-size:12px;line-height:1.75;color:var(--encre)">'+notes+'</div>';
+
+  const code=codePont();
+  $('fPartage').innerHTML=textePartage().replace(/\n/g,'<br>')
+    +(code?('<br><span style="font-size:9.5px;color:var(--gris2);letter-spacing:.14em">'
+      +'LE CODE DU PONT ('+code.length+' CARACTÈRES) EST INCLUS DANS LA COPIE</span>'):'');
+  const suite=$('fSuite');
+  const dernier=N.idx>=NIVEAUX.length-1;
+  suite.style.display=(r.reussi&&!dernier&&N.mode==='chantier')?'':'none';
+  ecranActif='fin'; ecrans('fin');
+}
+function cell(t,v,col){
+  return '<div class="cell"><span>'+t+'</span><b'+(col?' style="color:'+col+'"':'')
+    +'>'+v+'</b></div>';
+}
+function ligne(ico,nom,sous,val,neuf){
+  return '<div class="rl"><div class="re">'+ico+'</div><div class="rt"><b>'+nom
+    +(neuf?' <u style="color:var(--or);text-decoration:none">NOUVEAU</u>':'')+'</b>'
+    +'<span>'+sous+'</span></div><div class="rv">'+val+'</div></div>';
+}
+
+/* Ce qu'on MONTRE et ce qu'on COPIE ne sont pas la même chose. Le code d'un
+   pont de soixante poutres fait dix lignes : il n'a rien à faire à l'écran,
+   mais tout à faire dans le presse-papier, puisque c'est lui qui permet à
+   quelqu'un d'autre de rejouer exactement ce pont. */
+function textePartage(){
+  const r=SIM&&SIM.res;
+  if(!r) return '';
+  const med=SIM.med||{};
+  const m=(med.bronze?'●':'○')+(med.argent?'●':'○')+(med.or?'◆':'○');
+  const t1='TENIR — '+(N.mode==='defi'?('pont du jour '+dateDuJour()):('chantier '+N.n));
+  const t2=m+'  '+(r.reussi?'passé':'effondré')+' · '+nb(r.cout)+' € · '
+    +r.poutres+' poutres · '+Math.round(Math.min(r.contMax,1.4)*100)+' %';
+  return t1+'\n'+t2;
+}
+function texteCopie(){
+  const c=codePont();
+  return textePartage()+(c?('\n'+c):'');
+}
+
+/* ==========================================================================
+   PROFIL, SUCCÈS, MENU
+   ========================================================================== */
+function succesN(){ return SUCCES.filter(s=>succesFait(s.id)).length; }
+function montrerSucces(){
+  const n=succesN();
+  const t=totalMedailles();
+  $('suTete').innerHTML='<div class="sur">OÙ TU EN ES</div>'
+    +'<div style="font-size:12px;line-height:1.8">'
+    +'<b>'+n+'</b> succès sur '+SUCCES.length+' · <b>'+(t.bronze+t.argent+t.or)
+    +'</b> médailles sur '+(NIVEAUX.length*3)+'<br>'
+    +'<b>'+nb(SAVE.essais||0)+'</b> essais · <b>'+nb(SAVE.casses||0)
+    +'</b> poutres cassées en tout</div>';
+  $('suListe').innerHTML=SUCCES.map(s=>'<div class="suc'+(succesFait(s.id)?' ok':'')
+    +'"><b>'+s.nom+'</b><span>'+s.d+'</span></div>').join('');
+  ecranActif='succes'; ecrans('succes');
+}
+function montrerMenu(){
+  ecranActif='menu';
+  if(N) N.enCours=0;
+  const s=scoreCarriere(), r=rangDe(s), suiv=rangSuivant(s);
+  $('meRang').innerHTML='<span>'+r.ico+'</span><b>'+r.nom+'</b>'
+    +(suiv?'<u>'+(suiv.s-s)+' médailles avant '+suiv.nom+'</u>'
+          :'<u>'+s+' médailles</u>');
+  const t=totalMedailles();
+  const bJ=$('meJouer');
+  bJ.innerHTML='<b>CHANTIERS</b><span>'+(t.bronze?('Franchi '+t.bronze+' gouffres sur '
+    +NIVEAUX.length+' · '+(t.bronze+t.argent+t.or)+' médailles')
+    :'Vingt ponts à faire tenir, du plus simple au déraisonnable.')+'</span>';
+  const fait=SAVE.defiFait===dateDuJour();
+  $('meDefi').innerHTML='<b>PONT DU JOUR'+(fait?' — DÉJÀ FRANCHI':'')+'</b><span>'
+    +(fait?('série de '+(SAVE.defiSerie||0)+' jours · rejouer')
+          :'Le même gouffre pour tout le monde, une fois par jour')+'</span>';
+  ecrans('menu');
+}
+function majReglages(){
+  $('sonBtn').textContent=SAVE.son?'SON : ACTIVÉ':'SON : COUPÉ';
+  $('volIn').value=Math.round((SAVE.volume||.65)*100);
+  $('volVal').textContent=Math.round((SAVE.volume||.65)*100)+' %';
+}
+function remplirRegles(){
+  $('reMats').innerHTML=CLES_MATS.map(c=>{
+    const m=MATS[c];
+    return '<div class="matl"><i style="background:'+m.col+'"></i><div><b>'+m.nom
+      +' — '+m.prix+' €/m</b><span>'+m.d+'</span></div></div>';
+  }).join('');
+}
+
+
+/* ==========================================================================
+   9. CE QUI RESTE ENTRE LES ESSAIS
+   ==========================================================================
+   Les médailles, les records, et surtout : le pont lui-même. On quitte au
+   milieu d'un chantier, on revient trois jours plus tard, les poutres sont
+   encore là. C'est la seule chose qu'il ne faut jamais perdre — un pont est
+   long à dessiner et personne ne recommence deux fois le même. */
+
+const SAVE_DEF={ son:true, volume:.65, med:{}, best:{}, ponts:{},
+  essais:0, casses:0, succes:{}, defiDate:'', defiFait:'', defiSerie:0, vu:0 };
+let SAVE=Object.assign({},SAVE_DEF);
+
+function charger(){
+  try{
+    const b=Store.get(CLE);
+    if(b){
+      const o=JSON.parse(b);
+      SAVE=Object.assign({},SAVE_DEF,o);
+      /* les objets imbriqués ne se fusionnent pas tout seuls */
+      for(const k of ['med','best','ponts','succes'])
+        if(!SAVE[k]||typeof SAVE[k]!=='object') SAVE[k]={};
+    }
+  }catch(e){ SAVE=Object.assign({},SAVE_DEF,{med:{},best:{},ponts:{},succes:{}}); }
+}
+function sauver(){ try{ Store.set(CLE,JSON.stringify(SAVE)); }catch(e){} }
+
+function succesFait(id){ return !!(SAVE.succes&&SAVE.succes[id]); }
+function decrocher(id){
+  if(succesFait(id)) return;
+  const s=SUCCES.find(x=>x.id===id);
+  if(!s) return;
+  SAVE.succes=SAVE.succes||{};
+  SAVE.succes[id]=1;
+  sauver();
+  message('SUCCÈS · '+s.nom,2400,'bon');
+  SND.gain();
+}
+
+/* ------------------------------------------------------ le pont gardé */
+function sauverPont(){
+  if(!N||!P) return;
+  try{
+    SAVE.ponts=SAVE.ponts||{};
+    if(!P.poutres.length){ delete SAVE.ponts[cleSauvegarde()]; sauver(); return; }
+    SAVE.ponts[cleSauvegarde()]={
+      n:P.noeuds.map(v=>[v.x,v.y]),
+      p:P.poutres.map(v=>[v.a,v.b,v.mat])
+    };
+    sauver();
+  }catch(e){}
+}
+function chargerPont(d){
+  try{
+    if(!d||!Array.isArray(d.n)||!Array.isArray(d.p)) return false;
+    const noeuds=[], poutres=[];
+    for(const v of d.n){
+      if(!Array.isArray(v)||v.length<2) return false;
+      const x=+v[0], y=+v[1];
+      if(!isFinite(x)||!isFinite(y)) return false;
+      noeuds.push({x,y,fixe:surSol(x,y)?1:0});
+    }
+    for(const v of d.p){
+      if(!Array.isArray(v)||v.length<3) return false;
+      const a=v[0]|0, b=v[1]|0;
+      if(a<0||b<0||a>=noeuds.length||b>=noeuds.length||a===b) return false;
+      if(!MATS[v[2]]) return false;
+      poutres.push({a,b,mat:v[2]});
+    }
+    P.noeuds=noeuds; P.poutres=poutres;
+    P.cout=0;
+    for(const p of poutres){
+      const a=noeuds[p.a], b=noeuds[p.b];
+      P.cout+=coutPoutre(a.x,a.y,b.x,b.y,p.mat);
+    }
+    P.histo=[];
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ------------------------------------------------------ le code à partager */
+function codePont(){
+  if(!N||!P||!P.poutres.length) return '';
+  const ox=-Math.floor(N.vue[0]), oy=-Math.floor(N.vue[2]);
+  const n=P.noeuds.map(v=>(Math.round(v.x)+ox).toString(36)+'.'
+    +(Math.round(v.y)+oy).toString(36)).join(',');
+  const p=P.poutres.map(v=>v.a.toString(36)+'.'+v.b.toString(36)+'.'
+    +CLES_MATS.indexOf(v.mat)).join(',');
+  return 'TENIR-'+(N.mode==='defi'?'J':N.idx)+'-'+n+'-'+p;
+}
+/* Un code venu d'ailleurs est du texte inconnu : on ne lui fait aucune
+   confiance. Chaque nombre est vérifié, et au moindre doute on refuse. */
+function lireCode(txt){
+  try{
+    const s=String(txt||'').trim().toUpperCase().replace(/\s+/g,'');
+    const m=s.match(/^TENIR-(J|\d{1,2})-([0-9A-Z.,]*)-([0-9A-Z.,]*)$/);
+    if(!m) return {err:'Ce n\'est pas un code TENIR.'};
+    const quot=m[1]==='J';
+    const idx=quot?0:parseInt(m[1],10);
+    if(!quot&&(idx<0||idx>=NIVEAUX.length)) return {err:'Ce chantier n\'existe pas.'};
+    const niv=quot?niveauDuJour():NIVEAUX[idx];
+    const ox=-Math.floor(niv.vue[0]), oy=-Math.floor(niv.vue[2]);
+    const noeuds=[];
+    for(const t of m[2].split(',')){
+      if(!t) continue;
+      const q=t.split('.');
+      if(q.length!==2) return {err:'Code abîmé.'};
+      const x=parseInt(q[0],36)-ox, y=parseInt(q[1],36)-oy;
+      if(!isFinite(x)||!isFinite(y)) return {err:'Code abîmé.'};
+      if(x<niv.vue[0]-1||x>niv.vue[1]+1||y<niv.vue[2]-1||y>niv.vue[3]+1)
+        return {err:'Ce pont ne rentre pas dans ce chantier.'};
+      noeuds.push([x,y]);
+    }
+    const poutres=[];
+    for(const t of m[3].split(',')){
+      if(!t) continue;
+      const q=t.split('.');
+      if(q.length!==3) return {err:'Code abîmé.'};
+      const a=parseInt(q[0],36), b=parseInt(q[1],36), k=parseInt(q[2],36);
+      if(!(a>=0&&b>=0&&a<noeuds.length&&b<noeuds.length&&a!==b))
+        return {err:'Code abîmé.'};
+      if(!(k>=0&&k<CLES_MATS.length)) return {err:'Matériau inconnu.'};
+      poutres.push([a,b,CLES_MATS[k]]);
+    }
+    if(!poutres.length) return {err:'Ce code ne contient aucune poutre.'};
+    if(poutres.length>400) return {err:'Ce pont est démesuré.'};
+    return {quot, idx, n:noeuds, p:poutres};
+  }catch(e){ return {err:'Code illisible.'}; }
+}
+
+/* ==========================================================================
+   LE PONT DU JOUR
+   ==========================================================================
+   La date fait la graine. Le gouffre du 14 mars est le même pour tout le monde,
+   au mètre près, budget compris — sinon comparer deux résultats n'aurait aucun
+   sens. Il est tiré au sort, mais dans des bornes qui garantissent qu'il est
+   franchissable : un gouffre impossible ne serait pas un défi, ce serait une
+   panne. */
+function dateDuJour(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')
+    +'-'+String(d.getDate()).padStart(2,'0');
+}
+function graineDuJour(){
+  const s=dateDuJour();
+  let h=2166136261;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); }
+  return h>>>1;
+}
+function niveauDuJour(){
+  const garde=RNG;
+  RNG=semeur(graineDuJour());
+  const ecart=ri(13,30);
+  const hd=ri(-4,5);                       // dénivelé du bord droit
+  const bas=-(20+ri(0,12));
+  const g0=5, g1=g0+ecart;
+  const sol=[plateau(-8,g0,0,bas), plateau(g1,g1+14,hd,bas)];
+  let pil=0;
+  if(ecart>=20&&RNG()<.55){
+    const px=Math.round(g0+ecart/2);
+    sol.splice(1,0,pilier(px-1,px+1,-(4+ri(0,6)),bas));
+    pil=1;
+  }
+  const interdit=[];
+  if(RNG()<.35) interdit.push([g0+1,3+ri(0,2),g1-1,16]);
+  else if(RNG()<.3) interdit.push([g0+1,bas+5,g1-1,-2]);
+  const budget=Math.round((650+ecart*128+(pil?-160:0)+(interdit.length?260:0))/50)*50;
+  const bh=Math.min(0,hd);
+  let vb=bh-13, vh=Math.max(hd,0)+11;
+  for(const z of interdit){ if(z[1]<vb) vb=z[1]-1; if(z[3]>vh) vh=z[3]+1; }
+  const niv={ n:0, nom:'GOUFFRE DU '+dateDuJour().split('-').reverse().join('/'),
+    budget, serre:Math.round(budget*.76/50)*50, bas, sol, interdit,
+    vue:[-8,g1+14,vb,vh], route:Math.max(0,hd), depart:-3, arrivee:g1+8,
+    note:'Un gouffre de '+ecart+' mètres, le même pour tout le monde aujourd\'hui.' };
+  RNG=garde;
+  return niv;
+}
+function ouvrirDefi(){
+  const niv=niveauDuJour();
+  SAVE.defiDate=dateDuJour();
+  N=Object.assign({},niv);
+  N.idx=0; N.mode='defi'; N.bacASable=false;
+  preparerSegments();
+  preparerGrille();
+  cadrer(); CIEL=null;
+  nouveauPont(N);
+  const g=SAVE.ponts&&SAVE.ponts[cleSauvegarde()];
+  if(g) chargerPont(g);
+  SIM=null;
+  document.body.classList.remove('roule');
+  ecranActif='jeu'; ecrans(null);
+  arreter(true);
+  majHUD(); majPalette();
+  message('PONT DU JOUR — '+dateDuJour(),2200);
+  setTimeout(()=>{ if(ecranActif==='jeu') message(N.note,3200); },1500);
+  sauver();
+}
+
+
+/* ==========================================================================
+   10. LES ENTRÉES ET LA BOUCLE
+   ==========================================================================
+   Deux gestes, pas trois. On GLISSE pour poser une poutre, on APPUIE sur une
+   poutre pour l'enlever. C'est tout, et c'est identique à la souris et au
+   doigt — un jeu de construction où l'on doit apprendre l'interface avant la
+   physique a déjà perdu. */
+
+let appui=null;              // {x,y,wx,wy,bouge}
+const SEUIL_GESTE=7;         // en pixels : en dessous, c'est un appui, pas un glissé
+
+function pointDe(sx,sy){ return snap(xm(sx),ym(sy)); }
+
+function debutGeste(sx,sy){
+  if(ecranActif!=='jeu'||!N||SIM) return;
+  const [wx,wy]=pointDe(sx,sy);
+  appui={sx,sy,wx,wy,bouge:false};
+  trace={x0:wx,y0:wy,x1:wx,y1:wy,raison:''};
+}
+function bougerGeste(sx,sy){
+  souris.x=sx; souris.y=sy; souris.dedans=true;
+  if(ecranActif!=='jeu'||!N||SIM){ survol=-1; return; }
+  if(!appui){
+    survol=poutreSous(xm(sx),ym(sy),.45);
+    cv.style.cursor=survol>=0?'pointer':'crosshair';
+    return;
+  }
+  if(Math.hypot(sx-appui.sx,sy-appui.sy)>SEUIL_GESTE) appui.bouge=true;
+  const [wx,wy]=pointDe(sx,sy);
+  if(!trace) return;
+  trace.x1=wx; trace.y1=wy;
+  trace.raison=(wx===trace.x0&&wy===trace.y0)?''
+    :verifier(trace.x0,trace.y0,wx,wy,matActif);
+}
+function finirGeste(sx,sy){
+  const a=appui;
+  appui=null; trace=null;
+  if(!a) return;
+  if(ecranActif!=='jeu'||!N||SIM) return;
+  const [wx,wy]=pointDe(sx,sy);
+  /* Un glissé pose une poutre du point de départ au point d'arrivée. Un appui
+     sur place enlève la poutre qu'on désigne. Deux gestes, et pas un de plus. */
+  if(a.bouge&&!(wx===a.wx&&wy===a.wy)){
+    poser(a.wx,a.wy,wx,wy,matActif);
+    return;
+  }
+  const i=poutreSous(xm(sx),ym(sy),.45);
+  if(i>=0) retirer(i);
+  else SND.refus();
+}
+
+function cabler(){
+  /* ---- souris ---- */
+  cv.addEventListener('mousemove',e=>bougerGeste(e.clientX,e.clientY));
+  cv.addEventListener('mouseleave',()=>{ souris.dedans=false; survol=-1; });
+  cv.addEventListener('mousedown',e=>{
+    if(e.button!==0) return;
+    SND.init(); SND.reprendre();
+    debutGeste(e.clientX,e.clientY);
+  });
+  addEventListener('mouseup',e=>{
+    if(!appui) return;
+    finirGeste(e.clientX,e.clientY);
+  });
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+
+  /* ---- doigt ---- */
+  cv.addEventListener('touchstart',e=>{
+    const t=e.touches[0]; if(!t) return;
+    SND.init(); SND.reprendre();
+    debutGeste(t.clientX,t.clientY);
+    if(e.cancelable) e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('touchmove',e=>{
+    const t=e.touches[0]; if(!t) return;
+    bougerGeste(t.clientX,t.clientY);
+    if(e.cancelable) e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('touchend',e=>{
+    const t=e.changedTouches[0];
+    if(t) finirGeste(t.clientX,t.clientY);
+    if(e.cancelable) e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('touchcancel',()=>{ appui=null; trace=null; });
+
+  /* ---- clavier ---- */
+  addEventListener('keydown',e=>{
+    if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')) return;
+    if(e.code==='Escape'){ revenir(); return; }
+    if(ecranActif!=='jeu') return;
+    for(const c of CLES_MATS)
+      if(e.key===MATS[c].cle&&!SIM){ matActif=c; SND.clic(); majPalette();
+        e.preventDefault(); return; }
+    if(e.code==='Space'){ basculer(); e.preventDefault(); }
+    if(e.code==='KeyZ'&&!SIM){ annuler(); e.preventDefault(); }
+    if(e.code==='KeyR'&&!SIM){
+      /* les règles sans quitter le chantier : on y revient d'un Échap */
+      N.enCours=1; remplirRegles();
+      ecranActif='regles'; ecrans('regles'); e.preventDefault();
+    }
+  });
+
+  /* ---- les boutons du chantier ---- */
+  $('bGo').onclick=()=>{ SND.init(); SND.reprendre(); basculer(); };
+  $('bAnnul').onclick=()=>{ if(!SIM) annuler(); };
+  $('bVider').onclick=()=>{ if(!SIM) vider(); };
+  $('bMenu').onclick=()=>{ arreter(true); montrerMenu(); };
+
+  /* ---- le menu ---- */
+  $('meJouer').onclick=()=>{ SND.init(); SND.reprendre(); montrerNiveaux(); };
+  $('meDefi').onclick=()=>{ SND.init(); SND.reprendre(); ouvrirDefi(); };
+  $('meBac').onclick=()=>{ SND.init(); SND.reprendre();
+    decrocher('bac'); ouvrirNiveau(NIVEAUX.length-1,'bac'); };
+  $('meRegles').onclick=()=>{ SND.init(); remplirRegles();
+    if(N) N.enCours=0;
+    ecranActif='regles'; ecrans('regles'); };
+  $('meSucces').onclick=()=>{ SND.init(); montrerSucces(); };
+  $('meCode').onclick=()=>{ SND.init(); $('codeIn').value=''; $('codeMsg').textContent='';
+    ecranActif='code'; ecrans('code'); };
+  $('nivRetour').onclick=()=>montrerMenu();
+  $('suRetour').onclick=()=>montrerMenu();
+  $('reRetour').onclick=()=>revenir();
+  $('codeRetour').onclick=()=>montrerMenu();
+  $('codeOk').onclick=()=>appliquerCode();
+  $('codeIn').addEventListener('keydown',e=>{
+    e.stopPropagation();
+    if(e.key==='Enter') appliquerCode();
+  });
+
+  /* ---- l'écran de fin ---- */
+  $('fRejouer').onclick=()=>{ arreter(true); ecranActif='jeu'; ecrans(null); };
+  $('fSuite').onclick=()=>{ arreter(true); ouvrirNiveau(Math.min(NIVEAUX.length-1,
+    N.idx+1),'chantier'); };
+  $('fMenu').onclick=()=>{ arreter(true); montrerMenu(); };
+  $('fCopier').onclick=()=>{
+    const t=texteCopie();
+    try{
+      navigator.clipboard.writeText(t);
+      $('fCopier').innerHTML='<b>COPIÉ ✓</b>';
+      setTimeout(()=>{ const b=$('fCopier'); if(b) b.innerHTML='<b>COPIER LE PONT</b>'; },1800);
+    }catch(err){ $('fCopier').innerHTML='<b>COPIE IMPOSSIBLE</b>'; }
+  };
+
+  /* ---- les réglages ---- */
+  $('sonBtn').onclick=()=>{
+    SAVE.son=!SAVE.son; SND.on=SAVE.son;
+    if(!SAVE.son) SND.silence();
+    sauver(); majReglages();
+  };
+  $('volIn').oninput=e=>{
+    SAVE.volume=+e.target.value/100; SND.vol(SAVE.volume);
+    $('volVal').textContent=Math.round(SAVE.volume*100)+' %';
+    sauver();
+  };
+  $('effacer').onclick=()=>{
+    if(!confirm('Effacer les médailles, les ponts sauvegardés et les succès ?')) return;
+    SAVE=Object.assign({},SAVE_DEF,{med:{},best:{},ponts:{},succes:{}});
+    sauver(); montrerMenu();
+  };
+  addEventListener('beforeunload',()=>{ try{ sauverPont(); }catch(e){} });
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){ try{ sauverPont(); }catch(e){} }
+  });
+}
+
+/* Revenir veut dire deux choses selon d'où l'on vient : reprendre le chantier
+   qu'on avait mis en pause pour lire les règles, ou retourner au menu. */
+function revenir(){
+  if(ecranActif==='regles'&&N&&N.enCours){ ecranActif='jeu'; ecrans(null); return; }
+  if(ecranActif==='jeu'){ arreter(true); montrerMenu(); return; }
+  if(ecranActif!=='menu') montrerMenu();
+}
+
+function appliquerCode(){
+  const r=lireCode($('codeIn').value);
+  if(r.err){ $('codeMsg').innerHTML='<b style="color:var(--rouge)">'+r.err+'</b>';
+    SND.refus(); return; }
+  if(r.quot) ouvrirDefi(); else ouvrirNiveau(r.idx,'chantier');
+  P.noeuds=r.n.map(v=>({x:v[0],y:v[1],fixe:surSol(v[0],v[1])?1:0}));
+  P.poutres=r.p.map(v=>({a:v[0],b:v[1],mat:v[2]}));
+  P.cout=0;
+  for(const p of P.poutres){
+    const a=P.noeuds[p.a], b=P.noeuds[p.b];
+    P.cout+=coutPoutre(a.x,a.y,b.x,b.y,p.mat);
+  }
+  P.histo=[];
+  majHUD(); sauverPont();
+  message('Pont chargé — '+P.poutres.length+' poutres',2200,'bon');
+}
+
+/* ---------------------------------------------------------------- la boucle */
+function boucle(now){
+  const dt=Math.min(.05,(now-last)/1000);
+  last=now;
+  horloge+=dt;
+  if(SIM) avancerSim(dt);
+  if(N) dessiner(dt);
+  requestAnimationFrame(boucle);
+}
+
+/* ---------------------------------------------------------------- départ */
+charger();
+SND.on=SAVE.son;
+SND.volume=SAVE.volume;
+N=Object.assign({},NIVEAUX[0]); N.idx=0; N.mode='chantier'; N.interdit=N.interdit||[];
+preparerSegments();
+preparerGrille();
+nouveauPont(N);
+redim();
+cabler();
+remplirRegles();
+majPalette();
+montrerMenu();
+majReglages();
+requestAnimationFrame(boucle);
+
+</script>
+</body>
+</html>
