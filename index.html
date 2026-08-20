@@ -2,736 +2,126 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
-<title>ParkAlert</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"/>
+<title>ParkAlert — Parking entraide</title>
+<meta name="description" content="ParkAlert met en relation le conducteur qui libère une place et celui qui en cherche une : la bonne voiture, la bonne place, le bon moment."/>
+<meta name="theme-color" content="#030712"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml"/>
+<link rel="apple-touch-icon" href="icons/icon-192.png"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:#030712;font-family:'DM Mono',monospace;color:#e2e8f0;height:100svh;display:flex;flex-direction:column;overflow:hidden;}
-
-/* ── AUTH SCREEN ── */
-#auth-screen{position:fixed;inset:0;background:#030712;z-index:5000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
-#auth-screen .logo{font-family:'Bebas Neue';font-size:52px;letter-spacing:4px;color:#f8fafc;margin-bottom:4px;}
-#auth-screen .logo span{color:#4ade80;}
-#auth-screen .tagline{font-size:10px;color:#334155;letter-spacing:3px;margin-bottom:36px;}
-.auth-box{width:100%;max-width:340px;background:#0f172a;border:1px solid #1e293b;border-radius:18px;padding:24px;}
-.auth-tab-row{display:flex;gap:0;margin-bottom:20px;background:#060f1e;border-radius:10px;padding:3px;}
-.auth-tab{flex:1;padding:8px;border:none;background:transparent;color:#475569;font-family:'Bebas Neue';font-size:14px;letter-spacing:2px;cursor:pointer;border-radius:8px;}
-.auth-tab.active{background:#1e293b;color:#f8fafc;}
-.auth-input{width:100%;padding:11px 14px;background:#060f1e;border:1px solid #1e293b;border-radius:10px;color:#e2e8f0;font-family:'DM Mono',monospace;font-size:13px;margin-bottom:10px;outline:none;}
-.auth-input:focus{border-color:#4ade80;}
-.auth-input::placeholder{color:#334155;}
-.btn-auth-main{width:100%;padding:13px;border-radius:12px;border:none;font-family:'Bebas Neue';font-size:17px;letter-spacing:2px;cursor:pointer;background:linear-gradient(135deg,#14532d,#4ade80);color:#052e16;margin-bottom:10px;}
-.btn-auth-google{width:100%;padding:12px;border-radius:12px;border:1px solid #1e293b;background:#0f172a;color:#e2e8f0;font-family:'DM Mono',monospace;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;}
-.btn-auth-google:hover{border-color:#4ade80;}
-.auth-err{color:#ef4444;font-size:11px;margin-bottom:10px;min-height:16px;}
-.auth-sep{text-align:center;color:#1e293b;font-size:11px;margin:10px 0;position:relative;}
-.auth-sep::before,.auth-sep::after{content:'';position:absolute;top:50%;width:40%;height:1px;background:#1e293b;}
-.auth-sep::before{left:0;} .auth-sep::after{right:0;}
-
-/* ── MAIN APP ── */
-#app{display:none;flex-direction:column;height:100svh;}
-#app.visible{display:flex;}
-
-/* Header */
-#header{background:#080f1c;border-bottom:1px solid #1e293b;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.logo-sm{font-family:'Bebas Neue';font-size:22px;letter-spacing:3px;color:#f8fafc;}
-.logo-sm span{color:#4ade80;}
-#user-info{font-size:9px;color:#475569;}
-#stats{display:flex;gap:6px;}
-.stat{background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:4px 9px;text-align:center;}
-.stat-n{font-family:'Bebas Neue';font-size:16px;color:#38bdf8;}
-.stat-l{font-size:7px;color:#334155;letter-spacing:1px;}
-
-/* GPS bar */
-#gps-bar{background:#040a12;padding:3px 14px;font-size:9px;color:#1e3a5f;letter-spacing:1px;flex-shrink:0;}
-
-/* Nav tabs */
-#nav{display:flex;background:#080f1c;border-bottom:1px solid #1e293b;flex-shrink:0;}
-.nav-btn{flex:1;padding:9px 4px;border:none;background:transparent;color:#334155;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;border-bottom:2px solid transparent;}
-.nav-btn.active{color:#4ade80;border-bottom-color:#4ade80;}
-.nav-icon{font-size:16px;}
-
-/* Views */
-#map{flex:1;min-height:0;}
-.leaflet-tile{filter:brightness(.85) saturate(.7);}
-.view{display:none;flex:1;flex-direction:column;overflow-y:auto;min-height:0;}
-.view.active{display:flex;}
-
-/* Panel */
-#panel{background:#080f1c;border-top:1px solid #1e293b;padding:12px 14px 16px;flex-shrink:0;}
-.phase{display:none;}
-.phase.active{display:block;}
-
-/* Buttons */
-.btn{width:100%;padding:12px;border-radius:12px;border:none;font-family:'Bebas Neue';font-size:16px;letter-spacing:2px;cursor:pointer;margin-bottom:8px;display:block;}
-.btn:last-child{margin-bottom:0;}
-.btn-green{background:linear-gradient(135deg,#14532d,#4ade80);color:#052e16;box-shadow:0 0 16px rgba(74,222,128,.2);}
-.btn-orange{background:linear-gradient(135deg,#78350f,#f59e0b);color:#1c0a00;}
-.btn-blue{background:linear-gradient(135deg,#0c4a6e,#38bdf8);color:#082f49;}
-.btn-purple{background:linear-gradient(135deg,#3b0764,#a855f7);color:#1a0030;}
-.btn-red{background:transparent;border:1px solid #7f1d1d!important;color:#ef4444;}
-.btn-ghost{background:transparent;border:1px solid #1e293b!important;color:#64748b;font-size:13px;}
-.btn-row{display:flex;gap:8px;}
-.btn-row .btn{margin-bottom:0;}
-
-/* Info boxes */
-.info{background:#060f1e;border:1px solid #1e293b;border-radius:10px;padding:9px 13px;font-size:11px;color:#475569;line-height:1.7;margin-bottom:10px;}
-.info-orange{border-color:#78350f!important;color:#f59e0b!important;}
-.info-green{border-color:#14532d!important;color:#4ade80!important;}
-.info-blue{border-color:#0c4a6e!important;color:#38bdf8!important;}
-.info-purple{border-color:#3b0764!important;color:#a855f7!important;}
-
-.sublabel{font-size:8px;color:#334155;letter-spacing:2px;margin-bottom:2px;}
-.timer{font-family:'Bebas Neue';font-size:32px;color:#4ade80;}
-.flex-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-
-/* ── HISTORY VIEW ── */
-#view-history{padding:16px;gap:10px;}
-.hist-item{background:#0f172a;border:1px solid #1e293b;border-radius:12px;padding:12px 14px;}
-.hist-date{font-size:9px;color:#334155;letter-spacing:2px;margin-bottom:4px;}
-.hist-action{font-size:13px;color:#e2e8f0;}
-.hist-sub{font-size:10px;color:#475569;margin-top:2px;}
-.hist-score{font-family:'Bebas Neue';font-size:16px;margin-top:4px;}
-.empty-state{text-align:center;padding:40px 20px;color:#1e293b;font-size:13px;}
-
-/* ── CHAT VIEW ── */
-#view-chat{flex-direction:column;}
-#chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
-.msg{max-width:80%;padding:9px 12px;border-radius:12px;font-size:12px;line-height:1.5;}
-.msg-me{align-self:flex-end;background:#14532d;color:#dcfce7;border-radius:12px 12px 3px 12px;}
-.msg-other{align-self:flex-start;background:#0f172a;border:1px solid #1e293b;color:#e2e8f0;border-radius:12px 12px 12px 3px;}
-.msg-name{font-size:9px;color:#475569;margin-bottom:3px;letter-spacing:1px;}
-.msg-time{font-size:9px;color:#334155;margin-top:3px;text-align:right;}
-#chat-input-row{display:flex;gap:8px;padding:10px 14px;background:#080f1c;border-top:1px solid #1e293b;flex-shrink:0;}
-#chat-input{flex:1;padding:10px 14px;background:#060f1e;border:1px solid #1e293b;border-radius:10px;color:#e2e8f0;font-family:'DM Mono',monospace;font-size:12px;outline:none;}
-#chat-input:focus{border-color:#4ade80;}
-#chat-send{padding:10px 16px;border-radius:10px;border:none;background:#4ade80;color:#052e16;font-family:'Bebas Neue';font-size:14px;cursor:pointer;}
-
-/* ── PROFILE VIEW ── */
-#view-profile{padding:20px;gap:14px;}
-.profile-card{background:#0f172a;border:1px solid #1e293b;border-radius:14px;padding:16px;}
-.profile-name{font-family:'Bebas Neue';font-size:26px;color:#f8fafc;margin-bottom:2px;}
-.profile-email{font-size:11px;color:#475569;margin-bottom:12px;}
-.score-big{font-family:'Bebas Neue';font-size:48px;line-height:1;}
-.score-bar{height:6px;background:#0a0f1a;border-radius:3px;overflow:hidden;margin-top:8px;}
-.score-fill{height:100%;border-radius:3px;transition:width .5s;}
-
-/* ── TOAST ── */
-#toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#0d1f0e;border:1.5px solid #4ade80;border-radius:14px;padding:12px 16px;max-width:310px;width:92%;z-index:9999;display:none;gap:10px;align-items:flex-start;box-shadow:0 0 40px rgba(74,222,128,.2);}
-#toast.show{display:flex;}
-.toast-ttl{font-size:9px;letter-spacing:3px;font-weight:700;margin-bottom:4px;}
-.toast-msg{font-size:12px;line-height:1.5;color:#e2e8f0;}
-
-/* Leaflet popup */
-.leaflet-popup-content-wrapper{background:#0f172a;border:1px solid #1e293b;border-radius:12px;color:#e2e8f0;box-shadow:0 8px 32px rgba(0,0,0,.6);}
-.leaflet-popup-tip{background:#0f172a;}
-.leaflet-popup-content{margin:12px 16px;font-family:'DM Mono',monospace;font-size:12px;}
-
-@keyframes iconPulse{0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,.8)}70%{box-shadow:0 0 0 14px rgba(245,158,11,0)}}
-@keyframes iconPulseG{0%,100%{box-shadow:0 0 0 0 rgba(74,222,128,.8)}70%{box-shadow:0 0 0 14px rgba(74,222,128,0)}}
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap"/>
+<link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
 
-<!-- ══ AUTH SCREEN ══ -->
-<div id="auth-screen">
-  <div class="logo">PARK<span>ALERT</span></div>
-  <div class="tagline">RÉSEAU COLLABORATIF DE STATIONNEMENT</div>
-  <div class="auth-box">
-    <div class="auth-tab-row">
-      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">CONNEXION</button>
-      <button class="auth-tab" id="tab-signup" onclick="switchTab('signup')">INSCRIPTION</button>
+<!-- ══════════════ CONNEXION ══════════════ -->
+<section id="screen-auth" class="screen active">
+  <div class="auth-wrap">
+    <div class="logo">PARK<span>ALERT</span></div>
+    <div class="tagline">J’aide les autres → je gagne des points → je suis prioritaire</div>
+
+    <div class="auth-box">
+      <div class="auth-tabs">
+        <button id="tab-login" class="auth-tab active" type="button">CONNEXION</button>
+        <button id="tab-signup" class="auth-tab" type="button">INSCRIPTION</button>
+      </div>
+      <div id="auth-err" class="auth-err" role="alert"></div>
+      <div id="field-pseudo" style="display:none">
+        <input id="inp-pseudo" class="field" type="text" placeholder="Votre pseudonyme" maxlength="24" autocomplete="nickname"/>
+      </div>
+      <input id="inp-email" class="field" type="email" placeholder="Email" autocomplete="email"/>
+      <input id="inp-pass" class="field" type="password" placeholder="Mot de passe" autocomplete="current-password"/>
+      <button id="btn-auth" class="btn btn-green" type="button">SE CONNECTER</button>
+      <div class="sep">ou</div>
+      <button id="btn-google" class="btn btn-ghost" type="button">
+        <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Continuer avec Google
+      </button>
+      <button id="btn-guest" class="btn btn-ghost small" type="button">Essayer en invité</button>
     </div>
-    <div id="auth-err" class="auth-err"></div>
-    <div id="form-signup" style="display:none">
-      <input class="auth-input" id="inp-name" type="text" placeholder="Votre prénom"/>
-    </div>
-    <input class="auth-input" id="inp-email" type="email" placeholder="Email"/>
-    <input class="auth-input" id="inp-pass" type="password" placeholder="Mot de passe"/>
-    <button class="btn-auth-main" id="btn-auth-submit" onclick="doEmailAuth()">SE CONNECTER</button>
-    <div class="auth-sep">ou</div>
-    <button class="btn-auth-google" onclick="doGoogleAuth()">
-      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
-      Continuer avec Google
-    </button>
+
+    <p class="legal">
+      ParkAlert utilise votre position pour vous mettre en relation. Le partage de position entre
+      deux conducteurs ne démarre qu’après une réservation et s’arrête automatiquement à la fin.
+    </p>
   </div>
-</div>
+</section>
 
-<!-- ══ MAIN APP ══ -->
-<div id="app">
+<!-- ══════════════ APPLICATION ══════════════ -->
+<section id="screen-app" class="screen">
 
-  <!-- Header -->
-  <div id="header">
-    <div>
+  <header id="header">
+    <div class="hdr-left">
       <div class="logo-sm">PARK<span>ALERT</span></div>
-      <div id="user-info">…</div>
+      <div id="hdr-pseudo" class="muted small">—</div>
     </div>
-    <div id="stats">
-      <div class="stat"><div class="stat-n" id="cnt-parked">0</div><div class="stat-l">GARÉS</div></div>
-      <div class="stat"><div class="stat-n" id="cnt-seek">0</div><div class="stat-l">CHERCHENT</div></div>
-      <div class="stat"><div class="stat-n" id="score-val">100</div><div class="stat-l" id="score-lbl">Fiable</div></div>
+    <div class="hdr-stats">
+      <div class="stat"><div class="stat-n" id="hdr-points">0</div><div class="stat-l">POINTS</div></div>
+      <div class="stat"><div class="stat-n" id="hdr-rel">100</div><div class="stat-l" id="hdr-rel-label">Fiable</div></div>
+      <button id="btn-help" class="icon-btn" type="button" title="Comment ça marche">?</button>
     </div>
-  </div>
+  </header>
 
-  <!-- GPS bar -->
-  <div id="gps-bar">📡 Acquisition GPS…</div>
+  <div id="gps-bar">Acquisition GPS…</div>
 
-  <!-- Nav -->
-  <div id="nav">
-    <button class="nav-btn active" onclick="showView('map')" id="nav-map"><span class="nav-icon">🗺️</span>Carte</button>
-    <button class="nav-btn" onclick="showView('chat')" id="nav-chat"><span class="nav-icon">💬</span>Chat</button>
-    <button class="nav-btn" onclick="showView('history')" id="nav-history"><span class="nav-icon">📋</span>Historique</button>
-    <button class="nav-btn" onclick="showView('profile')" id="nav-profile"><span class="nav-icon">👤</span>Profil</button>
-  </div>
-
-  <!-- Map view -->
-  <div id="view-map" class="view active" style="flex-direction:column;">
-    <div id="map" style="flex:1;min-height:0;"></div>
-    <div id="panel">
-
-      <!-- IDLE -->
-      <div id="phase-idle" class="phase active">
-        <div class="info">🗺️ <span id="info-parked">0</span> garé(s) · <span id="info-seek">0</span> cherche(nt)</div>
-        <button class="btn btn-green"  id="btn-park">🚗 &nbsp;JE ME GARE ICI</button>
-        <button class="btn btn-blue"   id="btn-search">🔍 &nbsp;JE CHERCHE UNE PLACE</button>
-        <button class="btn btn-purple" id="btn-free">✋ &nbsp;SIGNALER UNE PLACE LIBRE</button>
-      </div>
-
-      <!-- PARKED -->
-      <div id="phase-parked" class="phase">
-        <div class="flex-row">
-          <div><div class="sublabel">GARÉ DEPUIS</div><div class="timer" id="park-timer">00:00</div></div>
-          <div style="text-align:right"><div class="sublabel">ID PLACE</div><div id="spot-id" style="color:#38bdf8;font-size:12px">—</div></div>
+  <main class="views">
+    <div id="view-map" class="view active">
+      <div class="map-wrap">
+        <div id="map"></div>
+        <button id="btn-locate" class="fab" type="button" title="Recentrer">◎</button>
+        <div class="legend">
+          <span><i style="--c:#f59e0b"></i>Place annoncée</span>
+          <span><i style="--c:#a855f7"></i>Signalement</span>
+          <span><i style="--c:#38bdf8"></i>Cherche</span>
+          <span><i style="--c:#4ade80"></i>Destination</span>
         </div>
-        <div class="info info-orange">📡 Départ auto si vitesse &gt; 20 km/h</div>
-        <button class="btn btn-orange" id="btn-leave">🚦 &nbsp;SIGNALER MON DÉPART</button>
-      </div>
-
-      <!-- SEARCHING -->
-      <div id="phase-searching" class="phase">
-        <div class="info info-blue">🔍 Vous êtes visible sur la carte.<br><span style="color:#475569">Notification automatique dès qu'une place se libère.</span></div>
-        <button class="btn btn-ghost" id="btn-cancel-search">✕ &nbsp;ANNULER LA RECHERCHE</button>
-      </div>
-
-      <!-- NOTIFIED -->
-      <div id="phase-notified" class="phase">
-        <div class="info info-green">🎉 Une place se libère près de vous !<br><span style="color:#475569">Dirigez-vous vers le point orange sur la carte.</span></div>
-        <button class="btn btn-green" id="btn-arrived">✅ &nbsp;JE SUIS ARRIVÉ</button>
-        <button class="btn btn-ghost" id="btn-cancel-notif">✕ &nbsp;Abandonner</button>
-      </div>
-
-      <!-- WAITING -->
-      <div id="phase-waiting" class="phase">
-        <div class="info info-orange">⏳ En attente de l'arrivant…<br><span style="color:#475569">Partir avant = −20 pts de réputation.</span></div>
-        <div class="btn-row">
-          <button class="btn btn-green" id="btn-confirm-arrival" style="font-size:13px">✅ L'arrivant est là</button>
-          <button class="btn btn-red"   id="btn-leave-early"    style="font-size:13px">✗ Partir</button>
+        <div class="counters">
+          <span><b id="count-spots">0</b> place(s)</span>
+          <span><b id="count-seekers">0</b> en recherche</span>
         </div>
       </div>
-
-      <!-- FREE SPOT -->
-      <div id="phase-free" class="phase">
-        <div class="info info-purple">✋ Place libre signalée sur la carte.<br><span style="color:#475569">Elle disparaîtra automatiquement dans 5 minutes.</span></div>
-        <button class="btn btn-ghost" id="btn-cancel-free">✕ &nbsp;RETIRER LE SIGNALEMENT</button>
-      </div>
-
+      <div id="panel"></div>
     </div>
-  </div>
 
-  <!-- Chat view -->
-  <div id="view-chat" class="view">
-    <div id="chat-messages"></div>
-    <div id="chat-input-row">
-      <input id="chat-input" placeholder="Message à tous les conducteurs…" maxlength="200"/>
-      <button id="chat-send">➤</button>
-    </div>
-  </div>
+    <div id="view-history" class="view"></div>
+    <div id="view-profile" class="view"></div>
+  </main>
 
-  <!-- History view -->
-  <div id="view-history" class="view">
-    <div style="font-size:9px;color:#334155;letter-spacing:3px;margin-bottom:4px;">HISTORIQUE DE VOS ACTIONS</div>
-    <div id="history-list"></div>
-  </div>
+  <nav id="nav">
+    <button class="nav-btn active" data-view="map" type="button"><span>🗺️</span>Carte</button>
+    <button class="nav-btn" data-view="history" type="button"><span>📋</span>Historique</button>
+    <button class="nav-btn" data-view="profile" type="button"><span>👤</span>Profil</button>
+  </nav>
+</section>
 
-  <!-- Profile view -->
-  <div id="view-profile" class="view">
-    <div class="profile-card">
-      <div class="profile-name" id="prof-name">—</div>
-      <div class="profile-email" id="prof-email">—</div>
-      <div class="sublabel">SCORE DE CONFIANCE</div>
-      <div class="score-big" id="prof-score" style="color:#4ade80">100</div>
-      <div class="score-bar"><div class="score-fill" id="prof-bar" style="width:100%;background:#4ade80;"></div></div>
-    </div>
-    <div class="profile-card">
-      <div class="sublabel" style="margin-bottom:10px">STATISTIQUES</div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#475569;font-size:12px">Places partagées</span><span style="color:#4ade80;font-family:'Bebas Neue';font-size:18px" id="stat-shared">0</span></div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#475569;font-size:12px">Places trouvées</span><span style="color:#38bdf8;font-family:'Bebas Neue';font-size:18px" id="stat-found">0</span></div>
-      <div style="display:flex;justify-content:space-between"><span style="color:#475569;font-size:12px">Signalements libres</span><span style="color:#a855f7;font-family:'Bebas Neue';font-size:18px" id="stat-free">0</span></div>
-    </div>
-    <button class="btn btn-ghost" onclick="doLogout()" style="font-size:13px;margin-top:4px">🚪 &nbsp;SE DÉCONNECTER</button>
-  </div>
-
-</div>
-
-<!-- Toast -->
-<div id="toast">
-  <span style="font-size:22px">🔔</span>
-  <div style="flex:1">
-    <div class="toast-ttl" id="toast-title">NOTIFICATION</div>
+<!-- ══════════════ TOAST ══════════════ -->
+<div id="toast" role="status" aria-live="polite">
+  <div class="toast-body">
+    <div class="toast-ttl" id="toast-title"></div>
     <div class="toast-msg" id="toast-msg"></div>
   </div>
-  <button id="toast-close" style="background:none;border:none;color:#4b5563;cursor:pointer;font-size:20px;line-height:1;">×</button>
+  <button id="toast-close" type="button" aria-label="Fermer">×</button>
 </div>
 
-<!-- Scripts -->
+<!-- ══════════════ FEUILLE MODALE ══════════════ -->
+<div id="modal-back" data-dismissible="1">
+  <div id="modal" role="dialog" aria-modal="true">
+    <button id="modal-close" type="button" aria-label="Fermer">×</button>
+    <div id="modal-title" class="modal-title"></div>
+    <div id="modal-sub" class="modal-sub"></div>
+    <div id="modal-body"></div>
+    <div id="modal-actions"></div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-<script>
-// ══ FIREBASE ══════════════════════════════════════════════════════════════════
-firebase.initializeApp({
-  apiKey:            "AIzaSyDib5u-o-6WTmkyyCeM0WjOrgQxpdLSmUU",
-  authDomain:        "parking-98737.firebaseapp.com",
-  databaseURL:       "https://parking-98737-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId:         "parking-98737",
-  storageBucket:     "parking-98737.firebasestorage.app",
-  messagingSenderId: "302972513258",
-  appId:             "1:302972513258:web:10f9a170ad8ca956be2093"
-});
-const auth = firebase.auth();
-const db   = firebase.database();
-
-// ══ AUTH ══════════════════════════════════════════════════════════════════════
-let currentUser = null;
-let userPseudo  = '';
-let userScore   = 100;
-
-function switchTab(t) {
-  document.getElementById('tab-login').classList.toggle('active', t==='login');
-  document.getElementById('tab-signup').classList.toggle('active', t==='signup');
-  document.getElementById('form-signup').style.display = t==='signup' ? 'block' : 'none';
-  document.getElementById('btn-auth-submit').textContent = t==='signup' ? "S'INSCRIRE" : 'SE CONNECTER';
-  document.getElementById('auth-err').textContent = '';
-}
-
-function doEmailAuth() {
-  const email = document.getElementById('inp-email').value.trim();
-  const pass  = document.getElementById('inp-pass').value;
-  const isSignup = document.getElementById('tab-signup').classList.contains('active');
-  document.getElementById('auth-err').textContent = '';
-  if (!email || !pass) { document.getElementById('auth-err').textContent = 'Remplissez tous les champs.'; return; }
-  if (isSignup) {
-    const name = document.getElementById('inp-name').value.trim() || 'Anonyme';
-    auth.createUserWithEmailAndPassword(email, pass)
-      .then(r => r.user.updateProfile({ displayName: name }))
-      .catch(e => { document.getElementById('auth-err').textContent = errMsg(e.code); });
-  } else {
-    auth.signInWithEmailAndPassword(email, pass)
-      .catch(e => { document.getElementById('auth-err').textContent = errMsg(e.code); });
-  }
-}
-
-function doGoogleAuth() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(e => { document.getElementById('auth-err').textContent = errMsg(e.code); });
-}
-
-function doLogout() {
-  if (mySpotKey) db.ref(mySpotKey).remove();
-  if (mySeekKey) db.ref(mySeekKey).remove();
-  if (myFreeKey) db.ref(myFreeKey).remove();
-  auth.signOut();
-}
-
-function errMsg(code) {
-  const msgs = {
-    'auth/wrong-password':'Mot de passe incorrect.',
-    'auth/user-not-found':'Aucun compte avec cet email.',
-    'auth/email-already-in-use':'Email déjà utilisé.',
-    'auth/weak-password':'Mot de passe trop court (6 caractères min).',
-    'auth/invalid-email':'Email invalide.',
-    'auth/popup-closed-by-user':'Connexion annulée.',
-  };
-  return msgs[code] || 'Erreur : ' + code;
-}
-
-auth.onAuthStateChanged(user => {
-  if (user) {
-    currentUser = user;
-    userPseudo  = user.displayName || user.email.split('@')[0];
-    // Load score from DB
-    db.ref('users/' + user.uid + '/score').once('value').then(s => {
-      userScore = s.val() || 100;
-      updateScoreUI();
-    });
-    db.ref('users/' + user.uid + '/stats').once('value').then(s => {
-      const stats = s.val() || {};
-      document.getElementById('stat-shared').textContent = stats.shared || 0;
-      document.getElementById('stat-found').textContent  = stats.found  || 0;
-      document.getElementById('stat-free').textContent   = stats.free   || 0;
-    });
-    document.getElementById('user-info').textContent = userPseudo;
-    document.getElementById('prof-name').textContent  = userPseudo;
-    document.getElementById('prof-email').textContent = user.email;
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('app').classList.add('visible');
-    startGPS();
-    listenDB();
-    loadHistory();
-    listenChat();
-  } else {
-    currentUser = null;
-    document.getElementById('auth-screen').style.display = 'flex';
-    document.getElementById('app').classList.remove('visible');
-  }
-});
-
-// ══ MAP ═══════════════════════════════════════════════════════════════════════
-const map = L.map('map', { zoomControl:true }).setView([48.8566, 2.3522], 15);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' }).addTo(map);
-
-function makeIcon(color, pulse, anim) {
-  const a = pulse ? `animation:${anim||'iconPulse'} 1.2s infinite;` : '';
-  return L.divIcon({ className:'', iconSize:[22,22], iconAnchor:[11,11], popupAnchor:[0,-13],
-    html:`<div style="width:22px;height:22px;border-radius:50%;background:${color};border:3px solid ${color}88;${a}box-shadow:0 0 10px ${color}66;"></div>` });
-}
-const ICON_OCC    = makeIcon('#ef4444',false);
-const ICON_LEAVE  = makeIcon('#f59e0b',true,'iconPulse');
-const ICON_SEEK   = makeIcon('#38bdf8',false);
-const ICON_ME     = makeIcon('#818cf8',false);
-const ICON_FREE   = makeIcon('#a855f7',true,'iconPulseG');
-
-// ══ STATE ═════════════════════════════════════════════════════════════════════
-let myPos=null, myPhase='idle', mySpotKey=null, mySeekKey=null, myFreeKey=null, pendingSpot=null;
-let myDot=null, parkSec=0, parkIv=null;
-const spotMarkers={}, seekMarkers={}, freeMarkers={};
-
-// ══ GPS ═══════════════════════════════════════════════════════════════════════
-function startGPS() {
-  if (!navigator.geolocation) { setGpsBar('❌ Géolocalisation non supportée'); return; }
-  navigator.geolocation.watchPosition(onGPS, () => setGpsBar('⚠️ GPS indisponible'), { enableHighAccuracy:true, maximumAge:3000, timeout:15000 });
-}
-
-function onGPS(pos) {
-  myPos = { lat:pos.coords.latitude, lng:pos.coords.longitude };
-  setGpsBar(`📍 GPS actif · ${myPos.lat.toFixed(5)}, ${myPos.lng.toFixed(5)}`);
-  if (!myDot) {
-    myDot = L.marker([myPos.lat,myPos.lng],{icon:ICON_ME,zIndexOffset:1000}).addTo(map);
-    myDot.bindPopup(`<b style="color:#818cf8">📍 ${userPseudo}</b>`);
-    map.setView([myPos.lat,myPos.lng],16);
-  } else { myDot.setLatLng([myPos.lat,myPos.lng]); }
-  if (myPhase==='parked' && pos.coords.speed!==null && pos.coords.speed>5.55) {
-    toast('DÉPART DÉTECTÉ 📡','Vitesse > 20 km/h — départ signalé automatiquement.','#f59e0b');
-    doSignalLeaving();
-  }
-  if (myPhase==='searching' && mySeekKey) db.ref(mySeekKey).update({lat:myPos.lat,lng:myPos.lng});
-}
-
-// ══ DB LISTENERS ══════════════════════════════════════════════════════════════
-function listenDB() {
-  // Spots occupés
-  db.ref('spots').on('value', snap => {
-    const data = snap.val()||{};
-    Object.keys(spotMarkers).forEach(k=>{ if(!data[k]){spotMarkers[k].remove();delete spotMarkers[k];}});
-    Object.entries(data).forEach(([k,s])=>{
-      const icon = s.status==='leaving' ? ICON_LEAVE : ICON_OCC;
-      if (spotMarkers[k]) { spotMarkers[k].setLatLng([s.lat,s.lng]).setIcon(icon); }
-      else { spotMarkers[k]=L.marker([s.lat,s.lng],{icon}).addTo(map); }
-      spotMarkers[k].bindPopup(popupSpot(s,k));
-      if (myPhase==='searching' && s.status==='leaving' && s.notifiedUid===currentUser.uid) {
-        pendingSpot={key:k,...s};
-        showPhase('notified');
-        toast('PLACE DISPONIBLE 🎉',`${s.pseudo} libère une place à ~${dist(myPos,s)}m !`,'#4ade80');
-      }
-    });
-    updateCounters(Object.keys(data).length,null);
-  });
-
-  // Chercheurs
-  db.ref('seekers').on('value', snap => {
-    const data = snap.val()||{};
-    Object.keys(seekMarkers).forEach(k=>{ if(!data[k]||k===currentUser.uid){seekMarkers[k]?.remove();delete seekMarkers[k];}});
-    Object.entries(data).forEach(([k,s])=>{
-      if(k===currentUser.uid) return;
-      if(seekMarkers[k]){seekMarkers[k].setLatLng([s.lat,s.lng]);}
-      else{seekMarkers[k]=L.marker([s.lat,s.lng],{icon:ICON_SEEK}).addTo(map);seekMarkers[k].bindPopup(`<b style="color:#38bdf8">🔍 ${s.pseudo} cherche</b>`);}
-    });
-    updateCounters(null,Object.keys(data).length);
-  });
-
-  // Places libres signalées
-  db.ref('freespots').on('value', snap => {
-    const data = snap.val()||{};
-    Object.keys(freeMarkers).forEach(k=>{ if(!data[k]){freeMarkers[k].remove();delete freeMarkers[k];}});
-    Object.entries(data).forEach(([k,s])=>{
-      if(freeMarkers[k]){freeMarkers[k].setLatLng([s.lat,s.lng]);}
-      else{
-        freeMarkers[k]=L.marker([s.lat,s.lng],{icon:ICON_FREE}).addTo(map);
-        freeMarkers[k].bindPopup(`<div style="font-family:'DM Mono',monospace">
-          <div style="color:#a855f7;font-weight:700;margin-bottom:4px">✋ Place libre signalée</div>
-          <div style="color:#94a3b8">Par : ${s.pseudo}</div>
-          <div style="color:#64748b;font-size:10px;margin-top:4px">
-            <button onclick="reportSpot('${k}')" style="background:transparent;border:1px solid #7f1d1d;color:#ef4444;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer">⚑ Signaler incorrecte</button>
-          </div>
-        </div>`);
-      }
-    });
-  });
-}
-
-// ══ CHAT ══════════════════════════════════════════════════════════════════════
-function listenChat() {
-  db.ref('chat').limitToLast(50).on('value', snap => {
-    const data = snap.val()||{};
-    const container = document.getElementById('chat-messages');
-    container.innerHTML='';
-    Object.values(data).sort((a,b)=>a.ts-b.ts).forEach(m => {
-      const isMe = m.uid === currentUser.uid;
-      const div = document.createElement('div');
-      div.className = 'msg ' + (isMe?'msg-me':'msg-other');
-      div.innerHTML = (!isMe?`<div class="msg-name">${m.pseudo}</div>`:'') +
-        `<div>${m.text}</div><div class="msg-time">${new Date(m.ts).toLocaleTimeString('fr',{hour:'2-digit',minute:'2-digit'})}</div>`;
-      container.appendChild(div);
-    });
-    container.scrollTop = container.scrollHeight;
-  });
-}
-
-document.getElementById('chat-send').onclick = sendChat;
-document.getElementById('chat-input').onkeydown = e => { if(e.key==='Enter') sendChat(); };
-
-function sendChat() {
-  const input = document.getElementById('chat-input');
-  const text = input.value.trim();
-  if (!text || !currentUser) return;
-  db.ref('chat').push({ text, pseudo:userPseudo, uid:currentUser.uid, ts:Date.now() });
-  input.value='';
-}
-
-// ══ HISTORY ═══════════════════════════════════════════════════════════════════
-function loadHistory() {
-  db.ref('users/'+currentUser.uid+'/history').limitToLast(30).once('value').then(snap => {
-    const data = snap.val()||{};
-    const list = document.getElementById('history-list');
-    const entries = Object.values(data).sort((a,b)=>b.ts-a.ts);
-    if (entries.length===0) { list.innerHTML='<div class="empty-state">Aucune action pour l\'instant.<br>Commencez à utiliser ParkAlert !</div>'; return; }
-    list.innerHTML='';
-    entries.forEach(h => {
-      const div = document.createElement('div');
-      div.className='hist-item';
-      const scoreColor = h.delta>0?'#4ade80':'#ef4444';
-      const scoreTxt = h.delta>0?`+${h.delta} pts`:`${h.delta} pts`;
-      div.innerHTML=`<div class="hist-date">${new Date(h.ts).toLocaleDateString('fr',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
-        <div class="hist-action">${h.action}</div>
-        ${h.delta?`<div class="hist-score" style="color:${scoreColor}">${scoreTxt}</div>`:''}`;
-      list.appendChild(div);
-    });
-  });
-}
-
-function addHistory(action, delta) {
-  if (!currentUser) return;
-  db.ref('users/'+currentUser.uid+'/history').push({ action, delta:delta||0, ts:Date.now() });
-}
-
-// ══ HELPERS ═══════════════════════════════════════════════════════════════════
-function dist(a,b) {
-  if(!a||!b) return '?';
-  const R=6371000,dLat=(b.lat-a.lat)*Math.PI/180,dLng=(b.lng-a.lng)*Math.PI/180;
-  const x=Math.sin(dLat/2)**2+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLng/2)**2;
-  return Math.round(R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x)));
-}
-
-function nearestSeeker() {
-  return db.ref('seekers').get().then(snap => {
-    const data=snap.val()||{};
-    let best=null,bestD=Infinity;
-    Object.entries(data).forEach(([k,s])=>{
-      const d=dist(myPos,s);
-      if(typeof d==='number'&&d<bestD){bestD=d;best={key:k,...s,d};}
-    });
-    return best;
-  });
-}
-
-function popupSpot(s,k) {
-  const color=s.status==='leaving'?'#f59e0b':'#ef4444';
-  const label=s.status==='leaving'?'⏳ Libération en cours':'🔴 Occupée';
-  const isMine=currentUser&&k==='spots/'+currentUser.uid;
-  return `<div style="font-family:'DM Mono',monospace">
-    <div style="color:${color};font-weight:700;margin-bottom:4px">${label}</div>
-    <div style="color:#94a3b8">Par : ${s.pseudo}</div>
-    ${isMine?'<div style="color:#818cf8;font-size:11px;margin-top:4px">📍 C\'est votre place</div>':''}
-    <div style="margin-top:6px"><button onclick="reportSpot('${k}')" style="background:transparent;border:1px solid #7f1d1d;color:#ef4444;border-radius:6px;padding:3px 8px;font-size:10px;cursor:pointer">⚑ Signaler incorrecte</button></div>
-  </div>`;
-}
-
-function fmt(s){return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
-function setGpsBar(t){document.getElementById('gps-bar').textContent=t;}
-
-let cntP=0,cntS=0;
-function updateCounters(p,s) {
-  if(p!==null)cntP=p; if(s!==null)cntS=s;
-  document.getElementById('cnt-parked').textContent=cntP;
-  document.getElementById('cnt-seek').textContent=cntS;
-  document.getElementById('info-parked').textContent=cntP;
-  document.getElementById('info-seek').textContent=cntS;
-}
-
-function updateScoreUI() {
-  const color=userScore>=80?'#4ade80':userScore>=50?'#f59e0b':'#ef4444';
-  const label=userScore>=80?'Fiable':userScore>=50?'Moyen':'⚠️ Non fiable';
-  document.getElementById('score-val').textContent=userScore;
-  document.getElementById('score-val').style.color=color;
-  document.getElementById('score-lbl').textContent=label;
-  document.getElementById('prof-score').textContent=userScore;
-  document.getElementById('prof-score').style.color=color;
-  document.getElementById('prof-bar').style.width=userScore+'%';
-  document.getElementById('prof-bar').style.background=color;
-}
-
-function changeScore(delta) {
-  userScore=Math.max(0,Math.min(100,userScore+delta));
-  db.ref('users/'+currentUser.uid+'/score').set(userScore);
-  updateScoreUI();
-}
-
-function incrStat(key) {
-  db.ref('users/'+currentUser.uid+'/stats/'+key).transaction(v=>(v||0)+1);
-}
-
-function showPhase(p) {
-  document.querySelectorAll('.phase').forEach(el=>el.classList.remove('active'));
-  document.getElementById('phase-'+p).classList.add('active');
-  myPhase=p;
-}
-
-function showView(v) {
-  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
-  document.getElementById('view-'+v).classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
-  document.getElementById('nav-'+v).classList.add('active');
-  if(v==='map') setTimeout(()=>map.invalidateSize(),50);
-  if(v==='history') loadHistory();
-}
-
-let toastTimer;
-function toast(title,msg,color) {
-  color=color||'#4ade80';
-  document.getElementById('toast-title').textContent=title;
-  document.getElementById('toast-title').style.color=color;
-  document.getElementById('toast-msg').textContent=msg;
-  document.getElementById('toast').style.borderColor=color;
-  document.getElementById('toast').classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>document.getElementById('toast').classList.remove('show'),6000);
-}
-
-// ══ ACTIONS ═══════════════════════════════════════════════════════════════════
-document.getElementById('btn-park').onclick = function() {
-  if(!myPos){toast('GPS requis','Activez votre localisation.','#ef4444');return;}
-  mySpotKey='spots/'+currentUser.uid;
-  db.ref(mySpotKey).set({lat:myPos.lat,lng:myPos.lng,pseudo:userPseudo,uid:currentUser.uid,status:'occupied',ts:Date.now()});
-  document.getElementById('spot-id').textContent='#'+currentUser.uid.slice(-5).toUpperCase();
-  showPhase('parked');
-  parkSec=0; parkIv=setInterval(()=>{parkSec++;document.getElementById('park-timer').textContent=fmt(parkSec);},1000);
-  addHistory('🚗 Stationnement signalé',0);
-};
-
-document.getElementById('btn-search').onclick = function() {
-  if(!myPos){toast('GPS requis','Activez votre localisation.','#ef4444');return;}
-  mySeekKey='seekers/'+currentUser.uid;
-  db.ref(mySeekKey).set({lat:myPos.lat,lng:myPos.lng,pseudo:userPseudo,uid:currentUser.uid,ts:Date.now()});
-  showPhase('searching');
-  addHistory('🔍 Recherche de place démarrée',0);
-};
-
-document.getElementById('btn-free').onclick = function() {
-  if(!myPos){toast('GPS requis','Activez votre localisation.','#ef4444');return;}
-  myFreeKey='freespots/'+currentUser.uid;
-  db.ref(myFreeKey).set({lat:myPos.lat,lng:myPos.lng,pseudo:userPseudo,uid:currentUser.uid,ts:Date.now()});
-  showPhase('free');
-  // Auto-suppression après 5 minutes
-  setTimeout(()=>{
-    if(myFreeKey){db.ref(myFreeKey).remove();myFreeKey=null;if(myPhase==='free')showPhase('idle');}
-  },5*60*1000);
-  addHistory('✋ Place libre signalée',0);
-  incrStat('free');
-};
-
-document.getElementById('btn-cancel-free').onclick = function() {
-  if(myFreeKey)db.ref(myFreeKey).remove();
-  myFreeKey=null; showPhase('idle');
-};
-
-document.getElementById('btn-leave').onclick = doSignalLeaving;
-
-function doSignalLeaving() {
-  if(!mySpotKey)return;
-  clearInterval(parkIv);
-  db.ref(mySpotKey).update({status:'leaving'});
-  showPhase('waiting');
-  nearestSeeker().then(seeker=>{
-    if(seeker){
-      db.ref(mySpotKey).update({notifiedUid:seeker.uid||seeker.key,notifiedPseudo:seeker.pseudo});
-      toast('NOTIFICATION ENVOYÉE 🔔',`${seeker.pseudo} est à ~${seeker.d}m et a été notifié !`,'#f59e0b');
-    } else {
-      toast('Aucun chercheur','Personne ne cherche actuellement. Place visible sur la carte.','#f59e0b');
-    }
-  });
-  addHistory('🚦 Départ signalé',0);
-}
-
-document.getElementById('btn-confirm-arrival').onclick = function() {
-  db.ref(mySpotKey).remove(); mySpotKey=null;
-  changeScore(+5); showPhase('idle');
-  toast('Merci ! +5 pts ✅','Place transmise avec succès.','#4ade80');
-  addHistory('✅ Place transmise avec succès',+5);
-  incrStat('shared');
-};
-
-document.getElementById('btn-leave-early').onclick = function() {
-  if(mySpotKey)db.ref(mySpotKey).remove(); mySpotKey=null;
-  changeScore(-20); showPhase('idle');
-  toast('⚠️ Pénalité −20 pts','Vous avez quitté avant l\'arrivée.','#ef4444');
-  addHistory('❌ Départ avant arrivée',-20);
-};
-
-document.getElementById('btn-arrived').onclick = function() {
-  if(pendingSpot)db.ref('spots/'+pendingSpot.key).remove();
-  if(mySeekKey)db.ref(mySeekKey).remove();
-  pendingSpot=null; mySeekKey=null; showPhase('idle');
-  toast('Place prise ! ✅','Bon stationnement !','#4ade80');
-  addHistory('🅿️ Place trouvée',0);
-  incrStat('found');
-};
-
-document.getElementById('btn-cancel-search').onclick =
-document.getElementById('btn-cancel-notif').onclick = function() {
-  if(mySeekKey)db.ref(mySeekKey).remove();
-  mySeekKey=null; pendingSpot=null; showPhase('idle');
-};
-
-document.getElementById('toast-close').onclick=()=>document.getElementById('toast').classList.remove('show');
-
-// ── Signaler place incorrecte ─────────────────────────────────────────────────
-window.reportSpot = function(key) {
-  if(!currentUser)return;
-  db.ref('reports').push({spotKey:key,reportedBy:currentUser.uid,pseudo:userPseudo,ts:Date.now()});
-  toast('Signalement envoyé ⚑','Merci ! La place a été signalée comme incorrecte.','#ef4444');
-  addHistory('⚑ Place incorrecte signalée',0);
-};
-
-// Nettoyage à la fermeture
-window.addEventListener('beforeunload',()=>{
-  if(mySpotKey)db.ref(mySpotKey).remove();
-  if(mySeekKey)db.ref(mySeekKey).remove();
-  if(myFreeKey)db.ref(myFreeKey).remove();
-});
-</script>
+<script type="module" src="src/app.js"></script>
+<noscript><p style="color:#e2e8f0;padding:24px;font-family:sans-serif">ParkAlert nécessite JavaScript.</p></noscript>
 </body>
 </html>

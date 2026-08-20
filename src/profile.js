@@ -1,0 +1,324 @@
+/**
+ * ParkAlert — profil, véhicules et réglages.
+ * §3 pseudonyme / points / fiabilité · §4 enregistrement d'un véhicule
+ * §5 préférence de stationnement mémorisée · §31 fiabilité
+ */
+
+import { COMFORT, COLORS } from './config.js';
+import { reliabilityFrom, reliabilityLabel, RELIABILITY_WEIGHTS, neededLengthCm } from './core.js';
+import { identify, TEMPLATES, vehicleLabel } from './vehicles.js';
+import * as db from './backend.js';
+import { S, emit } from './state.js';
+import { el, $, toast, openModal, closeModal, chooser, askNotificationPermission, LS } from './ui.js';
+import { askComfort, confirmSheet, infoSheet } from './pickers.js';
+
+const metres = (cm) => `${(cm / 100).toFixed(2)} m`;
+
+/* ─────────────────────── §4 — enregistrer un véhicule ─────────────────────── */
+
+export async function addVehicleFlow(first = false) {
+  const input = el('input', { class: 'field', id: 'veh-q', type: 'text', placeholder: 'Ex. : Renault Captur 2023 rouge', autocomplete: 'off' });
+  const results = el('div', { class: 'results' });
+  const hint = el('div', { class: 'muted', text: 'Écrivez simplement la marque, le modèle, l’année et la couleur.' });
+  let selected = null;
+  let detected = { year: null, color: null };
+
+  const pick = (v) => {
+    selected = v;
+    results.querySelectorAll('.result').forEach((r) => r.classList.toggle('sel', r.dataset.id === v.id));
+  };
+
+  const run = () => {
+    const q = input.value.trim();
+    results.innerHTML = '';
+    selected = null;
+    if (q.length < 2) { hint.textContent = 'Écrivez simplement la marque, le modèle, l’année et la couleur.'; return; }
+    const res = identify(q);
+    detected = { year: res.year, color: res.color };
+    if (!res.matches.length) {
+      hint.innerHTML = 'Véhicule non reconnu. <b>Nous n’inventons pas les dimensions</b> : choisissez un gabarit ou saisissez vos cotes ci-dessous.';
+      return;
+    }
+    hint.innerHTML = 'Confirmez le véhicule proposé — les dimensions viennent de la base automobile, pas d’une estimation.';
+    for (const m of res.matches) {
+      results.append(el('button', {
+        class: 'result', type: 'button', dataset: { id: m.id }, onclick: () => pick(m),
+      },
+      el('b', { text: `${m.brand} ${m.model}` }),
+      el('span', { text: `${m.yearFrom}–${m.yearTo} · ${metres(m.lengthCm)} × ${metres(m.widthCm)}` })));
+    }
+    if (res.matches.length) pick(res.matches[0]);
+  };
+
+  let deb;
+  input.addEventListener('input', () => { clearTimeout(deb); deb = setTimeout(run, 300); });
+
+  const manual = el('details', { class: 'manual' },
+    el('summary', { text: 'Mon véhicule n’est pas dans la liste' }),
+    el('div', { class: 'sublabel', text: 'GABARIT APPROCHANT (ESTIMATION)' }),
+    (() => {
+      const c = chooser(TEMPLATES.map((t) => ({ id: t.id, label: t.label })), { value: null, columns: 1 });
+      c.id = 'tpl-picker';
+      return c;
+    })(),
+    el('div', { class: 'sublabel', text: 'OU DIMENSIONS EXACTES DE VOTRE CARTE GRISE' }),
+    el('div', { class: 'custom-row' },
+      el('label', { text: 'Longueur' }), el('input', { type: 'number', id: 'man-len', min: '200', max: '900', step: '1', placeholder: 'cm' }), el('span', { text: 'cm' })),
+    el('div', { class: 'custom-row' },
+      el('label', { text: 'Largeur' }), el('input', { type: 'number', id: 'man-wid', min: '100', max: '300', step: '1', placeholder: 'cm' }), el('span', { text: 'cm' })),
+  );
+
+  const colorField = el('input', { class: 'field', id: 'veh-color', type: 'text', placeholder: 'Couleur (ex. rouge)', list: 'color-list', autocomplete: 'off' });
+  const yearField = el('input', { class: 'field', id: 'veh-year', type: 'number', min: '1990', max: '2030', placeholder: 'Année' });
+
+  const body = el('div', {},
+    el('div', { class: 'sublabel', text: 'DÉCRIVEZ VOTRE VÉHICULE' }),
+    input, hint, results, manual,
+    el('div', { class: 'sublabel', text: 'COULEUR ET ANNÉE (POUR ÊTRE RECONNU SUR PLACE)' }),
+    el('div', { class: 'btn-row' }, colorField, yearField),
+    el('datalist', { id: 'color-list' }, ...COLORS.map((c) => el('option', { value: c }))),
+  );
+
+  input.addEventListener('input', () => {
+    const res = identify(input.value);
+    if (res.color && !colorField.value) colorField.value = res.color;
+    if (res.year && !yearField.value) yearField.value = String(res.year);
+  });
+
+  const res = await openModal({
+    title: first ? 'Enregistrez votre véhicule' : 'Ajouter un véhicule',
+    subtitle: 'L’IA aide à identifier le modèle ; les dimensions viennent d’une base automobile.',
+    body,
+    actions: [{
+      label: 'CONFIRMER CE VÉHICULE', value: 'ok', variant: 'btn-green', keep: true,
+      onClick: () => {
+        const tpl = manual.querySelector('#tpl-picker')?.value;
+        const manLen = Number(manual.querySelector('#man-len').value) || 0;
+        if (!selected && !tpl && !manLen) {
+          toast('Véhicule non défini', 'Choisissez une proposition, un gabarit, ou saisissez vos dimensions.', '#ef4444');
+          return;
+        }
+        closeModal('ok');
+      },
+    }],
+    dismissible: !first,
+  });
+  if (res !== 'ok') return null;
+
+  const tplId = manual.querySelector('#tpl-picker')?.value;
+  const manLen = Number(manual.querySelector('#man-len').value) || 0;
+  const manWid = Number(manual.querySelector('#man-wid').value) || 0;
+
+  let vehicle;
+  if (manLen) {
+    vehicle = { brand: input.value.trim() || 'Mon véhicule', model: '', lengthCm: manLen, widthCm: manWid || 180, source: 'manuel' };
+  } else if (selected) {
+    vehicle = { brand: selected.brand, model: selected.model, lengthCm: selected.lengthCm, widthCm: selected.widthCm, source: 'base' };
+  } else {
+    const t = TEMPLATES.find((x) => x.id === tplId);
+    vehicle = { brand: input.value.trim() || t.label, model: '', lengthCm: t.lengthCm, widthCm: t.widthCm, source: 'gabarit' };
+  }
+
+  vehicle.color = colorField.value.trim() || detected.color || '';
+  vehicle.year = Number(yearField.value) || detected.year || null;
+
+  // §5 — préférence de stationnement mémorisée pour ce véhicule.
+  const comfort = await askComfort({
+    title: 'Avec ce véhicule, comment aimez-vous vous garer ?',
+    subtitle: 'Mémorisé pour ce véhicule, modifiable à chaque recherche.',
+    value: 'normal',
+    explain: `Exemple : ${metres(vehicle.lengthCm)} + mode Normal = besoin estimé de ${metres(neededLengthCm(vehicle.lengthCm, 'normal'))}.`,
+  });
+  vehicle.marginMode = comfort && comfort !== 'later' ? comfort.qual : 'normal';
+  vehicle.marginCm = comfort && comfort !== 'later' ? comfort.customCm : null;
+
+  const id = db.pushKey(`users/${S.uid}/vehicles`);
+  vehicle.id = id;
+  vehicle.createdAt = db.now();
+  await db.write(`users/${S.uid}/vehicles/${id}`, vehicle);
+  if (!S.defaultVehicleId) {
+    S.defaultVehicleId = id;
+    await db.patch(`users/${S.uid}`, { defaultVehicle: id });
+  }
+  // Pas d'ajout local : l'abonnement à `users/{uid}` rafraîchit déjà la liste,
+  // et un ajout optimiste créerait un doublon selon l'ordre d'arrivée.
+  emit();
+
+  if (vehicle.source === 'gabarit') {
+    await infoSheet('Dimensions estimées',
+      'Votre véhicule n’étant pas dans la base, ParkAlert utilise un gabarit approchant. '
+      + 'Pour une mise en relation plus fiable, saisissez la longueur exacte figurant sur votre carte grise (repère 5.1).');
+  }
+  return vehicle;
+}
+
+export async function removeVehicle(id) {
+  const ok = await confirmSheet('Supprimer ce véhicule ?', '', 'SUPPRIMER', 'ANNULER', 'btn-red');
+  if (!ok) return;
+  await db.del(`users/${S.uid}/vehicles/${id}`);
+  if (S.defaultVehicleId === id) {
+    S.defaultVehicleId = S.vehicles.find((v) => v.id !== id)?.id || null;
+    await db.patch(`users/${S.uid}`, { defaultVehicle: S.defaultVehicleId });
+  }
+  emit();
+}
+
+export async function setDefaultVehicle(id) {
+  S.defaultVehicleId = id;
+  await db.patch(`users/${S.uid}`, { defaultVehicle: id });
+  emit();
+}
+
+export async function editVehicleComfort(v) {
+  const comfort = await askComfort({
+    title: `Préférence pour ${vehicleLabel(v)}`,
+    value: v.marginMode || 'normal',
+    customCm: v.marginCm || 60,
+  });
+  if (!comfort || comfort === 'later') return;
+  await db.patch(`users/${S.uid}/vehicles/${v.id}`, { marginMode: comfort.qual, marginCm: comfort.customCm ?? null });
+  emit();
+}
+
+/* ─────────────────────── Vue Profil ─────────────────────── */
+
+export function renderProfile() {
+  const root = $('#view-profile');
+  if (!root) return;
+  const rel = S.reliability ?? 100;
+  const { label, color } = reliabilityLabel(rel);
+  const stats = S.profile?.stats || {};
+
+  root.innerHTML = '';
+  root.append(
+    el('div', { class: 'card' },
+      el('div', { class: 'card-title', text: S.profile?.pseudo || 'Conducteur' }),
+      el('div', { class: 'muted', text: S.user?.isAnonymous ? 'Compte invité (données non conservées)' : (S.user?.email || '') }),
+      el('div', { class: 'twin' },
+        el('div', {}, el('div', { class: 'sublabel', text: 'POINTS D’ENTRAIDE' }), el('div', { class: 'big', style: { color: '#4ade80' }, text: String(S.profile?.points || 0) })),
+        el('div', {}, el('div', { class: 'sublabel', text: 'INDICE DE FIABILITÉ' }), el('div', { class: 'big', style: { color }, text: String(rel) }), el('div', { class: 'muted', text: label })),
+      ),
+      el('div', { class: 'note', html: 'Les points récompensent les transmissions réussies et vous rendent <b>prioritaire</b> quand vous cherchez. La fiabilité, elle, reflète le respect de vos réservations (§3).' }),
+    ),
+
+    el('div', { class: 'card' },
+      el('div', { class: 'sublabel', text: 'STATISTIQUES' }),
+      el('div', { class: 'kv', html: '<span>Places transmises</span><b>' + (stats.given || 0) + '</b>' }),
+      el('div', { class: 'kv', html: '<span>Places obtenues</span><b>' + (stats.taken || 0) + '</b>' }),
+      el('div', { class: 'kv', html: '<span>Signalements</span><b>' + (stats.signals || 0) + '</b>' }),
+    ),
+
+    el('div', { class: 'card' },
+      el('div', { class: 'sublabel', text: 'MES VÉHICULES' }),
+      ...(S.vehicles.length ? S.vehicles.map(vehicleRow) : [el('div', { class: 'muted', text: 'Aucun véhicule enregistré.' })]),
+      el('button', { class: 'btn btn-ghost small', onclick: () => addVehicleFlow() }, 'AJOUTER UN VÉHICULE'),
+    ),
+
+    el('div', { class: 'card' },
+      el('div', { class: 'sublabel', text: 'RÉGLAGES' }),
+      toggleRow('Rappels avant départ (§11)', !!S.profile?.prefs?.reminders, async (v) => {
+        await db.patch(`users/${S.uid}/prefs`, { reminders: v });
+        S.profile.prefs = { ...(S.profile.prefs || {}), reminders: v };
+      }),
+      toggleRow('Notifications système', typeof Notification !== 'undefined' && Notification.permission === 'granted', async (v, input) => {
+        if (!v) { toast('Notifications', 'Désactivez-les depuis les réglages de votre navigateur.', '#64748b'); input.checked = true; return; }
+        const ok = await askNotificationPermission();
+        input.checked = ok;
+      }),
+      el('div', { class: 'note', html: 'Le partage de position ne démarre qu’après une réservation et s’arrête automatiquement à la fin (§19).' }),
+      el('button', { class: 'btn btn-ghost small', onclick: () => showReliabilityDetail() }, 'COMMENT EST CALCULÉE MA FIABILITÉ ?'),
+      el('button', { class: 'btn btn-red small', onclick: () => import('./app.js').then((m) => m.doLogout()) }, 'SE DÉCONNECTER'),
+    ),
+  );
+}
+
+function vehicleRow(v) {
+  const isDefault = v.id === S.defaultVehicleId;
+  return el('div', { class: `veh ${isDefault ? 'default' : ''}` },
+    el('div', { class: 'veh-main' },
+      el('b', { text: vehicleLabel(v) }),
+      el('span', { class: 'muted', text: `${metres(v.lengthCm)}${v.color ? ` · ${v.color}` : ''} · ${sourceLabel(v.source)}` }),
+      el('span', { class: 'muted', text: `Confort : ${COMFORT.find((c) => c.id === (v.marginMode || 'normal'))?.label} → besoin ${metres(neededLengthCm(v.lengthCm, v.marginMode || 'normal', v.marginCm))}` }),
+    ),
+    el('div', { class: 'veh-actions' },
+      isDefault ? el('span', { class: 'badge badge-green', text: 'PAR DÉFAUT' })
+        : el('button', { class: 'chip', onclick: () => setDefaultVehicle(v.id) }, 'Utiliser'),
+      el('button', { class: 'chip', onclick: () => editVehicleComfort(v) }, 'Confort'),
+      el('button', { class: 'chip danger', onclick: () => removeVehicle(v.id) }, 'Supprimer'),
+    ));
+}
+
+function sourceLabel(src) {
+  if (src === 'base') return 'dimensions constructeur';
+  if (src === 'manuel') return 'dimensions saisies';
+  return 'gabarit estimé';
+}
+
+function toggleRow(label, checked, onChange) {
+  const input = el('input', { type: 'checkbox', checked: checked || false });
+  input.addEventListener('change', () => onChange(input.checked, input));
+  return el('label', { class: 'toggle' }, el('span', { text: label }), input);
+}
+
+function showReliabilityDetail() {
+  const c = S.profile?.counters || {};
+  const rows = Object.entries(RELIABILITY_WEIGHTS).map(([k, w]) => {
+    const names = {
+      late: 'Retards constatés', lateCancel: 'Annulations tardives', noShow: 'Absences sans prévenir',
+      falseReport: 'Faux signalements', badSpot: 'Places mal décrites',
+    };
+    const n = Number(c[k]) || 0;
+    return `<div class="kv"><span>${names[k]}</span><b>${n}${n > 1 ? ` (−${(n - 1) * w})` : ''}</b></div>`;
+  }).join('');
+  infoSheet('Indice de fiabilité',
+    'Une erreur occasionnelle n’est <b>jamais</b> sanctionnée : la première occurrence de chaque type d’incident est neutre. '
+    + 'Seule la répétition fait baisser l’indice (§31).<br><br>' + rows);
+}
+
+/* ─────────────────────── Vue Historique ─────────────────────── */
+
+export function renderHistory(entries) {
+  const root = $('#view-history');
+  if (!root) return;
+  root.innerHTML = '';
+  root.append(el('div', { class: 'sublabel', text: 'HISTORIQUE DE VOS ACTIONS' }));
+  if (!entries.length) {
+    root.append(el('div', { class: 'empty', text: 'Aucune action pour l’instant.' }));
+    return;
+  }
+  for (const h of entries) {
+    root.append(el('div', { class: 'card compact' },
+      el('div', { class: 'muted small', text: new Date(h.ts).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) }),
+      el('div', { text: h.action }),
+      h.detail ? el('div', { class: 'muted small', text: h.detail }) : null,
+      h.delta ? el('div', { class: 'badge badge-green', text: `+${h.delta} points` }) : null,
+    ));
+  }
+}
+
+/* ─────────────────────── Première configuration ─────────────────────── */
+
+export async function onboarding() {
+  if (!S.profile?.pseudo || S.profile.pseudo === 'Conducteur') {
+    const input = el('input', { class: 'field', type: 'text', placeholder: 'Votre pseudonyme', maxlength: '24', value: S.profile?.pseudo === 'Conducteur' ? '' : (S.profile?.pseudo || '') });
+    const res = await openModal({
+      title: 'Bienvenue sur ParkAlert',
+      subtitle: 'Comment souhaitez-vous être appelé ?',
+      body: el('div', {}, el('div', { class: 'note', html: 'Un pseudonyme suffit : les autres conducteurs ne voient jamais votre nom complet, votre téléphone ni votre plaque (§17).' }), input),
+      actions: [{ label: 'CONTINUER', value: 'ok', variant: 'btn-green' }],
+      dismissible: false,
+    });
+    const pseudo = input.value.trim() || 'Conducteur';
+    if (res === 'ok') {
+      await db.patch(`users/${S.uid}`, { pseudo });
+      S.profile.pseudo = pseudo;
+    }
+  }
+  if (!S.vehicles.length) await addVehicleFlow(true);
+  if (!LS.get('notifAsked')) { LS.set('notifAsked', true); await askNotificationPermission(); }
+  emit();
+}
+
+export function computeReliability(profile) {
+  return reliabilityFrom(profile?.counters || {});
+}

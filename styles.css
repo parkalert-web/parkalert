@@ -1,0 +1,235 @@
+/* ParkAlert — feuille de style unique.
+   Interface pensée pour le mobile et l'usage au volant (§34) :
+   gros boutons, contrastes forts, une action évidente par écran. */
+
+:root{
+  --bg:#030712; --panel:#080f1c; --card:#0f172a; --line:#1e293b; --ink:#e2e8f0;
+  --muted:#64748b; --dim:#334155;
+  --green:#4ade80; --blue:#38bdf8; --orange:#f59e0b; --purple:#a855f7; --red:#ef4444;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  background:var(--bg); color:var(--ink); font-family:'DM Mono',ui-monospace,monospace;
+  font-size:14px; line-height:1.5; overflow:hidden;
+}
+button{font-family:inherit;}
+b{color:#f1f5f9;font-weight:500;}
+.muted{color:var(--muted);}
+.small{font-size:11px;}
+.sublabel{font-size:9px;letter-spacing:2px;color:var(--dim);margin:14px 0 6px;text-transform:uppercase;}
+.sublabel:first-child{margin-top:0;}
+.empty{text-align:center;padding:40px 16px;color:var(--dim);}
+
+.screen{display:none;height:100svh;flex-direction:column;}
+.screen.active{display:flex;}
+
+/* ── Connexion ─────────────────────────────────────────────── */
+.auth-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow-y:auto;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,13vw,60px);letter-spacing:4px;color:#f8fafc;line-height:1;}
+.logo span{color:var(--green);}
+.tagline{font-size:11px;color:var(--muted);letter-spacing:1px;margin:8px 0 28px;text-align:center;max-width:320px;}
+.auth-box{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;}
+.auth-tabs{display:flex;background:#060f1e;border-radius:10px;padding:3px;margin-bottom:16px;}
+.auth-tab{flex:1;padding:9px;border:0;background:transparent;color:var(--muted);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;border-radius:8px;cursor:pointer;}
+.auth-tab.active{background:var(--line);color:#f8fafc;}
+.auth-err{color:var(--red);font-size:11px;min-height:16px;margin-bottom:6px;}
+.sep{text-align:center;color:var(--dim);font-size:11px;margin:12px 0;}
+.legal{max-width:360px;margin-top:20px;font-size:10px;color:var(--dim);text-align:center;line-height:1.7;}
+
+.field{
+  width:100%;padding:12px 14px;background:#060f1e;border:1px solid var(--line);border-radius:11px;
+  color:var(--ink);font-family:inherit;font-size:14px;margin-bottom:9px;outline:none;
+}
+.field:focus{border-color:var(--green);}
+.field::placeholder{color:var(--dim);}
+
+/* ── Boutons ───────────────────────────────────────────────── */
+.btn{
+  width:100%;padding:14px 12px;border-radius:13px;border:0;cursor:pointer;margin-bottom:9px;
+  font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:2px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:52px;
+}
+.btn:last-child{margin-bottom:0;}
+.btn-main{font-size:inherit;letter-spacing:inherit;}
+.btn-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0;opacity:.75;text-transform:none;}
+.btn-green{background:linear-gradient(135deg,#14532d,#4ade80);color:#052e16;}
+.btn-blue{background:linear-gradient(135deg,#0c4a6e,#38bdf8);color:#082f49;}
+.btn-orange{background:linear-gradient(135deg,#78350f,#f59e0b);color:#1c0a00;}
+.btn-purple{background:linear-gradient(135deg,#3b0764,#a855f7);color:#1a0030;}
+.btn-red{background:transparent;border:1px solid #7f1d1d;color:var(--red);}
+.btn-ghost{background:transparent;border:1px solid var(--line);color:#94a3b8;font-family:'DM Mono',monospace;font-size:13px;letter-spacing:0;flex-direction:row;gap:8px;}
+.btn-ghost:hover{border-color:var(--muted);}
+.btn.small{min-height:40px;padding:9px 10px;font-size:12px;letter-spacing:1px;}
+.btn:disabled{opacity:.5;}
+.btn-row{display:flex;gap:8px;}
+.btn-row>*{flex:1;margin-bottom:0;}
+.chip{background:#0b1220;border:1px solid var(--line);color:#94a3b8;border-radius:8px;padding:5px 9px;font-size:11px;cursor:pointer;}
+.chip.danger{border-color:#7f1d1d;color:var(--red);}
+.icon-btn{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:#0b1220;color:var(--muted);cursor:pointer;font-size:14px;}
+
+/* ── Entête ────────────────────────────────────────────────── */
+#header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;background:var(--panel);border-bottom:1px solid var(--line);flex-shrink:0;padding-top:calc(9px + env(safe-area-inset-top,0px));}
+.logo-sm{font-family:'Bebas Neue',sans-serif;font-size:21px;letter-spacing:3px;color:#f8fafc;line-height:1;}
+.logo-sm span{color:var(--green);}
+.hdr-stats{display:flex;align-items:center;gap:6px;}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:3px 9px;text-align:center;min-width:52px;}
+.stat-n{font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--green);line-height:1.1;}
+.stat-l{font-size:7px;letter-spacing:1px;color:var(--dim);}
+#gps-bar{background:#040a12;padding:3px 13px;font-size:10px;color:#1e3a5f;letter-spacing:.5px;flex-shrink:0;}
+
+/* ── Vues ──────────────────────────────────────────────────── */
+.views{flex:1;min-height:0;display:flex;}
+.view{display:none;flex:1;min-height:0;flex-direction:column;}
+.view.active{display:flex;}
+#view-history,#view-profile{overflow-y:auto;padding:16px 14px 24px;gap:12px;}
+
+.map-wrap{position:relative;flex:1;min-height:0;}
+#map{position:absolute;inset:0;background:#0a0f1a;}
+/* Les tuiles OpenStreetMap sont claires : on les bascule en sombre côté navigateur,
+   plutôt que de dépendre d'un fournisseur de fonds de carte payant. */
+.leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.86) saturate(.55);}
+.leaflet-container{background:#0a0f1a;font-family:'DM Mono',monospace;}
+.fab{position:absolute;right:10px;bottom:58px;z-index:500;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:rgba(8,15,28,.92);color:var(--blue);font-size:17px;cursor:pointer;}
+.legend{position:absolute;left:8px;bottom:8px;z-index:500;display:flex;flex-wrap:wrap;gap:6px;max-width:70%;}
+.legend span{background:rgba(3,7,18,.86);border:1px solid var(--line);border-radius:7px;padding:2px 6px;font-size:9px;color:#94a3b8;display:flex;align-items:center;gap:4px;}
+.legend i{width:7px;height:7px;border-radius:50%;background:var(--c);}
+.counters{position:absolute;right:8px;top:8px;z-index:500;display:flex;flex-direction:column;gap:4px;align-items:flex-end;}
+.counters span{background:rgba(3,7,18,.86);border:1px solid var(--line);border-radius:7px;padding:2px 7px;font-size:10px;color:#94a3b8;}
+body.picking #map{cursor:crosshair;}
+body.picking .map-wrap::after{content:'Appuyez sur la carte';position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:600;background:var(--blue);color:#04283a;padding:5px 12px;border-radius:20px;font-size:11px;}
+
+.pin{border-radius:50%;background:var(--c);border:2px solid rgba(255,255,255,.25);box-shadow:0 0 10px var(--c);display:flex;align-items:center;justify-content:center;color:#04121f;font-size:11px;font-weight:700;font-family:'Bebas Neue',sans-serif;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--c)}70%{box-shadow:0 0 0 12px transparent}}
+
+/* ── Panneau d'action ──────────────────────────────────────── */
+#panel{background:var(--panel);border-top:1px solid var(--line);padding:12px 13px calc(12px + var(--safe-b));flex-shrink:0;max-height:52svh;overflow-y:auto;}
+.info{background:#060f1e;border:1px solid var(--line);border-radius:11px;padding:10px 13px;font-size:12px;color:#94a3b8;margin-bottom:9px;}
+.info-orange{border-color:#78350f;}
+.info-green{border-color:#14532d;}
+.info-blue{border-color:#0c4a6e;}
+.info-purple{border-color:#3b0764;}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:2px 0;}
+.kv span{color:var(--muted);}
+.kv b{text-align:right;}
+.spinner{width:26px;height:26px;margin:10px auto;border:2px solid var(--line);border-top-color:var(--green);border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Cartes (profil, historique) ───────────────────────────── */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:12px;}
+.card.compact{padding:11px 13px;}
+.card-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:#f8fafc;}
+.twin{display:flex;gap:16px;margin:14px 0 10px;}
+.twin>div{flex:1;}
+.big{font-family:'Bebas Neue',sans-serif;font-size:38px;line-height:1;}
+.note{background:#060f1e;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:11.5px;color:#94a3b8;line-height:1.65;margin-bottom:10px;}
+.note p{margin-bottom:7px;}
+.note p:last-child{margin-bottom:0;}
+.note-orange{border-color:#78350f;color:#fbbf24;}
+.veh{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);}
+.veh:last-of-type{border-bottom:0;}
+.veh-main{display:flex;flex-direction:column;gap:2px;font-size:12px;min-width:0;}
+.veh-main span{font-size:10.5px;}
+.veh-actions{display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0;}
+.toggle{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;font-size:12px;color:#94a3b8;border-bottom:1px solid var(--line);cursor:pointer;}
+.toggle input{width:38px;height:22px;appearance:none;background:#0b1220;border:1px solid var(--line);border-radius:11px;position:relative;cursor:pointer;flex-shrink:0;}
+.toggle input::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:.2s;}
+.toggle input:checked{border-color:var(--green);}
+.toggle input:checked::after{left:18px;background:var(--green);}
+
+.badge{display:inline-block;border-radius:6px;padding:2px 7px;font-size:9.5px;letter-spacing:1px;}
+.badge-green{background:rgba(74,222,128,.13);color:var(--green);}
+.badge-orange{background:rgba(245,158,11,.13);color:var(--orange);}
+.badge-red{background:rgba(239,68,68,.13);color:var(--red);}
+
+/* ── Navigation basse ──────────────────────────────────────── */
+#nav{display:flex;background:var(--panel);border-top:1px solid var(--line);flex-shrink:0;padding-bottom:var(--safe-b);}
+.nav-btn{flex:1;padding:8px 4px;border:0;background:transparent;color:var(--dim);font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;border-top:2px solid transparent;margin-top:-1px;}
+.nav-btn span{font-size:17px;}
+.nav-btn.active{color:var(--green);border-top-color:var(--green);}
+
+/* ── Toast ─────────────────────────────────────────────────── */
+#toast{
+  position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);
+  background:#0b1a12;border:1.5px solid var(--green);border-radius:13px;padding:11px 14px;
+  width:min(94%,360px);z-index:9000;display:none;gap:10px;align-items:flex-start;
+  box-shadow:0 12px 40px rgba(0,0,0,.6);
+}
+#toast.show{display:flex;}
+.toast-body{flex:1;min-width:0;}
+.toast-ttl{font-size:10px;letter-spacing:2px;font-weight:500;margin-bottom:3px;text-transform:uppercase;}
+.toast-msg{font-size:12px;color:var(--ink);line-height:1.5;}
+#toast-close{background:none;border:0;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;}
+
+/* ── Feuille modale ────────────────────────────────────────── */
+#modal-back{position:fixed;inset:0;background:rgba(2,6,15,.72);backdrop-filter:blur(3px);z-index:8000;display:none;align-items:flex-end;justify-content:center;}
+#modal-back.show{display:flex;}
+#modal{
+  width:min(100%,480px);max-height:92svh;overflow-y:auto;background:var(--panel);
+  border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0;
+  padding:20px 16px calc(16px + var(--safe-b));position:relative;
+  animation:rise .22s ease-out;
+}
+@keyframes rise{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
+#modal-close{position:absolute;top:12px;right:12px;background:none;border:0;color:var(--muted);font-size:22px;line-height:1;cursor:pointer;}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:#f8fafc;line-height:1.15;padding-right:26px;margin-bottom:4px;}
+.modal-sub{font-size:11.5px;color:var(--muted);margin-bottom:12px;}
+#modal-body{margin-bottom:14px;}
+#modal-actions{display:flex;flex-direction:column;gap:8px;}
+#modal-actions .btn{margin-bottom:0;}
+
+/* ── Sélecteurs tactiles ───────────────────────────────────── */
+.chooser{display:grid;gap:8px;margin-bottom:10px;}
+.chooser.cols-1{grid-template-columns:1fr;}
+.chooser.cols-2{grid-template-columns:1fr 1fr;}
+.choice{
+  background:#060f1e;border:1.5px solid var(--line);border-radius:12px;padding:12px 10px;cursor:pointer;
+  display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center;color:#94a3b8;min-height:52px;justify-content:center;
+}
+.choice.sel{border-color:var(--green);background:rgba(74,222,128,.08);color:#f1f5f9;}
+.choice-label{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1.5px;}
+.choice-hint{font-size:9.5px;color:var(--dim);line-height:1.4;}
+.choice.sel .choice-hint{color:var(--muted);}
+.custom-row{display:flex;align-items:center;gap:9px;margin-bottom:10px;font-size:12px;color:var(--muted);}
+.custom-row input{flex:1;padding:9px 11px;background:#060f1e;border:1px solid var(--line);border-radius:9px;color:var(--ink);font-family:inherit;font-size:13px;outline:none;min-width:0;}
+.custom-row input:focus{border-color:var(--green);}
+.slider-row{display:flex;align-items:center;gap:11px;margin-bottom:8px;}
+.slider{flex:1;appearance:none;height:4px;border-radius:2px;background:var(--line);outline:none;}
+.slider::-webkit-slider-thumb{appearance:none;width:20px;height:20px;border-radius:50%;background:var(--blue);cursor:pointer;}
+.slider::-moz-range-thumb{width:20px;height:20px;border:0;border-radius:50%;background:var(--blue);cursor:pointer;}
+
+.results{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px;}
+.result{background:#060f1e;border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;text-align:left;cursor:pointer;color:#94a3b8;display:flex;flex-direction:column;gap:2px;}
+.result b{font-size:12.5px;}
+.result span{font-size:10px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.result.sel{border-color:var(--green);background:rgba(74,222,128,.08);}
+.chosen{font-size:11.5px;color:var(--dim);padding:8px 11px;border:1px dashed var(--line);border-radius:9px;margin-bottom:4px;}
+.chosen.ok{color:var(--green);border-style:solid;border-color:#14532d;}
+.manual{margin:8px 0 4px;}
+.manual summary{font-size:11.5px;color:var(--blue);cursor:pointer;padding:6px 0;}
+
+.offer-hero{background:linear-gradient(160deg,rgba(74,222,128,.1),transparent);border:1px solid #14532d;border-radius:12px;padding:14px;margin-bottom:10px;}
+.offer-line{font-size:14px;color:#cbd5e1;margin-bottom:4px;}
+.offer-line.small{font-size:11px;color:var(--muted);}
+.countdown{text-align:center;font-size:11px;color:var(--muted);margin-top:4px;}
+.countdown-wrap{height:4px;background:var(--line);border-radius:2px;overflow:hidden;}
+.countdown-bar{height:100%;background:var(--orange);transition:width .25s linear;}
+
+/* ── Bulles Leaflet ────────────────────────────────────────── */
+.leaflet-popup-content-wrapper{background:var(--card);border:1px solid var(--line);border-radius:12px;color:var(--ink);}
+.leaflet-popup-tip{background:var(--card);}
+.leaflet-popup-content{margin:11px 14px;font-size:11.5px;}
+.pop b{font-size:12px;}
+.pop .muted{font-size:10.5px;}
+.pop-actions{display:flex;gap:6px;margin-top:7px;}
+.pop-actions button{flex:1;background:#0b1220;border:1px solid var(--line);color:#94a3b8;border-radius:7px;padding:4px 6px;font-size:10px;cursor:pointer;font-family:inherit;}
+.pop-actions button.danger{border-color:#7f1d1d;color:var(--red);}
+.leaflet-control-attribution{background:rgba(3,7,18,.75)!important;color:var(--dim)!important;font-size:9px!important;}
+.leaflet-control-attribution a{color:var(--muted)!important;}
+.leaflet-bar a{background:#0b1220!important;color:#94a3b8!important;border-color:var(--line)!important;}
+
+@media (min-width:720px){
+  .views{max-width:560px;width:100%;margin:0 auto;}
+  #header,#nav,#gps-bar{padding-left:max(13px,calc(50vw - 280px));padding-right:max(13px,calc(50vw - 280px));}
+}
