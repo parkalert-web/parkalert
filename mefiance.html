@@ -1,0 +1,2297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>MÉFIANCE — 150 labyrinthes, et rien n'est ce qu'il paraît</title>
+<meta name="description" content="Cent cinquante petits labyrinthes à traverser. Des piques invisibles, des faux murs, des fausses sorties, des fléchettes et des mines. Chaque piège découvert reste marqué pour toujours. Gratuit, sans installation, dans le navigateur.">
+<meta name="theme-color" content="#0b0f17">
+<style>
+:root{
+  --nuit:#0b0f17; --nuit2:#131a26; --panneau:#171f2e; --ligne:#2a3444;
+  --encre:#e8eefa; --gris:#8b9bb4; --gris2:#5b6a83;
+  --sol:#232a3a; --mur:#3d4a63;
+  --craie:#ff6b74; --or:#ffd44e; --vert:#4ad991; --bleu:#5fb6e0;
+  --violet:#a583e0; --brun:#c98a3c;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
+  --titre:"Arial Black","Arial Bold",Impact,system-ui,sans-serif;
+  --t1:clamp(42px,13vw,96px); --t2:clamp(21px,5.4vw,38px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--nuit)}
+body{font-family:var(--mono);color:var(--encre);
+  -webkit-user-select:none;user-select:none;touch-action:none}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+
+/* ---------------- bandeau du haut ---------------- */
+#haut{position:fixed;top:0;left:0;right:0;z-index:20;pointer-events:none;
+  display:flex;align-items:flex-start;gap:10px;
+  padding:calc(env(safe-area-inset-top) + 9px) 12px 18px;
+  background:linear-gradient(180deg,rgba(11,15,23,.97) 0%,rgba(11,15,23,.9) 55%,rgba(11,15,23,0))}
+.bloc{display:flex;flex-direction:column;gap:2px;min-width:0}
+.bloc span{font-size:8px;letter-spacing:.2em;color:var(--gris2);font-weight:700;white-space:nowrap}
+.bloc b{font-family:var(--titre);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+#hNiv{font-size:clamp(24px,6.4vw,38px);color:var(--or)}
+#hChap{font-size:9px;letter-spacing:.13em;color:var(--gris);font-weight:700;
+  margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:36vw}
+#hPas{font-size:clamp(15px,3.6vw,21px)}
+#hPas.bon{color:var(--vert)} #hPas.trop{color:var(--craie)}
+#hOpt{font-size:8.5px;letter-spacing:.1em;color:var(--gris2);font-weight:700}
+#hMorts{font-size:clamp(15px,3.6vw,21px);color:var(--craie)}
+#hSu{font-size:clamp(13px,3vw,18px);color:var(--gris)}
+#hSu.bon{color:var(--vert)}
+.pousse{flex:1}
+#hDroite{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+#hEtoiles{font-size:14px;color:var(--or);letter-spacing:1px}
+#hCle{font-size:15px;color:var(--or);display:none}
+
+/* ---------------- bandeau du bas : la croix ---------------- */
+#bas{position:fixed;left:0;right:0;bottom:0;z-index:20;pointer-events:none;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:10px;
+  padding:24px 12px calc(env(safe-area-inset-bottom) + 10px);
+  background:linear-gradient(0deg,rgba(11,15,23,.97) 0%,rgba(11,15,23,.9) 58%,rgba(11,15,23,0))}
+#croix{pointer-events:auto;display:grid;grid-template-columns:repeat(3,1fr);
+  grid-template-rows:repeat(3,1fr);gap:5px;width:clamp(132px,34vw,168px);
+  aspect-ratio:1/1}
+#croix button{border:2px solid var(--ligne);background:rgba(23,31,46,.9);
+  color:var(--encre);border-radius:11px;font:700 19px/1 var(--mono);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:border-color .1s,background .1s,transform .07s}
+#croix button:hover{border-color:var(--gris)}
+#croix button.presse{border-color:var(--or);background:rgba(255,212,78,.16);
+  transform:scale(.94)}
+#dHaut{grid-area:1/2} #dGauche{grid-area:2/1} #dDroite{grid-area:2/3} #dBas{grid-area:3/2}
+#croix i{grid-area:2/2;border:1px dashed rgba(139,155,180,.2);border-radius:9px}
+#outils{pointer-events:auto;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.bt{pointer-events:auto;padding:11px 15px;border:2px solid var(--ligne);
+  border-radius:11px;background:rgba(23,31,46,.9);color:var(--encre);
+  font:700 11px/1 var(--mono);letter-spacing:.13em;cursor:pointer;
+  display:flex;align-items:center;gap:6px;transition:border-color .13s,transform .08s}
+.bt:hover{border-color:var(--gris)} .bt:active{transform:translateY(1px)}
+.bt em{font-style:normal;font-size:8.5px;color:var(--gris2)}
+body:not(.enJeu) #haut,body:not(.enJeu) #bas,body:not(.enJeu) #flash{display:none}
+
+/* ---------------- messages ---------------- */
+#flash{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 84px);
+  transform:translateX(-50%);z-index:22;pointer-events:none;
+  display:flex;flex-direction:column;align-items:center;gap:6px;width:max-content;max-width:92vw}
+.msg{padding:9px 16px;border-radius:20px;background:rgba(13,18,28,.96);
+  border:1px solid rgba(139,155,180,.34);color:var(--encre);
+  font:700 11px/1.45 var(--mono);letter-spacing:.07em;text-align:center;
+  animation:pop .28s both;box-shadow:0 6px 22px rgba(0,0,0,.6)}
+.msg.bon{border-color:rgba(74,217,145,.6);color:var(--vert)}
+.msg.mal{border-color:rgba(255,107,116,.6);color:var(--craie)}
+@keyframes pop{0%{opacity:0;transform:translateY(-8px) scale(.95)}100%{opacity:1;transform:none}}
+
+/* ---------------- écrans ---------------- */
+.screen{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;
+  align-items:center;padding:22px 15px 38px;overflow-y:auto;
+  background:radial-gradient(120% 68% at 50% 0%,rgba(60,80,140,.2),rgba(0,0,0,0) 60%),
+    linear-gradient(180deg,rgba(11,15,23,.976),rgba(11,15,23,.997))}
+.screen.on{display:flex}
+.screen>*{flex-shrink:0}
+h1{font-family:var(--titre);font-size:var(--t1);line-height:.86;text-align:center;
+  letter-spacing:-.02em;color:#fff;
+  text-shadow:0 0 34px rgba(255,107,116,.4),0 0 78px rgba(120,60,90,.3),0 5px 0 rgba(60,20,30,.6)}
+h1 u{text-decoration:none;color:var(--craie)}
+.eyebrow{font-size:9.5px;letter-spacing:.32em;color:var(--craie);margin-bottom:8px;
+  font-weight:700;text-align:center}
+.sous{font-size:11px;letter-spacing:.07em;color:var(--gris);text-align:center;
+  margin-top:11px;line-height:1.85;max-width:600px}
+.sous b{color:var(--encre)}
+.verbe{margin-top:16px;max-width:560px;width:100%;padding:15px 18px;border-radius:14px;
+  background:rgba(23,31,46,.9);border:1px solid rgba(255,107,116,.2);
+  font-size:12px;line-height:1.95;color:var(--encre);text-align:center}
+.verbe b{color:var(--or)} .verbe em{font-style:normal;color:var(--craie)}
+
+.gros{margin-top:16px;width:min(430px,100%);padding:18px 22px;border:0;border-radius:14px;
+  cursor:pointer;background:linear-gradient(160deg,#c2444f,#7d2530);color:#fff;
+  box-shadow:0 6px 0 #58151d,0 14px 36px rgba(180,50,70,.36);
+  text-align:left;display:flex;flex-direction:column;gap:4px;
+  transition:transform .1s,box-shadow .1s}
+.gros b{font-family:var(--titre);font-size:21px}
+.gros span{font-size:10px;letter-spacing:.07em;color:rgba(255,255,255,.76)}
+.gros:hover{transform:translateY(-2px);box-shadow:0 8px 0 #58151d,0 18px 42px rgba(180,50,70,.44)}
+.gros:active{transform:translateY(3px);box-shadow:0 3px 0 #58151d}
+.gros.gris{margin-top:9px;background:linear-gradient(160deg,#33415a,#1d2634);
+  box-shadow:0 6px 0 #111925}
+.gros.gris:active{box-shadow:0 3px 0 #111925}
+.liens{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-top:13px}
+.lien{background:none;border:1px solid rgba(139,155,180,.2);color:var(--gris);
+  font:700 10px/1 var(--mono);letter-spacing:.15em;cursor:pointer;padding:10px 13px;border-radius:9px}
+.lien:hover{border-color:var(--craie);color:var(--encre)}
+.lien.danger{color:var(--craie)}
+#meRang{display:flex;align-items:center;gap:9px;margin-top:13px;padding:8px 15px;
+  border-radius:12px;background:rgba(23,31,46,.88);border:1px solid rgba(255,107,116,.16)}
+#meRang span{font-size:17px} #meRang b{font-family:var(--titre);font-size:13px}
+#meRang u{text-decoration:none;font-size:9.5px;color:var(--or);letter-spacing:.09em}
+
+/* ---------------- les chapitres ---------------- */
+#nvListe{width:100%;max-width:700px;margin-top:14px;display:flex;
+  flex-direction:column;gap:8px}
+.chap{border-radius:13px;background:rgba(23,31,46,.9);border:1px solid var(--ligne);
+  overflow:hidden}
+.chap.verr{opacity:.42}
+.chTete{width:100%;background:none;border:0;color:var(--encre);cursor:pointer;
+  padding:12px 14px;text-align:left;display:grid;
+  grid-template-columns:1fr auto;gap:2px 10px}
+.chNo{font-size:8px;letter-spacing:.2em;color:var(--gris2);font-weight:700}
+.chTete b{font-family:var(--titre);font-size:15px;grid-column:1}
+.chSous{font-size:9.5px;color:var(--gris);line-height:1.5;grid-column:1}
+.chEt{grid-column:2;grid-row:1/4;align-self:center;font:700 11px var(--mono);
+  color:var(--or);white-space:nowrap}
+.chCorps{display:none;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));
+  gap:6px;padding:0 12px 12px}
+.chap.on .chCorps{display:grid}
+.niv{padding:7px 4px 6px;border-radius:9px;background:rgba(11,15,23,.7);
+  border:1px solid var(--ligne);cursor:pointer;color:var(--encre);
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  transition:border-color .1s,transform .08s}
+.niv b{font-family:var(--titre);font-size:14px}
+.niv span{font-size:9px;color:var(--or);letter-spacing:0;min-height:11px}
+.niv:hover{border-color:var(--craie);transform:translateY(-2px)}
+.niv.fait{border-color:rgba(74,217,145,.4)}
+.niv.verr{opacity:.35;cursor:not-allowed} .niv.verr:hover{border-color:var(--ligne);transform:none}
+
+/* ---------------- la sortie ---------------- */
+#fEt{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px;width:100%}
+.et{flex:1 1 120px;max-width:180px;padding:12px 10px;border-radius:12px;
+  background:rgba(23,31,46,.9);border:1px solid var(--ligne);text-align:center;opacity:.45}
+.et.on{opacity:1;border-color:rgba(255,212,78,.5)}
+.et.neuf{animation:pouf .5s both}
+@keyframes pouf{0%{transform:scale(.7)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+.et span{display:block;font-size:26px;color:var(--or);line-height:1}
+.et b{display:block;font-size:9.5px;letter-spacing:.13em;margin-top:5px}
+.grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(122px,1fr));gap:8px;
+  margin-top:12px;width:100%;max-width:600px}
+.cell{padding:10px 12px;border-radius:11px;background:rgba(23,31,46,.9);border:1px solid var(--ligne)}
+.cell span{display:block;font-size:8px;letter-spacing:.18em;color:var(--gris2);font-weight:700}
+.cell b{display:block;font-family:var(--titre);font-size:18px;margin-top:3px;font-variant-numeric:tabular-nums}
+.bloc2{width:100%;max-width:600px;margin-top:11px;padding:14px 16px;border-radius:12px;
+  background:rgba(23,31,46,.9);border:1px solid var(--ligne)}
+.bloc2 .sur{font-size:8.5px;letter-spacing:.2em;color:var(--gris2);font-weight:700;margin-bottom:7px}
+.bloc2 .txt{font-size:11.5px;line-height:1.8;color:var(--encre)}
+.relance{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+.relance .gros{margin-top:0;width:auto;min-width:158px;padding:13px 18px;
+  align-items:center;text-align:center}
+.relance .gros b{font-size:15px}
+
+/* ---------------- règles et succès ---------------- */
+.regl{width:100%;max-width:680px;margin-top:11px;padding:16px 18px;border-radius:12px;
+  background:rgba(23,31,46,.9);border:1px solid var(--ligne);font-size:11.5px;line-height:1.9}
+.regl h3{font-family:var(--titre);font-size:14px;color:var(--craie);margin-bottom:6px}
+.regl b{color:var(--or)}
+#reFam{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px;margin-top:9px}
+.faml{display:flex;gap:9px;padding:9px 11px;border-radius:10px;background:rgba(11,15,23,.7);
+  border-left:3px solid var(--gris2)}
+.faml.cache{border-left-color:var(--craie)}
+.faml i{font-style:normal;font-size:17px;width:22px;text-align:center;flex:0 0 auto;color:var(--craie)}
+.faml b{display:block;font-size:10px;letter-spacing:.1em}
+.faml b u{text-decoration:none;font-size:8px;color:var(--craie);letter-spacing:.14em}
+.faml span{display:block;font-size:9.5px;color:var(--gris);line-height:1.5;margin-top:3px}
+.faml span.ch{color:var(--gris2);font-size:8.5px;letter-spacing:.13em;margin-top:4px}
+.cle{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;align-items:center}
+kbd{background:rgba(255,107,116,.09);border:1px solid rgba(255,107,116,.28);
+  border-radius:6px;padding:2px 7px;font:700 10px var(--mono);color:var(--craie)}
+#suListe{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:8px;
+  width:100%;max-width:660px;margin-top:11px}
+.suc{padding:10px 12px;border-radius:11px;background:rgba(23,31,46,.86);
+  border-left:4px solid rgba(139,155,180,.2);opacity:.5}
+.suc.ok{opacity:1;border-left-color:var(--or)}
+.suc b{display:block;font-size:10px;letter-spacing:.1em}
+.suc span{display:block;font-size:9.5px;color:var(--gris);margin-top:4px;line-height:1.5}
+.reg{display:flex;justify-content:space-between;align-items:center;gap:14px;
+  padding:12px 14px;border-radius:11px;background:rgba(23,31,46,.9);margin-top:8px;
+  width:100%;max-width:680px}
+.reg h4{font-size:10.5px;letter-spacing:.13em}
+.reg p{font-size:9.5px;color:var(--gris);margin-top:4px;line-height:1.55;max-width:330px}
+#legal a{color:var(--craie)}
+
+@media (max-width:640px){
+  .verbe{font-size:11px;line-height:1.8;padding:12px 14px}
+  .relance .gros{min-width:132px}
+  #hChap{max-width:30vw}
+}
+@media (max-height:560px){
+  #haut{padding-top:calc(env(safe-area-inset-top) + 3px);padding-bottom:10px}
+  #hNiv{font-size:21px}
+  #bas{padding:12px 10px calc(env(safe-area-inset-bottom) + 6px)}
+  #croix{width:clamp(96px,20vw,124px)}
+  #croix button{font-size:15px;border-radius:9px}
+  .bt{padding:8px 11px;font-size:9.5px}
+  #flash{top:calc(env(safe-area-inset-top) + 48px)}
+  h1{font-size:clamp(30px,8vw,54px)}
+  .screen{padding-top:12px} .verbe{margin-top:9px;padding:10px 13px}
+  .gros{margin-top:9px;padding:12px 16px} .gros b{font-size:17px}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="haut">
+  <div class="bloc"><span>NIVEAU</span><b id="hNiv">1</b>
+    <div id="hChap">CH.1</div></div>
+  <div class="bloc" style="margin-left:10px"><span>PAS</span><b id="hPas">0</b>
+    <span id="hOpt">/ 0 au mieux</span></div>
+  <div class="bloc" style="margin-left:10px"><span>MORTS ICI</span><b id="hMorts">0</b></div>
+  <div class="pousse"></div>
+  <div id="hDroite">
+    <div class="bloc" style="align-items:flex-end"><span>PIÈGES DÉMASQUÉS</span>
+      <b id="hSu">0 / 0</b></div>
+    <div id="hEtoiles">☆☆☆</div>
+    <div id="hCle">⚿</div>
+  </div>
+</div>
+
+<div id="flash"></div>
+
+<div id="bas">
+  <div id="croix">
+    <button id="dHaut">▲</button><button id="dGauche">◀</button>
+    <i></i><button id="dDroite">▶</button><button id="dBas">▼</button>
+  </div>
+  <div id="outils">
+    <button class="bt" id="bRecommencer">DEPUIS LE DÉPART<em>R</em></button>
+    <button class="bt" id="bRegles">PIÈGES</button>
+    <button class="bt" id="bQuitter">NIVEAUX<em>ÉCHAP</em></button>
+  </div>
+</div>
+
+<div class="screen on" id="menu">
+  <h1>MÉFI<u>ANCE</u></h1>
+  <div class="eyebrow" style="margin-top:9px">TOUT CE QUE TU VOIS N'EST PAS LÀ</div>
+  <div id="meRang"></div>
+  <div class="verbe">
+    Cent cinquante labyrinthes courts. Une sortie, et des pièges.<br>
+    <b>La moitié d'entre eux sont invisibles.</b><br>
+    Tu vas mourir dessus — mais <em>chaque piège découvert reste marqué pour
+    toujours</em>, et repartir ne coûte que deux secondes.<br>
+    On ne gagne pas en étant adroit. On gagne en connaissant le terrain.
+  </div>
+  <button class="gros" id="meJouer"><b>COMMENCER</b><span>—</span></button>
+  <button class="gros gris" id="meNiveaux"><b>LES 150 NIVEAUX</b>
+    <span>Dix chapitres, dix familles de pièges</span></button>
+  <div class="liens">
+    <button class="lien" id="meRegles">LES PIÈGES</button>
+    <button class="lien" id="meSucces">SUCCÈS</button>
+    <button class="lien" id="meLegal">MENTIONS LÉGALES</button>
+  </div>
+</div>
+
+<div class="screen" id="niveaux">
+  <div class="eyebrow">DIX CHAPITRES</div>
+  <h1 style="font-size:var(--t2)">LES NIVEAUX</h1>
+  <div class="sous" id="nvSous"></div>
+  <div id="nvListe"></div>
+  <div class="relance"><button class="gros gris" id="nvRetour"><b>RETOUR</b></button></div>
+</div>
+
+<div class="screen" id="fin">
+  <div class="eyebrow" id="fEye"></div>
+  <h1 style="font-size:var(--t2)" id="fTitre">SORTI</h1>
+  <div id="fEt"></div>
+  <div class="grille" id="fGrille"></div>
+  <div class="bloc2"><div class="sur">CE QU'IL RESTE À FAIRE</div>
+    <div class="txt" id="fNote"></div></div>
+  <div class="relance">
+    <button class="gros" id="fSuite"><b>NIVEAU SUIVANT</b></button>
+    <button class="gros gris" id="fRefaire"><b>REFAIRE</b></button>
+    <button class="gros gris" id="fNiveaux"><b>LES NIVEAUX</b></button>
+  </div>
+</div>
+
+<div class="screen" id="succes">
+  <div class="eyebrow">TABLEAU DE CHASSE</div>
+  <h1 style="font-size:var(--t2)">SUCCÈS</h1>
+  <div class="bloc2" id="suTete"></div>
+  <div id="suListe"></div>
+  <div class="relance"><button class="gros gris" id="suRetour"><b>RETOUR</b></button></div>
+</div>
+
+<div class="screen" id="regles">
+  <div class="eyebrow">MODE D'EMPLOI</div>
+  <h1 style="font-size:var(--t2)">LES PIÈGES</h1>
+
+  <div class="regl">
+    <h3>LA RÈGLE QUI CHANGE TOUT</h3>
+    Un piège que tu découvres est <b>marqué à la craie pour toujours</b> sur ce
+    niveau — même si tu quittes le jeu et que tu reviens dans un mois.<br>
+    Mourir ne fait donc pas perdre : ça fait <b>gagner une information</b>. C'est
+    la seule monnaie du jeu, et elle ne se dépense jamais deux fois.
+  </div>
+
+  <div class="regl">
+    <h3>LES DIX FAMILLES</h3>
+    <div id="reFam"></div>
+  </div>
+
+  <div class="regl">
+    <h3>LES TROIS ÉTOILES</h3>
+    <b>Sortir</b> — la première fois, en tâtonnant autant qu'il faut.<br>
+    <b>Au plus court</b> — en moins de 1,4 fois le meilleur chemin possible.<br>
+    <b>Sans mourir</b> — d'un trait, du départ à la sortie.<br>
+    Les deux dernières se décrochent en <b>revenant</b>, une fois la carte faite.
+    C'est fait exprès : la première visite sert à apprendre le terrain.
+  </div>
+
+  <div class="regl">
+    <h3>COMMANDES</h3>
+    <div class="cle">
+      <kbd>↑ ↓ ← →</kbd><kbd>ZQSD</kbd><kbd>WASD</kbd> avancer d'une case
+      <kbd>R</kbd> repartir du départ <kbd>Échap</kbd> retour
+    </div>
+    Au doigt : glisse dans une direction (un glissement continu enchaîne les
+    pas), touche une case voisine, ou sers-toi de la croix en bas à gauche.<br>
+    <b>Pousse contre les murs.</b> Certains n'en sont pas.
+  </div>
+
+  <div class="reg"><div><h4>SON</h4><p>Pas, découvertes, ruptures. Rien d'autre.</p></div>
+    <button class="lien" id="sonBtn">SON : ACTIVÉ</button></div>
+  <div class="reg"><div><h4>VOLUME</h4><p>Si les explosions claquent trop fort.</p></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <input type="range" id="volIn" min="0" max="100" step="5" style="width:120px">
+      <span id="volVal" style="font:700 11px var(--mono);color:var(--craie);width:44px;
+        text-align:right">60 %</span></div></div>
+  <div class="reg"><div><h4>OUBLIER CE NIVEAU</h4><p>Efface les pièges découverts
+    du niveau en cours, pour le redécouvrir à l'aveugle.</p></div>
+    <button class="lien" id="oubli">OUBLIER</button></div>
+  <div class="reg"><div><h4 class="danger">TOUT EFFACER</h4><p>Étoiles, pièges
+    découverts, succès.</p></div>
+    <button class="lien danger" id="effacer">TOUT EFFACER</button></div>
+  <div class="relance"><button class="gros gris" id="reRetour"><b>RETOUR</b></button></div>
+</div>
+
+<div class="screen" id="legal">
+  <div class="eyebrow">QUI PUBLIE CE JEU</div>
+  <h1 style="font-size:var(--t2)">MENTIONS LÉGALES</h1>
+  <div class="bloc2"><div class="sur">ÉDITEUR</div>
+    <div class="txt">Ce jeu est édité à titre non professionnel sous le nom
+    <b>VanNDM Creations</b>. Il est gratuit, sans compte et sans installation.</div></div>
+  <div class="bloc2"><div class="sur">NOUS ÉCRIRE</div>
+    <div class="txt" id="lgContact"></div></div>
+  <div class="bloc2"><div class="sur">TES DONNÉES</div>
+    <div class="txt">Ta progression, tes étoiles et les pièges que tu as découverts
+    sont enregistrés <b>uniquement dans ton navigateur</b>. Rien n'est envoyé à un
+    serveur, rien n'est associé à ton identité, et aucun compte n'est demandé.
+    Effacer les données du site supprime définitivement cette progression.</div></div>
+  <div class="bloc2"><div class="sur">PROPRIÉTÉ</div>
+    <div class="txt">Le code, les dessins, les sons et les textes de Méfiance sont
+    l'œuvre de leur auteur. Les cent cinquante niveaux sont engendrés par le jeu
+    lui-même à partir de leur numéro.</div></div>
+  <div class="relance"><button class="gros gris" id="lgRetour"><b>RETOUR</b></button></div>
+</div>
+
+<script>
+
+/* ==========================================================================
+   MÉFIANCE — tout ce que tu vois n'est pas là
+   ==========================================================================
+   Un seul fichier, aucune dépendance, aucune image ni son téléchargé.
+
+   Cent cinquante labyrinthes courts. On y dirige un personnage case par case,
+   on cherche la sortie, et on meurt — beaucoup. Parce que la moitié des pièges
+   ne se voient pas.
+
+   Le danger de ce genre est connu : mourir sur un piège invisible n'apprend
+   rien et n'amuse personne. Deux règles y répondent, et tout le jeu est bâti
+   dessus :
+
+     1. UN PIÈGE DÉCOUVERT RESTE VISIBLE. Pour toujours, sur ce niveau. Chaque
+        mort achète une information définitive — on ne refait jamais deux fois
+        la même erreur par ignorance.
+     2. LA MORT NE COÛTE QUE DEUX SECONDES. Pas d'écran, pas de vies, pas de
+        retour au niveau précédent. On repart du départ immédiatement, en
+        sachant une chose de plus.
+
+   Ce n'est donc pas un jeu d'adresse : c'est un jeu de CARTOGRAPHIE. On paie
+   en morts ce qu'on gagne en connaissance du terrain.
+   ========================================================================== */
+
+const cv=document.getElementById('c');
+let ctx=cv.getContext('2d',{alpha:false});
+let VW=0, VH=0, DPR=1;
+const TAU=Math.PI*2;
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const MONO='ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace';
+const TITRE='"Arial Black","Arial Bold",Impact,system-ui,sans-serif';
+
+/* ==========================================================================
+   LE HASARD, QUI N'EN EST PAS
+   ==========================================================================
+   Rien n'est tiré au sort à l'exécution. Le numéro du niveau EST la graine :
+   le niveau 87 est le même labyrinthe, avec les mêmes pièges aux mêmes cases,
+   pour tout le monde et pour toujours. C'est ce qui permet d'en avoir cent
+   cinquante sans les dessiner à la main, et surtout de parler du niveau 87
+   avec quelqu'un d'autre. */
+function semeur(a){
+  return function(){
+    a|=0; a=a+0x6D2B79F5|0;
+    let t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+let RNG=semeur(1);
+const rnd=(a,b)=>a+RNG()*(b-a);
+const ri=(a,b)=>Math.floor(a+RNG()*(b-a+1));
+const pick=l=>l[Math.floor(RNG()*l.length)];
+/* le hasard décoratif : il ne doit jamais décaler un niveau */
+let DECO=semeur(31337);
+const drnd=(a,b)=>a+DECO()*(b-a);
+const dri=(a,b)=>Math.floor(a+DECO()*(b-a+1));
+
+function hash2(x,y,g){
+  let h=(x*374761393+y*668265263+(g|0)*1442695040)|0;
+  h=(h^(h>>13))*1274126177;
+  return ((h^(h>>16))>>>0)/4294967295;
+}
+const nb=n=>{
+  n=Math.round(n);
+  const s=Math.abs(n).toString();
+  let o='';
+  for(let i=0;i<s.length;i++) o+=(i&&(s.length-i)%3===0?' ':'')+s[i];
+  return (n<0?'−':'')+o;
+};
+
+/* ==========================================================================
+   LA VUE
+   ==========================================================================
+   Le labyrinthe entier tient toujours à l'écran, sans défilement. Un piège
+   qu'on ne peut pas voir parce qu'il est hors cadre serait un piège injuste
+   d'une deuxième façon, et une seule suffit. */
+let TUILE=32, OX=0, OY=0;
+function margesUI(){
+  const court=VH<=560;
+  return { haut:court?52:84, bas:court?92:132, cote:court?8:14 };
+}
+function cadrer(){
+  if(!N) return;
+  const m=margesUI();
+  const dispoW=Math.max(40,VW-m.cote*2);
+  const dispoH=Math.max(40,VH-m.haut-m.bas);
+  TUILE=Math.max(8,Math.floor(Math.min(dispoW/N.L, dispoH/N.H)));
+  OX=Math.round(m.cote+(dispoW-N.L*TUILE)/2);
+  OY=Math.round(m.haut+(dispoH-N.H*TUILE)/2);
+}
+const px=x=>OX+x*TUILE;
+const py=y=>OY+y*TUILE;
+const cx=x=>OX+(x+.5)*TUILE;
+const cy=y=>OY+(y+.5)*TUILE;
+function caseSous(sx,sy){
+  return [Math.floor((sx-OX)/TUILE), Math.floor((sy-OY)/TUILE)];
+}
+
+function redim(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  VW=window.innerWidth; VH=window.innerHeight;
+  cv.width=Math.round(VW*DPR); cv.height=Math.round(VH*DPR);
+  ctx=cv.getContext('2d',{alpha:false});
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  cadrer();
+  FOND=null;
+}
+addEventListener('resize',redim);
+
+let ecranActif='menu';
+let N=null;                        // le niveau en cours
+let J=null;                        // le joueur et l'état de la tentative
+let horloge=0, last=performance.now();
+let FOND=null;
+
+
+/* ==========================================================================
+   2. LE SON
+   ==========================================================================
+   Un jeu où l'on meurt trois cents fois ne peut pas avoir un son de mort
+   spectaculaire : il deviendrait insupportable au bout de dix minutes. Le pas
+   est mat, la découverte est claire, la mort est brève et grave, et la sortie
+   est la seule chose qui monte. */
+const SND={
+  ctx:null, maitre:null, on:true, muet:false, volume:.6,
+  init(){
+    if(this.ctx) return;
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC){ this.on=false; return; }
+      this.ctx=new AC();
+      this.maitre=this.ctx.createGain();
+      this.maitre.gain.value=this.volume;
+      this.maitre.connect(this.ctx.destination);
+    }catch(e){ this.on=false; }
+  },
+  reprendre(){ if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume(); },
+  vol(v){ this.volume=v; if(this.maitre) this.maitre.gain.value=v; },
+  note(f,t0,dur,type,g,glisse){
+    if(!this.on||this.muet||!this.ctx) return;
+    const o=this.ctx.createOscillator(), a=this.ctx.createGain();
+    o.type=type||'sine'; o.frequency.setValueAtTime(f,t0);
+    if(glisse) o.frequency.exponentialRampToValueAtTime(Math.max(20,glisse),t0+dur);
+    a.gain.setValueAtTime(0,t0);
+    a.gain.linearRampToValueAtTime(g||.08,t0+.005);
+    a.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+    o.connect(a); a.connect(this.maitre);
+    o.start(t0); o.stop(t0+dur+.02);
+  },
+  bruit(t0,dur,freq,g,q,type){
+    if(!this.on||this.muet||!this.ctx) return;
+    const n=this.ctx.createBufferSource();
+    const len=Math.max(1,Math.floor(this.ctx.sampleRate*dur));
+    const b=this.ctx.createBuffer(1,len,this.ctx.sampleRate);
+    const d=b.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,1.7);
+    n.buffer=b;
+    const f=this.ctx.createBiquadFilter(); f.type=type||'bandpass';
+    f.frequency.value=freq||1200; f.Q.value=q||1.1;
+    const a=this.ctx.createGain(); a.gain.value=g||.08;
+    n.connect(f); f.connect(a); a.connect(this.maitre);
+    n.start(t0);
+  },
+  /* le pas : très court, très mat. On l'entend cent fois par niveau. */
+  pas(){ if(this.ctx) this.bruit(this.ctx.currentTime,.035,320,.05,.9,'lowpass'); },
+  glisse(){ if(this.ctx) this.bruit(this.ctx.currentTime,.09,2400,.045,2,'bandpass'); },
+  bloque(){ if(this.ctx) this.note(140,this.ctx.currentTime,.05,'square',.045,110); },
+  /* la découverte : deux notes qui montent. C'est la récompense du jeu. */
+  trouve(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(740,t,.07,'triangle',.075);
+    this.note(1108,t+.06,.13,'triangle',.07); } },
+  /* la mort : grave, brève, et sans emphase — on va la réentendre */
+  mort(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.bruit(t,.11,420,.16,.8,'lowpass');
+    this.note(196,t,.20,'triangle',.11,72); } },
+  pique(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.bruit(t,.05,3200,.14,3,'bandpass'); this.mort(); } },
+  fleche(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.bruit(t,.16,1800,.10,4,'bandpass');
+    this.note(880,t,.12,'sawtooth',.05,220); } },
+  boum(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.bruit(t,.34,180,.24,.7,'lowpass');
+    this.note(110,t,.36,'sine',.13,40); } },
+  craque(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.bruit(t,.13,900,.10,1.6,'bandpass'); } },
+  cle(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(1046,t,.08,'triangle',.08);
+    this.note(1568,t+.07,.14,'triangle',.075); } },
+  porte(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.bruit(t,.2,300,.09,1.2,'lowpass');
+    this.note(330,t,.16,'square',.05,180); } },
+  portail(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(520,t,.16,'sine',.07,1400);
+    this.note(780,t+.05,.16,'sine',.05,1800); } },
+  /* la sortie : quatre notes. Le seul son ample du jeu. */
+  gagne(){ if(this.ctx){ const t=this.ctx.currentTime;
+    [523,659,784,1046].forEach((f,i)=>
+      this.note(f,t+i*.085,i===3?.36:.14,'triangle',.1)); } },
+  etoile(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(1318,t,.09,'triangle',.08);
+    this.note(1760,t+.08,.2,'triangle',.075); } },
+  clic(){ if(this.ctx) this.note(950,this.ctx.currentTime,.035,'square',.04); },
+  refus(){ if(this.ctx) this.note(170,this.ctx.currentTime,.09,'square',.05,120); }
+};
+
+
+/* ==========================================================================
+   3. LE VOCABULAIRE DU JEU
+   ==========================================================================
+   Dix familles de pièges, pas une de plus, et chacune répond à une question
+   que les neuf autres ne posent pas. Un piège de plus qui ferait doublon
+   n'ajouterait pas de la difficulté, il ajouterait du bruit. */
+
+const CLE='mefiance:v1';
+const Store=(()=>{ try{ localStorage.setItem('_t','1'); localStorage.removeItem('_t');
+  return {get:k=>localStorage.getItem(k), set:(k,v)=>localStorage.setItem(k,v)};
+}catch(e){ const m={}; return {get:k=>m[k]||null, set:(k,v)=>{m[k]=v;}}; } })();
+
+/* ---- le terrain ---- */
+const VIDE=0, MUR=1, SORTIE=2, GLACE=3, TROU=4, DALLE=5, FAUXMUR=6,
+      FAUSSESORTIE=7, PORTE=8;
+
+/* Ce qu'on VOIT n'est pas ce qui EST : un faux mur se dessine comme un mur, et
+   une fausse sortie comme la sortie, tant qu'ils n'ont pas été démasqués. Ce
+   tableau est le seul endroit où ce mensonge est écrit. */
+function solVu(s,connu){
+  if(connu) return s;
+  if(s===FAUXMUR) return MUR;
+  if(s===FAUSSESORTIE) return SORTIE;
+  return s;
+}
+const SOLS={
+  [VIDE]:        {nom:'DALLAGE',       col:'#232a3a', col2:'#1b2130'},
+  [MUR]:         {nom:'MUR',           col:'#3d4a63', col2:'#2c3purple'.replace('purple','649')},
+  [SORTIE]:      {nom:'SORTIE',        col:'#4ad991', col2:'#2a9c63'},
+  [GLACE]:       {nom:'GLACE',         col:'#5fb6e0', col2:'#3d86ad'},
+  [TROU]:        {nom:'TROU',          col:'#0a0d14', col2:'#05070b'},
+  [DALLE]:       {nom:'DALLE FENDUE',  col:'#5c5344', col2:'#453d31'},
+  [FAUXMUR]:     {nom:'FAUX MUR',      col:'#3d4a63', col2:'#2c3649'},
+  [FAUSSESORTIE]:{nom:'FAUSSE SORTIE', col:'#4ad991', col2:'#2a9c63'},
+  [PORTE]:       {nom:'PORTE',         col:'#c98a3c', col2:'#8f5f26'}
+};
+
+/* ---- les objets posés dessus ---- */
+const PIQUE='pique', FLECHE='fleche', MINE='mine', SCIE='scie',
+      CLEF='clef', PORTAIL='portail';
+
+/* ---- les dix familles, dans l'ordre où on les rencontre ---- */
+const FAMILLES=[
+ {id:'pique',  nom:'PIQUE',          ico:'▲', cache:1, ch:1,
+  d:'Invisible. On marche dessus, on meurt. Une fois découvert, il reste marqué à jamais.'},
+ {id:'fauxmur',nom:'FAUX MUR',       ico:'▨', cache:1, ch:2,
+  d:'Se dessine comme un mur, et n\'en est pas un. Pousse contre les murs : certains cèdent.'},
+ {id:'dalle',  nom:'DALLE FENDUE',   ico:'▩', cache:0, ch:3,
+  d:'On la traverse une fois. Quand on la quitte, elle tombe et laisse un trou.'},
+ {id:'fleche', nom:'FLÉCHETTE',      ico:'→', cache:1, ch:4,
+  d:'Un mur percé. Entrer dans sa ligne de tir déclenche la fléchette, qui file jusqu\'au premier obstacle.'},
+ {id:'fausse', nom:'FAUSSE SORTIE',  ico:'✖', cache:1, ch:5,
+  d:'Verte, carrée, engageante. Il n\'y a qu\'une vraie sortie par niveau.'},
+ {id:'glace',  nom:'GLACE',          ico:'≈', cache:0, ch:6,
+  d:'On glisse jusqu\'à ce que quelque chose arrête — un mur, un piège, le vide.'},
+ {id:'scie',   nom:'SCIE',           ico:'✳', cache:0, ch:7,
+  d:'Elle fait sa ronde, une case par pas. Elle ne bouge que quand tu bouges.'},
+ {id:'clef',   nom:'CLEF ET PORTE',  ico:'⚿', cache:0, ch:8,
+  d:'La porte ne s\'ouvre qu\'avec sa clef, et la clef est toujours du mauvais côté.'},
+ {id:'mine',   nom:'MINE',           ico:'◉', cache:1, ch:9,
+  d:'Invisible. Marcher dessus l\'amorce ; elle éclate trois pas plus tard et emporte les cases voisines.'},
+ {id:'portail',nom:'PORTAIL',        ico:'◎', cache:0, ch:10,
+  d:'Deux anneaux reliés. Entrer dans l\'un, ressortir de l\'autre — et pas toujours là où on croyait.'}
+];
+
+/* ==========================================================================
+   LES DIX CHAPITRES
+   ==========================================================================
+   Quinze niveaux chacun. Un chapitre ajoute UNE famille et ne la retire
+   jamais : au chapitre dix, tout est là en même temps. La taille du labyrinthe
+   monte lentement — un grand labyrinthe n'est pas plus dur, il est plus long,
+   et ce jeu se joue en niveaux courts. */
+const PAR_CHAPITRE=15;
+const NB_NIVEAUX=150;
+const CHAPITRES=[
+ {n:1,  nom:'LES PREMIERS PAS',   d:'Un labyrinthe, une sortie, et des piques qu\'on ne voit pas.'},
+ {n:2,  nom:'POUSSE LES MURS',    d:'Tous les murs ne sont pas des murs.'},
+ {n:3,  nom:'LE SOL CÈDE',        d:'Des trous, et des dalles qui n\'en font qu\'un passage.'},
+ {n:4,  nom:'LIGNES DE TIR',      d:'Quelque chose siffle quand on entre dans le mauvais couloir.'},
+ {n:5,  nom:'DEUX SORTIES',       d:'Il n\'y en a jamais qu\'une vraie.'},
+ {n:6,  nom:'ÇA GLISSE',          d:'On ne s\'arrête plus où l\'on veut.'},
+ {n:7,  nom:'LA RONDE',           d:'Elles ne bougent que quand tu bouges.'},
+ {n:8,  nom:'SOUS CLEF',          d:'Le chemin le plus court passe par le plus long.'},
+ {n:9,  nom:'TROIS PAS',          d:'Compte-les. C\'est tout ce que tu as.'},
+ {n:10, nom:'TOUT À LA FOIS',     d:'Il n\'y a plus rien de nouveau. C\'est bien le problème.'}
+];
+function chapitreDe(niv){ return Math.min(10,Math.floor(niv/PAR_CHAPITRE)+1); }
+function famillesActives(niv){
+  const ch=chapitreDe(niv);
+  return FAMILLES.filter(f=>f.ch<=ch);
+}
+/* la taille du labyrinthe : impaire, pour que la génération tombe juste */
+function tailleDe(niv){
+  const ch=chapitreDe(niv);
+  const dans=niv%PAR_CHAPITRE;
+  let k=7+Math.floor((ch-1)*1.1)+(dans>=10?2:(dans>=5?1:0));
+  k=Math.min(19,k);
+  return k%2?k:k+1;
+}
+
+/* ==========================================================================
+   LES ÉTOILES
+   ==========================================================================
+   Trois par niveau, et elles ne mesurent pas la même chose :
+     — la première dit qu'on est sorti ;
+     — la deuxième qu'on n'a pas tourné en rond ;
+     — la troisième qu'on l'a refait proprement, en connaissant le terrain.
+   La troisième est la seule qui demande de REVENIR, et c'est celle qui donne
+   au jeu sa deuxième vie. */
+function etoilesDe(niv,pas,mortsCetteTentative){
+  const e={sorti:1, court:0, propre:0};
+  if(pas<=Math.ceil(niv.opt*1.4)) e.court=1;
+  if(mortsCetteTentative===0) e.propre=1;
+  return e;
+}
+function nbEtoiles(e){ return (e&&e.sorti?1:0)+(e&&e.court?1:0)+(e&&e.propre?1:0); }
+
+const RANGS=[
+ {s:0,   nom:'IMPRUDENT',   ico:'\u{1F643}', d:'On avance en confiance. Ça ne dure pas.'},
+ {s:25,  nom:'ÉCHAUDÉ',     ico:'\u{1F612}', d:'On a compris qu\'il fallait tester.'},
+ {s:70,  nom:'PRUDENT',     ico:'\u{1F440}', d:'On regarde le sol avant de le fouler.'},
+ {s:140, nom:'MÉFIANT',     ico:'\u{1F9D0}', d:'On ne croit plus rien de ce qu\'on voit.'},
+ {s:240, nom:'PARANOÏAQUE', ico:'\u{1F575}', d:'On teste même les cases qu\'on a déjà testées.'},
+ {s:380, nom:'CARTOGRAPHE', ico:'\u{1F5FA}', d:'Le labyrinthe n\'a plus de secret. Aucun.'}
+];
+function rangDe(s){ let r=RANGS[0]; for(const x of RANGS) if(s>=x.s) r=x; return r; }
+function rangSuivant(s){ for(const x of RANGS) if(s<x.s) return x; return null; }
+
+const SUCCES=[
+ {id:'premier', nom:'PREMIÈRE SORTIE',   d:'Terminer le niveau 1'},
+ {id:'ch1',     nom:'LES PREMIERS PAS',  d:'Terminer le chapitre 1'},
+ {id:'ch5',     nom:'À MI-CHEMIN',       d:'Terminer les cinq premiers chapitres'},
+ {id:'ch10',    nom:'CENT CINQUANTE',    d:'Terminer les cent cinquante niveaux'},
+ {id:'e50',     nom:'CINQUANTE ÉTOILES', d:'Récolter cinquante étoiles'},
+ {id:'e150',    nom:'CENT CINQUANTE ÉTOILES', d:'Récolter cent cinquante étoiles'},
+ {id:'e450',    nom:'TOUTES LES ÉTOILES', d:'Les quatre cent cinquante étoiles'},
+ {id:'propre1', nom:'DU PREMIER COUP',   d:'Terminer un niveau sans mourir une seule fois'},
+ {id:'propre10',nom:'DIX SANS FAUTE',    d:'Dix niveaux terminés sans mourir'},
+ {id:'mort10',  nom:'ON APPREND',        d:'Mourir dix fois'},
+ {id:'mort100', nom:'ON APPREND BEAUCOUP', d:'Mourir cent fois'},
+ {id:'mort500', nom:'ON A TOUT APPRIS',  d:'Mourir cinq cents fois'},
+ {id:'mur',     nom:'CE N\'ÉTAIT PAS UN MUR', d:'Découvrir un premier faux mur'},
+ {id:'mur20',   nom:'POUSSE-MURAILLE',   d:'Découvrir vingt faux murs'},
+ {id:'fausse',  nom:'CE N\'ÉTAIT PAS LA SORTIE', d:'Mourir sur une fausse sortie'},
+ {id:'tout',    nom:'TOUT VU',           d:'Découvrir tous les pièges d\'un niveau avant d\'en sortir'},
+ {id:'vite',    nom:'AU PLUS COURT',     d:'Terminer un niveau au nombre de pas optimal'},
+ {id:'sansmort',nom:'LE CHAPITRE PROPRE', d:'Un chapitre entier terminé sans une seule mort'}
+];
+
+
+/* ==========================================================================
+   4. FABRIQUER UN NIVEAU, ET PROUVER QU'IL SE FINIT
+   ==========================================================================
+   Cent cinquante niveaux ne se dessinent pas à la main. Ils se déduisent de
+   leur numéro : le 87 est le même labyrinthe pour tout le monde, à jamais.
+
+   Le danger de la génération, c'est le niveau impossible — et dans un jeu où
+   l'on meurt sans arrêt, le joueur ne saurait JAMAIS si le niveau est infaisable
+   ou s'il est mauvais. Chaque niveau est donc démontré franchissable par un
+   parcours en largeur avant d'être servi, en connaissant tous les pièges. Et
+   ce parcours utilise EXACTEMENT la même fonction de déplacement que le jeu :
+   il n'y a pas deux règles du mouvement, il n'y en a qu'une. */
+
+const PERIODE=12;          // le cycle des scies, en pas de joueur
+
+function ix(L,x,y){ return y*L+x; }
+
+/* ==========================================================================
+   LE DÉPLACEMENT — LA SEULE RÈGLE
+   ==========================================================================
+   Cette fonction dit ce qui arrive quand on pousse dans une direction. Le jeu
+   l'appelle pour bouger le personnage, et le solveur l'appelle pour prouver le
+   niveau. C'est la même : une divergence entre les deux rendrait la preuve
+   fausse sans que rien ne le signale. */
+function simulerPas(E,dx,dy){
+  const {sol,obj,L,H}=E;
+  const r={x:E.x, y:E.y, bloque:0, mort:0, cause:'', gagne:0,
+           revele:[], ramasse:-1, ouvre:-1, amorce:-1, glisse:0, portail:0,
+           chemin:[]};
+  let x=E.x, y=E.y;
+  const dedans=(a,b)=>a>=0&&b>=0&&a<L&&b<H;
+
+  /* --- le premier pas --- */
+  let nx=x+dx, ny=y+dy;
+  if(!dedans(nx,ny)){ r.bloque=1; return r; }
+  let t=ix(L,nx,ny), s=sol[t];
+  if(s===MUR){ r.bloque=1; return r; }
+  if(s===FAUXMUR){
+    /* pousser un mur qui cède : on le démasque ET on passe dans le même geste.
+       C'est ce qui rend le tâtonnement contre les murs payant plutôt que
+       fastidieux — une seule poussée suffit. */
+    r.revele.push(t);
+  }
+  if(s===PORTE){
+    if(E.cles<1){ r.bloque=1; r.cause='fermée'; return r; }
+    r.ouvre=t;
+  }
+
+  /* --- on avance, puis on glisse tant qu'on est sur de la glace --- */
+  let garde=0, sauts=0;
+  for(;;){
+    if(garde++>200) break;
+    x=nx; y=ny;
+    t=ix(L,x,y);
+    s=sol[t];
+    r.chemin.push(t);
+
+    /* le sol tue-t-il ? */
+    if(s===TROU||E.trous.has(t)){ r.x=x; r.y=y; r.mort=1; r.cause='trou'; return r; }
+    if(s===FAUSSESORTIE){ r.revele.push(t); r.x=x; r.y=y; r.mort=1;
+      r.cause='fausse'; return r; }
+    const o=obj[t];
+    if(o&&o.t===PIQUE){ r.revele.push(t); r.x=x; r.y=y; r.mort=1;
+      r.cause='pique'; return r; }
+    if(o&&o.t===CLEF&&!E.pris.has(t)){ r.ramasse=t; }
+    if(o&&o.t===MINE&&r.amorce<0&&!E.armees.has(t)){ r.revele.push(t); r.amorce=t; }
+
+    /* le portail : on ressort ailleurs, et on continue d'y résoudre le sol */
+    if(o&&o.t===PORTAIL&&sauts<4){
+      sauts++;
+      r.portail=1;
+      nx=o.vx; ny=o.vy;
+      /* on ressort à l'arrêt : un portail casse la glissade */
+      if(sol[ix(L,nx,ny)]!==GLACE){ x=nx; y=ny; t=ix(L,x,y); s=sol[t];
+        if(s===TROU||E.trous.has(t)){ r.x=x;r.y=y;r.mort=1;r.cause='trou'; return r; }
+        const o2=obj[t];
+        if(o2&&o2.t===PIQUE){ r.revele.push(t); r.x=x;r.y=y;r.mort=1;
+          r.cause='pique'; return r; }
+        if(s===FAUSSESORTIE){ r.revele.push(t); r.x=x;r.y=y;r.mort=1;
+          r.cause='fausse'; return r; }
+        if(s===SORTIE){ r.x=x;r.y=y;r.gagne=1; return r; }
+        if(o2&&o2.t===CLEF&&!E.pris.has(t)) r.ramasse=t;
+        if(o2&&o2.t===MINE&&r.amorce<0&&!E.armees.has(t)){ r.revele.push(t); r.amorce=t; }
+        break;
+      }
+      continue;
+    }
+    if(s===SORTIE){ r.x=x; r.y=y; r.gagne=1; return r; }
+
+    /* la glace : on repart tout seul dans le même sens */
+    if(s!==GLACE) break;
+    r.glisse=1;
+    const ax=x+dx, ay=y+dy;
+    if(!dedans(ax,ay)) break;
+    const at=ix(L,ax,ay), as=sol[at];
+    if(as===MUR) break;
+    if(as===FAUXMUR) r.revele.push(at);
+    if(as===PORTE){ if(E.cles<1) break; r.ouvre=at; }
+    nx=ax; ny=ay;
+  }
+  r.x=x; r.y=y;
+  return r;
+}
+
+/* ==========================================================================
+   LES SCIES
+   ==========================================================================
+   Elles ne bougent que quand le joueur bouge — un jeu au tour par tour ne
+   supporte pas un danger au chronomètre, sinon réfléchir devient un risque.
+   Chaque scie a un cycle de douze pas, tous identiques : c'est ce qui permet
+   au solveur de tenir le temps dans un seul petit entier. */
+function scieEn(N,t,x,y){
+  for(const s of N.scies){
+    const p=s.chemin[t%PERIODE];
+    if(p[0]===x&&p[1]===y) return s;
+  }
+  return null;
+}
+function coupeScie(N,t,ax,ay,bx,by){
+  /* la scie te prend si elle arrive sur ta case, ou si vous vous croisez */
+  for(const s of N.scies){
+    const a=s.chemin[t%PERIODE], b=s.chemin[(t+1)%PERIODE];
+    if(b[0]===bx&&b[1]===by) return true;
+    if(a[0]===bx&&a[1]===by&&b[0]===ax&&b[1]===ay) return true;
+  }
+  return false;
+}
+
+/* ==========================================================================
+   LA PREUVE
+   ==========================================================================
+   Parcours en largeur sur (case, clefs, phase du cycle). Il connaît tous les
+   pièges et les évite ; s'il ne trouve pas la sortie, le niveau part à la
+   poubelle avant d'avoir été montré à qui que ce soit. */
+/* Les dalles fendues sont comptées comme des TROUS pendant la preuve. C'est
+   volontairement pessimiste, et c'est la seule façon d'être sûr : une dalle
+   s'effondre derrière soi, et rien n'empêche un joueur d'en faire tomber
+   trois puis de se retrouver enfermé — sans bouton pour annuler. En exigeant
+   que le niveau se finisse SANS aucune dalle, on garantit qu'aucune suite de
+   gestes ne peut condamner la partie. Les dalles deviennent alors ce qu'elles
+   doivent être : un raccourci qu'on prend à ses risques, jamais un passage
+   obligé. */
+function resoudre(N){
+  const L=N.L, H=N.H;
+  const sansDalles=N.dalles||VIDE_SET;
+  const cle=(x,y,c,t)=>((y*L+x)*2+c)*PERIODE+t;
+  const vus=new Uint8Array(L*H*2*PERIODE);
+  const file=[[N.depart[0],N.depart[1],0,0,0]];
+  vus[cle(N.depart[0],N.depart[1],0,0)]=1;
+  const DIRS=[[0,-1],[0,1],[-1,0],[1,0]];
+  let tete=0;
+  while(tete<file.length){
+    const [x,y,c,t,d]=file[tete++];
+    for(const [dx,dy] of DIRS){
+      const E={sol:N.sol, obj:N.obj, L, H, x, y, cles:c,
+               trous:sansDalles, pris:VIDE_SET, armees:VIDE_SET};
+      const r=simulerPas(E,dx,dy);
+      if(r.bloque||r.mort) continue;
+      if(r.amorce>=0) continue;              // le solveur ne joue pas avec les mines
+      if(coupeScie(N,t,x,y,r.x,r.y)) continue;
+      /* une fléchette part une fois sur trois : arriver dans sa ligne au
+         mauvais pas est mortel, mais y arriver au bon pas ne l'est pas. Le
+         couloir n'est donc pas condamné, il est cadencé — et le solveur doit
+         compter comme le joueur, sinon la preuve ne prouve rien. */
+      if(toucheFleche(N,(t+1)%PERIODE,r.x,r.y)) continue;
+      if(r.gagne) return d+1;
+      const nc=Math.min(1,c+(r.ramasse>=0&&N.obj[r.ramasse]&&N.obj[r.ramasse].t===CLEF?1:0));
+      const nt=(t+1)%PERIODE;
+      const k=cle(r.x,r.y,nc,nt);
+      if(vus[k]) continue;
+      vus[k]=1;
+      file.push([r.x,r.y,nc,nt,d+1]);
+    }
+  }
+  return -1;
+}
+const VIDE_SET=new Set();
+
+/* le simple parcours de connexité, sans pièges : sert à placer les choses */
+function accessibles(sol,L,H,sx,sy,bloqueur){
+  const vus=new Uint8Array(L*H);
+  const f=[[sx,sy]];
+  vus[ix(L,sx,sy)]=1;
+  let tete=0;
+  const D=[[0,-1],[0,1],[-1,0],[1,0]];
+  while(tete<f.length){
+    const [x,y]=f[tete++];
+    for(const [dx,dy] of D){
+      const nx=x+dx, ny=y+dy;
+      if(nx<0||ny<0||nx>=L||ny>=H) continue;
+      const t=ix(L,nx,ny);
+      if(vus[t]) continue;
+      const s=sol[t];
+      if(s===MUR||s===TROU) continue;
+      if(bloqueur&&bloqueur(t,s)) continue;
+      vus[t]=1;
+      f.push([nx,ny]);
+    }
+  }
+  return vus;
+}
+
+/* ==========================================================================
+   LE LABYRINTHE
+   ========================================================================== */
+function creuser(L,H){
+  const sol=new Int8Array(L*H).fill(MUR);
+  const pile=[[1,1]];
+  sol[ix(L,1,1)]=VIDE;
+  const D=[[0,-2],[0,2],[-2,0],[2,0]];
+  while(pile.length){
+    const [x,y]=pile[pile.length-1];
+    const opts=[];
+    for(const [dx,dy] of D){
+      const nx=x+dx, ny=y+dy;
+      if(nx<1||ny<1||nx>=L-1||ny>=H-1) continue;
+      if(sol[ix(L,nx,ny)]===VIDE) continue;
+      opts.push([nx,ny,x+dx/2,y+dy/2]);
+    }
+    if(!opts.length){ pile.pop(); continue; }
+    const [nx,ny,mx,my]=opts[Math.floor(RNG()*opts.length)];
+    sol[ix(L,mx,my)]=VIDE;
+    sol[ix(L,nx,ny)]=VIDE;
+    pile.push([nx,ny]);
+  }
+  return sol;
+}
+/* On perce ensuite quelques murs. Un labyrinthe parfait n'a qu'un chemin : le
+   joueur y meurt sans jamais avoir eu de choix, et un piège n'y est plus un
+   piège, c'est un péage. Les boucles rendent la méfiance utile. */
+function percer(sol,L,H,n){
+  let mis=0, essais=0;
+  while(mis<n&&essais++<n*40){
+    const x=1+Math.floor(RNG()*(L-2)), y=1+Math.floor(RNG()*(H-2));
+    const t=ix(L,x,y);
+    if(sol[t]!==MUR) continue;
+    const g=sol[ix(L,x-1,y)]===VIDE, d=sol[ix(L,x+1,y)]===VIDE;
+    const h=sol[ix(L,x,y-1)]===VIDE, b=sol[ix(L,x,y+1)]===VIDE;
+    if((g&&d&&!h&&!b)||(h&&b&&!g&&!d)){ sol[t]=VIDE; mis++; }
+  }
+}
+function laPlusLoin(sol,L,H,sx,sy){
+  const dist=new Int32Array(L*H).fill(-1);
+  const f=[[sx,sy]];
+  dist[ix(L,sx,sy)]=0;
+  let tete=0, best=[sx,sy], bd=0;
+  const D=[[0,-1],[0,1],[-1,0],[1,0]];
+  while(tete<f.length){
+    const [x,y]=f[tete++];
+    const d0=dist[ix(L,x,y)];
+    if(d0>bd){ bd=d0; best=[x,y]; }
+    for(const [dx,dy] of D){
+      const nx=x+dx, ny=y+dy;
+      if(nx<0||ny<0||nx>=L||ny>=H) continue;
+      const t=ix(L,nx,ny);
+      if(dist[t]>=0||sol[t]===MUR) continue;
+      dist[t]=d0+1;
+      f.push([nx,ny]);
+    }
+  }
+  return {best, dist, bd};
+}
+
+
+/* ==========================================================================
+   5. POSER LES PIÈGES
+   ==========================================================================
+   Un piège qui bouche le seul chemin ne pose pas un problème : il supprime le
+   niveau. Chaque famille est donc posée sous une contrainte qui lui est propre,
+   puis l'ensemble passe devant le solveur. S'il ne trouve pas la sortie, on
+   jette tout et on recommence avec une autre sous-graine. */
+
+const PER_FLECHE=3;        // une fléchette part une fois sur trois
+
+function flecheActive(N,t){
+  return N.fleches.filter(f=>(t+f.phase)%PER_FLECHE===0);
+}
+function toucheFleche(N,t,x,y){
+  for(const f of N.fleches){
+    if((t+f.phase)%PER_FLECHE!==0) continue;
+    for(const c of f.cases) if(c[0]===x&&c[1]===y) return f;
+  }
+  return null;
+}
+
+function graineNiveau(num,essai){
+  let h=2166136261;
+  const s='mefiance:'+num+':'+essai;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); }
+  return h>>>1;
+}
+
+function genererNiveau(num,essai,souple){
+  RNG=semeur(graineNiveau(num,essai||0));
+  const k=tailleDe(num), L=k, H=k;
+  const ch=chapitreDe(num);
+  const dedans=(x,y)=>x>=0&&y>=0&&x<L&&y<H;
+  const sol=creuser(L,H);
+  percer(sol,L,H,Math.round(k*k*0.035)+2);
+
+  const dep=[1,1];
+  const loin=laPlusLoin(sol,L,H,1,1);
+  const sor=loin.best;
+  sol[ix(L,sor[0],sor[1])]=SORTIE;
+  const optNu=loin.bd;          // la longueur du chemin AVANT tout piège
+
+  const N={ num, L, H, sol, obj:{}, depart:dep, sortie:sor,
+            scies:[], fleches:[], portails:[], dalles:new Set(), opt:0, ch,
+            nbCaches:0 };
+
+  /* les cases libres, la sortie et le départ exceptés */
+  const libres=()=>{
+    const l=[];
+    for(let y=1;y<H-1;y++) for(let x=1;x<L-1;x++){
+      const t=ix(L,x,y);
+      if(sol[t]!==VIDE) continue;
+      if(x===dep[0]&&y===dep[1]) continue;
+      if(N.obj[t]) continue;
+      l.push([x,y,t]);
+    }
+    return l;
+  };
+  const melanger=a=>{ for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(RNG()*(i+1)); const v=a[i]; a[i]=a[j]; a[j]=v; } return a; };
+  /* enlever cette case laisse-t-il la sortie joignable ? */
+  const nonCritique=t=>{
+    const ancien=sol[t];
+    sol[t]=MUR;
+    const v=accessibles(sol,L,H,dep[0],dep[1]);
+    sol[t]=ancien;
+    return !!v[ix(L,sor[0],sor[1])];
+  };
+  const dose=(base,parCh,max)=>
+    Math.min(max,Math.max(0,base+Math.round((ch-1)*parCh)+ri(0,1)));
+
+  /* ---------------------------------------------------- LES PIQUES (ch 1) */
+  {
+    const n=dose(2,.8,Math.floor(L*H*.10));
+    const l=melanger(libres());
+    for(let i=0;i<n&&i<l.length;i++){
+      const [x,y,t]=l[i];
+      N.obj[t]={t:PIQUE}; N.nbCaches++;
+    }
+  }
+  /* -------------------------------------------------- LES FAUX MURS (ch 2) */
+  if(ch>=2){
+    const n=dose(1,.25,4);
+    const cand=[];
+    for(let y=1;y<H-1;y++) for(let x=1;x<L-1;x++){
+      const t=ix(L,x,y);
+      if(sol[t]!==MUR) continue;
+      const g=sol[ix(L,x-1,y)], d=sol[ix(L,x+1,y)];
+      const h=sol[ix(L,x,y-1)], b=sol[ix(L,x,y+1)];
+      const ok=s=>s===VIDE||s===GLACE||s===DALLE;
+      if((ok(g)&&ok(d))||(ok(h)&&ok(b))) cand.push(t);
+    }
+    melanger(cand);
+    for(let i=0;i<n&&i<cand.length;i++){ sol[cand[i]]=FAUXMUR; N.nbCaches++; }
+  }
+  /* ------------------------------------------- TROUS ET DALLES (ch 3) */
+  if(ch>=3){
+    /* trous et dalles bouchent tous deux le labyrinthe aux yeux de la preuve :
+       trop nombreux, ils rendent un niveau sur cinq introuvable. Ils sont là
+       pour se faire remarquer, pas pour saturer. */
+    const nT=dose(0,.16,3), nD=dose(0,.18,3);
+    const l=melanger(libres());
+    let i=0, mis=0;
+    while(mis<nT&&i<l.length){
+      const t=l[i++][2];
+      if(t===ix(L,sor[0],sor[1])||!nonCritique(t)) continue;
+      sol[t]=TROU; mis++;
+    }
+    mis=0;
+    while(mis<nD&&i<l.length){
+      const t=l[i++][2];
+      if(t===ix(L,sor[0],sor[1])||!nonCritique(t)) continue;
+      sol[t]=DALLE; N.dalles.add(t); mis++;
+    }
+  }
+  /* -------------------------------------------------- LES FLÉCHETTES (ch 4) */
+  if(ch>=4){
+    const n=dose(1,.3,4);
+    const D=[[1,0],[-1,0],[0,1],[0,-1]];
+    const cand=[];
+    for(let y=1;y<H-1;y++) for(let x=1;x<L-1;x++){
+      const t=ix(L,x,y);
+      if(sol[t]!==MUR) continue;
+      for(const [dx,dy] of D){
+        const cases=[];
+        let cx2=x+dx, cy2=y+dy;
+        while(dedans(cx2,cy2)){
+          const s=sol[ix(L,cx2,cy2)];
+          if(s===MUR||s===FAUXMUR||s===PORTE) break;
+          /* une fléchette ne balaie jamais la sortie ni le départ : mourir en
+             franchissant la ligne d'arrivée serait une farce, pas un piège */
+          if(s===SORTIE) break;
+          if(cx2===1&&cy2===1) break;
+          cases.push([cx2,cy2]);
+          cx2+=dx; cy2+=dy;
+        }
+        if(cases.length>=3) cand.push({t,x,y,dx,dy,cases});
+      }
+    }
+    melanger(cand);
+    const pris=new Set();
+    for(const c of cand){
+      if(N.fleches.length>=n) break;
+      if(pris.has(c.t)) continue;
+      pris.add(c.t);
+      c.phase=ri(0,PER_FLECHE-1);
+      N.fleches.push(c);
+      N.obj[c.t]={t:FLECHE, f:c};
+      N.nbCaches++;
+    }
+  }
+  /* ----------------------------------------------- LA FAUSSE SORTIE (ch 5) */
+  if(ch>=5){
+    const n=dose(1,.1,2);
+    const l=melanger(libres()).filter(([x,y])=>
+      Math.abs(x-sor[0])+Math.abs(y-sor[1])>=4);
+    for(let i=0;i<n&&i<l.length;i++){
+      const t=l[i][2];
+      if(!nonCritique(t)) continue;
+      sol[t]=FAUSSESORTIE; N.nbCaches++;
+    }
+  }
+  /* ------------------------------------------------------- LA GLACE (ch 6) */
+  if(ch>=6){
+    const n=dose(1,.15,3);
+    for(let p=0;p<n;p++){
+      const l=libres();
+      if(!l.length) break;
+      const [sx,sy]=l[Math.floor(RNG()*l.length)];
+      const taille=ri(3,7);
+      const f=[[sx,sy]];
+      const vus=new Set([ix(L,sx,sy)]);
+      let mis=0, tete=0;
+      while(tete<f.length&&mis<taille){
+        const [x,y]=f[tete++];
+        const t=ix(L,x,y);
+        if(sol[t]!==VIDE) continue;
+        sol[t]=GLACE; mis++;
+        for(const [dx,dy] of [[0,-1],[0,1],[-1,0],[1,0]]){
+          const nx=x+dx, ny=y+dy, nt=ix(L,nx,ny);
+          if(!dedans(nx,ny)||vus.has(nt)||sol[nt]!==VIDE) continue;
+          vus.add(nt); f.push([nx,ny]);
+        }
+      }
+    }
+  }
+  /* ------------------------------------------------------ LES SCIES (ch 7) */
+  if(ch>=7){
+    const n=dose(1,.15,3);
+    const cand=[];
+    for(const [dx,dy] of [[1,0],[0,1]])
+      for(let y=1;y<H-1;y++) for(let x=1;x<L-1;x++){
+        for(const k of [7,4,3]){
+          const c=[];
+          let ok=true;
+          for(let i=0;i<k;i++){
+            const nx=x+dx*i, ny=y+dy*i;
+            if(!dedans(nx,ny)){ ok=false; break; }
+            const s=sol[ix(L,nx,ny)];
+            if(s!==VIDE&&s!==GLACE){ ok=false; break; }
+            if(nx===dep[0]&&ny===dep[1]){ ok=false; break; }
+            c.push([nx,ny]);
+          }
+          if(ok){ cand.push(c); break; }
+        }
+      }
+    melanger(cand);
+    for(const c of cand){
+      if(N.scies.length>=n) break;
+      const k=c.length;
+      const base=[];
+      for(let i=0;i<k;i++) base.push(c[i]);
+      for(let i=k-2;i>=1;i--) base.push(c[i]);
+      const chemin=[];
+      for(let i=0;i<PERIODE;i++) chemin.push(base[i%base.length]);
+      N.scies.push({chemin, cases:c});
+    }
+  }
+  /* ------------------------------------------------ LA CLEF ET LA PORTE (ch 8) */
+  if(ch>=8&&RNG()<.75){
+    const l=melanger(libres());
+    for(const [x,y,t] of l){
+      if(t===ix(L,sor[0],sor[1])) continue;
+      const ancien=sol[t];
+      if(ancien!==VIDE) continue;
+      sol[t]=MUR;
+      const v=accessibles(sol,L,H,dep[0],dep[1]);
+      const coupe=!v[ix(L,sor[0],sor[1])];
+      if(coupe){
+        /* la porte coupe bien la route : la clef va du côté du départ */
+        const cote=[];
+        for(let yy=1;yy<H-1;yy++) for(let xx=1;xx<L-1;xx++){
+          const tt=ix(L,xx,yy);
+          if(v[tt]&&sol[tt]===VIDE&&!N.obj[tt]&&!(xx===dep[0]&&yy===dep[1]))
+            cote.push(tt);
+        }
+        sol[t]=PORTE;
+        if(cote.length){
+          const kt=cote[Math.floor(RNG()*cote.length)];
+          N.obj[kt]={t:CLEF};
+        } else sol[t]=VIDE;
+        break;
+      }
+      sol[t]=ancien;
+    }
+  }
+  /* ------------------------------------------------------ LES MINES (ch 9) */
+  if(ch>=9){
+    const n=dose(1,.2,4);
+    const l=melanger(libres());
+    for(let i=0;i<n&&i<l.length;i++){
+      const t=l[i][2];
+      N.obj[t]={t:MINE}; N.nbCaches++;
+    }
+  }
+  /* --------------------------------------------------- LES PORTAILS (ch 10) */
+  if(ch>=10&&RNG()<.7){
+    const l=melanger(libres());
+    if(l.length>=2){
+      let b=null;
+      for(let i=1;i<l.length;i++){
+        if(Math.abs(l[0][0]-l[i][0])+Math.abs(l[0][1]-l[i][1])>=5){ b=l[i]; break; }
+      }
+      if(b){
+        const a=l[0];
+        N.obj[a[2]]={t:PORTAIL, vx:b[0], vy:b[1]};
+        N.obj[b[2]]={t:PORTAIL, vx:a[0], vy:a[1]};
+        N.portails.push([[a[0],a[1]],[b[0],b[1]]]);
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------ LA PREUVE
+     Trois exigences, et pas seulement « ça se finit » :
+
+       — le niveau se termine, prouvé par le solveur qui connaît tout ;
+       — il n'est pas TROP COURT. Un faux mur ou un portail peut ouvrir un
+         raccourci si franc que le labyrinthe disparaît : on refuse en dessous
+         des deux tiers du chemin d'origine. Un raccourci doit récompenser
+         l'exploration, pas remplacer le niveau ;
+       — il n'est pas TROP LONG non plus. Ce jeu se joue en niveaux courts, et
+         un labyrinthe de quatre-vingts pas n'est pas plus difficile, il est
+         plus fatigant ;
+       — et il cache au moins une chose. Un niveau sans rien d'invisible n'a
+         rien à faire dans un jeu qui s'appelle MÉFIANCE. */
+  const opt=resoudre(N);
+  if(opt<0) return null;
+  if(!souple){
+    if(opt<Math.max(6,Math.round(optNu*.65))) return null;
+    if(opt>60) return null;
+    if(N.nbCaches<(ch>=2?2:1)) return null;
+  } else {
+    /* Même relâchée, l'exigence de longueur reste : un labyrinthe de dix-sept
+       cases de côté qu'un portail règle en sept pas n'est pas un niveau. */
+    if(opt<Math.max(7,Math.round(optNu*.45))) return null;
+    if(opt>72) return null;
+  }
+  N.opt=opt;
+  return N;
+}
+
+/* Quarante essais suffisent très largement ; le filet garantit qu'on ne sert
+   jamais un écran vide, même si l'improbable arrivait. */
+function niveauDe(num){
+  /* On tente d'abord avec toutes les exigences. Si quarante sous-graines n'y
+     suffisent pas, on relâche celles de confort — jamais celle de la preuve. */
+  for(let e=0;e<70;e++){
+    const N=genererNiveau(num,e,false);
+    if(N) return N;
+  }
+  for(let e=70;e<220;e++){
+    const N=genererNiveau(num,e,true);
+    if(N) return N;
+  }
+  /* filet : un labyrinthe nu, sans un seul piège, mais jouable */
+  RNG=semeur(graineNiveau(num,999));
+  const k=tailleDe(num), L=k, H=k;
+  const sol=creuser(L,H);
+  percer(sol,L,H,4);
+  const loin=laPlusLoin(sol,L,H,1,1);
+  sol[ix(L,loin.best[0],loin.best[1])]=SORTIE;
+  const N={ num, L, H, sol, obj:{}, depart:[1,1], sortie:loin.best,
+            scies:[], fleches:[], portails:[], dalles:new Set(),
+            opt:loin.bd, ch:chapitreDe(num), nbCaches:0, filet:1 };
+  N.opt=Math.max(1,resoudre(N));
+  return N;
+}
+
+
+/* ==========================================================================
+   6. LA TENTATIVE
+   ==========================================================================
+   Une tentative, c'est : on part du coin, on pousse dans une direction, et ça
+   s'arrête quand on sort ou quand on meurt. Mourir ne coûte rien d'autre que
+   deux secondes — mais chaque mort laisse derrière elle un piège démasqué, et
+   celui-là ne se refermera jamais. */
+
+let connus=new Set();          // les pièges découverts sur CE niveau, à jamais
+let secousse=0, eclair=0;
+let flottants=[];
+
+function ouvrirNiveau(num){
+  N=niveauDe(num);
+  connus=new Set(SAVE.vus[num]||[]);
+  cadrer();
+  FOND=null;
+  nouvelleTentative(true);
+  majHUD();
+}
+function nouvelleTentative(neuf){
+  J={ x:N.depart[0], y:N.depart[1], cles:0, pas:0, t:0,
+      trous:new Set(), pris:new Set(), armees:new Map(),
+      fini:0, mort:0, cause:'', gagne:0,
+      morts:(neuf||!J)?0:J.morts, decouvertes:(neuf||!J)?0:J.decouvertes,
+      ax:N.depart[0], ay:N.depart[1], anim:0, dir:[0,1],
+      fleches:[], boum:[] };
+  flottants=[];
+  majHUD();
+}
+
+/* ---------------------------------------------------------------- bouger */
+function bouger(dx,dy){
+  if(!N||!J||J.fini) return false;
+  if(ecranActif!=='jeu') return false;
+  const E={ sol:N.sol, obj:N.obj, L:N.L, H:N.H, x:J.x, y:J.y,
+            cles:J.cles, trous:J.trous, pris:J.pris, armees:J.armees };
+  const r=simulerPas(E,dx,dy);
+  J.dir=[dx,dy];
+
+  if(r.bloque&&!r.revele.length){
+    SND.bloque();
+    secousse=Math.min(6,secousse+3);
+    if(r.cause==='fermée') message('Fermée à clef',900);
+    return false;
+  }
+
+  /* ce qu'on vient de démasquer ne se recachera plus */
+  let neuf=0;
+  for(const t of r.revele) if(!connus.has(t)){ connus.add(t); neuf++; }
+  if(neuf){
+    J.decouvertes+=neuf;
+    SAVE.vus[N.num]=[...connus];
+    SAVE.decouvertes=(SAVE.decouvertes||0)+neuf;
+    for(const t of r.revele)
+      if(N.sol[t]===FAUXMUR){ SAVE.murs=(SAVE.murs||0)+1;
+        decrocher('mur'); if(SAVE.murs>=20) decrocher('mur20'); }
+    sauver();
+    SND.trouve();
+  }
+  if(r.bloque) return false;
+
+  /* les dalles qu'on a quittées s'effondrent derrière soi */
+  const depart=ix(N.L,J.x,J.y);
+  if(N.sol[depart]===DALLE&&!J.trous.has(depart)){
+    J.trous.add(depart); SND.craque();
+    flottants.push({x:J.x,y:J.y,t:'la dalle cède',vie:1.1,col:'#c98a3c'});
+  }
+  for(const t of r.chemin.slice(0,-1))
+    if(N.sol[t]===DALLE&&!J.trous.has(t)){ J.trous.add(t); SND.craque(); }
+
+  const ancien=[J.x,J.y];
+  J.x=r.x; J.y=r.y;
+  J.ax=ancien[0]; J.ay=ancien[1]; J.anim=1;
+  J.pas++; J.t++;
+  if(r.glisse) SND.glisse(); else SND.pas();
+  if(r.portail) SND.portail();
+  if(r.ouvre>=0&&!J.porteFaite){ J.porteFaite=1; SND.porte(); }
+  if(r.ramasse>=0&&!J.pris.has(r.ramasse)){
+    J.pris.add(r.ramasse); J.cles++; SND.cle();
+    message('Clef ramassée',1100,'bon');
+  }
+  if(r.amorce>=0&&!J.armees.has(r.amorce)){
+    J.armees.set(r.amorce,3);
+    SND.craque();
+    flottants.push({x:J.x,y:J.y,t:'AMORCÉE — 3 pas',vie:1.5,col:'#ff5964'});
+  }
+
+  /* le monde bouge APRÈS le joueur, jamais pendant */
+  if(r.mort){ mourir(r.cause); return true; }
+  if(coupeScie(N,J.t-1,ancien[0],ancien[1],J.x,J.y)){ mourir('scie'); return true; }
+  const f=toucheFleche(N,J.t,J.x,J.y);
+  if(f){
+    J.fleches.push({f, vie:.4});
+    if(!connus.has(f.t)){ connus.add(f.t); SAVE.vus[N.num]=[...connus]; sauver(); }
+    mourir('fleche'); return true;
+  }
+  if(tickMines()) return true;
+  if(r.gagne){ gagner(); return true; }
+  majHUD();
+  return true;
+}
+
+/* les mines : trois pas, puis le trou. On les entend compter. */
+function tickMines(){
+  let saute=false;
+  for(const [t,n] of [...J.armees]){
+    const k=n-1;
+    if(k>0){ J.armees.set(t,k); continue; }
+    J.armees.delete(t);
+    const mx2=t%N.L, my2=Math.floor(t/N.L);
+    J.boum.push({x:mx2,y:my2,vie:.55});
+    SND.boum();
+    secousse=Math.min(18,secousse+12);
+    eclair=Math.max(eclair,.5);
+    if(Math.max(Math.abs(J.x-mx2),Math.abs(J.y-my2))<=1) saute=true;
+  }
+  if(saute){ mourir('mine'); return true; }
+  return false;
+}
+
+const CAUSES={
+  pique:'UN PIQUE',   trou:'LE VIDE',    fausse:'CE N\'ÉTAIT PAS LA SORTIE',
+  fleche:'UNE FLÉCHETTE', scie:'LA SCIE', mine:'LA MINE'
+};
+function mourir(cause){
+  if(J.fini) return;
+  J.fini=1; J.mort=1; J.cause=cause;
+  J.morts++;
+  SAVE.morts=(SAVE.morts||0)+1;
+  if(SAVE.morts>=10) decrocher('mort10');
+  if(SAVE.morts>=100) decrocher('mort100');
+  if(SAVE.morts>=500) decrocher('mort500');
+  if(cause==='fausse') decrocher('fausse');
+  sauver();
+  if(cause==='pique') SND.pique();
+  else if(cause==='fleche') SND.fleche();
+  else if(cause==='mine') SND.boum();
+  else SND.mort();
+  secousse=Math.min(20,secousse+10);
+  majHUD();
+  /* on repart tout de suite : la mort ne doit rien coûter d'autre que sa
+     leçon, et un écran de défaite la ferait payer deux fois */
+  const tentative=J;
+  setTimeout(()=>{
+    if(J===tentative&&J.mort&&ecranActif==='jeu') nouvelleTentative(false);
+  },720);
+}
+
+function gagner(){
+  if(J.fini) return;
+  J.fini=1; J.gagne=1;
+  SND.gagne();
+  const e=etoilesDe(N,J.pas,J.morts);
+  J.etoiles=e;
+  const av=SAVE.niv[N.num]||{sorti:0,court:0,propre:0,pas:0};
+  const neuf={ sorti:av.sorti|e.sorti, court:av.court|e.court, propre:av.propre|e.propre,
+               pas:av.pas?Math.min(av.pas,J.pas):J.pas };
+  J.nouvelles={ sorti:e.sorti&&!av.sorti, court:e.court&&!av.court,
+                propre:e.propre&&!av.propre };
+  SAVE.niv[N.num]=neuf;
+  SAVE.faits=Object.keys(SAVE.niv).filter(k=>SAVE.niv[k].sorti).length;
+  if(N.num===1) decrocher('premier');
+  if(e.propre){ SAVE.propres=(SAVE.propres||0)+1; decrocher('propre1');
+    if(SAVE.propres>=10) decrocher('propre10'); }
+  /* on peut faire MIEUX que l'optimum prouvé, en prenant une dalle que la
+     preuve s'interdit : c'est la récompense de l'audace, et elle compte */
+  if(J.pas<=N.opt) decrocher('vite');
+  if(connus.size>=N.nbCaches&&N.nbCaches>0) decrocher('tout');
+  const tot=totalEtoiles();
+  if(tot>=50) decrocher('e50');
+  if(tot>=150) decrocher('e150');
+  if(tot>=450) decrocher('e450');
+  for(const c of [1,5,10]){
+    let ok=true;
+    for(let i=(c-1)*PAR_CHAPITRE+1;i<=c*PAR_CHAPITRE;i++)
+      if(!(SAVE.niv[i]&&SAVE.niv[i].sorti)) ok=false;
+    if(ok) decrocher(c===1?'ch1':(c===5?'ch5':'ch10'));
+  }
+  sauver();
+  const tentative=J;
+  setTimeout(()=>{ if(J===tentative&&J.gagne) montrerFin(); },820);
+}
+
+function totalEtoiles(){
+  let n=0;
+  for(const k in SAVE.niv){
+    const e=SAVE.niv[k];
+    n+=(e.sorti?1:0)+(e.court?1:0)+(e.propre?1:0);
+  }
+  return n;
+}
+function niveauDebloque(num){
+  if(num<=1) return true;
+  return !!(SAVE.niv[num-1]&&SAVE.niv[num-1].sorti);
+}
+function prochainNiveau(){
+  for(let i=1;i<=NB_NIVEAUX;i++) if(!(SAVE.niv[i]&&SAVE.niv[i].sorti)) return i;
+  return NB_NIVEAUX;
+}
+
+/* ------------------------------------------------------------ animations */
+function pasAnim(dt){
+  if(J&&J.anim>0) J.anim=Math.max(0,J.anim-dt*9);
+  secousse*=Math.pow(.001,dt);
+  eclair=Math.max(0,eclair-dt*2.6);
+  if(J){
+    for(let i=J.fleches.length-1;i>=0;i--){
+      J.fleches[i].vie-=dt;
+      if(J.fleches[i].vie<=0) J.fleches.splice(i,1);
+    }
+    for(let i=J.boum.length-1;i>=0;i--){
+      J.boum[i].vie-=dt;
+      if(J.boum[i].vie<=0) J.boum.splice(i,1);
+    }
+  }
+  for(let i=flottants.length-1;i>=0;i--){
+    flottants[i].vie-=dt;
+    if(flottants[i].vie<=0) flottants.splice(i,1);
+  }
+}
+
+
+/* ==========================================================================
+   7. LE DESSIN
+   ==========================================================================
+   Une seule chose doit se lire sans effort : CE QUE JE SAIS DE CETTE CASE.
+   D'où trois états visuels et pas un de plus — la case ordinaire, la case dont
+   on sait qu'elle est piégée, et la case sur laquelle on n'a aucune
+   information. Les pièges démasqués sont tracés comme à la craie : c'est le
+   joueur qui les a marqués, pas le jeu qui les affiche. */
+
+function melange(c1,c2,t){
+  const h=s=>[parseInt(s.slice(1,3),16),parseInt(s.slice(3,5),16),parseInt(s.slice(5,7),16)];
+  const a=h(c1), b=h(c2);
+  return 'rgb('+Math.round(lerp(a[0],b[0],t))+','+Math.round(lerp(a[1],b[1],t))
+    +','+Math.round(lerp(a[2],b[2],t))+')';
+}
+function peindreFond(){
+  const o=document.createElement('canvas');
+  o.width=Math.max(1,Math.round(VW)); o.height=Math.max(1,Math.round(VH));
+  const g=o.getContext('2d');
+  const grd=g.createRadialGradient(VW*.5,VH*.34,10,VW*.5,VH*.5,Math.max(VW,VH)*.8);
+  grd.addColorStop(0,'#151b28'); grd.addColorStop(1,'#080b12');
+  g.fillStyle=grd; g.fillRect(0,0,VW,VH);
+  /* de la poussière, fixe : elle donne une matière sans bouger ni distraire */
+  const D=semeur(9182);
+  g.fillStyle='rgba(255,255,255,.028)';
+  for(let i=0;i<220;i++){
+    const x=D()*VW, y=D()*VH, r=D()*1.7+.3;
+    g.beginPath(); g.arc(x,y,r,0,TAU); g.fill();
+  }
+  FOND=o;
+}
+
+/* la craie : le trait qui dit « je sais » */
+function craie(x,y,dessin,col){
+  const X=cx(x), Y=cy(y), r=TUILE*.30;
+  ctx.save();
+  ctx.translate(X,Y);
+  ctx.strokeStyle=col||'#ff6b74';
+  ctx.lineWidth=Math.max(1.4,TUILE*.075);
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  dessin(r);
+  ctx.restore();
+}
+
+function dessinerCase(x,y){
+  const t=ix(N.L,x,y);
+  const brut=N.sol[t];
+  const su=connus.has(t);
+  const s=solVu(brut,su);
+  const X=px(x), Y=py(y), T=TUILE;
+  const g=hash2(x,y,N.num);
+
+  if(J&&J.trous.has(t)){
+    ctx.fillStyle='#05070b'; ctx.fillRect(X,Y,T,T);
+    ctx.strokeStyle='rgba(201,138,60,.35)'; ctx.lineWidth=1.5;
+    ctx.strokeRect(X+1,Y+1,T-2,T-2);
+    return;
+  }
+  switch(s){
+    case MUR: {
+      /* Le mur est un BLOC POSÉ : clair, biseauté en haut, ombré en bas. Le sol
+         est presque noir. Sans cet écart de valeur, le labyrinthe est invisible
+         — c'était le cas, et c'était le pire défaut du jeu. */
+      ctx.fillStyle=melange('#5a6b8c','#46546f',g*.8);
+      ctx.fillRect(X,Y,T,T);
+      ctx.fillStyle='rgba(255,255,255,.20)';
+      ctx.fillRect(X,Y,T,Math.max(1.5,T*.15));
+      ctx.fillStyle='rgba(0,0,0,.30)';
+      ctx.fillRect(X,Y+T-Math.max(1.5,T*.15),T,Math.max(1.5,T*.15));
+      ctx.strokeStyle='rgba(6,9,15,.7)'; ctx.lineWidth=1;
+      ctx.strokeRect(X+.5,Y+.5,T-1,T-1);
+      break;
+    }
+    case TROU: {
+      ctx.fillStyle='#05070b'; ctx.fillRect(X,Y,T,T);
+      const gr=ctx.createRadialGradient(X+T/2,Y+T/2,T*.1,X+T/2,Y+T/2,T*.6);
+      gr.addColorStop(0,'rgba(0,0,0,1)'); gr.addColorStop(1,'rgba(20,26,38,.5)');
+      ctx.fillStyle=gr; ctx.fillRect(X,Y,T,T);
+      break;
+    }
+    case GLACE: {
+      ctx.fillStyle=melange('#2d6f96','#4aa6d4',g);
+      ctx.fillRect(X,Y,T,T);
+      ctx.strokeStyle='rgba(255,255,255,.28)'; ctx.lineWidth=1;
+      ctx.beginPath();
+      ctx.moveTo(X+T*.2,Y+T*.72); ctx.lineTo(X+T*.72,Y+T*.2);
+      ctx.moveTo(X+T*.45,Y+T*.88); ctx.lineTo(X+T*.88,Y+T*.45);
+      ctx.stroke();
+      break;
+    }
+    case DALLE: {
+      ctx.fillStyle=melange('#5c5344','#453d31',g);
+      ctx.fillRect(X,Y,T,T);
+      ctx.strokeStyle='rgba(20,16,10,.6)'; ctx.lineWidth=Math.max(1,T*.05);
+      ctx.beginPath();
+      ctx.moveTo(X+T*.18,Y+T*.1); ctx.lineTo(X+T*.42,Y+T*.5);
+      ctx.lineTo(X+T*.28,Y+T*.9);
+      ctx.moveTo(X+T*.62,Y+T*.12); ctx.lineTo(X+T*.8,Y+T*.62);
+      ctx.stroke();
+      break;
+    }
+    case SORTIE: {
+      const p=.5+.5*Math.sin(horloge*3);
+      ctx.fillStyle=melange('#2a9c63','#4ad991',p);
+      ctx.fillRect(X,Y,T,T);
+      ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=Math.max(1.5,T*.08);
+      ctx.strokeRect(X+T*.22,Y+T*.22,T*.56,T*.56);
+      break;
+    }
+    case PORTE: {
+      ctx.fillStyle=melange('#8f5f26','#c98a3c',g*.6);
+      ctx.fillRect(X,Y,T,T);
+      ctx.strokeStyle='rgba(30,18,6,.6)'; ctx.lineWidth=1.5;
+      ctx.strokeRect(X+T*.16,Y+T*.1,T*.68,T*.8);
+      ctx.fillStyle='#ffd98a';
+      ctx.beginPath(); ctx.arc(X+T*.68,Y+T*.5,Math.max(1.5,T*.07),0,TAU); ctx.fill();
+      break;
+    }
+    default: {
+      /* le sol : presque le fond, avec un liseré pour qu'on compte les cases */
+      ctx.fillStyle=melange('#141a26','#0f141d',g);
+      ctx.fillRect(X,Y,T,T);
+      ctx.strokeStyle='rgba(90,107,140,.14)'; ctx.lineWidth=1;
+      ctx.strokeRect(X+.5,Y+.5,T-1,T-1);
+      if(g>.9){ ctx.fillStyle='rgba(255,255,255,.025)';
+        ctx.fillRect(X+T*.34,Y+T*.34,T*.32,T*.32); }
+    }
+  }
+
+  /* ---- ce qu'on SAIT, tracé par-dessus ---- */
+  if(su&&brut===FAUXMUR){
+    craie(x,y,r=>{ ctx.beginPath();
+      ctx.moveTo(-r,-r); ctx.lineTo(r,r); ctx.moveTo(r,-r); ctx.lineTo(-r,r);
+      ctx.stroke();
+      ctx.beginPath(); ctx.arc(0,0,r*1.25,0,TAU); ctx.stroke(); },'#7fe3a0');
+  }
+  if(su&&brut===FAUSSESORTIE){
+    craie(x,y,r=>{ ctx.beginPath();
+      ctx.moveTo(-r,-r); ctx.lineTo(r,r); ctx.moveTo(r,-r); ctx.lineTo(-r,r);
+      ctx.stroke(); },'#ff6b74');
+  }
+  const o=N.obj[t];
+  if(!o) return;
+  if(o.t===PIQUE&&su){
+    craie(x,y,r=>{ ctx.beginPath();
+      ctx.moveTo(-r,r*.8); ctx.lineTo(0,-r); ctx.lineTo(r,r*.8);
+      ctx.closePath(); ctx.stroke(); },'#ff6b74');
+  }
+  if(o.t===MINE&&su){
+    const arm=J&&J.armees.has(t);
+    const c=arm?'#ffd44e':'#ff6b74';
+    craie(x,y,r=>{ ctx.beginPath(); ctx.arc(0,0,r*.75,0,TAU); ctx.stroke();
+      ctx.beginPath();
+      for(let k=0;k<4;k++){ const a=k*Math.PI/2+Math.PI/4;
+        ctx.moveTo(Math.cos(a)*r*.8,Math.sin(a)*r*.8);
+        ctx.lineTo(Math.cos(a)*r*1.25,Math.sin(a)*r*1.25); }
+      ctx.stroke(); },c);
+    if(arm){
+      ctx.fillStyle='#ffd44e';
+      ctx.font='700 '+Math.max(8,Math.round(TUILE*.34))+'px '+MONO;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(String(J.armees.get(t)),cx(x),cy(y));
+      ctx.textBaseline='alphabetic';
+    }
+  }
+  if(o.t===FLECHE&&su){
+    const f=o.f;
+    const proche=J?((J.t+f.phase)%PER_FLECHE===PER_FLECHE-1):false;
+    const chaud=J?((J.t+f.phase)%PER_FLECHE===0):false;
+    craie(x,y,r=>{ ctx.beginPath();
+      ctx.arc(0,0,r*.5,0,TAU); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(f.dx*r*.4,f.dy*r*.4); ctx.lineTo(f.dx*r*1.3,f.dy*r*1.3);
+      ctx.stroke(); },chaud?'#ff5964':(proche?'#ffd44e':'#ff9a8a'));
+  }
+  if(o.t===CLEF&&!(J&&J.pris.has(t))){
+    const b=Math.sin(horloge*4)*TUILE*.05;
+    ctx.save(); ctx.translate(cx(x),cy(y)+b);
+    ctx.strokeStyle='#ffd98a'; ctx.lineWidth=Math.max(1.5,TUILE*.08);
+    ctx.beginPath(); ctx.arc(-TUILE*.1,0,TUILE*.13,0,TAU); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(TUILE*.03,0); ctx.lineTo(TUILE*.26,0);
+    ctx.moveTo(TUILE*.2,0); ctx.lineTo(TUILE*.2,TUILE*.11); ctx.stroke();
+    ctx.restore();
+  }
+  if(o.t===PORTAIL){
+    const p=.5+.5*Math.sin(horloge*3+x+y);
+    ctx.strokeStyle=melange('#8257bd','#c9a4ea',p);
+    ctx.lineWidth=Math.max(1.5,TUILE*.09);
+    ctx.beginPath(); ctx.arc(cx(x),cy(y),TUILE*.30,0,TAU); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx(x),cy(y),TUILE*.15,0,TAU); ctx.stroke();
+  }
+}
+
+/* les fléchettes en vol, dessinées le temps qu'on comprenne ce qui est arrivé */
+function dessinerFleches(){
+  if(!J) return;
+  for(const t of N.fleches){
+    const actif=(J.t+t.phase)%PER_FLECHE===0;
+    if(!actif||!connus.has(t.t)) continue;
+    ctx.strokeStyle='rgba(255,89,100,.5)';
+    ctx.lineWidth=Math.max(1.5,TUILE*.1);
+    const a=t.cases[0], b=t.cases[t.cases.length-1];
+    ctx.beginPath(); ctx.moveTo(cx(a[0]),cy(a[1])); ctx.lineTo(cx(b[0]),cy(b[1]));
+    ctx.stroke();
+  }
+  for(const v of J.fleches){
+    ctx.strokeStyle='#fff'; ctx.lineWidth=Math.max(2,TUILE*.13);
+    const a=v.f.cases[0], b=v.f.cases[v.f.cases.length-1];
+    ctx.globalAlpha=clamp(v.vie*2.5,0,1);
+    ctx.beginPath(); ctx.moveTo(cx(a[0]),cy(a[1])); ctx.lineTo(cx(b[0]),cy(b[1]));
+    ctx.stroke(); ctx.globalAlpha=1;
+  }
+}
+
+function dessinerScies(){
+  if(!J) return;
+  for(const s of N.scies){
+    const a=s.chemin[J.t%PERIODE];
+    const b=s.chemin[(J.t+1)%PERIODE];
+    /* on montre où elle VA : sans ça, elle serait un piège caché de plus,
+       alors qu'elle est censée être le seul danger parfaitement visible */
+    if(b[0]!==a[0]||b[1]!==a[1]){
+      ctx.strokeStyle='rgba(255,89,100,.32)';
+      ctx.lineWidth=Math.max(1.5,TUILE*.09);
+      ctx.setLineDash([TUILE*.15,TUILE*.12]);
+      ctx.beginPath(); ctx.moveTo(cx(a[0]),cy(a[1])); ctx.lineTo(cx(b[0]),cy(b[1]));
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    const X=cx(a[0]), Y=cy(a[1]), r=TUILE*.34;
+    ctx.save(); ctx.translate(X,Y); ctx.rotate(horloge*7);
+    ctx.fillStyle='#c0ccdd';
+    ctx.beginPath();
+    for(let k=0;k<8;k++){
+      const t1=k/8*TAU, t2=(k+.5)/8*TAU;
+      ctx.lineTo(Math.cos(t1)*r,Math.sin(t1)*r);
+      ctx.lineTo(Math.cos(t2)*r*.62,Math.sin(t2)*r*.62);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#5a6硬'.replace('硬','a7d');
+    ctx.beginPath(); ctx.arc(0,0,r*.24,0,TAU); ctx.fill();
+    ctx.restore();
+  }
+}
+
+function dessinerJoueur(){
+  if(!J) return;
+  const k=J.anim>0?1-J.anim:1;
+  const x=lerp(J.ax,J.x,k), y=lerp(J.ay,J.y,k);
+  const X=cx(x), Y=cy(y);
+  const r=TUILE*.30;
+  if(J.mort){
+    ctx.globalAlpha=.5;
+  }
+  /* l'ombre, qui pose le personnage sur le sol */
+  ctx.fillStyle='rgba(0,0,0,.4)';
+  ctx.beginPath(); ctx.ellipse(X,Y+r*.85,r*.85,r*.34,0,0,TAU); ctx.fill();
+  const g=ctx.createRadialGradient(X-r*.3,Y-r*.4,r*.15,X,Y,r*1.1);
+  g.addColorStop(0,'#ffe9a8'); g.addColorStop(1,'#ffb02e');
+  ctx.fillStyle=g;
+  ctx.beginPath(); ctx.arc(X,Y-r*.1,r,0,TAU); ctx.fill();
+  ctx.strokeStyle='rgba(60,32,4,.7)'; ctx.lineWidth=Math.max(1,TUILE*.05);
+  ctx.stroke();
+  /* deux yeux qui regardent où l'on va : c'est tout le personnage, et il
+     suffit pour qu'on s'y attache */
+  const dx=J.dir[0]*r*.2, dy=J.dir[1]*r*.2;
+  ctx.fillStyle='#2a1c06';
+  for(const s of [-1,1]){
+    ctx.beginPath();
+    ctx.arc(X+s*r*.33+dx,Y-r*.2+dy,Math.max(1.2,r*.15),0,TAU);
+    ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  if(J.cles>0){
+    ctx.strokeStyle='#ffd98a'; ctx.lineWidth=Math.max(1.2,TUILE*.06);
+    ctx.beginPath(); ctx.arc(X+r*.9,Y-r*.9,TUILE*.1,0,TAU); ctx.stroke();
+  }
+}
+
+function dessinerBooms(){
+  if(!J) return;
+  for(const b of J.boum){
+    const k=1-b.vie/.55;
+    ctx.strokeStyle='rgba(255,154,60,'+(1-k)+')';
+    ctx.lineWidth=Math.max(2,TUILE*.2*(1-k));
+    ctx.beginPath(); ctx.arc(cx(b.x),cy(b.y),TUILE*(.3+k*1.5),0,TAU); ctx.stroke();
+  }
+}
+function dessinerFlottants(){
+  for(const f of flottants){
+    ctx.globalAlpha=clamp(f.vie,0,1);
+    ctx.font='700 '+Math.max(10,Math.round(TUILE*.36))+'px '+MONO;
+    ctx.textAlign='center';
+    const y=cy(f.y)-TUILE*(.7+(1.2-f.vie)*.5);
+    ctx.fillStyle='rgba(0,0,0,.7)'; ctx.fillText(f.t,cx(f.x)+1,y+1);
+    ctx.fillStyle=f.col; ctx.fillText(f.t,cx(f.x),y);
+  }
+  ctx.globalAlpha=1;
+}
+
+function dessiner(dt){
+  if(!FOND||FOND.width!==Math.round(VW)) peindreFond();
+  ctx.drawImage(FOND,0,0);
+  if(!N) return;
+  ctx.save();
+  if(secousse>.2)
+    ctx.translate(drnd(-1,1)*secousse,drnd(-1,1)*secousse);
+  /* le cadre du labyrinthe : il détache le plateau du fond */
+  ctx.fillStyle='rgba(0,0,0,.5)';
+  ctx.fillRect(px(0)-7,py(0)-7,N.L*TUILE+14,N.H*TUILE+14);
+  ctx.strokeStyle='rgba(90,107,140,.3)'; ctx.lineWidth=2;
+  ctx.strokeRect(px(0)-7,py(0)-7,N.L*TUILE+14,N.H*TUILE+14);
+  for(let y=0;y<N.H;y++) for(let x=0;x<N.L;x++) dessinerCase(x,y);
+  dessinerFleches();
+  dessinerScies();
+  dessinerBooms();
+  dessinerJoueur();
+  dessinerFlottants();
+  ctx.restore();
+  if(eclair>0){
+    ctx.fillStyle='rgba(255,190,120,'+(eclair*.4)+')';
+    ctx.fillRect(0,0,VW,VH);
+  }
+}
+
+
+/* ==========================================================================
+   8. CE QUI EST ÉCRIT AUTOUR
+   ==========================================================================
+   Le bandeau ne dit que ce qui sert à décider : où l'on est, combien de pas on
+   a faits contre le minimum connu, et combien de fois on est mort ici. Le
+   nombre de morts n'est pas une punition affichée, c'est un compteur de
+   connaissance — il monte en même temps que la carte du terrain. */
+
+function ecrans(id){
+  for(const s of document.querySelectorAll('.screen')) s.classList.toggle('on',s.id===id);
+  document.body.classList.toggle('enJeu',!id&&!!N);
+}
+function message(txt,dur,genre){
+  const f=$('flash');
+  const d=document.createElement('div');
+  d.className='msg'+(genre?' '+genre:'');
+  d.textContent=txt;
+  f.appendChild(d);
+  while(f.children.length>3) f.removeChild(f.firstChild);
+  setTimeout(()=>{ if(d.parentNode) d.parentNode.removeChild(d); },dur||1500);
+}
+
+function majHUD(){
+  if(!N||!J) return;
+  $('hNiv').textContent=N.num;
+  /* sur un écran étroit, le nom du chapitre se faisait couper en plein milieu.
+     Mieux vaut le numéro seul que « LA RO… » — le nom est de toute façon
+     annoncé à l'entrée du niveau et écrit sur la carte des chapitres. */
+  $('hChap').textContent=VW<520?('CH.'+N.ch)
+    :('CH.'+N.ch+' · '+CHAPITRES[N.ch-1].nom);
+  const p=$('hPas');
+  p.textContent=J.pas;
+  p.className=J.pas<=N.opt?'bon':(J.pas<=Math.ceil(N.opt*1.4)?'':'trop');
+  $('hOpt').textContent='/ '+N.opt+' au mieux';
+  $('hMorts').textContent=J.morts;
+  const su=$('hSu');
+  su.textContent=connus.size+' / '+N.nbCaches;
+  su.className=(N.nbCaches&&connus.size>=N.nbCaches)?'bon':'';
+  $('hCle').style.display=J.cles>0?'':'none';
+  const e=SAVE.niv[N.num];
+  $('hEtoiles').textContent=e?('★'.repeat(nbEtoiles(e))+'☆'.repeat(3-nbEtoiles(e))):'☆☆☆';
+}
+
+/* ==========================================================================
+   LA CARTE DES CENT CINQUANTE
+   ==========================================================================
+   Dix chapitres pliés, celui en cours ouvert. Cent cinquante boutons d'un
+   coup, ce n'est pas une carte, c'est un mur. */
+let chapitreOuvert=1;
+function montrerNiveaux(){
+  const tot=totalEtoiles();
+  $('nvSous').innerHTML='<b>'+SAVE.faits+'</b> niveaux sur '+NB_NIVEAUX
+    +' · <b>'+tot+'</b> étoiles sur '+(NB_NIVEAUX*3)
+    +' · <b>'+nb(SAVE.morts||0)+'</b> morts';
+  const box=$('nvListe');
+  box.innerHTML='';
+  for(let c=1;c<=10;c++){
+    const deb=(c-1)*PAR_CHAPITRE+1, fin=c*PAR_CHAPITRE;
+    let faits=0, et=0, ouvert=false;
+    for(let i=deb;i<=fin;i++){
+      const e=SAVE.niv[i];
+      if(e&&e.sorti) faits++;
+      et+=nbEtoiles(e);
+      if(niveauDebloque(i)) ouvert=true;
+    }
+    const ch=CHAPITRES[c-1];
+    const bloc=document.createElement('div');
+    bloc.className='chap'+(c===chapitreOuvert?' on':'')+(ouvert?'':' verr');
+    const fam=FAMILLES.find(f=>f.ch===c);
+    bloc.innerHTML='<button class="chTete"><span class="chNo">CHAPITRE '+c+'</span>'
+      +'<b>'+(ouvert?ch.nom:'— — —')+'</b>'
+      +'<span class="chSous">'+(ouvert?(ch.d+' · nouveau : '+fam.nom):'à débloquer')+'</span>'
+      +'<span class="chEt">'+faits+'/'+PAR_CHAPITRE+' · '+et+'★</span></button>'
+      +'<div class="chCorps"></div>';
+    const corps=bloc.querySelector('.chCorps');
+    for(let i=deb;i<=fin;i++){
+      const e=SAVE.niv[i];
+      const ok=niveauDebloque(i);
+      const b=document.createElement('button');
+      b.className='niv'+(e&&e.sorti?' fait':'')+(ok?'':' verr');
+      b.innerHTML='<b>'+i+'</b><span>'+(e?('★'.repeat(nbEtoiles(e))||'·'):'·')+'</span>';
+      if(ok) b.onclick=()=>{ SND.init(); SND.clic(); lancerNiveau(i); };
+      else b.onclick=()=>{ SND.refus(); message('Termine d\'abord le niveau '+(i-1),1400,'mal'); };
+      corps.appendChild(b);
+    }
+    bloc.querySelector('.chTete').onclick=()=>{
+      if(!ouvert){ SND.refus(); return; }
+      chapitreOuvert=(chapitreOuvert===c?0:c);
+      SND.clic(); montrerNiveaux();
+    };
+    box.appendChild(bloc);
+  }
+  ecranActif='niveaux'; ecrans('niveaux');
+}
+function lancerNiveau(i){
+  ouvrirNiveau(i);
+  ecranActif='jeu'; ecrans(null);
+  message('NIVEAU '+i+' · '+CHAPITRES[N.ch-1].nom,1800);
+  const fam=FAMILLES.find(f=>f.ch===N.ch);
+  if(fam&&i%PAR_CHAPITRE===1&&N.ch>1)
+    setTimeout(()=>{ if(ecranActif==='jeu')
+      message('NOUVEAU — '+fam.nom+' : '+fam.d,4200); },1400);
+}
+
+/* ==========================================================================
+   LA SORTIE
+   ========================================================================== */
+function montrerFin(){
+  if(!J||!J.gagne) return;
+  const e=J.etoiles, nv=J.nouvelles||{};
+  $('fEye').textContent='NIVEAU '+N.num+' · '+CHAPITRES[N.ch-1].nom;
+  $('fTitre').textContent=nbEtoiles(e)===3?'SANS UNE FAUTE':'SORTI';
+  $('fEt').innerHTML=[['sorti','SORTI'],['court','AU PLUS COURT'],['propre','SANS MOURIR']]
+    .map(([k,n])=>'<div class="et'+(e[k]?' on':'')+(nv[k]?' neuf':'')+'">'
+      +'<span>'+(e[k]?'★':'☆')+'</span><b>'+n+'</b></div>').join('');
+  $('fGrille').innerHTML=
+     cell('PAS',J.pas,J.pas<=N.opt?'var(--vert)':'')
+    +cell('AU MIEUX',N.opt,'')
+    +cell('MORTS ICI',J.morts,J.morts?'var(--rouge)':'var(--vert)')
+    +cell('PIÈGES DÉMASQUÉS',connus.size+' / '+N.nbCaches,'');
+  let note;
+  if(J.morts===0&&J.pas<=N.opt) note='Du premier coup et au plus court. Il n\'y a rien à ajouter.';
+  else if(J.morts===0) note='Pas une seule mort. Reste à trouver le chemin le plus court : il fait '+N.opt+' pas.';
+  else if(!e.court) note='Sorti, mais en '+J.pas+' pas contre '+N.opt+'. Maintenant que la carte est faite, refais-le d\'un trait.';
+  else note='Le chemin est trouvé. La dernière étoile demande de le refaire sans mourir une seule fois.';
+  $('fNote').textContent=note;
+  const suite=$('fSuite');
+  suite.style.display=N.num<NB_NIVEAUX?'':'none';
+  ecranActif='fin'; ecrans('fin');
+}
+function cell(t,v,col){
+  return '<div class="cell"><span>'+t+'</span><b'+(col?' style="color:'+col+'"':'')
+    +'>'+v+'</b></div>';
+}
+
+/* ==========================================================================
+   MENU, SUCCÈS, RÈGLES
+   ========================================================================== */
+function succesN(){ return SUCCES.filter(s=>succesFait(s.id)).length; }
+function montrerSucces(){
+  const tot=totalEtoiles();
+  $('suTete').innerHTML='<div class="sur">OÙ TU EN ES</div>'
+    +'<div class="txt"><b>'+succesN()+'</b> succès sur '+SUCCES.length
+    +' · <b>'+tot+'</b> étoiles sur '+(NB_NIVEAUX*3)+'<br>'
+    +'<b>'+nb(SAVE.morts||0)+'</b> morts · <b>'+nb(SAVE.decouvertes||0)
+    +'</b> pièges démasqués · <b>'+nb(SAVE.propres||0)+'</b> niveaux sans une mort</div>';
+  $('suListe').innerHTML=SUCCES.map(s=>'<div class="suc'+(succesFait(s.id)?' ok':'')
+    +'"><b>'+s.nom+'</b><span>'+s.d+'</span></div>').join('');
+  ecranActif='succes'; ecrans('succes');
+}
+function montrerMenu(){
+  ecranActif='menu';
+  const tot=totalEtoiles(), r=rangDe(tot), suiv=rangSuivant(tot);
+  $('meRang').innerHTML='<span>'+r.ico+'</span><b>'+r.nom+'</b>'
+    +(suiv?'<u>'+(suiv.s-tot)+' étoiles avant '+suiv.nom+'</u>'
+          :'<u>'+tot+' étoiles</u>');
+  const p=prochainNiveau();
+  $('meJouer').innerHTML='<b>'+(SAVE.faits?('NIVEAU '+p):'COMMENCER')+'</b><span>'
+    +(SAVE.faits?(SAVE.faits+' niveaux terminés · '+tot+' étoiles · '
+        +nb(SAVE.morts||0)+' morts')
+      :'Cent cinquante labyrinthes. Le premier est facile.')+'</span>';
+  ecrans('menu');
+}
+function majReglages(){
+  $('sonBtn').textContent=SAVE.son?'SON : ACTIVÉ':'SON : COUPÉ';
+  $('volIn').value=Math.round((SAVE.volume||.6)*100);
+  $('volVal').textContent=Math.round((SAVE.volume||.6)*100)+' %';
+}
+function remplirRegles(){
+  $('reFam').innerHTML=FAMILLES.map(f=>
+    '<div class="faml'+(f.cache?' cache':'')+'"><i>'+f.ico+'</i><div><b>'+f.nom
+    +(f.cache?' <u>INVISIBLE</u>':'')+'</b><span>'+f.d+'</span>'
+    +'<span class="ch">chapitre '+f.ch+'</span></div></div>').join('');
+}
+
+
+/* ==========================================================================
+   9. CE QUI RESTE
+   ==========================================================================
+   Deux choses se gardent, et la seconde est le cœur du jeu :
+     — les étoiles, comme partout ;
+     — LA CARTE DES PIÈGES. Ce qu'on a démasqué au niveau 87 est démasqué pour
+       toujours. C'est ce qui transforme trois cents morts en trois cents
+       informations, et c'est la seule raison pour laquelle on ose avancer. */
+
+const SAVE_DEF={ son:true, volume:.6, niv:{}, vus:{}, succes:{},
+  morts:0, propres:0, murs:0, decouvertes:0, faits:0, dernier:1 };
+let SAVE=Object.assign({},SAVE_DEF);
+
+function charger(){
+  try{
+    const b=Store.get(CLE);
+    if(b){
+      SAVE=Object.assign({},SAVE_DEF,JSON.parse(b));
+      for(const k of ['niv','vus','succes'])
+        if(!SAVE[k]||typeof SAVE[k]!=='object'||Array.isArray(SAVE[k])) SAVE[k]={};
+      /* on relit ce qui vient du disque : un niveau inconnu ou une liste de
+         cases qui n'en est pas une ne doit pas casser le jeu au démarrage */
+      for(const k in SAVE.niv){
+        const n=+k, e=SAVE.niv[k];
+        if(!(n>=1&&n<=NB_NIVEAUX)||!e||typeof e!=='object'){ delete SAVE.niv[k]; continue; }
+        e.sorti=e.sorti?1:0; e.court=e.court?1:0; e.propre=e.propre?1:0;
+        e.pas=(+e.pas>0)?+e.pas:0;
+      }
+      for(const k in SAVE.vus){
+        const n=+k;
+        if(!(n>=1&&n<=NB_NIVEAUX)||!Array.isArray(SAVE.vus[k])){ delete SAVE.vus[k]; continue; }
+        SAVE.vus[k]=SAVE.vus[k].filter(v=>Number.isInteger(v)&&v>=0&&v<1600).slice(0,600);
+      }
+      SAVE.faits=Object.keys(SAVE.niv).filter(k=>SAVE.niv[k].sorti).length;
+    }
+  }catch(e){ SAVE=Object.assign({},SAVE_DEF,{niv:{},vus:{},succes:{}}); }
+}
+function sauver(){ try{ Store.set(CLE,JSON.stringify(SAVE)); }catch(e){} }
+
+function succesFait(id){ return !!(SAVE.succes&&SAVE.succes[id]); }
+function decrocher(id){
+  if(succesFait(id)) return;
+  const s=SUCCES.find(x=>x.id===id);
+  if(!s) return;
+  SAVE.succes=SAVE.succes||{};
+  SAVE.succes[id]=1;
+  sauver();
+  message('SUCCÈS · '+s.nom,2600,'bon');
+  SND.etoile();
+}
+
+
+/* ==========================================================================
+   10. LES ENTRÉES ET LA BOUCLE
+   ==========================================================================
+   Quatre directions. Au clavier, au doigt par glissement, ou sur la croix à
+   l'écran — trois façons d'exprimer la même chose, parce qu'on joue à ce jeu
+   sur tout et n'importe quoi et qu'aucune des trois n'est un pis-aller. */
+
+const DIRS={ ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0],
+  KeyW:[0,-1], KeyZ:[0,-1], KeyS:[0,1], KeyA:[-1,0], KeyQ:[-1,0], KeyD:[1,0] };
+let touchePressee=null, repeteT=0;
+
+/* l'adresse de contact publique — une seule ligne à changer */
+const ADRESSE_CONTACT='cours2gtmathis78@gmail.com';
+
+function cabler(){
+  /* posée par le script plutôt qu'écrite en dur dans un mailto: du HTML livré :
+     ça arrête les ramasseurs de spam les plus simples, pas tous */
+  const p=$('lgContact');
+  if(p){
+    p.textContent='Un bug, un niveau qui te paraît impossible, une idée : ';
+    const a=document.createElement('a');
+    a.href='mailto:'+ADRESSE_CONTACT;
+    a.textContent=ADRESSE_CONTACT;
+    p.appendChild(a);
+  }
+  addEventListener('keydown',e=>{
+    if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')) return;
+    if(e.code==='Escape'){ revenir(); return; }
+    if(ecranActif!=='jeu') return;
+    if(e.code==='KeyR'){ SND.init(); recommencer(); e.preventDefault(); return; }
+    const d=DIRS[e.code];
+    if(!d) return;
+    e.preventDefault();
+    SND.init(); SND.reprendre();
+    if(touchePressee!==e.code){ touchePressee=e.code; repeteT=.24; bouger(d[0],d[1]); }
+  });
+  addEventListener('keyup',e=>{ if(touchePressee===e.code) touchePressee=null; });
+  addEventListener('blur',()=>{ touchePressee=null; });
+
+  /* ---- le doigt : un glissement dans une direction ---- */
+  let t0=null;
+  cv.addEventListener('touchstart',e=>{
+    const t=e.touches[0]; if(!t) return;
+    SND.init(); SND.reprendre();
+    t0={x:t.clientX,y:t.clientY,t:performance.now()};
+    if(e.cancelable) e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('touchmove',e=>{
+    if(!t0) return;
+    const t=e.touches[0]; if(!t) return;
+    const dx=t.clientX-t0.x, dy=t.clientY-t0.y;
+    const seuil=Math.max(22,Math.min(VW,VH)*.045);
+    if(Math.hypot(dx,dy)<seuil) return;
+    /* on rejoue le geste case par case tant que le doigt continue : glisser
+       trois cases doit faire trois pas, pas un seul */
+    if(Math.abs(dx)>Math.abs(dy)) bouger(Math.sign(dx),0);
+    else bouger(0,Math.sign(dy));
+    t0={x:t.clientX,y:t.clientY,t:performance.now()};
+    if(e.cancelable) e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('touchend',e=>{
+    /* une tape sur une case voisine vaut un pas vers elle */
+    if(t0&&performance.now()-t0.t<260){
+      const c=e.changedTouches[0];
+      if(c&&Math.hypot(c.clientX-t0.x,c.clientY-t0.y)<14&&J&&!J.fini){
+        const [x,y]=caseSous(c.clientX,c.clientY);
+        const dx=x-J.x, dy=y-J.y;
+        if(Math.abs(dx)+Math.abs(dy)===1) bouger(dx,dy);
+      }
+    }
+    t0=null;
+    if(e.cancelable) e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('mousedown',e=>{
+    SND.init(); SND.reprendre();
+    if(!J||J.fini||ecranActif!=='jeu') return;
+    const [x,y]=caseSous(e.clientX,e.clientY);
+    const dx=x-J.x, dy=y-J.y;
+    if(Math.abs(dx)+Math.abs(dy)===1) bouger(dx,dy);
+  });
+  cv.addEventListener('contextmenu',e=>e.preventDefault());
+
+  /* ---- la croix à l'écran ---- */
+  for(const [id,dx,dy] of [['dHaut',0,-1],['dBas',0,1],['dGauche',-1,0],['dDroite',1,0]]){
+    const b=$(id);
+    const go=e=>{ e.preventDefault(); SND.init(); SND.reprendre(); bouger(dx,dy);
+      b.classList.add('presse'); setTimeout(()=>b.classList.remove('presse'),90); };
+    b.addEventListener('touchstart',go,{passive:false});
+    b.addEventListener('mousedown',go);
+  }
+  $('bRecommencer').onclick=()=>{ SND.init(); recommencer(); };
+  $('bQuitter').onclick=()=>{ montrerNiveaux(); };
+  $('bRegles').onclick=()=>{ remplirRegles(); if(N) N.enCours=1;
+    ecranActif='regles'; ecrans('regles'); };
+
+  /* ---- le menu ---- */
+  $('meJouer').onclick=()=>{ SND.init(); SND.reprendre(); lancerNiveau(prochainNiveau()); };
+  $('meNiveaux').onclick=()=>{ SND.init(); SND.clic();
+    chapitreOuvert=chapitreDe(prochainNiveau()); montrerNiveaux(); };
+  $('meRegles').onclick=()=>{ SND.init(); remplirRegles();
+    if(N) N.enCours=0; ecranActif='regles'; ecrans('regles'); };
+  $('meSucces').onclick=()=>{ SND.init(); montrerSucces(); };
+  $('meLegal').onclick=()=>{ SND.init(); ecranActif='legal'; ecrans('legal'); };
+  $('nvRetour').onclick=()=>montrerMenu();
+  $('suRetour').onclick=()=>montrerMenu();
+  $('reRetour').onclick=()=>revenir();
+  $('lgRetour').onclick=()=>montrerMenu();
+
+  /* ---- l'écran de sortie ---- */
+  $('fSuite').onclick=()=>{ SND.clic(); lancerNiveau(Math.min(NB_NIVEAUX,N.num+1)); };
+  $('fRefaire').onclick=()=>{ SND.clic(); lancerNiveau(N.num); };
+  $('fNiveaux').onclick=()=>{ SND.clic();
+    chapitreOuvert=chapitreDe(N.num); montrerNiveaux(); };
+
+  /* ---- les réglages ---- */
+  $('sonBtn').onclick=()=>{
+    SAVE.son=!SAVE.son; SND.on=SAVE.son; sauver(); majReglages();
+  };
+  $('volIn').oninput=e=>{
+    SAVE.volume=+e.target.value/100; SND.vol(SAVE.volume);
+    $('volVal').textContent=Math.round(SAVE.volume*100)+' %';
+    sauver();
+  };
+  $('effacer').onclick=()=>{
+    if(!confirm('Effacer les étoiles, les pièges découverts et les succès ?')) return;
+    SAVE=Object.assign({},SAVE_DEF,{niv:{},vus:{},succes:{}});
+    sauver(); montrerMenu();
+  };
+  $('oubli').onclick=()=>{
+    if(!N) return;
+    if(!confirm('Oublier les pièges découverts sur ce niveau ?')) return;
+    connus=new Set(); delete SAVE.vus[N.num]; sauver();
+    message('Le niveau redevient inconnu',1800);
+    revenir();
+  };
+}
+
+function recommencer(){
+  if(!N||ecranActif!=='jeu') return;
+  nouvelleTentative(false);
+  SND.clic();
+  message('Depuis le départ',900);
+}
+/* Revenir veut dire deux choses : reprendre le niveau qu'on avait mis en pause
+   pour lire les règles, ou remonter d'un cran. */
+function revenir(){
+  if(ecranActif==='regles'&&N&&N.enCours){ ecranActif='jeu'; ecrans(null); return; }
+  if(ecranActif==='jeu'){ montrerNiveaux(); return; }
+  if(ecranActif==='niveaux'||ecranActif==='succes'||ecranActif==='regles'
+     ||ecranActif==='legal'||ecranActif==='fin') montrerMenu();
+}
+
+/* ---------------------------------------------------------------- la boucle */
+function boucle(now){
+  const dt=Math.min(.05,(now-last)/1000);
+  last=now;
+  horloge+=dt;
+  if(touchePressee&&ecranActif==='jeu'&&J&&!J.fini){
+    repeteT-=dt;
+    if(repeteT<=0){ repeteT=.11; const d=DIRS[touchePressee];
+      if(d) bouger(d[0],d[1]); }
+  }
+  pasAnim(dt);
+  if(N) dessiner(dt);
+  requestAnimationFrame(boucle);
+}
+
+/* ---------------------------------------------------------------- départ */
+charger();
+SND.on=SAVE.son;
+SND.volume=SAVE.volume;
+N=niveauDe(1);
+connus=new Set(SAVE.vus[1]||[]);
+nouvelleTentative(true);
+redim();
+cabler();
+remplirRegles();
+montrerMenu();
+majReglages();
+requestAnimationFrame(boucle);
+
+</script>
+</body>
+</html>
