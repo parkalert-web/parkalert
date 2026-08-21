@@ -194,17 +194,36 @@ function bindNav() {
 }
 
 function showHelp() {
+  const marker = (color, glyph, label) =>
+    `<div class="legend-row"><span class="legend-dot" style="--c:${color}">${glyph}</span>${label}</div>`;
+
   openModal({
     title: 'Comment ça marche',
-    body: el('div', { class: 'note', html: `
-      <p><b>J’aide les autres → je gagne des points → je suis prioritaire quand j’ai besoin d’une place.</b></p>
-      <p><b>Celui qui cherche</b> indique où il va, à quelle distance maximum, et avec quelle marge il sait se garer.</p>
-      <p><b>Celui qui donne</b> dit comment est sa place et dans combien de temps maximum il est prêt à la libérer.</p>
-      <p><b>ParkAlert</b> vérifie la taille, la destination, le temps d’arrivée et la disponibilité, puis prévient
-      en priorité les conducteurs qui ont le plus de points — sauf en cas d’urgence, où c’est le plus rapide qui passe devant.</p>
-      <p>Une transmission ne compte que si elle est <b>confirmée des deux côtés</b>, avec les deux téléphones près de la place.</p>
-      <p class="muted">Le partage de position démarre à la réservation et s’arrête automatiquement à la fin.</p>` }),
-    actions: [{ label: 'Fermer', value: true, variant: 'btn-green' }],
+    body: el('div', {}, el('div', { class: 'note', html: `
+      <p><b>J’aide les autres, je gagne des points, et ces points me rendent prioritaire
+      le jour où c’est moi qui cherche une place.</b></p>
+
+      <p><b>Vous cherchez ?</b> Vous dites où vous allez et jusqu’à quelle distance. La taille
+      de place qu’il vous faut est calculée à partir de votre voiture — vous n’avez rien à estimer.</p>
+
+      <p><b>Vous partez ?</b> Vous décrivez l’espace autour de votre voiture et vous dites dans
+      combien de temps, au maximum, vous êtes prêt à libérer la place.</p>
+
+      <p><b>Qui est prévenu en premier ?</b> Parmi les conducteurs dont la voiture rentre, qui vont
+      au bon endroit et qui peuvent arriver à temps, ce sont ceux qui ont le plus de points.
+      À points égaux, la place revient à la plus grande voiture qui y rentre : elle a beaucoup
+      moins d’occasions de se garer. Quand c’est urgent — départ immédiat ou conducteur en retard —
+      c’est le plus rapide qui passe devant.</p>
+
+      <p>Une transmission ne compte que si elle est <b>confirmée par les deux conducteurs</b>,
+      leurs deux téléphones étant près de la place.</p>` }),
+    el('div', { class: 'sublabel', text: 'Sur la carte' }),
+    el('div', { class: 'note', html: marker('#f59e0b', 'P', 'Une place va se libérer')
+      + marker('#a855f7', '!', 'Place signalée, non garantie')
+      + marker('#38bdf8', '', 'Un conducteur cherche')
+      + marker('#4ade80', '◎', 'Votre destination') }),
+    el('p', { class: 'form-note', text: 'Votre position n’est partagée avec l’autre conducteur qu’après une réservation, et le partage s’arrête tout seul à la fin.' })),
+    actions: [{ label: 'Fermer', value: true, variant: 'btn-primary' }],
   });
 }
 

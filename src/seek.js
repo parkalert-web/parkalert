@@ -161,7 +161,7 @@ async function destinationForm(pos, defaultVehicle) {
   const res = await openModal({
     title: 'Je cherche une place',
     body,
-    actions: [{ label: 'Lancer la recherche', value: 'ok', variant: 'btn-blue', keep: true, onClick: () => {
+    actions: [{ label: 'Lancer la recherche', value: 'ok', variant: 'btn-primary', keep: true, onClick: () => {
       if (!dest) { toast('Destination manquante', 'Indiquez où vous allez.', '#ef4444'); return; }
       closeModal('ok');
     } }],
@@ -260,7 +260,7 @@ async function showOffer(offer) {
     title: 'Une place compatible va se libérer',
     body,
     actions: [
-      { label: 'Je veux cette place', value: 'accept', variant: 'btn-green' },
+      { label: 'Je veux cette place', value: 'accept', variant: 'btn-primary' },
       { label: 'Non merci', value: 'decline' },
     ],
     dismissible: false,

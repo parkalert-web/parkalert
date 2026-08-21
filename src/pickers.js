@@ -7,7 +7,7 @@ import { COMFORT, DEPARTURE_CHOICES, TUNING } from './config.js';
 import { openModal, chooser, el, esc } from './ui.js';
 
 /**
- * Choix « Serré / Normal / À l'aise / Personnalisé » (§5 et §6).
+ * §6 — comment le donneur décrit l'espace réellement libre autour de sa voiture.
  * @returns {Promise<{qual:string, customCm:number|null}|'later'|null>}
  */
 export async function askComfort({
@@ -17,7 +17,7 @@ export async function askComfort({
   const picker = chooser(opts, { value, columns: 2 });
 
   const custom = el('div', { class: 'custom-row', style: { display: value === 'perso' ? 'flex' : 'none' } },
-    el('label', { text: 'Marge souhaitée' }),
+    el('label', { text: 'Espace libre' }),
     el('input', { type: 'number', id: 'custom-cm', min: '0', max: '300', step: '5', value: String(customCm) }),
     el('span', { text: 'cm' }));
 
@@ -31,7 +31,7 @@ export async function askComfort({
     custom);
 
   const actions = [
-    { label: 'Valider', value: 'ok', variant: 'btn-green' },
+    { label: 'Valider', value: 'ok', variant: 'btn-primary' },
     ...(allowLater ? [{ label: laterLabel, value: 'later' }] : []),
   ];
 
@@ -62,7 +62,7 @@ export async function askDeparture() {
   const res = await openModal({
     title: 'Dans combien de temps maximum êtes-vous prêt à libérer votre place ?',
     body,
-    actions: [{ label: 'Continuer', value: 'ok', variant: 'btn-green' }],
+    actions: [{ label: 'Continuer', value: 'ok', variant: 'btn-primary' }],
   });
   if (res !== 'ok') return null;
   const choice = DEPARTURE_CHOICES.find((d) => d.id === picker.value);
@@ -73,8 +73,8 @@ export async function askDeparture() {
 /** §23 — durée d'attente supplémentaire accordée à un conducteur en retard. */
 export async function askExtraWait() {
   const options = [
-    { id: '2', label: '+2 MIN' }, { id: '5', label: '+5 MIN' },
-    { id: '10', label: '+10 MIN' }, { id: 'custom', label: 'Personnalisé' },
+    { id: '2', label: '+2 min' }, { id: '5', label: '+5 min' },
+    { id: '10', label: '+10 min' }, { id: 'custom', label: 'Autre durée' },
   ];
   const picker = chooser(options, { value: '2', columns: 2 });
   const custom = el('div', { class: 'custom-row', style: { display: 'none' } },
@@ -86,7 +86,7 @@ export async function askExtraWait() {
   const res = await openModal({
     title: 'Combien de temps attendez-vous encore ?',
     body: el('div', {}, picker, custom),
-    actions: [{ label: 'Valider', value: 'ok', variant: 'btn-green' }],
+    actions: [{ label: 'Valider', value: 'ok', variant: 'btn-primary' }],
     dismissible: false,
   });
   if (res !== 'ok') return null;
@@ -109,7 +109,7 @@ export async function askNoFitReason() {
     { id: 'much', label: 'Beaucoup trop grande' },
     { id: 'unknown', label: 'Je ne sais pas' },
   ], { value: 'unknown', columns: 1 });
-  const degreeWrap = el('div', {}, el('div', { class: 'sublabel', text: 'VOTRE VOITURE EST…' }), degree);
+  const degreeWrap = el('div', {}, el('div', { class: 'sublabel', text: 'Votre voiture est…' }), degree);
   picker.addEventListener('choose', (e) => { degreeWrap.style.display = e.detail === 'short' ? 'block' : 'none'; });
 
   const res = await openModal({
@@ -123,7 +123,7 @@ export async function askNoFitReason() {
 }
 
 /** Confirmation générique avec deux gros boutons. */
-export function confirmSheet(title, subtitle, yes = 'OUI', no = 'NON', variant = 'btn-green', html = null) {
+export function confirmSheet(title, subtitle, yes = 'Oui', no = 'Non', variant = 'btn-primary', html = null) {
   return openModal({
     title,
     subtitle,
@@ -136,7 +136,7 @@ export function confirmSheet(title, subtitle, yes = 'OUI', no = 'NON', variant =
 }
 
 export function infoSheet(title, html, label = 'J’ai compris') {
-  return openModal({ title, body: el('div', { class: 'note', html }), actions: [{ label, value: true, variant: 'btn-green' }] });
+  return openModal({ title, body: el('div', { class: 'note', html }), actions: [{ label, value: true, variant: 'btn-primary' }] });
 }
 
 /** Récapitulatif de compatibilité affiché à l'utilisateur (jamais de centimètres imposés). */

@@ -121,6 +121,7 @@ Le MVP décrit au §37 du cahier des charges est intégralement implémenté.
 | 8-9 | Recherche autour d'une destination, rayon intelligent | `seek.js`, `core.js` |
 | 10-11 | « Je pars dans X minutes », rappel avant de monter en voiture | `give.js` |
 | 12-14 | Critères obligatoires, priorité aux points, exception « Maintenant » | `core.js` |
+| — | À points égaux, la place va au plus grand véhicule qui y rentre | `core.js` |
 | 15-17 | Proposition, acceptation, reconnaissance par modèle et couleur | `give.js`, `seek.js` |
 | 18-19 | Géolocalisation temporaire réciproque, position approximative avant le départ | `session.js` |
 | 20-22 | « Je suis prêt », ne pas bloquer la rue, détection de proximité | `give.js`, `seek.js` |
@@ -171,6 +172,13 @@ En revanche, **celui qui donne décrit toujours sa place** (§6) : là il ne s'a
 préférence mais d'une observation — l'espace réellement libre autour de sa voiture — et elle
 reste indispensable pour estimer la longueur du créneau.
 
+**À points égaux, la grande voiture passe devant (ajout au §13).** Une grande voiture trouve
+beaucoup plus rarement un créneau à sa taille ; une petite se contentera d'une place où la
+grande n'entrerait pas. Envoyer une petite voiture sur une grande place gâche donc la seule
+place utilisable par la grande. Ce critère **n'arbitre qu'une égalité** : un seul point d'écart
+suffit pour que les points l'emportent, conformément au principe du §13. Il s'applique aussi en
+mode urgent, après le temps d'arrivée et les points.
+
 **L'interface est en casse normale, sans références au cahier des charges.** Les libellés
 tout en capitales et les renvois « (§29) » ont été retirés des écrans : ils restent dans les
 commentaires du code, où ils servent à retrouver la règle d'origine.
@@ -198,9 +206,9 @@ fermée ; réglage fin des seuils à partir des retours réels.
 npm test          # logique métier : compatibilité, priorités, points, fiabilité
 ```
 
-18 tests rejouent les exemples chiffrés du cahier des charges — dont le tableau du §13
+19 tests rejouent les exemples chiffrés du cahier des charges — dont le tableau du §13
 (A/520 pts, B/300 pts, C/80 pts), l'exception « Maintenant » du §14, et le fait qu'une
-petite voiture ne peut jamais réclamer la place d'une grande.
+petite voiture ne peut jamais réclamer la place d'une grande, ni la lui prendre à points égaux.
 
 ```bash
 npm install --no-save playwright undici

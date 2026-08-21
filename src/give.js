@@ -112,7 +112,7 @@ export async function announceDeparture() {
         'Si personne de l’application ne récupère réellement votre place, <b>vous ne gagnerez pas de points</b>. '
         + 'Vous recevrez seulement un « Merci » pour le signalement.' }),
       actions: [
-        { label: 'J’attends un conducteur', value: 'wait', variant: 'btn-green' },
+        { label: 'J’attends un conducteur', value: 'wait', variant: 'btn-primary' },
         { label: 'Je pars sans attendre', value: 'leave', variant: 'btn-orange' },
       ],
     });
@@ -314,7 +314,7 @@ async function confirmCandidate(spot, candidate, offer) {
       + `<div class="kv"><span>Distance</span><b>${fmtDistance(candidate.approachM)}</b></div>`
       + `<div class="kv"><span>Points d’entraide</span><b>${Number(candidate.points) || 0}</b></div>` }),
     actions: [
-      { label: 'Accepter', value: 'yes', variant: 'btn-green' },
+      { label: 'Accepter', value: 'yes', variant: 'btn-primary' },
       { label: 'Refuser', value: 'no', variant: 'btn-red' },
     ],
     dismissible: false,
@@ -400,7 +400,7 @@ async function handleLate(session) {
     subtitle: 'Vous n’êtes pas obligé d’attendre.',
     body: el('div', { class: 'note note-orange', html: 'La réattribution donne la place au conducteur compatible qui peut arriver <b>le plus vite</b>.' }),
     actions: [
-      { label: 'Oui, j’attends encore', value: 'wait', variant: 'btn-green' },
+      { label: 'Oui, j’attends encore', value: 'wait', variant: 'btn-primary' },
       { label: 'Non, chercher un autre conducteur', value: 'reassign', variant: 'btn-orange' },
     ],
     dismissible: false,
@@ -552,7 +552,7 @@ export async function onSeekerCannotPark(session) {
     subtitle: session.noFitReason === 'short' ? 'Place trop courte pour son véhicule' : 'Accès impossible',
     body: el('div', { class: 'note', html: 'Nous pouvons rechercher immédiatement un véhicule plus petit, ou vous pouvez partir : la place deviendra alors un simple signalement.' }),
     actions: [
-      { label: 'Chercher un autre conducteur', value: 'keep', variant: 'btn-green' },
+      { label: 'Chercher un autre conducteur', value: 'keep', variant: 'btn-primary' },
       { label: 'Je pars maintenant', value: 'go', variant: 'btn-orange' },
     ],
     dismissible: false,

@@ -150,18 +150,34 @@ export function selectCandidates(p, tuning = TUNING) {
  *   'points'  : départ annoncé dans X minutes -> les plus de points d'abord
  *   'fastest' : « Maintenant » ou réattribution urgente -> le plus rapide d'abord,
  *               puis les points, puis la fiabilité si les temps sont très proches
+ *
+ * Dans les deux modes, une égalité de points est tranchée en faveur du plus
+ * grand véhicule qui rentre : c'est lui qui a le plus de mal à se garer.
  */
 export function rankCandidates(list, mode, tuning = TUNING) {
   const arr = [...list];
+
+  /**
+   * À nombre de points égal, la place revient au plus grand véhicule parmi ceux
+   * qui y rentrent. Une grande voiture trouve beaucoup plus rarement un créneau
+   * à sa taille ; la petite, elle, se contentera d'une place où la grande
+   * n'entrerait pas. Envoyer une petite voiture sur une grande place gâche la
+   * seule place utilisable par la grande.
+   *
+   * Ce critère n'arbitre qu'une égalité : plus de points l'emporte toujours.
+   */
+  const byRarity = (a, b) => (b.neededCm || 0) - (a.neededCm || 0);
+
   if (mode === 'points') {
     arr.sort((a, b) => (b.points - a.points)
+      || byRarity(a, b)
       || (a.etaMin - b.etaMin)
       || (b.reliability - a.reliability));
   } else {
     arr.sort((a, b) => {
       const d = a.etaMin - b.etaMin;
       if (Math.abs(d) >= tuning.etaTieMin) return d;
-      return (b.points - a.points) || (b.reliability - a.reliability) || d;
+      return (b.points - a.points) || byRarity(a, b) || (b.reliability - a.reliability) || d;
     });
   }
   // À qualité égale, une place dans le rayon demandé passe avant une place « élargie » (§9).

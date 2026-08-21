@@ -90,7 +90,7 @@ export async function addVehicleFlow(first = false) {
     subtitle: 'L’IA aide à identifier le modèle ; les dimensions viennent d’une base automobile.',
     body,
     actions: [{
-      label: 'Confirmer ce véhicule', value: 'ok', variant: 'btn-green', keep: true,
+      label: 'Confirmer ce véhicule', value: 'ok', variant: 'btn-primary', keep: true,
       onClick: () => {
         const tpl = manual.querySelector('#tpl-picker')?.value;
         const manLen = Number(manual.querySelector('#man-len').value) || 0;
@@ -269,7 +269,10 @@ export function renderHistory(entries) {
       el('div', { class: 'muted small', text: new Date(h.ts).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) }),
       el('div', { text: h.action }),
       h.detail ? el('div', { class: 'muted small', text: h.detail }) : null,
-      h.delta ? el('div', { class: 'badge badge-green', text: `+${h.delta} points` }) : null,
+      h.delta ? el('div', {
+        class: `badge ${h.delta > 0 ? 'badge-green' : 'badge-red'}`,
+        text: `${h.delta > 0 ? '+' : '−'}${Math.abs(h.delta)} points`,
+      }) : null,
     ));
   }
 }
@@ -283,7 +286,7 @@ export async function onboarding() {
       title: 'Bienvenue sur ParkAlert',
       subtitle: 'Comment souhaitez-vous être appelé ?',
       body: el('div', {}, el('div', { class: 'note', html: 'Un pseudonyme suffit : les autres conducteurs ne voient jamais votre nom complet, votre téléphone ni votre plaque.' }), input),
-      actions: [{ label: 'Continuer', value: 'ok', variant: 'btn-green' }],
+      actions: [{ label: 'Continuer', value: 'ok', variant: 'btn-primary' }],
       dismissible: false,
     });
     const pseudo = input.value.trim() || 'Conducteur';

@@ -47,6 +47,36 @@ test('§6/§7 qualification de la place par le donneur', () => {
   assert.deepEqual(sizeFit(estimatedSpotCm(423, 'normal'), neededLengthCm(406)), { ok: true, marginal: true, gapCm: 6 });
 });
 
+test('à points égaux, une grande place va à la grande voiture', () => {
+  // Un créneau de 5,60 m : la Tesla (5,46 m nécessaires) comme la Fiat 500
+  // (4,11 m) y rentrent. La Tesla, elle, ne rentre presque nulle part ailleurs.
+  const spotCm = 560;
+  const grande = mkSeeker({ uid: 'grande', pos: north(SPOT, 200), neededCm: neededLengthCm(475) });
+  const petite = mkSeeker({ uid: 'petite', pos: north(SPOT, 200), neededCm: neededLengthCm(357) });
+
+  const rank = (a, b) => rankCandidates(
+    selectCandidates({ spot: SPOT, spotCm, readyInMin: 10, seekers: [a, b] }), 'points',
+  ).map((r) => r.uid);
+
+  // Mêmes points : la grande voiture passe devant.
+  assert.deepEqual(rank(petite, grande), ['grande', 'petite']);
+  // L'ordre d'arrivée dans la liste ne change rien.
+  assert.deepEqual(rank(grande, petite), ['grande', 'petite']);
+
+  // Mais les points restent le critère principal : la petite mieux dotée l'emporte.
+  const petiteDotee = { ...petite, points: 40 };
+  assert.deepEqual(rank(petiteDotee, grande), ['petite', 'grande']);
+
+  // Et un seul point d'écart suffit à faire basculer la priorité.
+  assert.deepEqual(rank({ ...petite, points: 1 }, grande), ['petite', 'grande']);
+
+  // Même arbitrage en mode urgent, à temps d'arrivée et points identiques.
+  const urgent = rankCandidates(
+    selectCandidates({ spot: SPOT, spotCm, readyInMin: 0, seekers: [petite, grande] }), 'fastest',
+  ).map((r) => r.uid);
+  assert.deepEqual(urgent, ['grande', 'petite']);
+});
+
 test('§7 une petite voiture qui quitte une place serrée n’alerte pas les grandes', () => {
   const smallSpot = estimatedSpotCm(357, 'serre'); // Fiat 500 garée serrée => 387 cm
   const bigNeed = neededLengthCm(475);             // Tesla Model Y => 546 cm
