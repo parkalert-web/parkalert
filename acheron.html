@@ -1,0 +1,3883 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#07060b">
+<title>ACHÉRON — 120 niveaux, des pièges, et ce qui te suit</title>
+<meta name="description" content="Un jeu de plateformes en 120 niveaux. Les pièges veulent que tu attendes. Les spectres t'interdisent d'attendre. À toi de trancher.">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#07060b;color:#e8e4f0;
+  font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;
+  -webkit-user-select:none;user-select:none;touch-action:none;overscroll-behavior:none}
+body{position:fixed;inset:0}
+
+#vue{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:auto}
+
+/* ---------- bandeau du haut ---------- */
+#hud{position:absolute;top:0;left:0;right:0;z-index:20;padding:8px 52px 8px 12px;
+  display:flex;align-items:center;gap:10px;pointer-events:none;
+  background:linear-gradient(#07060bee,#07060b00);
+  padding-top:calc(8px + env(safe-area-inset-top))}
+#hud .bloc{display:flex;flex-direction:column;line-height:1.05}
+#hud .et{font-size:9px;letter-spacing:.18em;color:#7c7590;text-transform:uppercase}
+#hud .va{font-size:16px;font-weight:bold;font-variant-numeric:tabular-nums}
+#hudNiv .va{color:#fff}
+#hudTps .va{color:#8fd4ff}
+#hudMorts .va{color:#ff7a90}
+#hudEcart{margin-left:auto;text-align:right}
+#hudEcart .va{color:#c6a7ff}
+#hudBio{font-size:10px;letter-spacing:.22em;color:#8b82a6;text-transform:uppercase;
+  border-left:2px solid #2a2440;padding-left:9px;margin-left:2px}
+
+/* la jauge de proximite : la seule chose qu'il faut regarder en jouant */
+#jauge{position:absolute;top:0;left:0;height:3px;width:0%;z-index:21;
+  background:linear-gradient(90deg,#6b4bd6,#ff3860);transition:width .08s linear;
+  box-shadow:0 0 10px #ff386088}
+
+#btnPause{position:absolute;top:calc(6px + env(safe-area-inset-top));right:8px;z-index:24;
+  width:34px;height:34px;border-radius:9px;border:1px solid #2e2748;background:#100d1ccc;
+  color:#b9b0d4;font-size:14px;cursor:pointer;pointer-events:auto;display:none}
+
+/* ---------- commandes tactiles ---------- */
+#tact{position:absolute;inset:auto 0 0 0;z-index:22;display:none;
+  padding:0 14px calc(14px + env(safe-area-inset-bottom));
+  justify-content:space-between;align-items:flex-end;pointer-events:none}
+#tact .grp{display:flex;gap:12px;pointer-events:auto}
+.tbt{width:66px;height:66px;border-radius:50%;border:1px solid #3a3160;
+  background:#14102299;color:#d8d0f0;font-size:24px;font-weight:bold;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  backdrop-filter:blur(3px);transition:transform .05s,background .05s}
+.tbt.on{background:#3b2d75cc;transform:scale(.93)}
+#tSaut{width:78px;height:78px;background:#2a1f5599;border-color:#5d4bab;font-size:12px;
+  letter-spacing:.1em;flex-direction:column}
+#tSaut small{font-size:20px;line-height:1}
+
+/* ---------- ecrans ---------- */
+.ecran{position:absolute;inset:0;z-index:30;display:none;flex-direction:column;
+  background:radial-gradient(120% 90% at 50% 0%,#171130 0%,#07060b 68%);
+  overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  padding:calc(20px + env(safe-area-inset-top)) 18px calc(24px + env(safe-area-inset-bottom))}
+.ecran.on{display:flex}
+.ecran .dedans{width:100%;max-width:640px;margin:0 auto}
+
+h1{font-size:clamp(38px,13vw,74px);letter-spacing:.16em;font-weight:bold;
+  text-align:center;line-height:1;
+  background:linear-gradient(180deg,#fff 0%,#c9b6ff 55%,#6b4bd6 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 24px #6b4bd655)}
+.sst{text-align:center;font-size:12px;letter-spacing:.24em;color:#8b82a6;
+  text-transform:uppercase;margin-top:10px}
+.phrase{text-align:center;font-size:14px;color:#a79ec4;margin:18px auto 0;
+  max-width:430px;line-height:1.55}
+h2{font-size:20px;letter-spacing:.14em;text-transform:uppercase;color:#fff;
+  margin:0 0 4px;text-align:center}
+
+.bt{display:block;width:100%;margin:9px 0;padding:14px 16px;border-radius:12px;
+  border:1px solid #322a55;background:#150f28;color:#e8e4f0;font-size:15px;
+  font-weight:bold;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
+  font-family:inherit;transition:background .12s,border-color .12s,transform .06s}
+.bt:hover{background:#1e1638;border-color:#5d4bab}
+.bt:active{transform:scale(.985)}
+.bt.pri{background:linear-gradient(120deg,#4c2fa8,#7a4bd6);border-color:#9a7bff;
+  box-shadow:0 6px 26px #4c2fa855}
+.bt.pri:hover{background:linear-gradient(120deg,#5c3bc4,#8f5cf0)}
+.bt.pt{padding:10px 14px;font-size:12px;letter-spacing:.14em}
+.bt small{display:block;font-size:10px;font-weight:normal;letter-spacing:.06em;
+  text-transform:none;color:#9c93bd;margin-top:4px}
+.bt[disabled]{opacity:.4;cursor:not-allowed}
+.rang{display:flex;gap:9px}
+.rang .bt{margin:9px 0}
+
+/* ---------- carte des niveaux ---------- */
+#ongl{display:flex;gap:6px;margin:16px 0 12px;flex-wrap:wrap;justify-content:center}
+.ong{padding:8px 11px;border-radius:9px;border:1px solid #2a2440;background:#120e22;
+  color:#8b82a6;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  cursor:pointer;font-family:inherit;font-weight:bold;transition:all .12s}
+.ong.on{color:#fff;border-color:#7a4bd6;background:#241a48}
+.ong.clos{opacity:.4}
+#grille{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin-bottom:14px}
+@media(min-width:520px){#grille{grid-template-columns:repeat(8,1fr)}}
+.case{aspect-ratio:1;border-radius:9px;border:1px solid #2a2440;background:#120e22;
+  color:#6f6790;font-size:14px;font-weight:bold;cursor:pointer;position:relative;
+  display:flex;align-items:center;justify-content:center;font-family:inherit;
+  font-variant-numeric:tabular-nums;transition:all .1s}
+.case.ouv{color:#ded6f5;border-color:#4a3d7d;background:#1b1433}
+.case.ouv:hover{border-color:#9a7bff;background:#2a1f52}
+.case.fait{background:#1d2a3a;border-color:#3f6b8f;color:#a9dcff}
+.case.parf{background:#33265a;border-color:#c9a44a;color:#ffe6a8;
+  box-shadow:inset 0 0 12px #c9a44a33}
+.case.clos{opacity:.42;cursor:not-allowed}
+.case .med{position:absolute;top:2px;right:4px;font-size:8px;color:#ffd479}
+.case .verrou{font-size:11px;opacity:.65}
+#barreBio{height:5px;border-radius:3px;background:#1a1430;overflow:hidden;margin:2px 0 14px}
+#barreBio i{display:block;height:100%;background:linear-gradient(90deg,#6b4bd6,#c9a44a);
+  border-radius:3px;transition:width .3s}
+#infoBio{text-align:center;font-size:11px;color:#8b82a6;letter-spacing:.05em;margin-bottom:6px;line-height:1.6}
+#infoBio b{color:#c9b6ff}
+
+/* ---------- fin de niveau ---------- */
+#fin .dedans{margin-top:auto;margin-bottom:auto}
+#finTitre{font-size:clamp(30px,10vw,54px);text-align:center;letter-spacing:.14em;
+  font-weight:bold;line-height:1}
+#finSous{text-align:center;font-size:12px;letter-spacing:.2em;color:#8b82a6;
+  text-transform:uppercase;margin-top:8px}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:22px 0 6px}
+.stat{background:#120e22;border:1px solid #2a2440;border-radius:11px;padding:11px 6px;
+  text-align:center}
+.stat .et{font-size:9px;letter-spacing:.14em;color:#7c7590;text-transform:uppercase}
+.stat .va{font-size:19px;font-weight:bold;color:#fff;margin-top:3px;
+  font-variant-numeric:tabular-nums}
+.stat.or .va{color:#ffd479}
+#finMed{text-align:center;font-size:12px;color:#ffd479;letter-spacing:.12em;
+  margin:12px 0 0;min-height:16px;text-transform:uppercase}
+#finNouv{text-align:center;font-size:12px;color:#8fd4ff;letter-spacing:.1em;
+  margin:8px 0 0;min-height:15px}
+
+/* ---------- pave de texte ---------- */
+.txt{font-size:13.5px;line-height:1.72;color:#b8afd4}
+.txt p{margin:11px 0}
+.txt b{color:#fff}
+.txt h3{font-size:11px;letter-spacing:.2em;color:#9a7bff;text-transform:uppercase;
+  margin:24px 0 6px;border-bottom:1px solid #2a2440;padding-bottom:5px}
+.txt ul{margin:9px 0 9px 18px}
+.txt li{margin:5px 0}
+.txt code{background:#1a1430;border:1px solid #2f2750;border-radius:5px;padding:1px 6px;
+  font-size:12px;color:#c9b6ff;font-family:'Consolas',monospace}
+.tbl{width:100%;border-collapse:collapse;margin:10px 0;font-size:12.5px}
+.tbl td{border-bottom:1px solid #221c3c;padding:8px 6px;vertical-align:top;color:#b8afd4}
+.tbl td:first-child{color:#fff;font-weight:bold;white-space:nowrap;width:1%;padding-right:14px}
+
+/* ---------- fiches de profil ---------- */
+.fiches{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.fiche{background:#120e22;border:1px solid #2a2440;border-radius:11px;padding:12px}
+.fiche .et{font-size:9px;letter-spacing:.14em;color:#7c7590;text-transform:uppercase}
+.fiche .va{font-size:21px;font-weight:bold;color:#fff;margin-top:4px;
+  font-variant-numeric:tabular-nums}
+.exp{display:flex;align-items:center;gap:10px;margin:6px 0 2px}
+.exp .b{flex:1;height:7px;border-radius:4px;background:#1a1430;overflow:hidden}
+.exp .b i{display:block;height:100%;border-radius:4px;
+  background:linear-gradient(90deg,#6b4bd6,#c9a44a);transition:width .4s}
+.exp .n{font-size:10px;color:#8b82a6;letter-spacing:.08em;white-space:nowrap}
+.def{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:10px;
+  background:#120e22;border:1px solid #241e3e;margin:7px 0}
+.def.eu{border-color:#4a3d7d;background:#1a1333}
+.def .ic{font-size:19px;width:26px;text-align:center;flex:0 0 26px;filter:grayscale(1);opacity:.4}
+.def.eu .ic{filter:none;opacity:1}
+.def .n{font-size:12.5px;font-weight:bold;color:#8b82a6;letter-spacing:.06em}
+.def.eu .n{color:#fff}
+.def .d{font-size:11px;color:#7c7590;margin-top:2px;line-height:1.5}
+
+.aver{background:#2a1020;border:1px solid #6b2440;border-radius:10px;padding:11px 13px;
+  font-size:12px;color:#ffb3c4;line-height:1.55;margin:12px 0}
+.pied{text-align:center;font-size:10px;color:#5e5878;letter-spacing:.1em;margin-top:22px;
+  line-height:1.9}
+.pied a{color:#8b82a6;display:inline-block;padding:9px 6px;text-decoration-color:#4a4266}
+
+/* ---------- mort : voile rouge ---------- */
+#voile{position:absolute;inset:0;z-index:25;pointer-events:none;opacity:0;
+  background:radial-gradient(120% 100% at 50% 50%,#ff003300 30%,#8a0020cc 100%);
+  transition:opacity .1s}
+#mortTxt{position:absolute;inset:0;z-index:26;display:none;align-items:center;
+  justify-content:center;flex-direction:column;pointer-events:none;text-align:center}
+#mortTxt .q{font-size:clamp(26px,9vw,46px);font-weight:bold;letter-spacing:.16em;
+  color:#ff5c78;text-shadow:0 0 30px #ff003366}
+#mortTxt .p{font-size:12px;letter-spacing:.2em;color:#c98ba0;margin-top:10px;
+  text-transform:uppercase}
+
+/* ---------- petits ecrans ---------- */
+@media(max-width:470px){
+  #hud{gap:7px;padding:6px 46px 6px 10px}
+  #hud .va{font-size:14px}
+  #hud .et{font-size:8px;letter-spacing:.12em}
+  #hudBio{display:none}
+  #hudEcart .et{max-width:56px;line-height:1.15}
+}
+@media(max-height:520px){
+  h1{font-size:clamp(28px,9vh,44px)}
+  .phrase{margin-top:10px;font-size:12.5px}
+  .bt{padding:11px 14px;margin:7px 0}
+  .ecran{padding-top:calc(12px + env(safe-area-inset-top))}
+  .tbt{width:56px;height:56px;font-size:20px}
+  #tSaut{width:66px;height:66px}
+}
+</style>
+</head>
+<body>
+<canvas id="vue"></canvas>
+<div id="jauge"></div>
+<div id="voile"></div>
+
+<div id="hud">
+  <div class="bloc" id="hudNiv"><span class="et">Niveau</span><span class="va">1</span></div>
+  <div id="hudBio">La Cave</div>
+  <div class="bloc" id="hudTps"><span class="et">Temps</span><span class="va">0.0</span></div>
+  <div class="bloc" id="hudMorts"><span class="et">Morts</span><span class="va">0</span></div>
+  <div class="bloc" id="hudEcart"><span class="et">Le plus proche</span><span class="va">—</span></div>
+</div>
+<button id="btnPause" title="Pause (Échap)">❚❚</button>
+
+<div id="mortTxt"><div class="q">RATTRAPÉ</div><div class="p">Espace pour repartir</div></div>
+
+<div id="tact">
+  <div class="grp">
+    <button class="tbt" id="tG">◀</button>
+    <button class="tbt" id="tD">▶</button>
+  </div>
+  <div class="grp">
+    <button class="tbt" id="tSaut"><small>▲</small>SAUT</button>
+  </div>
+</div>
+
+<!-- ====================== MENU ====================== -->
+<div class="ecran on" id="menu">
+  <div class="dedans" style="margin:auto">
+    <h1>ACHÉRON</h1>
+    <div class="sst">120 niveaux · 5 territoires · rien qui pardonne</div>
+    <p class="phrase">Chaque piège veut que tu attendes le bon moment.<br>
+      Les spectres, eux, n'attendent jamais.</p>
+    <div style="height:14px"></div>
+    <button class="bt pri" id="mJouer">Continuer</button>
+    <button class="bt" id="mCarte">Carte des territoires</button>
+    <div class="rang">
+      <button class="bt pt" id="mRegles">Règles</button>
+      <button class="bt pt" id="mProfil">Profil</button>
+    </div>
+    <div class="pied">
+      VanNDM Creations · <a href="#" id="mLeg">Mentions légales</a><br>
+      Un seul fichier. Aucune donnée ne quitte ton appareil.
+    </div>
+  </div>
+</div>
+
+<!-- ====================== CARTE ====================== -->
+<div class="ecran" id="carte">
+  <div class="dedans">
+    <h2>Carte des territoires</h2>
+    <div id="ongl"></div>
+    <div id="infoBio"></div>
+    <div id="barreBio"><i style="width:0%"></i></div>
+    <div id="grille"></div>
+    <button class="bt pt" id="caRetour">Retour</button>
+  </div>
+</div>
+
+<!-- ====================== FIN DE NIVEAU ====================== -->
+<div class="ecran" id="fin">
+  <div class="dedans">
+    <div id="finTitre">FRANCHI</div>
+    <div id="finSous"></div>
+    <div class="stats">
+      <div class="stat"><div class="et">Temps</div><div class="va" id="fTps">—</div></div>
+      <div class="stat or"><div class="et">Record</div><div class="va" id="fRec">—</div></div>
+      <div class="stat"><div class="et">Morts</div><div class="va" id="fMorts">—</div></div>
+    </div>
+    <div id="finMed"></div>
+    <div id="finNouv"></div>
+    <div style="height:14px"></div>
+    <button class="bt pri" id="fSuite">Niveau suivant</button>
+    <div class="rang">
+      <button class="bt pt" id="fRejouer">Rejouer</button>
+      <button class="bt pt" id="fCarte">Carte</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== PAUSE ====================== -->
+<div class="ecran" id="pause">
+  <div class="dedans" style="margin:auto">
+    <h2 style="font-size:26px">Pause</h2>
+    <div class="sst" id="pauInfo"></div>
+    <div style="height:18px"></div>
+    <button class="bt pri" id="pReprendre">Reprendre</button>
+    <button class="bt" id="pRecom">Recommencer le niveau</button>
+    <div class="rang">
+      <button class="bt pt" id="pRegles">Règles</button>
+      <button class="bt pt" id="pCarte">Carte</button>
+    </div>
+    <button class="bt pt" id="pMenu">Menu principal</button>
+  </div>
+</div>
+
+<!-- ====================== RÈGLES ====================== -->
+<div class="ecran" id="regles">
+  <div class="dedans">
+    <h2>Comment on joue</h2>
+    <div class="txt" id="reglesTxt"></div>
+    <div style="height:10px"></div>
+    <button class="bt pt" id="reRetour">Retour</button>
+  </div>
+</div>
+
+<!-- ====================== PROFIL ====================== -->
+<div class="ecran" id="profil">
+  <div class="dedans">
+    <h2>Profil</h2>
+    <div id="proCorps"></div>
+    <div style="height:10px"></div>
+    <button class="bt pt" id="prRetour">Retour</button>
+    <button class="bt pt" id="prEffacer" style="border-color:#6b2440;color:#ff9db0">Effacer ma progression</button>
+  </div>
+</div>
+
+<!-- ====================== MENTIONS LÉGALES ====================== -->
+<div class="ecran" id="legales">
+  <div class="dedans">
+    <h2>Mentions légales</h2>
+    <div class="txt" id="legTxt"></div>
+    <div style="height:10px"></div>
+    <button class="bt pt" id="leRetour">Retour</button>
+  </div>
+</div>
+
+<script>
+/* ==== a_01_base.js ==== */
+'use strict';
+
+const $ = id => document.getElementById(id);
+const serre = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+
+/* Générateur semé (mulberry32). Les niveaux sont tirés au sort, mais la graine
+   ne dépend que du numéro du niveau : le niveau 47 est le même pour tout le
+   monde, à jamais. Sans ça on ne pourrait comparer aucun temps. */
+function semeur(g) {
+  let a = g >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* Un second générateur, celui-là NON semé, réservé au décor : une étincelle,
+   une poussière, une goutte. Il ne doit jamais toucher au tirage du niveau,
+   sinon deux joueurs sur le même niveau n'auraient pas la même map. */
+const DECO = semeur((Math.random() * 4294967296) >>> 0);
+
+function melanger(t, r) {
+  for (let i = t.length - 1; i > 0; i--) {
+    const j = (r() * (i + 1)) | 0;
+    const x = t[i]; t[i] = t[j]; t[j] = x;
+  }
+  return t;
+}
+
+const chrono = s => {
+  if (!isFinite(s) || s < 0) return '—';
+  if (s < 60) return s.toFixed(2).replace('.', ',') + 's';
+  const m = Math.floor(s / 60);
+  return m + ':' + (s - m * 60).toFixed(2).padStart(5, '0').replace('.', ',');
+};
+
+const rgba = (hex, a) => {
+  const n = parseInt(hex.slice(1), 16);
+  return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+};
+
+/* Mélange deux couleurs hexadécimales. Sert partout au décor : une roche
+   éclairée n'est pas une roche + un voile blanc, c'est une autre roche. */
+function melangeC(h1, h2, t) {
+  const a = parseInt(h1.slice(1), 16), b = parseInt(h2.slice(1), 16);
+  const r = Math.round(lerp(a >> 16 & 255, b >> 16 & 255, t));
+  const g = Math.round(lerp(a >> 8 & 255, b >> 8 & 255, t));
+  const l = Math.round(lerp(a & 255, b & 255, t));
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + l).toString(16).slice(1);
+}
+
+/* ------------------------------------------------------------------ stockage
+   Une seule clé, un seul objet. Toute lecture passe par ici, et une donnée
+   qu'on ne reconnaît pas est jetée plutôt que rafistolée : un profil à moitié
+   réparé produit des bogues qu'on met des heures à comprendre. */
+const CLE = 'acheron.v1';
+
+function litStock() {
+  try {
+    const b = localStorage.getItem(CLE);
+    if (!b) return null;
+    const d = JSON.parse(b);
+    if (!d || typeof d !== 'object' || d.v !== 1) return null;
+    return d;
+  } catch (e) { return null; }
+}
+
+function ecritStock(d) {
+  try { localStorage.setItem(CLE, JSON.stringify(d)); return true; }
+  catch (e) { return false; }
+}
+
+/* ==== a_02_audio.js ==== */
+/* ===========================================================================
+   SON — tout est synthétisé, aucun fichier n'est téléchargé.
+   Un jeu de plateformes se joue beaucoup à l'oreille : le pas qui rebondit,
+   la scie qui approche, le souffle du spectre. Chaque son porte une info que
+   l'image ne donne pas toujours (ce qui arrive hors champ, derrière soi).
+   =========================================================================== */
+const SND = {
+  ctx: null, maitre: null, muet: false, pret: false,
+  /* le souffle des spectres : un bruit continu dont le volume dit la distance */
+  souffle: null, souffleG: null, souffleF: null,
+
+  init() {
+    if (this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      this.ctx = new AC();
+      this.maitre = this.ctx.createGain();
+      this.maitre.gain.value = .5;
+      this.maitre.connect(this.ctx.destination);
+      this.pret = true;
+    } catch (e) { this.ctx = null; }
+  },
+
+  reveil() {
+    if (!this.ctx) this.init();
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  },
+
+  /* une note simple : forme d'onde, hauteur, durée, volume */
+  note(f, d, v, forme, gliss) {
+    if (!this.pret || this.muet || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = forme || 'square';
+    o.frequency.setValueAtTime(f, t);
+    if (gliss) o.frequency.exponentialRampToValueAtTime(Math.max(20, gliss), t + d);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(v, t + .008);
+    g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    o.connect(g); g.connect(this.maitre);
+    o.start(t); o.stop(t + d + .02);
+  },
+
+  /* un bruit filtré : chocs, poussière, feu */
+  bruit(d, v, coupe, q, type) {
+    if (!this.pret || this.muet || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    const n = Math.max(1, Math.floor(this.ctx.sampleRate * d));
+    const b = this.ctx.createBuffer(1, n, this.ctx.sampleRate);
+    const dat = b.getChannelData(0);
+    for (let i = 0; i < n; i++) dat[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    const s = this.ctx.createBufferSource(); s.buffer = b;
+    const f = this.ctx.createBiquadFilter();
+    f.type = type || 'lowpass'; f.frequency.value = coupe || 900; f.Q.value = q || 1;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(v, t);
+    g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    s.connect(f); f.connect(g); g.connect(this.maitre);
+    s.start(t); s.stop(t + d + .02);
+  },
+
+  saut() { this.note(300, .11, .10, 'square', 620); },
+  atterr() { this.bruit(.07, .13, 520, 1); },
+  pas() { this.bruit(.035, .045, 1500, .7); },
+  mort() {
+    this.note(240, .5, .16, 'sawtooth', 40);
+    this.bruit(.4, .2, 700, 1);
+  },
+  fin() {
+    [523, 659, 784, 1047].forEach((f, i) =>
+      setTimeout(() => this.note(f, .3, .12, 'triangle'), i * 85));
+  },
+  medaille() {
+    [784, 1047, 1319, 1568].forEach((f, i) =>
+      setTimeout(() => this.note(f, .34, .11, 'sine'), i * 95));
+  },
+  dalle() { this.bruit(.14, .11, 380, 1.4); },
+  scie() { this.note(90, .06, .05, 'sawtooth', 130); },
+  flamme() { this.bruit(.22, .1, 1100, .6); },
+  laser() { this.note(1400, .09, .06, 'square', 900); },
+  presse() { this.bruit(.2, .22, 220, 1.6); this.note(70, .25, .12, 'sine', 38); },
+  clic() { this.note(660, .045, .05, 'square'); },
+  deblo() {
+    [392, 523, 659].forEach((f, i) =>
+      setTimeout(() => this.note(f, .28, .1, 'triangle'), i * 110));
+  },
+
+  /* --- le souffle : monté une seule fois, on ne fait que bouger son volume ---
+     Créer un oscillateur par image coûterait cher et cliquerait ; ici une
+     seule source vit tant que le niveau tourne. */
+  ouvrirSouffle() {
+    if (!this.pret || !this.ctx || this.souffle) return;
+    try {
+      const n = Math.floor(this.ctx.sampleRate * 2);
+      const b = this.ctx.createBuffer(1, n, this.ctx.sampleRate);
+      const d = b.getChannelData(0);
+      let der = 0;
+      for (let i = 0; i < n; i++) {           // bruit brun : plus sourd, plus organique
+        der = (der + (Math.random() * 2 - 1) * .06);
+        der = serre(der, -1, 1);
+        d[i] = der * .7;
+      }
+      const s = this.ctx.createBufferSource();
+      s.buffer = b; s.loop = true;
+      const f = this.ctx.createBiquadFilter();
+      f.type = 'bandpass'; f.frequency.value = 420; f.Q.value = 1.1;
+      const g = this.ctx.createGain(); g.gain.value = 0;
+      s.connect(f); f.connect(g); g.connect(this.maitre);
+      s.start();
+      this.souffle = s; this.souffleG = g; this.souffleF = f;
+    } catch (e) { this.souffle = null; }
+  },
+
+  /* p va de 0 (loin) à 1 (sur toi) */
+  reglerSouffle(p) {
+    if (!this.souffleG || !this.ctx) return;
+    const v = this.muet ? 0 : serre(p, 0, 1);
+    try {
+      this.souffleG.gain.setTargetAtTime(v * v * .30, this.ctx.currentTime, .08);
+      this.souffleF.frequency.setTargetAtTime(300 + v * 700, this.ctx.currentTime, .12);
+    } catch (e) { }
+  },
+
+  fermerSouffle() {
+    if (!this.souffle) return;
+    try { this.souffle.stop(); } catch (e) { }
+    this.souffle = null; this.souffleG = null; this.souffleF = null;
+  }
+};
+
+/* ==== a_03_data.js ==== */
+/* ===========================================================================
+   LES CONSTANTES DU MONDE
+   Une tuile = une unité. Tout est exprimé en tuiles et en tuiles/seconde, de
+   sorte qu'un chiffre veut dire quelque chose de lisible : « il saute deux
+   tuiles de haut, il franchit quatre tuiles de large ».
+   =========================================================================== */
+const PAS = 1 / 60;                    // pas fixe. Toute la physique en dépend.
+
+const L_MORCEAU = 12, H_MORCEAU = 16;  // un morceau de couloir
+const RANG_SOL = 12;                   // au raccord, tout est plein sous cette rangée
+
+/* --- le bonhomme ------------------------------------------------------- */
+const J_L = .64, J_H = .92;            // sa boîte
+const VIT = 8.4;                       // vitesse de course maximale
+const ACC_SOL = 78, FREIN_SOL = 96;
+const ACC_AIR = 48, FREIN_AIR = 26;
+const GRAV = 56, V_CHUTE = 27;
+const SAUT = 15.9;                     // -> 2,26 tuiles de haut, 5,0 de portée
+/* Ces deux chiffres sont la grammaire du jeu, et les 48 morceaux de couloir
+   sont écrits contre eux : on grimpe deux tuiles, jamais trois ; on franchit
+   quatre tuiles de vide sans réfléchir, cinq en s'appliquant. */
+const APEX = 3.0, APEX_FACT = .70;     // au sommet la pesanteur faiblit : ça se pilote
+const COUPE = .42;                     // relâcher le saut coupe l'élan qui reste
+const COYOTE = .10;                    // on saute encore 6 images après le vide
+const TAMPON = .12;                    // un saut demandé trop tôt est gardé
+const COIN = .30;                      // on repousse d'un coin plutôt que de le heurter
+
+/* --- les tuiles -------------------------------------------------------- */
+const T_VIDE = 0, T_MUR = 1, T_PIC_H = 2, T_PIC_B = 3, T_PIC_G = 4, T_PIC_D = 5,
+      T_DALLE = 6, T_ACIDE = 7, T_TAPIS_D = 8, T_TAPIS_G = 9,
+      T_PHASE_A = 10, T_PHASE_B = 11, T_SORTIE = 12;
+
+/* solide = on marche dessus et on s'y cogne */
+const SOLIDE = new Uint8Array(16);
+[T_MUR, T_DALLE, T_TAPIS_D, T_TAPIS_G, T_PHASE_A, T_PHASE_B].forEach(t => SOLIDE[t] = 1);
+/* mortel = on meurt en le touchant */
+const MORTEL = new Uint8Array(16);
+[T_PIC_H, T_PIC_B, T_PIC_G, T_PIC_D, T_ACIDE].forEach(t => MORTEL[t] = 1);
+
+const LEGENDE = {
+  '.': T_VIDE, '#': T_MUR, '^': T_PIC_H, '"': T_PIC_B, '[': T_PIC_G, ']': T_PIC_D,
+  '=': T_DALLE, '~': T_ACIDE, '>': T_TAPIS_D, '<': T_TAPIS_G,
+  '+': T_PHASE_A, '-': T_PHASE_B, 'E': T_SORTIE
+};
+/* les lettres ne posent pas de tuile : elles plantent une machine sur du vide */
+const MACHINES = 'stpfljmnob';
+
+const DALLE_TENUE = .30;      // temps qu'une dalle supporte avant de céder
+const DALLE_REPOUSSE = 3.0;   // et temps qu'elle met à revenir
+const PHASE_DUREE = 1.5;      // les murs en phase changent toutes les 1,5 s
+const TAPIS_V = 4.2;          // ce qu'un tapis roulant ajoute à ta vitesse
+
+/* ===========================================================================
+   LES SPECTRES
+   Quatre façons de te poursuivre, et surtout quatre façons différentes de
+   te forcer la main. Aucun ne peut être tué : ils ne sont pas un combat,
+   ils sont une horloge.
+   =========================================================================== */
+const SPECTRES = {
+  rodeur: {
+    nom: 'RÔDEUR', teinte: '#8b7ad6', v: 3.55,
+    quoi: 'Il va droit sur toi, à travers la pierre, sans jamais s\'arrêter.'
+  },
+  traqueur: {
+    nom: 'TRAQUEUR', teinte: '#ff7a4d', v: 5.10,
+    quoi: 'Plus rapide — mais il ne bouge que quand TU cours. S\'arrêter le fige.'
+  },
+  hurleur: {
+    nom: 'HURLEUR', teinte: '#ff4d6d', v: 2.35, ruee: 17.5, ruee_d: .42,
+    ruee_cycle: 3.1, ruee_annonce: .55,
+    quoi: 'Lent, jusqu\'à ce qu\'il vise et se rue en ligne droite. Il annonce toujours.'
+  },
+  echo: {
+    nom: 'ÉCHO', teinte: '#4dd5c4', v: 0, retard: 2.6,
+    quoi: 'Il refait ton propre trajet avec du retard. Revenir sur tes pas, c\'est le rencontrer.'
+  }
+};
+
+/* ===========================================================================
+   LES CINQ TERRITOIRES
+   Chacun apporte ses pièges ET un spectre de plus. C'est le seul axe de
+   difficulté du jeu : on n'augmente pas des points de vie, on ajoute des
+   façons de mourir — et le joueur peut les nommer.
+   =========================================================================== */
+const BIOMES = [
+  {
+    id: 'cave', nom: 'La Cave', n: 24, deb: 0,
+    devise: 'Ça goutte, ça s\'effondre, et quelque chose respire au fond.',
+    pieges: 'Pics · dalles friables · stalactites',
+    spectres: ['rodeur'], vFant: 1.00, grace: 2.0, nMax: 2,
+    ciel: '#0b0813', roche: '#3c3350', roche2: '#4d4166', bord: '#7a6a9e',
+    fond: '#17122a', accent: '#a893ff', brume: '#1e1733'
+  },
+  {
+    id: 'scierie', nom: 'La Scierie', n: 24, deb: 24,
+    devise: 'Les machines ne se sont jamais arrêtées. Personne n\'est venu couper le courant.',
+    pieges: 'Scies · presses · tapis roulants',
+    spectres: ['rodeur', 'traqueur'], vFant: 1.06, grace: 1.7, nMax: 3,
+    ciel: '#150d07', roche: '#6b4a2e', roche2: '#82603c', bord: '#b98a52',
+    fond: '#241810', accent: '#ffab5e', brume: '#2c1c12'
+  },
+  {
+    id: 'egouts', nom: 'Les Égouts', n: 24, deb: 48,
+    devise: 'L\'eau est montée. Ce qui flotte dedans n\'était pas de l\'eau.',
+    pieges: 'Acide · vapeur · plateformes mobiles',
+    spectres: ['rodeur', 'traqueur', 'hurleur'], vFant: 1.12, grace: 1.5, nMax: 4,
+    ciel: '#07130f', roche: '#2b5a4c', roche2: '#3a7161', bord: '#58a68e',
+    fond: '#0e211c', accent: '#56e6ad', brume: '#123028'
+  },
+  {
+    id: 'forge', nom: 'La Forge', n: 24, deb: 72,
+    devise: 'On y fondait quelque chose. On y fond encore.',
+    pieges: 'Flammes · lave · pendules',
+    spectres: ['rodeur', 'traqueur', 'hurleur'], vFant: 1.19, grace: 1.3, nMax: 5,
+    ciel: '#180706', roche: '#5c2a22', roche2: '#75372c', bord: '#b5573c',
+    fond: '#260c09', accent: '#ff7a4a', brume: '#34120c'
+  },
+  {
+    id: 'sanctuaire', nom: 'Le Sanctuaire', n: 24, deb: 96,
+    devise: 'Ici, la pierre obéit à autre chose qu\'à la pesanteur.',
+    pieges: 'Lasers · murs en phase · pièges dormants',
+    spectres: ['rodeur', 'traqueur', 'hurleur', 'echo'], vFant: 1.26, grace: 1.2, nMax: 6,
+    ciel: '#0a0719', roche: '#362b60', roche2: '#453878', bord: '#7b66bc',
+    fond: '#150f2c', accent: '#c49bff', brume: '#1d1440'
+  }
+];
+const N_NIVEAUX = BIOMES.reduce((s, b) => s + b.n, 0);
+
+function biomeDe(n) {
+  for (let i = BIOMES.length - 1; i >= 0; i--) if (n >= BIOMES[i].deb) return BIOMES[i];
+  return BIOMES[0];
+}
+
+/* ===========================================================================
+   LES DÉFIS
+   Rien ici ne rend plus fort : ce sont des traces, pas des bonus. Un niveau
+   ne devient jamais plus facile parce qu'on a joué longtemps — sinon les
+   temps de deux joueurs ne voudraient plus rien dire.
+   =========================================================================== */
+const DEFIS = [
+  { id: 'premier', ic: '🚪', n: 'Premier pas', d: 'Franchir le niveau 1.' },
+  { id: 'cave', ic: '🕯️', n: 'Sorti de la cave', d: 'Terminer les 24 niveaux de La Cave.' },
+  { id: 'scierie', ic: '🪚', n: 'Le bras intact', d: 'Terminer les 24 niveaux de La Scierie.' },
+  { id: 'egouts', ic: '🧪', n: 'À sec', d: 'Terminer les 24 niveaux des Égouts.' },
+  { id: 'forge', ic: '🔥', n: 'Trempé', d: 'Terminer les 24 niveaux de La Forge.' },
+  { id: 'sanctuaire', ic: '🜏', n: 'Achéron', d: 'Terminer les 120 niveaux.' },
+  { id: 'net10', ic: '🎯', n: 'Propre', d: 'Franchir 10 niveaux du premier coup.' },
+  { id: 'net40', ic: '🏹', n: 'Très propre', d: 'Franchir 40 niveaux du premier coup.' },
+  { id: 'or10', ic: '🥇', n: 'Rapide', d: 'Décrocher 10 médailles d\'or.' },
+  { id: 'or50', ic: '👑', n: 'Intouchable', d: 'Décrocher 50 médailles d\'or.' },
+  { id: 'frole', ic: '💨', n: 'À un cheveu', d: 'Sortir d\'un niveau avec un spectre à moins d\'une tuile.' },
+  { id: 'sansfaute5', ic: '🧊', n: 'Cinq d\'affilée', d: 'Franchir 5 niveaux de suite sans mourir.' },
+  { id: 'cent', ic: '💀', n: 'Cent fois', d: 'Mourir cent fois. Ça arrive.' },
+  { id: 'demi', ic: '🌗', n: 'À mi-chemin', d: 'Franchir 60 niveaux.' },
+  { id: 'vite', ic: '⚡', n: 'Sous les dix', d: 'Franchir un niveau en moins de 10 secondes.' },
+  { id: 'quatre', ic: '👥', n: 'Encerclé', d: 'Franchir un niveau avec quatre spectres ou plus aux trousses.' }
+];
+
+/* ==== a_04_morceaux.js ==== */
+/* ===========================================================================
+   LA BIBLIOTHÈQUE DE MORCEAUX
+   Un niveau n'est pas dessiné au hasard tuile par tuile : il est assemblé à
+   partir de morceaux de couloir écrits à la main, chacun franchissable seul.
+   Aux colonnes 0 et 11 tout morceau présente le même profil — trois tuiles
+   d'air au-dessus du sol — donc n'importe quel morceau se colle à n'importe
+   quel autre, et l'assemblage ne peut pas produire un niveau infranchissable.
+   La difficulté d'un morceau est une propriété du morceau, pas du niveau :
+   la phase de ses machines ne dépend que de sa position DANS le morceau.
+   =========================================================================== */
+const MORCEAUX = [
+  { nom:'depart', bio:'tous', d:0, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'sortie', bio:'tous', d:0, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '........E...',
+    '........E...',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'t2', bio:'tous', d:1, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '....####....',
+    '....####....',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'t3', bio:'tous', d:1, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '####...#####',
+    '####...#####',
+    '####...#####',
+    '####^^^#####'
+  ]},
+  { nom:'t4', bio:'tous', d:2, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '.....##.....',
+    '###......###',
+    '###......###',
+    '###......###',
+    '###^^^^^^###'
+  ]},
+  { nom:'t5', bio:'tous', d:2, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '.......###..',
+    '...###.###..',
+    '...###.###..',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'t6', bio:'tous', d:3, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '##....##...#',
+    '##....##...#',
+    '##....##...#',
+    '##^^^^##^^^#'
+  ]},
+  { nom:'t7', bio:'tous', d:2, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '..########..',
+    '............',
+    '............',
+    '............',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'t8', bio:'tous', d:2, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '...#....#...',
+    '...#....#...',
+    '...#....#...',
+    '............',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'c1', bio:'cave', d:1, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '..^...^...^.',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'c2', bio:'cave', d:1, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '...==.==....',
+    '###......###',
+    '###......###',
+    '###......###',
+    '###^^^^^^###'
+  ]},
+  { nom:'c3', bio:'cave', d:2, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '.."......"..',
+    '............',
+    '.....^^.....',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'c4', bio:'cave', d:2, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '..==..==....',
+    '##........##',
+    '##........##',
+    '##........##',
+    '##^^^^^^^^##'
+  ]},
+  { nom:'c5', bio:'cave', d:2, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '...b....b...',
+    '............',
+    '............',
+    '............',
+    '............',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'c6', bio:'cave', d:3, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '.........==.',
+    '......==....',
+    '...==.......',
+    '............',
+    '#^^^^^^^^^^#',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'c7', bio:'cave', d:3, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '....."".....',
+    '............',
+    '............',
+    '...==..==...',
+    '##........##',
+    '##........##',
+    '##........##',
+    '##^^^^^^^^##'
+  ]},
+  { nom:'c8', bio:'cave', d:2, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '..o..o..o...',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'c9', bio:'cave', d:2, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '.....b......',
+    '............',
+    '............',
+    '............',
+    '......==....',
+    '####...#####',
+    '####...#####',
+    '####...#####',
+    '####^^^#####'
+  ]},
+  { nom:'s1', bio:'scierie', d:1, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '..##....##..',
+    '..##.s..##..',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'s2', bio:'scierie', d:2, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '....#..#....',
+    '....#t.#....',
+    '....#..#....',
+    '............',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'s3', bio:'scierie', d:2, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '..^......^..',
+    '##<<<<<<<<##',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'s4', bio:'scierie', d:2, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '............',
+    '............',
+    '............',
+    '.....p......',
+    '............',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'s5', bio:'scierie', d:3, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '............',
+    '............',
+    '............',
+    '...p....p...',
+    '............',
+    '##>>>>>>>>##',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'s6', bio:'scierie', d:3, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '............',
+    '.......t....',
+    '............',
+    '...s........',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'s7', bio:'scierie', d:2, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '...####.....',
+    '......s.....',
+    '##>>>>>>>>##',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'s8', bio:'scierie', d:3, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '............',
+    '............',
+    '............',
+    '.......p....',
+    '..s..#......',
+    '#######...##',
+    '#######...##',
+    '#######...##',
+    '#######^^^##'
+  ]},
+  { nom:'e1', bio:'egouts', d:1, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '####~~~#####',
+    '####~~~#####',
+    '####~~~#####',
+    '####~~~#####'
+  ]},
+  { nom:'e2', bio:'egouts', d:2, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '...m........',
+    '##~~~~~~####',
+    '##~~~~~~####',
+    '##~~~~~~####',
+    '##~~~~~~####'
+  ]},
+  { nom:'e3', bio:'egouts', d:2, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '...f....f...',
+    '####~~~~####',
+    '####~~~~####',
+    '####~~~~####',
+    '####~~~~####'
+  ]},
+  { nom:'e4', bio:'egouts', d:3, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '...m.....m..',
+    '##~~~~~~~~##',
+    '##~~~~~~~~##',
+    '##~~~~~~~~##',
+    '##~~~~~~~~##'
+  ]},
+  { nom:'e5', bio:'egouts', d:2, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '############',
+    '............',
+    '............',
+    '.......##...',
+    '.....n.##...',
+    '.......##...',
+    '.......##...',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'e6', bio:'egouts', d:3, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '...m.....f..',
+    '##~~~~~~~###',
+    '##~~~~~~~###',
+    '##~~~~~~~###',
+    '##~~~~~~~###'
+  ]},
+  { nom:'e7', bio:'egouts', d:3, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '..m.......o.',
+    '##~~~~~~~###',
+    '##~~~~~~~###',
+    '##~~~~~~~###',
+    '##~~~~~~~###'
+  ]},
+  { nom:'f1', bio:'forge', d:1, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '.........f..',
+    '####~~~#####',
+    '####~~~#####',
+    '####~~~#####',
+    '####~~~#####'
+  ]},
+  { nom:'f2', bio:'forge', d:2, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '.....j......',
+    '............',
+    '............',
+    '............',
+    '............',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'f3', bio:'forge', d:2, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '...j....j...',
+    '............',
+    '............',
+    '............',
+    '............',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'f4', bio:'forge', d:3, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '.....j......',
+    '............',
+    '............',
+    '............',
+    '............',
+    '###~~~~#####',
+    '###~~~~#####',
+    '###~~~~#####',
+    '###~~~~#####'
+  ]},
+  { nom:'f5', bio:'forge', d:2, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '....g...g...',
+    '............',
+    '............',
+    '............',
+    '............',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'f6', bio:'forge', d:3, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '..g.....g...',
+    '............',
+    '............',
+    '.....p......',
+    '............',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'f7', bio:'forge', d:3, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '........j...',
+    '............',
+    '............',
+    '............',
+    '..f.........',
+    '####~~~~####',
+    '####~~~~####',
+    '####~~~~####',
+    '####~~~~####'
+  ]},
+  { nom:'x1', bio:'sanctuaire', d:1, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '............',
+    '............',
+    '............',
+    '............',
+    '.l..........',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'x2', bio:'sanctuaire', d:2, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '...++--++...',
+    '###......###',
+    '###......###',
+    '###......###',
+    '###^^^^^^###'
+  ]},
+  { nom:'x3', bio:'sanctuaire', d:2, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '.....++.....',
+    '.....++.....',
+    '.....++..^..',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'x4', bio:'sanctuaire', d:3, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '............',
+    '..l.........',
+    '......v.....',
+    '............',
+    '............',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'x5', bio:'sanctuaire', d:3, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '...++...--..',
+    '...++...--..',
+    '...++...--..',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'x6', bio:'sanctuaire', d:3, g:[
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '............',
+    '..++--++--..',
+    '............',
+    '##^^^^^^^^##',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'x7', bio:'sanctuaire', d:2, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '............',
+    '............',
+    '...v...v....',
+    '............',
+    '............',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+  { nom:'x8', bio:'sanctuaire', d:3, g:[
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '############',
+    '............',
+    '............',
+    '.....j......',
+    '............',
+    '..o.....o...',
+    '############',
+    '############',
+    '############',
+    '############'
+  ]},
+];
+
+const PAR_NOM = {};
+for (const m of MORCEAUX) PAR_NOM[m.nom] = m;
+
+/* ==== a_05_niveau.js ==== */
+/* ===========================================================================
+   LES MACHINES
+   Neuf familles. Huit d'entre elles sont des FONCTIONS DU TEMPS : à l'instant
+   t leur position ne dépend de rien d'autre que de t et de leur phase. Aucune
+   ne garde de mémoire, donc rien ne peut dériver, et deux parties du même
+   niveau se déroulent exactement pareil. La neuvième (le bloc qui tombe) est
+   la seule qui a un état, parce que c'est la seule qui réagit au joueur.
+
+   Chacune ANNONCE avant de tuer. C'est non négociable : dans un jeu où l'on
+   meurt en une touche, un piège qui ne prévient pas n'est pas difficile, il
+   est simplement injuste.
+   =========================================================================== */
+const V_SCIE = 5.2, V_PLAT = 3.4;
+
+/* les cycles, en secondes : repos → annonce → danger */
+const CY = {
+  presse: { repos: 1.30, ann: .40, chute: .13, tenu: .35, remonte: .75 },
+  jet:    { repos: 1.30, ann: .45, feu: .85 },
+  laser:  { repos: 1.50, ann: .35, feu: .85 },
+  pique:  { repos: 1.50, ann: .35, haut: .80 },
+  pendule:{ periode: 2.40, amplitude: 1.15 }
+};
+CY.presse.T = CY.presse.repos + CY.presse.ann + CY.presse.chute + CY.presse.tenu + CY.presse.remonte;
+CY.jet.T = CY.jet.repos + CY.jet.ann + CY.jet.feu;
+CY.laser.T = CY.laser.repos + CY.laser.ann + CY.laser.feu;
+CY.pique.T = CY.pique.repos + CY.pique.ann + CY.pique.haut;
+
+/* va-et-vient continu entre 0 et 1 */
+const triangle = u => { u = u - Math.floor(u); return u < .5 ? u * 2 : 2 - u * 2; };
+
+/* ---------------------------------------------------------------------------
+   Fabrique une machine à partir de sa lettre et de sa case DANS le morceau.
+   Le balayage est volontairement borné au morceau (colonnes 1 à 10) : c'est
+   ce qui garantit qu'un morceau se comporte partout de la même façon, et donc
+   qu'on peut le tester une fois pour toutes.
+   ------------------------------------------------------------------------- */
+function machineDe(lettre, g, lx, ly, ox) {
+  const tl = (x, y) => {
+    if (x < 0 || x >= L_MORCEAU || y < 0 || y >= H_MORCEAU) return T_MUR;
+    const t = LEGENDE[g[y][x]];
+    return t === undefined ? T_VIDE : t;     // une lettre de machine, c'est du vide
+  };
+  const libre = (x, y) => !SOLIDE[tl(x, y)];
+
+  /* La phase ne dépend que de la case DANS le morceau. Deux exemplaires du
+     même morceau battent donc à l'identique — ce qui rend sa difficulté
+     mesurable une bonne fois. */
+  const ph = ((lx * 7 + ly * 11) % 13) / 13;
+  const M = { t: lettre, ph, x: ox + lx + .5, y: ly + .5, mortel: 1, solide: 0, actif: 0 };
+
+  if (lettre === 's' || lettre === 't') {
+    const dx = lettre === 's' ? 1 : 0, dy = lettre === 's' ? 0 : 1;
+    let a = 0, b = 0;
+    while (a < 3 && libre(lx - (a + 1) * dx, ly - (a + 1) * dy)
+           && (dy || lx - (a + 1) >= 1)) a++;
+    while (b < 3 && libre(lx + (b + 1) * dx, ly + (b + 1) * dy)
+           && (dy || lx + (b + 1) <= 10)) b++;
+    M.t = 'scie';
+    M.ax = ox + lx + .5 - a * dx; M.ay = ly + .5 - a * dy;
+    M.zx = ox + lx + .5 + b * dx; M.zy = ly + .5 + b * dy;
+    const d = Math.hypot(M.zx - M.ax, M.zy - M.ay);
+    M.T = Math.max(.9, d * 2 / V_SCIE);
+    M.r = .58;
+    return M;
+  }
+
+  if (lettre === 'p') {
+    let h = 0;
+    while (h < 7 && libre(lx, ly + h + 1) && libre(lx + 1, ly + h + 1)) h++;
+    M.t = 'presse'; M.l = 2; M.h = 1; M.y0 = ly; M.course = h;
+    return M;
+  }
+
+  if ('fghk'.indexOf(lettre) >= 0) {
+    const d = { f: [0, -1], g: [0, 1], h: [1, 0], k: [-1, 0] }[lettre];
+    let n = 0;
+    while (n < 6 && libre(lx + d[0] * (n + 1), ly + d[1] * (n + 1))) n++;
+    M.t = 'jet'; M.dx = d[0]; M.dy = d[1]; M.n = Math.max(1, n);
+    return M;
+  }
+
+  if (lettre === 'l' || lettre === 'v') {
+    const d = lettre === 'l' ? [1, 0] : [0, 1];
+    let n = 0;
+    while (n < 6 && libre(lx + d[0] * (n + 1), ly + d[1] * (n + 1))
+           && (d[1] || lx + n + 1 <= 10)) n++;
+    M.t = 'laser'; M.dx = d[0]; M.dy = d[1]; M.n = Math.max(1, n);
+    return M;
+  }
+
+  if (lettre === 'j') {
+    let n = 0;
+    while (n < 8 && libre(lx, ly + n + 1)) n++;
+    M.t = 'pendule'; M.R = n + .3; M.r = .48;
+    return M;
+  }
+
+  if (lettre === 'm' || lettre === 'n') {
+    const dx = lettre === 'm' ? 1 : 0, dy = lettre === 'm' ? 0 : 1;
+    /* Rail borné à trois tuiles de chaque côté : au-delà, l'aller-retour
+       dépasse six secondes, et faire attendre six secondes quelqu'un qui
+       est poursuivi n'est plus un choix tactique, c'est une punition. */
+    let a = 0, b = 0;
+    while (a < 3 && libre(lx - (a + 1) * dx, ly - (a + 1) * dy)
+           && (dy || lx - (a + 1) >= 1)) a++;
+    while (b < 3 && libre(lx + (b + 1) * dx, ly + (b + 1) * dy)
+           && (dy || lx + (b + 1) <= 10)) b++;
+    M.t = 'plateforme'; M.mortel = 0; M.solide = 1;
+    M.ax = ox + lx + .5 - a * dx; M.ay = ly + .5 - a * dy;
+    M.zx = ox + lx + .5 + b * dx; M.zy = ly + .5 + b * dy;
+    const d = Math.hypot(M.zx - M.ax, M.zy - M.ay);
+    M.T = Math.max(1.4, d * 2 / V_PLAT);
+    M.l = 2.0; M.h = .45;
+    return M;
+  }
+
+  if (lettre === 'o') { M.t = 'pique'; M.l = .8; return M; }
+
+  if (lettre === 'b') {
+    M.t = 'chute'; M.l = .9; M.h = .9;
+    M.cy0 = ly + .5; M.repos = ly + .5;    // sa hauteur d'origine, où il revient
+    M.etat = 0; M.vy = 0; M.tim = 0;
+    return M;
+  }
+  return null;
+}
+
+/* ---------------------------------------------------------------------------
+   Où se trouve la machine à l'instant t, et est-elle dangereuse ?
+   On remplit toujours une boîte (bx,by,bl,bh) plus deux drapeaux : `actif`
+   (ça tue) et `annonce` (ça va tuer, entre 0 et 1) — le rendu et le son ne
+   lisent que ça.
+   ------------------------------------------------------------------------- */
+function poserMachine(M, t) {
+  M.annonce = 0;
+  switch (M.t) {
+
+    case 'scie': {
+      const u = triangle(t / M.T + M.ph);
+      const cx = lerp(M.ax, M.zx, u), cy = lerp(M.ay, M.zy, u);
+      M.bx = cx - M.r; M.by = cy - M.r; M.bl = M.r * 2; M.bh = M.r * 2;
+      M.cx = cx; M.cy = cy; M.actif = 1;
+      break;
+    }
+
+    case 'presse': {
+      const c = CY.presse, T = c.T;
+      let u = (t / T + M.ph) % 1 * T;
+      let d = 0;                              // 0 en haut, 1 tout en bas
+      if (u < c.repos) { d = 0; }
+      else if (u < c.repos + c.ann) { d = 0; M.annonce = (u - c.repos) / c.ann; }
+      else if (u < c.repos + c.ann + c.chute) { d = (u - c.repos - c.ann) / c.chute; }
+      else if (u < T - c.remonte) { d = 1; }
+      else { d = 1 - (u - (T - c.remonte)) / c.remonte; }
+      M.by = M.y0 + d * M.course; M.bx = M.x - .5;
+      M.bl = M.l; M.bh = M.h; M.actif = 1; M.d = d;
+      break;
+    }
+
+    case 'jet': {
+      const c = CY.jet, T = c.T;
+      const u = (t / T + M.ph) % 1 * T;
+      const on = u >= c.repos + c.ann;
+      if (!on && u >= c.repos) M.annonce = (u - c.repos) / c.ann;
+      M.actif = on ? 1 : 0;
+      /* la boîte part du bord de la buse et court sur n cases */
+      const ax = M.x + M.dx * .5, ay = M.y + M.dy * .5;
+      const bx2 = ax + M.dx * M.n, by2 = ay + M.dy * M.n;
+      M.bx = Math.min(ax, bx2) + (M.dx ? 0 : .26);
+      M.by = Math.min(ay, by2) + (M.dy ? 0 : .26);
+      M.bl = M.dx ? M.n : .48;
+      M.bh = M.dy ? M.n : .48;
+      M.p = on ? (u - c.repos - c.ann) / c.feu : 0;
+      break;
+    }
+
+    case 'laser': {
+      const c = CY.laser, T = c.T;
+      const u = (t / T + M.ph) % 1 * T;
+      const on = u >= c.repos + c.ann;
+      if (!on && u >= c.repos) M.annonce = (u - c.repos) / c.ann;
+      M.actif = on ? 1 : 0;
+      const ax = M.x + M.dx * .5, ay = M.y + M.dy * .5;
+      M.bx = M.dx ? ax : M.x - .11;
+      M.by = M.dy ? ay : M.y - .11;
+      M.bl = M.dx ? M.n : .22;
+      M.bh = M.dy ? M.n : .22;
+      break;
+    }
+
+    case 'pendule': {
+      const a = CY.pendule.amplitude * Math.sin(2 * Math.PI * (t / CY.pendule.periode + M.ph));
+      M.a = a;
+      const cx = M.x + Math.sin(a) * M.R, cy = M.y + Math.cos(a) * M.R;
+      M.cx = cx; M.cy = cy;
+      M.bx = cx - M.r; M.by = cy - M.r; M.bl = M.r * 2; M.bh = M.r * 2;
+      M.actif = 1;
+      break;
+    }
+
+    case 'pique': {
+      const c = CY.pique, T = c.T;
+      const u = (t / T + M.ph) % 1 * T;
+      let h = 0;
+      if (u < c.repos) h = 0;
+      else if (u < c.repos + c.ann) { h = .12; M.annonce = (u - c.repos) / c.ann; }
+      else {
+        const q = (u - c.repos - c.ann) / c.haut;
+        h = q < .12 ? q / .12 : (q > .88 ? (1 - q) / .12 : 1);
+      }
+      M.hh = h * M.l;
+      M.bx = M.x - .34; M.bl = .68;
+      M.by = M.y + .5 - M.hh; M.bh = Math.max(.001, M.hh);
+      M.actif = h > .35 ? 1 : 0;
+      break;
+    }
+
+    case 'chute': {
+      M.bx = M.x - M.l / 2; M.by = M.cy0 - M.h / 2;
+      M.bl = M.l; M.bh = M.h;
+      break;
+    }
+  }
+}
+
+/* Les plateformes sont solides : le joueur monte dessus et se fait porter.
+   Il leur faut donc leur position d'AVANT, pour qu'on sache de combien elles
+   ont bougé pendant le pas — c'est ce déplacement qu'on transmet au joueur. */
+function poserPlateforme(M, t) {
+  const u = triangle(t / M.T + M.ph);
+  const cx = lerp(M.ax, M.zx, u), cy = lerp(M.ay, M.zy, u);
+  M.pdx = M.cx === undefined ? 0 : cx - M.cx;
+  M.pdy = M.cy === undefined ? 0 : cy - M.cy;
+  M.cx = cx; M.cy = cy;
+  M.bx = cx - M.l / 2; M.by = cy - M.h / 2; M.bl = M.l; M.bh = M.h;
+  M.actif = 0;
+}
+
+/* ===========================================================================
+   ASSEMBLAGE D'UN NIVEAU
+   =========================================================================== */
+function tirerMorceaux(bio, prog, r, k) {
+  const bassin = MORCEAUX.filter(m => (m.bio === bio.id || m.bio === 'tous') && m.d > 0);
+  const cible = 1 + prog * 2.15;
+  const out = [];
+  let der = '', deder = '';
+  for (let i = 0; i < k; i++) {
+    let tot = 0;
+    const poids = bassin.map(m => {
+      if (m.nom === der || m.nom === deder) return 0;
+      /* on vise la difficulté du moment, sans jamais fermer la porte à un
+         morceau plus doux : une montée parfaitement linéaire est lassante */
+      const p = Math.max(.05, 1 - Math.abs(m.d - cible) * .52);
+      tot += p; return p;
+    });
+    let z = r() * tot, pris = bassin[0];
+    for (let a = 0; a < bassin.length; a++) { z -= poids[a]; if (z <= 0) { pris = bassin[a]; break; } }
+    out.push(pris); deder = der; der = pris.nom;
+  }
+  return out;
+}
+
+function construireNiveau(n) {
+  const bio = biomeDe(n);
+  const prog = (n - bio.deb) / (bio.n - 1);
+  const r = semeur((n * 2654435761 + 0x9E3779B1) >>> 0);
+  const k = 3 + Math.round(prog * 3);                 // 3 à 6 morceaux au milieu
+  const suite = [PAR_NOM.depart].concat(tirerMorceaux(bio, prog, r, k), [PAR_NOM.sortie]);
+  return assembler(suite, bio, n, prog);
+}
+
+/* Monte un couloir à partir d'une suite de morceaux donnée. Séparé du tirage
+   au sort pour qu'on puisse assembler exactement le couloir qu'on veut —
+   c'est ce qui permet de mesurer un morceau tout seul. */
+function assembler(suite, bio, n, prog) {
+  const L = suite.length * L_MORCEAU, H = H_MORCEAU;
+  const N = {
+    niv: n, bio, L, H, prog: prog || 0,
+    sol: new Uint8Array(L * H),
+    mach: [], noms: suite.map(m => m.nom),
+    etatD: new Uint8Array(L * H), timD: new Float32Array(L * H)
+  };
+
+  for (let c = 0; c < suite.length; c++) {
+    const m = suite[c], ox = c * L_MORCEAU;
+    for (let y = 0; y < H_MORCEAU; y++) {
+      const li = m.g[y];
+      for (let x = 0; x < L_MORCEAU; x++) {
+        const ch = li[x];
+        const t = LEGENDE[ch];
+        if (t !== undefined) { N.sol[(ox + x) + y * L] = t; continue; }
+        const M = machineDe(ch, m.g, x, y, ox);
+        if (M) N.mach.push(M);
+      }
+    }
+  }
+
+  /* la liste des dalles friables : on ne balaie pas 1 500 tuiles par image
+     pour en faire vivre quatre */
+  N.dalles = [];
+  for (let i = 0; i < N.sol.length; i++) if (N.sol[i] === T_DALLE) N.dalles.push(i);
+
+  N.depart = { x: 2.2, y: RANG_SOL - J_H };
+  N.sortie = { x: (suite.length - 1) * L_MORCEAU + 8.5, y: 11.0 };
+
+  /* Le temps de référence des médailles. Il n'est pas inventé : les
+     coefficients sont ajustés par moindres carrés sur les 120 temps que le
+     solveur a réellement obtenus (voir mesures.js), puis relevés d'un tiers
+     — une machine qui recommence mille fois n'a pas besoin de la marge
+     qu'un humain mérite. Ce qui coûte du temps dans ce jeu se lit dans les
+     coefficients : une plateforme mobile vaut huit machines mortelles,
+     parce qu'une plateforme, ça s'attend. */
+  let mortelles = 0, plateformes = 0, phase = 0;
+  for (const M of N.mach) { if (M.t === 'plateforme') plateformes++; else mortelles++; }
+  for (let i = 0; i < N.sol.length; i++)
+    if (N.sol[i] === T_PHASE_A || N.sol[i] === T_PHASE_B) phase++;
+  N.par = Math.max(6,
+    (.1474 * L + .24 * mortelles + 1.22 * plateformes + .055 * phase - 1.55) * 1.35);
+
+  return N;
+}
+
+/* ------------------------------------------------------- lecture du terrain */
+function tuile(N, x, y) {
+  if (x < 0 || x >= N.L || y >= N.H) return T_MUR;
+  if (y < 0) return T_VIDE;
+  return N.sol[x + y * N.L];
+}
+
+/* Un mur en phase n'est solide qu'une fois sur deux ; une dalle cassée ne
+   l'est plus du tout. Tout le jeu passe par cette fonction — physique,
+   machines, rendu — pour qu'il n'existe jamais deux avis sur ce qui porte. */
+function estSolide(N, x, y, phA) {
+  const t = tuile(N, x, y);
+  if (t === T_PHASE_A) return phA;
+  if (t === T_PHASE_B) return !phA;
+  if (t === T_DALLE) return N.etatD[x + y * N.L] !== 2;
+  return !!SOLIDE[t];
+}
+
+function estMortel(N, x, y) { return !!MORTEL[tuile(N, x, y)]; }
+
+function majMachines(N, t) {
+  for (const M of N.mach) {
+    if (M.t === 'plateforme') poserPlateforme(M, t);
+    else poserMachine(M, t);
+  }
+}
+
+/* ==== a_06_physique.js ==== */
+/* ===========================================================================
+   LA PHYSIQUE DU BONHOMME
+   Pas fixe, boîte alignée, deux axes résolus séparément. Rien d'exotique —
+   ce qui compte dans un jeu de plateformes n'est pas le modèle, c'est la
+   marge : le sursis après le vide (coyote), le saut mémorisé une fraction de
+   seconde avant d'être possible (tampon), le sommet de la courbe où la
+   pesanteur faiblit, et le coin qu'on repousse au lieu de s'y cogner.
+   Ces quatre marges valent, à elles seules, tous les réglages de vitesse.
+   =========================================================================== */
+
+function nouveauJoueur(N) {
+  return {
+    x: N.depart.x, y: N.depart.y, vx: 0, vy: 0,
+    sol: 0, coyote: 0, tampon: 0, sautPrec: 0, enSaut: 0,
+    regarde: 1, plat: null, anim: 0, tSol: 0, vitApp: 0,
+    vivant: 1, cause: '', poussiere: 0
+  };
+}
+
+/* Une case du décor est-elle pleine, ici, maintenant ? */
+function boitePleine(N, x, y, l, h, phA) {
+  const x0 = Math.floor(x), x1 = Math.floor(x + l - 1e-6);
+  const y0 = Math.floor(y), y1 = Math.floor(y + h - 1e-6);
+  for (let ty = y0; ty <= y1; ty++)
+    for (let tx = x0; tx <= x1; tx++)
+      if (estSolide(N, tx, ty, phA)) return true;
+  return false;
+}
+
+const chevauche = (ax, ay, al, ah, bx, by, bl, bh) =>
+  ax < bx + bl && ax + al > bx && ay < by + bh && ay + ah > by;
+
+/* La boîte exacte d'un piège de décor. Les pics ne remplissent pas leur case :
+   un pic qui tue dans toute sa case donne l'impression de mourir « à côté »,
+   et c'est le genre de détail qui fait reposer la manette. */
+function boitePiege(t, tx, ty) {
+  switch (t) {
+    case T_PIC_H: return [tx + .13, ty + .46, .74, .54];
+    case T_PIC_B: return [tx + .13, ty, .74, .54];
+    case T_PIC_G: return [tx, ty + .13, .54, .74];
+    case T_PIC_D: return [tx + .46, ty + .13, .54, .74];
+    case T_ACIDE: return [tx, ty + .18, 1, .82];
+  }
+  return null;
+}
+
+function toucheDecorMortel(N, j) {
+  const x0 = Math.floor(j.x), x1 = Math.floor(j.x + J_L - 1e-6);
+  const y0 = Math.floor(j.y), y1 = Math.floor(j.y + J_H - 1e-6);
+  for (let ty = y0; ty <= y1; ty++) {
+    for (let tx = x0; tx <= x1; tx++) {
+      const t = tuile(N, tx, ty);
+      if (!MORTEL[t]) continue;
+      const b = boitePiege(t, tx, ty);
+      if (b && chevauche(j.x, j.y, J_L, J_H, b[0], b[1], b[2], b[3])) return t;
+    }
+  }
+  return 0;
+}
+
+function toucheMachine(N, j) {
+  for (const M of N.mach) {
+    if (!M.actif || !M.mortel) continue;
+    if (chevauche(j.x, j.y, J_L, J_H, M.bx, M.by, M.bl, M.bh)) return M;
+  }
+  return null;
+}
+
+/* ---------------------------------------------------------------------------
+   Les plateformes sont les seules machines solides. On les résout après les
+   tuiles, sur le même axe, pour qu'une plateforme collée à un mur ne laisse
+   pas passer.
+   ------------------------------------------------------------------------- */
+function resoudrePlats(N, j, axe) {
+  for (const M of N.mach) {
+    if (!M.solide) continue;
+    if (!chevauche(j.x, j.y, J_L, J_H, M.bx, M.by, M.bl, M.bh)) continue;
+    if (axe === 0) {
+      if (j.vx > 0) j.x = M.bx - J_L - 1e-4;
+      else if (j.vx < 0) j.x = M.bx + M.bl + 1e-4;
+      else j.x += (j.x + J_L / 2 < M.bx + M.bl / 2 ? -1 : 1) * .04;
+      j.vx = 0;
+    } else {
+      if (j.vy >= 0) { j.y = M.by - J_H - 1e-4; j.vy = 0; j.sol = 1; j.plat = M; }
+      else { j.y = M.by + M.bh + 1e-4; j.vy = 0; }
+    }
+  }
+}
+
+function surPlat(N, j) {
+  for (const M of N.mach) {
+    if (!M.solide) continue;
+    if (chevauche(j.x, j.y + J_H, J_L, .10, M.bx, M.by, M.bl, M.bh)) return M;
+  }
+  return null;
+}
+
+/* ===========================================================================
+   UN PAS
+   =========================================================================== */
+function pasJoueur(N, j, cmd, t, phA) {
+  const dt = PAS;
+
+  /* 1. ce qui nous porte nous emmène : on suit la plateforme AVANT de bouger */
+  if (j.plat) { j.x += j.plat.pdx; j.y += j.plat.pdy; }
+  j.plat = null;
+
+  /* 2. le saut — trois marges qui font tout le confort */
+  if (cmd.saut && !j.sautPrec) j.tampon = TAMPON;
+  j.sautPrec = cmd.saut ? 1 : 0;
+  j.tampon -= dt; j.coyote -= dt;
+  if (j.sol) j.coyote = COYOTE;
+  if (j.tampon > 0 && j.coyote > 0) {
+    j.vy = -SAUT; j.coyote = 0; j.tampon = 0; j.sol = 0; j.enSaut = 1;
+    j.poussiere = 1; SND.saut();
+  }
+  /* relâcher coupe l'élan : la hauteur du saut est un choix, pas un réflexe */
+  if (!cmd.saut && j.enSaut && j.vy < 0) { j.vy *= COUPE; j.enSaut = 0; }
+  if (j.vy >= 0) j.enSaut = 0;
+
+  /* 3. la course */
+  const dir = (cmd.d ? 1 : 0) - (cmd.g ? 1 : 0);
+  const acc = j.sol ? ACC_SOL : ACC_AIR, frein = j.sol ? FREIN_SOL : FREIN_AIR;
+  if (dir) {
+    j.vx = serre(j.vx + dir * acc * dt, -VIT, VIT);
+    j.regarde = dir;
+  } else if (j.vx) {
+    const s = Math.sign(j.vx);
+    j.vx -= s * frein * dt;
+    if (Math.sign(j.vx) !== s) j.vx = 0;
+  }
+
+  /* 4. la pesanteur, adoucie au sommet de la courbe */
+  let g = GRAV;
+  if (Math.abs(j.vy) < APEX && !j.sol) g *= APEX_FACT;
+  j.vy = Math.min(V_CHUTE, j.vy + g * dt);
+
+  /* 5. axe horizontal — tapis roulants compris */
+  let pousse = 0;
+  const sousPied = tuile(N, Math.floor(j.x + J_L / 2), Math.floor(j.y + J_H + .04));
+  if (j.sol && sousPied === T_TAPIS_D) pousse = TAPIS_V;
+  if (j.sol && sousPied === T_TAPIS_G) pousse = -TAPIS_V;
+
+  j.x += (j.vx + pousse) * dt;
+  if (boitePleine(N, j.x, j.y, J_L, J_H, phA)) {
+    if (j.vx + pousse > 0) j.x = Math.floor(j.x + J_L) - J_L - 1e-4;
+    else j.x = Math.floor(j.x) + 1 + 1e-4;
+    if (Math.sign(j.vx) === Math.sign(j.vx + pousse) || !pousse) j.vx = 0;
+  }
+  resoudrePlats(N, j, 0);
+  j.x = serre(j.x, .02, N.L - J_L - .02);
+
+  /* 6. axe vertical, avec la correction de coin */
+  j.sol = 0;
+  j.y += j.vy * dt;
+  if (boitePleine(N, j.x, j.y, J_L, J_H, phA)) {
+    if (j.vy > 0) { j.y = Math.floor(j.y + J_H) - J_H - 1e-4; j.vy = 0; j.sol = 1; }
+    else {
+      /* on monte et la tête accroche : si un petit écart suffit à passer, on
+         décale plutôt que d'annuler le saut. Sans ça, la moitié des sauts
+         serrés donnent l'impression que le jeu triche. */
+      let sauve = 0;
+      for (let d = .06; d <= COIN + 1e-9 && !sauve; d += .06) {
+        for (const s of [1, -1]) {
+          if (!boitePleine(N, j.x + s * d, j.y, J_L, J_H, phA)) {
+            j.x += s * d; sauve = 1; break;
+          }
+        }
+      }
+      if (!sauve) { j.y = Math.floor(j.y) + 1 + 1e-4; j.vy = 0; }
+    }
+  }
+  resoudrePlats(N, j, 1);
+
+  /* 7. a-t-on encore quelque chose sous les pieds ? */
+  if (!j.sol) {
+    if (boitePleine(N, j.x, j.y + .04, J_L, J_H, phA)) j.sol = 1;
+    else if (surPlat(N, j)) { j.sol = 1; j.plat = surPlat(N, j); }
+  }
+  if (j.sol && j.vy > 0) j.vy = 0;
+
+  /* 8. les dalles friables : elles ne cèdent qu'à celui qui s'attarde */
+  if (j.sol) marcherDalles(N, j);
+
+  /* 9. l'animation, et le bruit des pas */
+  j.vitApp = Math.abs(j.vx);
+  if (j.sol) {
+    j.anim += j.vitApp * dt * 1.6;
+    j.tSol += dt;
+    if (j.vitApp > 2 && Math.floor(j.anim * 2) !== Math.floor((j.anim - j.vitApp * dt * 1.6) * 2))
+      SND.pas();
+  } else j.tSol = 0;
+
+  /* 10. ce qui tue */
+  if (j.y > N.H + 2) { j.vivant = 0; j.cause = 'le vide'; return; }
+  const dec = toucheDecorMortel(N, j);
+  if (dec) {
+    j.vivant = 0;
+    j.cause = dec === T_ACIDE ? (N.bio.id === 'forge' ? 'la fonte' : 'l\'acide') : 'les pics';
+    return;
+  }
+  const M = toucheMachine(N, j);
+  if (M) {
+    j.vivant = 0;
+    j.cause = { scie: 'la scie', presse: 'la presse', jet: 'le jet', laser: 'le rayon',
+                pendule: 'la lame', pique: 'les piques', chute: 'le bloc' }[M.t] || 'la machine';
+  }
+}
+
+/* Une dalle ne cède pas quand on la touche, mais quand on reste dessus : on
+   peut traverser un pont friable sans le casser si l'on ne s'arrête jamais.
+   C'est la même leçon que tout le jeu, en miniature. */
+function marcherDalles(N, j) {
+  const y = Math.floor(j.y + J_H + .04);
+  const x0 = Math.floor(j.x), x1 = Math.floor(j.x + J_L - 1e-6);
+  for (let x = x0; x <= x1; x++) {
+    if (tuile(N, x, y) !== T_DALLE) continue;
+    const i = x + y * N.L;
+    if (N.etatD[i] === 0) { N.etatD[i] = 1; N.timD[i] = DALLE_TENUE; SND.dalle(); }
+  }
+}
+
+function majDalles(N, dt) {
+  for (const i of N.dalles) {
+    if (N.etatD[i] === 0) continue;
+    N.timD[i] -= dt;
+    if (N.timD[i] > 0) continue;
+    if (N.etatD[i] === 1) { N.etatD[i] = 2; N.timD[i] = DALLE_REPOUSSE; SND.bruit(.18, .09, 300, 1.2); }
+    else { N.etatD[i] = 0; N.timD[i] = 0; }
+  }
+}
+
+/* Le bloc qui tombe est la seule machine qui répond au joueur — donc la seule
+   qui garde un état. Il tremble avant de lâcher : on a toujours le temps de
+   sortir de dessous. */
+function majChutes(N, j, dt, phA) {
+  for (const M of N.mach) {
+    if (M.t !== 'chute') continue;
+    if (M.etat === 0) {
+      M.annonce = 0; M.actif = 0;
+      if (Math.abs(j.x + J_L / 2 - M.x) < 1.3 && j.y > M.cy0) { M.etat = 1; M.tim = .30; }
+    } else if (M.etat === 1) {
+      M.annonce = 1; M.tim -= dt;
+      if (M.tim <= 0) { M.etat = 2; M.vy = 0; SND.bruit(.1, .1, 400, 1); }
+    } else if (M.etat === 2) {
+      M.annonce = 0; M.actif = 1;
+      M.vy = Math.min(V_CHUTE, M.vy + GRAV * .9 * dt);
+      M.cy0 += M.vy * dt;
+      if (boitePleine(N, M.x - M.l / 2, M.cy0 - M.h / 2, M.l, M.h, phA) || M.cy0 > N.H) {
+        M.etat = 3; M.tim = 1.7; M.actif = 0; SND.bruit(.24, .2, 260, 1.4);
+      }
+    } else {
+      M.actif = 0; M.tim -= dt;
+      if (M.tim <= 0) { M.etat = 0; M.cy0 = M.repos; M.vy = 0; }
+    }
+    M.bx = M.x - M.l / 2; M.by = M.cy0 - M.h / 2; M.bl = M.l; M.bh = M.h;
+  }
+}
+
+/* ==== a_07_spectres.js ==== */
+/* ===========================================================================
+   LES SPECTRES
+   Ils traversent la pierre et vont droit sur toi. Ils sont plus lents que
+   toi — c'est ce qui rend le jeu jouable : on peut les contourner, les
+   semer, leur tourner autour. Ce qu'on ne peut pas, c'est les faire
+   attendre. Or chaque piège du jeu demande d'attendre.
+
+   Tout le jeu tient dans ce frottement : le piège veut que tu patientes,
+   le spectre te l'interdit. Un niveau se gagne en décidant, à chaque
+   machine, si tu prends la fenêtre suivante ou celle d'après.
+   =========================================================================== */
+const R_SPECTRE = .46;
+
+/* « le ÉCHO » se lit mal. L'élision devant voyelle, y compris accentuée. */
+const article = nom => ('AEIOUÉÈÊÀÂÎÔÛ'.indexOf(nom[0]) >= 0 ? "l'" : 'le ') + nom;
+
+function nbSpectres(bio, prog) {
+  return Math.max(1, Math.min(bio.nMax, 1 + Math.round(prog * (bio.nMax - 1))));
+}
+
+/* Le spectre neuf du territoire arrive SEUL sur ses premiers niveaux : on ne
+   comprend un comportement que si on l'a vu isolé une fois. */
+function typesSpectres(bio, prog, nb) {
+  const dispo = bio.spectres, neuf = dispo[dispo.length - 1];
+  const out = [];
+  if (prog < .12) { for (let i = 0; i < nb; i++) out.push(neuf); return out; }
+  out.push(neuf);
+  for (let i = 1; i < nb; i++) out.push(dispo[(i - 1) % dispo.length]);
+  return out;
+}
+
+function creerSpectres(N) {
+  const bio = N.bio, prog = N.prog;
+  const nb = nbSpectres(bio, prog);
+  const types = typesSpectres(bio, prog, nb);
+  const grace = Math.max(.75, bio.grace - .40 * prog);
+  const out = [];
+  let nEcho = 0;
+  for (let i = 0; i < types.length; i++) {
+    const d = SPECTRES[types[i]];
+    /* deux ÉCHOS au même retard se superposeraient au pixel près : chacun
+       reprend ton trajet à une distance différente dans le passé */
+    const retard = d.retard ? d.retard + 1.6 * (nEcho++) : 0;
+    out.push({
+      retard,
+      k: types[i], nom: d.nom, teinte: d.teinte,
+      v: d.v * bio.vFant * (1 + .10 * prog),
+      x: .9 + i * .55, y: RANG_SOL - 1.2 - i * .35,
+      vx: 0, vy: 0, r: R_SPECTRE,
+      /* chacun entre en scène un peu après le précédent : arriver tous
+         ensemble ne se lit pas, arriver en file se lit très bien */
+      grace: grace + i * .55,
+      tim: d.ruee_cycle || 0, vise: 0, ruee: 0, dx: 1, dy: 0,
+      onde: DECO() * 6.28, dormant: 1
+    });
+  }
+  return out;
+}
+
+function pasSpectres(N, P, dt) {
+  const j = P.j;
+  const cx = j.x + J_L / 2, cy = j.y + J_H / 2;
+  let plusProche = 1e9, tueur = null;
+
+  for (const f of P.spectres) {
+    f.onde += dt * 2.4;
+    if (P.t < f.grace) { f.dormant = 1; continue; }
+    if (f.dormant) { f.dormant = 0; SND.note(120, .5, .07, 'sine', 70); }
+
+    if (f.k === 'echo') {
+      /* il ne cherche pas où tu es : il refait où tu étais. Revenir sur ses
+         pas, dans ce jeu, c'est aller à sa rencontre. */
+      const recul = Math.round((f.retard || SPECTRES.echo.retard) / dt);
+      const i = Math.max(0, P.nTrace - recul);
+      if (P.nTrace > 0) { f.x = P.trace[i * 2]; f.y = P.trace[i * 2 + 1]; }
+    } else {
+      let dx = cx - f.x, dy = cy - f.y;
+      const d = Math.hypot(dx, dy) || 1;
+
+      if (f.k === 'hurleur') {
+        const S = SPECTRES.hurleur;
+        if (f.ruee > 0) {
+          f.ruee -= dt;
+          f.x += f.dx * S.ruee * dt; f.y += f.dy * S.ruee * dt;
+        } else {
+          f.tim -= dt;
+          if (f.tim <= S.ruee_annonce && !f.vise) {
+            /* il vise MAINTENANT et ne corrigera plus : la ruée se contourne */
+            f.vise = 1; f.dx = dx / d; f.dy = dy / d; SND.note(880, .18, .05, 'square', 1500);
+          }
+          if (f.tim <= 0) { f.ruee = S.ruee_d; f.tim = S.ruee_cycle; f.vise = 0; SND.note(300, .3, .09, 'sawtooth', 90); }
+          else { f.x += dx / d * f.v * dt; f.y += dy / d * f.v * dt; }
+        }
+      } else if (f.k === 'traqueur') {
+        /* il ne bouge que quand tu cours. S'arrêter le fige — mais s'arrêter,
+           c'est laisser les autres arriver. */
+        f.fige = Math.abs(j.vx) < 1.6 && j.sol ? 1 : 0;
+        if (!f.fige) { f.x += dx / d * f.v * dt; f.y += dy / d * f.v * dt; }
+      } else {
+        f.x += dx / d * f.v * dt; f.y += dy / d * f.v * dt;
+      }
+    }
+
+    f.x = serre(f.x, .3, N.L - .3);
+    f.y = serre(f.y, -1, N.H + 1);
+    f.enPierre = estSolide(N, Math.floor(f.x), Math.floor(f.y), P.phA) ? 1 : 0;
+
+    /* distance de la boîte du joueur, pas de son centre : c'est ce qu'on voit */
+    const px = serre(f.x, j.x, j.x + J_L), py = serre(f.y, j.y, j.y + J_H);
+    const dd = Math.hypot(f.x - px, f.y - py);
+    if (dd < plusProche) { plusProche = dd; }
+    if (dd < f.r && !tueur) tueur = f;
+  }
+
+  P.ecart = plusProche;
+  if (plusProche < P.ecartMin) P.ecartMin = plusProche;
+  return tueur;
+}
+
+/* On garde la trace du joueur pour l'ÉCHO. Un tableau plat de flottants :
+   deux minutes de jeu tiennent dans 60 Ko, et on n'alloue rien par image. */
+const MAX_TRACE = 60 * 60 * 3;
+
+function noterTrace(P) {
+  if (P.nTrace >= MAX_TRACE) return;
+  P.trace[P.nTrace * 2] = P.j.x + J_L / 2;
+  P.trace[P.nTrace * 2 + 1] = P.j.y + J_H / 2;
+  P.nTrace++;
+}
+
+/* ==== a_08_jeu.js ==== */
+/* ===========================================================================
+   LA PARTIE
+   Un seul objet vivant, P. Il est jeté et refait à chaque tentative : rien
+   ne survit d'un essai à l'autre, sauf le compteur de morts. Dans un jeu où
+   l'on recommence toutes les vingt secondes, c'est la seule façon d'être sûr
+   qu'un bogue ne s'accumule pas d'essai en essai.
+   =========================================================================== */
+let P = null;
+let ecranActif = 'menu';
+
+function demarrerNiveau(n, reprise) {
+  const morts = reprise && P && P.niv === n ? P.mortsIci : 0;
+  const N = construireNiveau(n);
+  P = {
+    N, niv: n, t: 0, phA: true,
+    j: nouveauJoueur(N),
+    spectres: creerSpectres(N),
+    trace: new Float32Array(MAX_TRACE * 2), nTrace: 0,
+    fini: 0, gagne: 0, tFin: 0,
+    ecart: 99, ecartMin: 99, mortsIci: morts,
+    parts: [], camX: 0, camY: 0, camPret: 0,
+    secousse: 0, tapis: 0
+  };
+  majMachines(N, 0);
+  for (const M of N.mach) if (M.t === 'chute') { M.etat = 0; M.cy0 = M.repos; M.vy = 0; }
+  SND.ouvrirSouffle();
+  ecranActif = 'jeu';
+  ecrans(null);
+  majHud();
+}
+
+/* --------------------------------------------------------------------------
+   Un mur en phase qui réapparaît sur le joueur ne doit pas l'écraser sans
+   sommation : il annonce (voir le rendu), puis on tente de dégager. C'est
+   seulement s'il n'y a nulle part où sortir qu'il tue.
+   ------------------------------------------------------------------------ */
+function degager(N, j, phA) {
+  if (!boitePleine(N, j.x, j.y, J_L, J_H, phA)) return true;
+  for (let r = .1; r <= 1.6; r += .1) {
+    const essais = [[0, -r], [0, r], [-r, 0], [r, 0], [-r, -r], [r, -r]];
+    for (const e of essais) {
+      if (!boitePleine(N, j.x + e[0], j.y + e[1], J_L, J_H, phA)) {
+        j.x += e[0]; j.y += e[1]; return true;
+      }
+    }
+  }
+  return false;
+}
+
+function surSortie(N, j) {
+  const x0 = Math.floor(j.x + .12), x1 = Math.floor(j.x + J_L - .12);
+  const y0 = Math.floor(j.y + .12), y1 = Math.floor(j.y + J_H - .12);
+  for (let y = y0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++)
+      if (tuile(N, x, y) === T_SORTIE) return true;
+  return false;
+}
+
+function unPas(cmd) {
+  if (!P || P.fini) return;
+  const N = P.N, j = P.j;
+  P.t += PAS;
+
+  const phAvant = P.phA;
+  P.phA = Math.floor(P.t / PHASE_DUREE) % 2 === 0;
+  if (P.phA !== phAvant && !degager(N, j, P.phA)) {
+    j.vivant = 0; j.cause = 'la pierre';
+  }
+
+  majMachines(N, P.t);
+  majChutes(N, j, PAS, P.phA);
+  majDalles(N, PAS);
+
+  if (j.vivant) pasJoueur(N, j, cmd, P.t, P.phA);
+  noterTrace(P);
+  const tueur = pasSpectres(N, P, PAS);
+  if (j.vivant && tueur) { j.vivant = 0; j.cause = article(tueur.nom); }
+
+  if (P.secousse > 0) P.secousse = Math.max(0, P.secousse - PAS * 3.2);
+  majParticules(PAS);
+  SND.reglerSouffle(1 - serre(P.ecart / 11, 0, 1));
+
+  if (!j.vivant) { P.fini = 1; P.gagne = 0; P.tFin = 0; P.aTraiter = 1; return; }
+  if (surSortie(N, j)) { P.fini = 1; P.gagne = 1; P.tFin = 0; P.montre = 0; P.aTraiter = 1; }
+}
+
+/* Appelée par la boucle, une seule fois, au moment où la partie bascule. */
+function conclure() {
+  if (!P || !P.aTraiter) return;
+  P.aTraiter = 0;
+  if (P.gagne) gagner(); else mourir();
+}
+
+/* --------------------------------------------------------------------- mort */
+function mourir() {
+  P.mortsIci++;
+  META.morts++;
+  if (META.morts >= 100) decrocher('cent');
+  META.serie = 0;
+  sauverMeta();
+  P.secousse = 1;
+  gerbe(P.j.x + J_L / 2, P.j.y + J_H / 2, 26, '#ff4d6d', 9);
+  SND.mort(); SND.reglerSouffle(0);
+  $('mortTxt').querySelector('.q').textContent = 'RATTRAPÉ';
+  $('mortTxt').querySelector('.p').textContent = 'par ' + (P.j.cause || 'le décor');
+  $('mortTxt').style.display = 'flex';
+  majHud();
+}
+
+/* ------------------------------------------------------------------ victoire */
+function gagner() {
+  gerbe(P.j.x + J_L / 2, P.j.y + J_H / 2, 30, P.N.bio.accent, 7);
+  SND.fin(); SND.fermerSouffle();
+  /* l'écran de fin attend une demi-seconde : sans ça on ne voit jamais le
+     bonhomme franchir la porte, et une victoire qu'on ne voit pas ne
+     récompense rien */
+}
+
+/* ------------------------------------------------------------- particules */
+function gerbe(x, y, n, teinte, v) {
+  for (let i = 0; i < n; i++) {
+    const a = DECO() * 6.283, s = (.3 + DECO()) * v;
+    P.parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 2, vie: .5 + DECO() * .5, v0: .5 + DECO() * .5, c: teinte });
+  }
+  if (P.parts.length > 90) P.parts.splice(0, P.parts.length - 90);
+}
+
+function poussiere(x, y, n, teinte) {
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI / 2 + (DECO() - .5) * 2.4, s = .8 + DECO() * 2.4;
+    P.parts.push({ x: x + (DECO() - .5) * .5, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, vie: .3 + DECO() * .3, v0: .3 + DECO() * .3, c: teinte });
+  }
+  if (P.parts.length > 90) P.parts.splice(0, P.parts.length - 90);
+}
+
+function majParticules(dt) {
+  const p = P.parts;
+  for (let i = p.length - 1; i >= 0; i--) {
+    const a = p[i];
+    a.vie -= dt;
+    if (a.vie <= 0) { p.splice(i, 1); continue; }
+    a.x += a.vx * dt; a.y += a.vy * dt;
+    a.vy += 22 * dt; a.vx *= .96;
+  }
+}
+
+/* -------------------------------------------------------------- relance */
+function relancer() {
+  if (!P) return;
+  demarrerNiveau(P.niv, true);
+  $('mortTxt').style.display = 'none';
+}
+
+function niveauSuivant() {
+  const n = P ? P.niv + 1 : 0;
+  if (n >= N_NIVEAUX) { montrerCarte(); return; }
+  demarrerNiveau(n, false);
+  $('mortTxt').style.display = 'none';
+}
+
+/* ==== a_09_rendu.js ==== */
+/* ===========================================================================
+   LE RENDU
+   Aucune image n'est chargée : tout est tracé au canevas. La règle qui a
+   guidé chaque trait : un piège doit se lire AVANT de tuer. Une machine qui
+   va frapper s'éclaire, tremble, ou projette la ligne de ce qu'elle va
+   toucher. Ce qui est déjà mortel est rouge et net ; ce qui va l'être est
+   pâle et clignote. Le joueur ne devrait jamais avoir à mourir pour
+   apprendre où était le danger.
+   =========================================================================== */
+const cv = $('vue');
+const ctx = cv.getContext('2d');
+let LP = 0, HP = 0, ECH = 32, DPR = 1;
+let HV = 0, VY = 0;      // hauteur et position de la bande où vit le monde
+
+function cadrer() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  LP = cv.clientWidth; HP = cv.clientHeight;
+  cv.width = Math.round(LP * DPR); cv.height = Math.round(HP * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  /* 15 tuiles de large au minimum : c'est le champ dont on a besoin pour voir
+     arriver une scie. En hauteur on n'en montre que treize, alors que le
+     niveau en fait seize : tout se joue dans les huit du bas, et cadrer les
+     seize revenait à donner la moitié de l'écran à du ciel vide. */
+  ECH = Math.max(13, Math.min(HP / 13.2, LP / 15));
+  HV = Math.min(HP, ECH * (H_MORCEAU + .3));
+  VY = Math.round((HP - HV) * .42);
+}
+window.addEventListener('resize', cadrer);
+
+const hach = (x, y) => {
+  let h = (x * 374761393 + y * 668265263) | 0;
+  h = (h ^ (h >> 13)) * 1274126177;
+  return ((h ^ (h >> 16)) >>> 0) / 4294967296;
+};
+
+function majCamera(dt) {
+  const N = P.N, j = P.j;
+  const vw = LP / ECH, vh = HV / ECH;
+  let cx = j.x + J_L / 2 + j.regarde * vw * .10 - vw / 2;
+  cx = N.L <= vw ? (N.L - vw) / 2 : serre(cx, 0, N.L - vw);
+  let cy;
+  if (N.H <= vh) cy = (N.H - vh) / 2;
+  else cy = serre(j.y + J_H / 2 - vh / 2, 0, N.H - vh);
+  if (!P.camPret) { P.camX = cx; P.camY = cy; P.camPret = 1; }
+  else {
+    const k = Math.min(1, dt * 10);
+    P.camX += (cx - P.camX) * k;
+    P.camY += (cy - P.camY) * k;
+  }
+}
+
+/* Écran ← monde. Toute la suite ne parle qu'en tuiles. */
+let SX = 0, SY = 0;
+const ax = x => (x - SX) * ECH;
+const ay = y => (y - SY) * ECH + VY;
+
+/* --------------------------------------------------------------- décor */
+function fond(bio, t) {
+  const g = ctx.createLinearGradient(0, VY, 0, VY + HV);
+  g.addColorStop(0, bio.ciel);
+  g.addColorStop(1, bio.fond);
+  ctx.fillStyle = g; ctx.fillRect(0, VY, LP, HV);
+
+  /* Le mur du fond. Sans lui, un morceau qui a un plafond collé à un morceau
+     qui n'en a pas donne une dalle de pierre suspendue en l'air. Avec une
+     paroi derrière, le même plafond devient le haut d'une galerie — et le
+     décor sur lequel on marche se détache enfin de ce qui n'est que du vide. */
+  const E = ECH, N = P.N;
+  const hb = ay(-3), bb = ay(N.H + 1);
+  ctx.fillStyle = bio.fond;
+  ctx.fillRect(0, hb, LP, bb - hb);
+  const x0 = Math.floor(SX / 2) * 2 - 2, x1 = SX + LP / E + 2;
+  for (let x = x0; x < x1; x += 2) {
+    for (let y = -2; y < N.H + 1; y += 2) {
+      const h = hach(x | 0, y | 0);
+      ctx.fillStyle = melangeC(bio.fond, bio.roche, .30 + h * .24);
+      ctx.fillRect(ax(x), ay(y), E * 2 + 1, E * 2 + 1);
+      ctx.fillStyle = rgba('#000000', .10);
+      ctx.fillRect(ax(x), ay(y + 2) - Math.max(1, E * .05), E * 2 + 1, Math.max(1, E * .05));
+      ctx.fillRect(ax(x + 2) - Math.max(1, E * .05), ay(y), Math.max(1, E * .05), E * 2 + 1);
+    }
+  }
+  /* et un assombrissement vers le haut : la galerie a une profondeur */
+  const gv = ctx.createLinearGradient(0, hb, 0, ay(RANG_SOL - 3));
+  gv.addColorStop(0, rgba(bio.ciel, .55));
+  gv.addColorStop(1, rgba(bio.ciel, 0));
+  ctx.fillStyle = gv; ctx.fillRect(0, hb, LP, ay(RANG_SOL - 3) - hb);
+
+  /* deux plans de silhouettes qui glissent moins vite que le décor : c'est
+     tout ce qu'il faut pour que la course se voie */
+  for (let c = 0; c < 2; c++) {
+    const par = c ? .34 : .17, dec = SX * par;
+    ctx.fillStyle = rgba(bio.brume, c ? .85 : .55);
+    ctx.beginPath();
+    const base = ay(c ? 14.4 : 13.2);
+    ctx.moveTo(0, VY + HV);
+    for (let i = -1; i < LP / 60 + 2; i++) {
+      const px = i * 60 - (dec * 60 % 60);
+      const k = Math.floor(i + dec);
+      const h = (hach(k, c * 7) * (c ? 3.6 : 5.4) + 1) * ECH * .5;
+      ctx.lineTo(px, base - h);
+      ctx.lineTo(px + 60, base - h);
+    }
+    ctx.lineTo(LP, VY + HV); ctx.closePath(); ctx.fill();
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   L'ambiance. Trente-huit poussières qui dérivent, plus lentes au fond qu'au
+   premier plan. Elles ne servent à rien — et c'est exactement pour ça qu'il
+   en faut : un couloir sans machine, sans elles, n'est qu'un rectangle. Elles
+   tirent leurs nombres du générateur NON semé, donc elles ne peuvent en aucun
+   cas décaler quoi que ce soit dans un niveau.
+   ------------------------------------------------------------------------- */
+const MOTES = [];
+for (let i = 0; i < 38; i++)
+  MOTES.push({ x: DECO(), y: DECO(), p: .25 + DECO() * .85,
+               v: .35 + DECO() * 1.25, s: .3 + DECO(), ph: DECO() * 6.283 });
+
+function ambiance(bio, t) {
+  /* dans les égouts et la forge, ça monte ; ailleurs, ça tombe */
+  const mont = bio.id === 'egouts' || bio.id === 'forge' ? -1 : 1;
+  for (const m of MOTES) {
+    const px = (((m.x - SX * .010 * m.p) % 1) + 1) % 1 * LP;
+    const py = VY + (((m.y + mont * t * m.v * .028) % 1) + 1) % 1 * HV;
+    const d = m.s * (1 + m.p) * (bio.id === 'forge' ? 2.2 : 1.7);
+    ctx.fillStyle = rgba(bio.accent, .06 + m.p * .13);
+    ctx.beginPath();
+    ctx.ellipse(px + Math.sin(t * .8 + m.ph) * 9 * m.p, py, d, d * (mont > 0 ? 1.9 : 1), 0, 0, 6.283);
+    ctx.fill();
+  }
+}
+
+function dessinerTuiles(N, bio, t) {
+  const x0 = Math.max(0, Math.floor(SX) - 1), x1 = Math.min(N.L - 1, Math.ceil(SX + LP / ECH) + 1);
+  const y0 = Math.max(0, Math.floor(SY) - 1), y1 = Math.min(N.H - 1, Math.ceil(SY + HV / ECH) + 1);
+  const E = ECH;
+  const versPh = PHASE_DUREE - (P.t % PHASE_DUREE);
+  const bascule = versPh < .40 ? 1 - versPh / .40 : 0;
+
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      const tu = N.sol[x + y * N.L];
+      if (tu === T_VIDE) continue;
+      const px = ax(x), py = ay(y), h = hach(x, y);
+
+      if (tu === T_MUR || tu === T_TAPIS_D || tu === T_TAPIS_G) {
+        ctx.fillStyle = melangeC(bio.roche, bio.roche2, h * .85);
+        ctx.fillRect(px, py, E + 1, E + 1);
+        if (!SOLIDE[tuile(N, x, y - 1)]) {
+          ctx.fillStyle = bio.bord;
+          ctx.fillRect(px, py, E + 1, Math.max(2, E * .13));
+          ctx.fillStyle = rgba('#000000', .30);   // l'ombre qui décolle du fond
+          ctx.fillRect(px, py - Math.max(2, E * .09), E + 1, Math.max(2, E * .09));
+        }
+        ctx.fillStyle = rgba('#000000', .22);
+        ctx.fillRect(px, py + E * .88, E + 1, E * .12);
+        /* l'arête du dessous, sans quoi un plafond se confond avec le fond */
+        if (!SOLIDE[tuile(N, x, y + 1)]) {
+          ctx.fillStyle = melangeC(bio.roche, '#000000', .45);
+          ctx.fillRect(px, py + E * .80, E + 1, E * .21);
+          ctx.fillStyle = rgba(bio.bord, .28);
+          ctx.fillRect(px, py + E * .80, E + 1, Math.max(1, E * .04));
+        }
+        if (h > .82) { ctx.fillStyle = rgba('#000000', .18); ctx.fillRect(px + E * .2, py + E * .3, E * .3, E * .22); }
+        if (tu !== T_MUR) tapis(px, py, E, tu === T_TAPIS_D ? 1 : -1, t, bio);
+        continue;
+      }
+
+      if (tu === T_DALLE) { dalle(N, x, y, px, py, E, bio); continue; }
+      if (tu === T_ACIDE) { acide(px, py, E, x, y, t, bio); continue; }
+      if (tu === T_PIC_H || tu === T_PIC_B || tu === T_PIC_G || tu === T_PIC_D) {
+        pics(tu, px, py, E, h, bio); continue;
+      }
+      if (tu === T_PHASE_A || tu === T_PHASE_B) {
+        phase(px, py, E, (tu === T_PHASE_A) === P.phA, bascule, bio, h); continue;
+      }
+      if (tu === T_SORTIE) continue;                    // dessinée à part
+    }
+  }
+}
+
+function tapis(px, py, E, sens, t, bio) {
+  ctx.save();
+  ctx.beginPath(); ctx.rect(px, py, E + 1, E * .30); ctx.clip();
+  const d = ((t * TAPIS_V * sens * E) % E + E) % E;
+  ctx.strokeStyle = rgba(bio.accent, .55); ctx.lineWidth = Math.max(1.5, E * .07);
+  for (let i = -1; i < 3; i++) {
+    const bx = px + d + i * E * .5;
+    ctx.beginPath();
+    ctx.moveTo(bx - E * .1 * sens, py + E * .07);
+    ctx.lineTo(bx + E * .1 * sens, py + E * .15);
+    ctx.lineTo(bx - E * .1 * sens, py + E * .23);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function dalle(N, x, y, px, py, E, bio) {
+  const i = x + y * N.L, e = N.etatD[i];
+  if (e === 2) {
+    ctx.strokeStyle = rgba(bio.bord, .30); ctx.lineWidth = 1.5;
+    ctx.setLineDash([E * .16, E * .12]);
+    ctx.strokeRect(px + 1, py + 1, E - 2, E * .34);
+    ctx.setLineDash([]);
+    return;
+  }
+  const tremble = e === 1 ? (1 - N.timD[i] / DALLE_TENUE) : 0;
+  const sx = tremble ? (DECO() - .5) * tremble * E * .13 : 0;
+  ctx.fillStyle = melangeC(bio.roche2, '#000000', .22 + tremble * .3);
+  ctx.fillRect(px + sx, py, E + 1, E * .44);
+  ctx.fillStyle = melangeC(bio.bord, '#ffffff', .10);
+  ctx.fillRect(px + sx, py, E + 1, Math.max(2, E * .09));
+  /* la fissure grandit à mesure qu'elle cède : on voit le temps qui reste */
+  ctx.strokeStyle = rgba('#000000', .5 + tremble * .4);
+  ctx.lineWidth = Math.max(1, E * .035 * (1 + tremble * 2));
+  ctx.beginPath();
+  ctx.moveTo(px + sx + E * .22, py + E * .04);
+  ctx.lineTo(px + sx + E * .38, py + E * (.16 + tremble * .1));
+  ctx.lineTo(px + sx + E * .62, py + E * .10);
+  ctx.lineTo(px + sx + E * .80, py + E * .34);
+  ctx.stroke();
+}
+
+function acide(px, py, E, x, y, t, bio) {
+  const dessus = tuile(P.N, x, y - 1) !== T_ACIDE;
+  ctx.fillStyle = rgba(bio.accent, .30);
+  ctx.fillRect(px, py, E + 1, E + 1);
+  ctx.fillStyle = rgba(bio.accent, .16);
+  ctx.fillRect(px, py + E * .2, E + 1, E);
+  if (!dessus) return;
+  const on1 = Math.sin(t * 3.1 + x * .9) * E * .05;
+  const on2 = Math.sin(t * 4.7 + x * 1.7) * E * .04;
+  ctx.beginPath();
+  ctx.moveTo(px, py + E * .18 + on1);
+  ctx.quadraticCurveTo(px + E * .5, py + E * .12 + on2, px + E + 1, py + E * .18 - on1);
+  ctx.lineTo(px + E + 1, py + E + 1); ctx.lineTo(px, py + E + 1); ctx.closePath();
+  ctx.fillStyle = rgba(bio.accent, .55); ctx.fill();
+  ctx.strokeStyle = melangeC(bio.accent, '#ffffff', .55);
+  ctx.lineWidth = Math.max(1.5, E * .06);
+  ctx.beginPath();
+  ctx.moveTo(px, py + E * .18 + on1);
+  ctx.quadraticCurveTo(px + E * .5, py + E * .12 + on2, px + E + 1, py + E * .18 - on1);
+  ctx.stroke();
+  if (hach(x, y) > .6) {
+    const b = (t * .6 + hach(x, y)) % 1;
+    ctx.fillStyle = rgba('#ffffff', .3 * (1 - b));
+    ctx.beginPath();
+    ctx.arc(px + E * (.2 + hach(x, y + 1) * .6), py + E * (.9 - b * .7), E * .05, 0, 6.283);
+    ctx.fill();
+  }
+}
+
+function pics(tu, px, py, E, h, bio) {
+  const n = 3;
+  ctx.fillStyle = melangeC(bio.bord, '#d8d0e8', .45);
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const a = i / n, b = (i + 1) / n, m = (a + b) / 2;
+    if (tu === T_PIC_H) {
+      ctx.moveTo(px + a * E, py + E); ctx.lineTo(px + m * E, py + E * .40);
+      ctx.lineTo(px + b * E, py + E);
+    } else if (tu === T_PIC_B) {
+      ctx.moveTo(px + a * E, py); ctx.lineTo(px + m * E, py + E * .60);
+      ctx.lineTo(px + b * E, py);
+    } else if (tu === T_PIC_G) {
+      ctx.moveTo(px, py + a * E); ctx.lineTo(px + E * .60, py + m * E);
+      ctx.lineTo(px, py + b * E);
+    } else {
+      ctx.moveTo(px + E, py + a * E); ctx.lineTo(px + E * .40, py + m * E);
+      ctx.lineTo(px + E, py + b * E);
+    }
+  }
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = rgba('#000000', .30);
+  if (tu === T_PIC_H) ctx.fillRect(px, py + E * .86, E + 1, E * .16);
+  if (tu === T_PIC_B) ctx.fillRect(px, py - 1, E + 1, E * .14);
+}
+
+function phase(px, py, E, solide, bascule, bio, h) {
+  if (solide) {
+    ctx.fillStyle = melangeC(bio.roche2, bio.accent, .30 + h * .1);
+    ctx.fillRect(px, py, E + 1, E + 1);
+    ctx.strokeStyle = rgba(bio.accent, .85); ctx.lineWidth = Math.max(1.5, E * .06);
+    ctx.strokeRect(px + E * .12, py + E * .12, E * .76, E * .76);
+    /* juste avant de disparaître, il se met à clignoter : on sait qu'il faut
+       être ailleurs, ou justement là */
+    if (bascule) { ctx.fillStyle = rgba('#ffffff', .22 * bascule); ctx.fillRect(px, py, E + 1, E + 1); }
+  } else {
+    ctx.strokeStyle = rgba(bio.accent, .18 + .40 * bascule);
+    ctx.lineWidth = Math.max(1, E * .05);
+    ctx.setLineDash([E * .18, E * .14]);
+    ctx.strokeRect(px + E * .12, py + E * .12, E * .76, E * .76);
+    ctx.setLineDash([]);
+    if (bascule > .4) { ctx.fillStyle = rgba(bio.accent, .10 * bascule); ctx.fillRect(px, py, E + 1, E + 1); }
+  }
+}
+
+/* --------------------------------------------------------------- machines */
+function dessinerMachines(N, bio, t) {
+  const E = ECH;
+  for (const M of N.mach) {
+    const bx = ax(M.bx), by = ay(M.by);
+    if (bx > LP + 4 * E || bx + M.bl * E < -4 * E) {
+      if (M.t !== 'pendule' && M.t !== 'scie') continue;
+    }
+    switch (M.t) {
+
+      case 'scie': {
+        ctx.save();
+        ctx.strokeStyle = rgba(bio.bord, .35); ctx.lineWidth = Math.max(1, E * .05);
+        ctx.setLineDash([E * .2, E * .16]);
+        ctx.beginPath(); ctx.moveTo(ax(M.ax), ay(M.ay)); ctx.lineTo(ax(M.zx), ay(M.zy)); ctx.stroke();
+        ctx.setLineDash([]);
+        const cx = ax(M.cx), cy = ay(M.cy), r = M.r * E;
+        ctx.translate(cx, cy); ctx.rotate(t * 11);
+        ctx.fillStyle = '#c9ccd6';
+        ctx.beginPath();
+        for (let i = 0; i < 12; i++) {
+          const a1 = i / 12 * 6.283, a2 = (i + .5) / 12 * 6.283;
+          ctx.lineTo(Math.cos(a1) * r, Math.sin(a1) * r);
+          ctx.lineTo(Math.cos(a2) * r * .74, Math.sin(a2) * r * .74);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#6b7080';
+        ctx.beginPath(); ctx.arc(0, 0, r * .34, 0, 6.283); ctx.fill();
+        ctx.restore();
+        break;
+      }
+
+      case 'presse': {
+        const px = ax(M.x - M.l / 2), py = ay(M.by);
+        const sec = M.annonce ? (DECO() - .5) * E * .10 * M.annonce : 0;
+        ctx.strokeStyle = rgba(bio.bord, .5); ctx.lineWidth = Math.max(2, E * .12);
+        ctx.beginPath();
+        ctx.moveTo(px + M.l * E / 2, ay(M.y0 - .4)); ctx.lineTo(px + M.l * E / 2, py);
+        ctx.stroke();
+        ctx.fillStyle = melangeC('#5a5f6e', bio.accent, M.annonce * .5);
+        ctx.fillRect(px + sec, py, M.l * E, M.h * E);
+        ctx.fillStyle = '#8f95a6';
+        ctx.fillRect(px + sec, py, M.l * E, E * .12);
+        ctx.fillStyle = rgba('#ff4d4d', .35 + M.annonce * .6);
+        for (let i = 0; i < 4; i++)
+          ctx.fillRect(px + sec + (i + .5) * M.l * E / 4 - E * .06, py + M.h * E - E * .12, E * .12, E * .12);
+        break;
+      }
+
+      case 'jet': {
+        const bx0 = ax(M.x - .5), by0 = ay(M.y - .5);
+        ctx.fillStyle = '#6b7080'; ctx.fillRect(bx0 + E * .2, by0 + E * .2, E * .6, E * .6);
+        ctx.fillStyle = melangeC('#3a3f4a', bio.accent, M.annonce);
+        ctx.fillRect(bx0 + E * .3, by0 + E * .3, E * .4, E * .4);
+        if (!M.actif) {
+          /* le pointillé dit exactement jusqu'où ça va cracher */
+          ctx.strokeStyle = rgba(bio.accent, .14 + M.annonce * .55);
+          ctx.lineWidth = Math.max(1, E * .05);
+          ctx.setLineDash([E * .15, E * .17]);
+          ctx.beginPath();
+          ctx.moveTo(ax(M.x + M.dx * .5), ay(M.y + M.dy * .5));
+          ctx.lineTo(ax(M.x + M.dx * (M.n + .5)), ay(M.y + M.dy * (M.n + .5)));
+          ctx.stroke(); ctx.setLineDash([]);
+          if (M.annonce > 0) {          /* et la buse s'allume avant de partir */
+            ctx.fillStyle = rgba(bio.accent, M.annonce * .85);
+            ctx.beginPath(); ctx.arc(ax(M.x), ay(M.y), E * .10 + E * .12 * M.annonce, 0, 6.283); ctx.fill();
+          }
+          break;
+        }
+        const p = M.p;
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        for (let c = 0; c < 3; c++) {
+          const k = [.55, .32, .15][c];
+          ctx.fillStyle = rgba(c === 2 ? '#ffffff' : bio.accent, [.30, .40, .60][c]);
+          const ep = M.dx ? M.bh * k * 2.1 : M.bl * k * 2.1;
+          const jx = M.bx * 1, jy = M.by * 1;
+          if (M.dx) ctx.fillRect(ax(M.bx), ay(M.y - ep / 2), M.bl * E * (p < .12 ? p / .12 : 1), ep * E);
+          else ctx.fillRect(ax(M.x - ep / 2), ay(M.by), ep * E, M.bh * E * (p < .12 ? p / .12 : 1));
+        }
+        ctx.restore();
+        break;
+      }
+
+      case 'laser': {
+        const ex = ax(M.x), ey = ay(M.y);
+        ctx.fillStyle = '#6b7080';
+        ctx.fillRect(ex - E * .3, ey - E * .3, E * .6, E * .6);
+        if (!M.actif) {
+          /* la ligne pointillée montre EXACTEMENT ce que le rayon va couper */
+          ctx.strokeStyle = rgba('#ff4d6d', .16 + M.annonce * .55);
+          ctx.lineWidth = Math.max(1, E * .05);
+          ctx.setLineDash([E * .16, E * .18]);
+          ctx.beginPath(); ctx.moveTo(ex, ey);
+          ctx.lineTo(ex + M.dx * M.n * E, ey + M.dy * M.n * E);
+          ctx.stroke(); ctx.setLineDash([]);
+          if (M.annonce > 0) {
+            ctx.fillStyle = rgba('#ff4d6d', M.annonce);
+            ctx.beginPath(); ctx.arc(ex, ey, E * .10 + E * .12 * M.annonce, 0, 6.283); ctx.fill();
+          }
+          break;
+        }
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = rgba('#ff2d55', .35); ctx.lineWidth = E * .32;
+        ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex + M.dx * M.n * E, ey + M.dy * M.n * E); ctx.stroke();
+        ctx.strokeStyle = rgba('#ff6b88', .85); ctx.lineWidth = E * .14;
+        ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex + M.dx * M.n * E, ey + M.dy * M.n * E); ctx.stroke();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = E * .05;
+        ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(ex + M.dx * M.n * E, ey + M.dy * M.n * E); ctx.stroke();
+        ctx.restore();
+        break;
+      }
+
+      case 'pendule': {
+        const px0 = ax(M.x), py0 = ay(M.y), cx = ax(M.cx), cy = ay(M.cy);
+        ctx.strokeStyle = rgba(bio.bord, .22); ctx.lineWidth = Math.max(1, E * .04);
+        ctx.beginPath(); ctx.arc(px0, py0, M.R * E, .43, 2.71); ctx.stroke();
+        ctx.strokeStyle = '#7b8090'; ctx.lineWidth = Math.max(2, E * .10);
+        ctx.beginPath(); ctx.moveTo(px0, py0); ctx.lineTo(cx, cy); ctx.stroke();
+        ctx.fillStyle = '#5a5f6e';
+        ctx.beginPath(); ctx.arc(px0, py0, E * .18, 0, 6.283); ctx.fill();
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(M.a + t * 5);
+        ctx.fillStyle = '#c9ccd6';
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const a1 = i / 10 * 6.283, a2 = (i + .5) / 10 * 6.283;
+          ctx.lineTo(Math.cos(a1) * M.r * E, Math.sin(a1) * M.r * E);
+          ctx.lineTo(Math.cos(a2) * M.r * E * .7, Math.sin(a2) * M.r * E * .7);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+        break;
+      }
+
+      case 'plateforme': {
+        ctx.strokeStyle = rgba(bio.bord, .30); ctx.lineWidth = Math.max(1, E * .05);
+        ctx.setLineDash([E * .2, E * .16]);
+        ctx.beginPath(); ctx.moveTo(ax(M.ax), ay(M.ay)); ctx.lineTo(ax(M.zx), ay(M.zy)); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#6b7080';
+        ctx.fillRect(bx, by, M.bl * E, M.bh * E);
+        ctx.fillStyle = melangeC(bio.accent, '#ffffff', .4);
+        ctx.fillRect(bx, by, M.bl * E, Math.max(2, E * .07));
+        ctx.fillStyle = rgba('#000000', .3);
+        ctx.fillRect(bx, by + M.bh * E - E * .05, M.bl * E, E * .05);
+        break;
+      }
+
+      case 'pique': {
+        const bxp = ax(M.x - .34), base = ay(M.y + .5);
+        ctx.fillStyle = rgba('#000000', .35);
+        ctx.fillRect(bxp - E * .06, base - E * .07, E * .8, E * .07);
+        if (M.annonce > 0) {
+          ctx.fillStyle = rgba('#ff4d6d', M.annonce * .7);
+          ctx.fillRect(bxp, base - E * .04, E * .68, E * .04);
+        }
+        if (M.hh <= .01) break;
+        const hh = M.hh * E;
+        ctx.fillStyle = melangeC(bio.bord, '#d8d0e8', .5);
+        ctx.beginPath();
+        for (let i = 0; i < 3; i++) {
+          const a = bxp + i / 3 * E * .68, b = bxp + (i + 1) / 3 * E * .68;
+          ctx.moveTo(a, base); ctx.lineTo((a + b) / 2, base - hh); ctx.lineTo(b, base);
+        }
+        ctx.closePath(); ctx.fill();
+        break;
+      }
+
+      case 'chute': {
+        if (M.etat === 3) {
+          ctx.fillStyle = rgba(bio.roche2, .5);
+          ctx.fillRect(ax(M.x - .5), ay(M.cy0 + .1), E, E * .2);
+          break;
+        }
+        const sec = M.etat === 1 ? (DECO() - .5) * E * .16 : 0;
+        const bxc = ax(M.x) + sec, byc = ay(M.cy0), rr = M.l / 2 * E;
+        ctx.fillStyle = melangeC(bio.roche2, M.etat === 1 ? '#ff4d6d' : '#ffffff', M.etat === 1 ? .30 : .14);
+        ctx.beginPath(); ctx.arc(bxc, byc, rr, 0, 6.283); ctx.fill();
+        ctx.fillStyle = rgba('#000000', .30);
+        ctx.beginPath(); ctx.arc(bxc, byc + rr * .22, rr * .82, .35, 2.79); ctx.fill();
+        ctx.strokeStyle = melangeC(bio.bord, '#ffffff', .35);
+        ctx.lineWidth = Math.max(2, E * .07);
+        ctx.beginPath(); ctx.arc(bxc, byc, rr, 0, 6.283); ctx.stroke();
+        /* deux fêlures : on voit que c'est un morceau qui s'est détaché */
+        ctx.strokeStyle = rgba('#000000', .45); ctx.lineWidth = Math.max(1, E * .04);
+        ctx.beginPath();
+        ctx.moveTo(bxc - rr * .5, byc - rr * .3); ctx.lineTo(bxc - rr * .05, byc + rr * .1);
+        ctx.lineTo(bxc + rr * .45, byc - rr * .45);
+        ctx.moveTo(bxc - rr * .1, byc + rr * .12); ctx.lineTo(bxc + rr * .1, byc + rr * .7);
+        ctx.stroke();
+        if (M.etat === 0 || M.etat === 1) {
+          /* l'ombre au sol dit où il va tomber, bien avant qu'il tombe */
+          let sy = M.cy0;
+          while (sy < P.N.H && !estSolide(P.N, Math.floor(M.x), Math.floor(sy + 1), P.phA)) sy++;
+          ctx.fillStyle = rgba('#000000', M.etat === 1 ? .45 : .22);
+          ctx.beginPath();
+          ctx.ellipse(ax(M.x), ay(sy + .95), E * .42, E * .13, 0, 0, 6.283);
+          ctx.fill();
+        }
+        break;
+      }
+    }
+  }
+}
+
+function dessinerSortie(N, bio, t) {
+  const x = N.sortie.x, y = N.sortie.y;
+  const puls = .5 + .5 * Math.sin(t * 3);
+  const px = ax(x), py = ay(y);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(px, py, 0, px, py, ECH * (2.2 + puls * .5));
+  g.addColorStop(0, rgba(bio.accent, .55));
+  g.addColorStop(1, rgba(bio.accent, 0));
+  ctx.fillStyle = g;
+  ctx.fillRect(px - ECH * 3, py - ECH * 3, ECH * 6, ECH * 6);
+  ctx.restore();
+  ctx.fillStyle = rgba('#000000', .55);
+  ctx.fillRect(px - ECH * .5, py - ECH, ECH, ECH * 2);
+  ctx.strokeStyle = melangeC(bio.accent, '#ffffff', .3 + puls * .3);
+  ctx.lineWidth = Math.max(2, ECH * .1);
+  ctx.beginPath();
+  ctx.moveTo(px - ECH * .5, py + ECH);
+  ctx.lineTo(px - ECH * .5, py - ECH * .45);
+  ctx.quadraticCurveTo(px, py - ECH * 1.25, px + ECH * .5, py - ECH * .45);
+  ctx.lineTo(px + ECH * .5, py + ECH);
+  ctx.stroke();
+  for (let i = 0; i < 4; i++) {
+    const b = ((t * .5 + i / 4) % 1);
+    ctx.fillStyle = rgba(bio.accent, (1 - b) * .8);
+    ctx.beginPath();
+    ctx.arc(px + Math.sin(b * 8 + i) * ECH * .25, py + ECH - b * ECH * 1.8, ECH * .05, 0, 6.283);
+    ctx.fill();
+  }
+}
+
+/* --------------------------------------------------------------- spectres */
+function dessinerSpectres(t) {
+  for (const f of P.spectres) {
+    const px = ax(f.x), py = ay(f.y);
+    const dehors = px < -ECH || px > LP + ECH || py < -ECH || py > HP + ECH;
+    if (dehors) { flecheSpectre(f, px, py); continue; }
+    if (f.dormant) { naissanceSpectre(f, px, py, t); continue; }
+
+    const a = f.enPierre ? .40 : 1;
+    const E = ECH, r = f.r * E;
+
+    if (f.k === 'hurleur' && f.vise) {
+      /* la ruée est annoncée par sa ligne : on peut s'en écarter */
+      ctx.strokeStyle = rgba(f.teinte, .55);
+      ctx.lineWidth = Math.max(1.5, E * .06);
+      ctx.setLineDash([E * .2, E * .16]);
+      ctx.beginPath(); ctx.moveTo(px, py);
+      ctx.lineTo(px + f.dx * E * 9, py + f.dy * E * 9);
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    if (f.k === 'traqueur' && f.fige) {
+      ctx.strokeStyle = rgba(f.teinte, .5); ctx.lineWidth = Math.max(1, E * .05);
+      ctx.beginPath(); ctx.arc(px, py, r * 1.7, 0, 6.283); ctx.stroke();
+    }
+
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(px, py, 0, px, py, r * 3.2);
+    g.addColorStop(0, rgba(f.teinte, .45));
+    g.addColorStop(1, rgba(f.teinte, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(px - r * 3.4, py - r * 3.4, r * 6.8, r * 6.8);
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = melangeC(f.teinte, '#000000', .35);
+    ctx.beginPath();
+    ctx.moveTo(px, py - r * 1.25);
+    ctx.quadraticCurveTo(px + r * 1.15, py - r * .55, px + r * .95, py + r * .45);
+    for (let i = 0; i <= 4; i++) {
+      const u = i / 4;
+      ctx.quadraticCurveTo(
+        px + r * (.95 - u * 1.9) + Math.sin(f.onde + u * 6) * r * .18, py + r * (.75 + Math.sin(f.onde * 1.4 + u * 5) * .22),
+        px + r * (.95 - (u + .125) * 1.9), py + r * .45);
+    }
+    ctx.quadraticCurveTo(px - r * 1.15, py - r * .55, px, py - r * 1.25);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = rgba(f.teinte, .30);
+    ctx.beginPath(); ctx.arc(px, py - r * .1, r * .82, 0, 6.283); ctx.fill();
+    /* les yeux : c'est par eux qu'on sent qu'il regarde */
+    const ex = serre((P.j.x + J_L / 2 - f.x) * .18, -.3, .3) * r;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(px - r * .32 + ex, py - r * .30, r * .17, 0, 6.283); ctx.fill();
+    ctx.beginPath(); ctx.arc(px + r * .32 + ex, py - r * .30, r * .17, 0, 6.283); ctx.fill();
+    ctx.fillStyle = melangeC(f.teinte, '#ffffff', .2);
+    ctx.beginPath(); ctx.arc(px - r * .32 + ex * 1.4, py - r * .30, r * .08, 0, 6.283); ctx.fill();
+    ctx.beginPath(); ctx.arc(px + r * .32 + ex * 1.4, py - r * .30, r * .08, 0, 6.283); ctx.fill();
+    ctx.restore();
+  }
+}
+
+function naissanceSpectre(f, px, py, t) {
+  const reste = f.grace - P.t;
+  const k = 1 - serre(reste / 1.2, 0, 1);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = rgba(f.teinte, .3 + .5 * k);
+  ctx.lineWidth = Math.max(1.5, ECH * .06);
+  ctx.beginPath();
+  ctx.arc(px, py, ECH * (1.6 - k * 1.1), 0, 6.283);
+  ctx.stroke();
+  ctx.fillStyle = rgba(f.teinte, .18 + .5 * k);
+  ctx.beginPath(); ctx.arc(px, py, ECH * .4 * k, 0, 6.283); ctx.fill();
+  ctx.restore();
+}
+
+/* Un spectre hors champ reste une information : on montre sa direction et sa
+   distance au bord de l'écran. Mourir de ce qu'on ne pouvait pas voir n'a
+   jamais rendu un jeu plus difficile, seulement plus bête. */
+function flecheSpectre(f, px, py) {
+  const m = 26;
+  const cx = serre(px, m, LP - m), cy = serre(py, VY + m + 40, VY + HV - m);
+  const a = Math.atan2(py - cy, px - cx);
+  const d = Math.hypot(P.j.x - f.x, P.j.y - f.y);
+  ctx.save();
+  ctx.translate(cx, cy); ctx.rotate(a);
+  ctx.globalAlpha = serre(1.25 - d / 26, .28, .95);
+  ctx.fillStyle = f.teinte;
+  ctx.beginPath(); ctx.moveTo(13, 0); ctx.lineTo(-6, -8); ctx.lineTo(-2, 0); ctx.lineTo(-6, 8);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+/* --------------------------------------------------------------- le joueur */
+function dessinerJoueur(t, bio) {
+  const j = P.j;
+  if (!j.vivant) return;
+  const E = ECH;
+  const cx = ax(j.x + J_L / 2), pied = ay(j.y + J_H);
+  const h = J_H * E, l = J_L * E;
+  const s = j.regarde;
+  const vit = serre(j.vitApp / VIT, 0, 1);
+  const enl = !j.sol;
+
+  /* l'ombre : sans elle, on ne sait jamais où l'on va retomber */
+  let sy = j.y + J_H;
+  let n = 0;
+  while (sy < P.N.H && n < 20 && !estSolide(P.N, Math.floor(j.x + J_L / 2), Math.floor(sy + .05), P.phA)) { sy += 1; n++; }
+  ctx.fillStyle = rgba('#000000', serre(.34 - (sy - j.y - J_H) * .02, .06, .34));
+  ctx.beginPath();
+  ctx.ellipse(cx, ay(Math.floor(sy)), l * .46, E * .10, 0, 0, 6.283);
+  ctx.fill();
+
+  /* les jambes : deux segments, un cycle simple — mais c'est ce cycle qui
+     fait la différence entre « une boîte qui glisse » et quelqu'un qui court */
+  const ph = j.anim * 3.1;
+  ctx.strokeStyle = '#2a2440'; ctx.lineWidth = Math.max(2, E * .10);
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 2; i++) {
+    const o = i * Math.PI;
+    let jx, jy;
+    if (enl) { jx = (i ? .22 : -.16) * s; jy = i ? .10 : .24; }
+    else { jx = Math.cos(ph + o) * .28 * vit * s; jy = Math.max(0, Math.sin(ph + o)) * .22 * vit; }
+    ctx.beginPath();
+    ctx.moveTo(cx, pied - h * .42);
+    ctx.lineTo(cx + jx * E * .5, pied - h * .20 - jy * E * .18);
+    ctx.lineTo(cx + jx * E, pied - jy * E * .5);
+    ctx.stroke();
+  }
+
+  /* l'écharpe : elle traîne dans le sens contraire de la course, et c'est
+     tout ce qu'il faut pour lire la vitesse d'un coup d'œil */
+  ctx.strokeStyle = bio.accent; ctx.lineWidth = Math.max(2, E * .11);
+  ctx.beginPath();
+  ctx.moveTo(cx - s * l * .12, pied - h * .74);
+  for (let i = 1; i <= 4; i++) {
+    const u = i / 4;
+    ctx.lineTo(cx - s * (l * .12 + u * l * (.5 + vit * 1.4)),
+               pied - h * .74 + Math.sin(t * 9 - u * 3.4) * E * .10 * (.4 + vit) + u * E * .05);
+  }
+  ctx.stroke();
+
+  ctx.fillStyle = '#e8e4f0';
+  const pente = enl ? serre(j.vy * .012, -.13, .13) : 0;
+  ctx.save(); ctx.translate(cx, pied - h * .52); ctx.rotate(s * .10 * vit + pente * s);
+  ctx.beginPath();
+  ctx.moveTo(-l * .30, h * .12);
+  ctx.quadraticCurveTo(-l * .34, -h * .22, 0, -h * .24);
+  ctx.quadraticCurveTo(l * .34, -h * .22, l * .30, h * .12);
+  ctx.quadraticCurveTo(0, h * .22, -l * .30, h * .12);
+  ctx.closePath(); ctx.fill();
+  /* la tête */
+  ctx.fillStyle = '#f4f1fa';
+  ctx.beginPath(); ctx.arc(s * l * .06, -h * .42, l * .30, 0, 6.283); ctx.fill();
+  ctx.fillStyle = '#1b1630';
+  ctx.beginPath();
+  ctx.ellipse(s * l * .20, -h * .44, l * .07, l * .10, 0, 0, 6.283); ctx.fill();
+  ctx.restore();
+}
+
+/* ------------------------------------------------------------- particules */
+function dessinerParticules() {
+  for (const a of P.parts) {
+    const k = a.vie / a.v0;
+    ctx.fillStyle = rgba(a.c, serre(k, 0, 1) * .85);
+    const s = ECH * .09 * (.4 + k);
+    ctx.fillRect(ax(a.x) - s / 2, ay(a.y) - s / 2, s, s);
+  }
+}
+
+/* =========================================================== image entière */
+function dessiner(dt) {
+  if (!P) { ctx.clearRect(0, 0, LP, HP); return; }
+  const N = P.N, bio = N.bio, t = P.t;
+  /* l'encadrement : ce qui déborde de la bande n'est pas du monde */
+  ctx.fillStyle = '#07060b';
+  ctx.fillRect(0, 0, LP, HP);
+  majCamera(dt);
+  SX = P.camX; SY = P.camY;
+  if (P.secousse > 0) {
+    SX += (DECO() - .5) * P.secousse * .5;
+    SY += (DECO() - .5) * P.secousse * .5;
+  }
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, VY, LP, HV); ctx.clip();
+  fond(bio, t);
+  ambiance(bio, t);
+  dessinerTuiles(N, bio, t);
+  /* Les quatre rangées sous le sol servent à creuser des fosses, mais quand
+     il n'y en a pas elles mangent un tiers de l'écran sans rien raconter.
+     On les enfonce dans le noir : elles portent le décor sans lui disputer
+     le regard. */
+  const yb = ay(RANG_SOL + 1);
+  if (yb < VY + HV) {
+    const gb = ctx.createLinearGradient(0, yb, 0, ay(N.H));
+    gb.addColorStop(0, 'rgba(0,0,0,0)');
+    gb.addColorStop(1, 'rgba(0,0,0,.55)');
+    ctx.fillStyle = gb; ctx.fillRect(0, yb, LP, ay(N.H) - yb);
+  }
+  dessinerSortie(N, bio, t);
+  dessinerMachines(N, bio, t);
+  dessinerParticules();
+  dessinerJoueur(t, bio);
+  dessinerSpectres(t);
+  ctx.restore();
+
+  /* le halo rouge quand ça se resserre : on le sent avant de le lire */
+  const pr = 1 - serre(P.ecart / 6.5, 0, 1);
+  if (pr > .02) {
+    const my = VY + HV / 2;
+    const g = ctx.createRadialGradient(LP / 2, my, Math.min(LP, HV) * .22,
+                                       LP / 2, my, Math.max(LP, HV) * .72);
+    g.addColorStop(0, 'rgba(255,0,40,0)');
+    g.addColorStop(1, 'rgba(255,0,40,' + (pr * pr * .40).toFixed(3) + ')');
+    ctx.fillStyle = g; ctx.fillRect(0, VY, LP, HV);
+  }
+  /* un liseré qui ferme la bande, quand il y en a une */
+  if (VY > 2) {
+    ctx.fillStyle = rgba(bio.bord, .30);
+    ctx.fillRect(0, VY - 2, LP, 2);
+    ctx.fillRect(0, VY + HV, LP, 2);
+  }
+}
+
+/* ==== a_10_meta.js ==== */
+/* ===========================================================================
+   CE QUI RESTE ENTRE LES PARTIES
+   Des traces, jamais des avantages : aucun déblocage ne rend un niveau plus
+   facile. Le niveau 63 est exactement le même au premier essai et au
+   centième, sinon comparer deux temps n'aurait aucun sens.
+
+   L'ouverture est en revanche VOLONTAIREMENT généreuse : on peut prendre
+   deux niveaux d'avance dans un territoire, et il suffit d'en franchir 18
+   sur 24 pour ouvrir le suivant. Rester bloqué sur un seul niveau ne doit
+   pas fermer les 60 qui restent.
+   =========================================================================== */
+let META = null;
+
+function metaVide() {
+  return {
+    v: 1, rec: [], med: [], ouvert: 1, morts: 0, defis: {},
+    serie: 0, serieMax: 0, net: 0, or: 0, tJeu: 0, parties: 0
+  };
+}
+
+function chargerMeta() {
+  const d = litStock();
+  META = metaVide();
+  if (!d) return;
+  /* on relit champ par champ : une sauvegarde d'une autre version, tronquée
+     ou trafiquée, redonne un profil neuf plutôt qu'un état à moitié faux */
+  if (Array.isArray(d.rec)) for (let i = 0; i < N_NIVEAUX; i++) {
+    const v = +d.rec[i];
+    if (isFinite(v) && v > 0 && v < 100000) META.rec[i] = v;
+  }
+  if (Array.isArray(d.med)) for (let i = 0; i < N_NIVEAUX; i++) {
+    const v = d.med[i] | 0;
+    if (v >= 1 && v <= 3) META.med[i] = v;
+  }
+  const ent = (v, max) => { v = v | 0; return v >= 0 && v <= max ? v : 0; };
+  META.morts = ent(d.morts, 9999999);
+  META.serie = ent(d.serie, N_NIVEAUX);
+  META.serieMax = ent(d.serieMax, N_NIVEAUX);
+  META.tJeu = isFinite(+d.tJeu) && +d.tJeu >= 0 ? Math.min(+d.tJeu, 1e8) : 0;
+  META.parties = ent(d.parties, 9999999);
+  if (d.defis && typeof d.defis === 'object')
+    for (const D of DEFIS) if (d.defis[D.id]) META.defis[D.id] = 1;
+  recompter();
+}
+
+/* Les compteurs dérivés sont recalculés, jamais crus sur parole : ils sont
+   la somme d'autre chose, et deux sources de vérité finissent toujours par
+   diverger. */
+function recompter() {
+  let net = 0, or = 0;
+  for (let i = 0; i < N_NIVEAUX; i++) {
+    if (META.med[i] >= 2) net++;
+    if (META.med[i] >= 3) or++;
+  }
+  META.net = net; META.or = or;
+}
+
+function sauverMeta() {
+  ecritStock({
+    v: 1, rec: META.rec, med: META.med, morts: META.morts, defis: META.defis,
+    serie: META.serie, serieMax: META.serieMax, tJeu: Math.round(META.tJeu),
+    parties: META.parties
+  });
+}
+
+function effacerMeta() {
+  try { localStorage.removeItem(CLE); } catch (e) { }
+  META = metaVide();
+}
+
+/* ------------------------------------------------------------- ouverture */
+function faitsDansBiome(b) {
+  let n = 0;
+  for (let i = b.deb; i < b.deb + b.n; i++) if (META.med[i]) n++;
+  return n;
+}
+
+function biomeOuvert(b) {
+  const i = BIOMES.indexOf(b);
+  if (i <= 0) return true;
+  return faitsDansBiome(BIOMES[i - 1]) >= 18;
+}
+
+function niveauOuvert(n) {
+  if (n < 0 || n >= N_NIVEAUX) return false;
+  const b = biomeDe(n);
+  if (!biomeOuvert(b)) return false;
+  return (n - b.deb) <= faitsDansBiome(b) + 2;
+}
+
+/* le niveau que « Continuer » propose : le premier ouvert et pas encore fait */
+function niveauCourant() {
+  for (let i = 0; i < N_NIVEAUX; i++) if (niveauOuvert(i) && !META.med[i]) return i;
+  for (let i = N_NIVEAUX - 1; i >= 0; i--) if (niveauOuvert(i)) return i;
+  return 0;
+}
+
+/* --------------------------------------------------------------- défis */
+function decrocher(id) {
+  if (!META || META.defis[id]) return;
+  const D = DEFIS.find(d => d.id === id);
+  if (!D) return;
+  META.defis[id] = 1;
+  sauverMeta();
+  message('DÉFI · ' + D.n);
+  SND.deblo();
+}
+
+function verifierDefis() {
+  if (META.med[0]) decrocher('premier');
+  for (const b of BIOMES) if (faitsDansBiome(b) >= b.n) decrocher(b.id);
+  let faits = 0;
+  for (let i = 0; i < N_NIVEAUX; i++) if (META.med[i]) faits++;
+  if (faits >= 60) decrocher('demi');
+  if (META.net >= 10) decrocher('net10');
+  if (META.net >= 40) decrocher('net40');
+  if (META.or >= 10) decrocher('or10');
+  if (META.or >= 50) decrocher('or50');
+  if (META.serieMax >= 5) decrocher('sansfaute5');
+  if (META.morts >= 100) decrocher('cent');
+}
+
+/* ------------------------------------------------------- fin d'un niveau */
+function enregistrerNiveau(n, tps, sansMort, ecartMin, nbSpectres) {
+  const par = P.N.par;
+  const or = sansMort && tps <= par;
+  const niveau = or ? 3 : (sansMort ? 2 : 1);
+
+  const avant = META.med[n] || 0;
+  const recAvant = META.rec[n] || 0;
+  const record = !recAvant || tps < recAvant;
+
+  META.med[n] = Math.max(avant, niveau);
+  if (record) META.rec[n] = tps;
+  META.parties++;
+  META.tJeu += tps;
+  if (sansMort) { META.serie++; META.serieMax = Math.max(META.serieMax, META.serie); }
+  else META.serie = 0;
+  recompter();
+
+  if (ecartMin < 1.0) decrocher('frole');
+  if (tps < 10) decrocher('vite');
+  if (nbSpectres >= 4) decrocher('quatre');
+  verifierDefis();
+  sauverMeta();
+
+  montrerFin({
+    n, tps, par, record, or,
+    sansMort, nouveau: !avant,
+    monte: niveau > avant,
+    rec: META.rec[n]
+  });
+}
+
+/* ==== a_11_ui.js ==== */
+/* ===========================================================================
+   LES ÉCRANS
+   =========================================================================== */
+const ECRANS = ['menu', 'carte', 'fin', 'pause', 'regles', 'profil', 'legales'];
+let bioAffiche = 0;
+let retourDe = 'menu';
+
+function ecrans(nom) {
+  for (const e of ECRANS) $(e).classList.toggle('on', e === nom);
+  const enJeu = nom === null;
+  $('hud').style.display = enJeu ? 'flex' : 'none';
+  $('jauge').style.display = enJeu ? 'block' : 'none';
+  $('btnPause').style.display = enJeu ? 'block' : 'none';
+  $('tact').style.display = enJeu && TACTILE ? 'flex' : 'none';
+  if (!enJeu) $('mortTxt').style.display = 'none';
+}
+
+/* ---------------------------------------------------------------- message */
+let boiteMsg = null, timMsg = 0;
+function message(txt) {
+  if (!boiteMsg) {
+    boiteMsg = document.createElement('div');
+    boiteMsg.style.cssText = 'position:absolute;left:50%;top:calc(58px + env(safe-area-inset-top));' +
+      'transform:translateX(-50%);z-index:23;padding:8px 16px;border-radius:10px;' +
+      'background:#1b1433ee;border:1px solid #7a4bd6;color:#e8e4f0;font-size:12px;' +
+      'letter-spacing:.14em;text-transform:uppercase;font-weight:bold;pointer-events:none;' +
+      'opacity:0;transition:opacity .25s;white-space:nowrap;max-width:92vw;overflow:hidden';
+    document.body.appendChild(boiteMsg);
+  }
+  boiteMsg.textContent = txt;
+  boiteMsg.style.opacity = '1';
+  clearTimeout(timMsg);
+  timMsg = setTimeout(() => { boiteMsg.style.opacity = '0'; }, 2200);
+}
+
+/* -------------------------------------------------------------------- HUD */
+let cptHud = 0;
+function majHud() {
+  if (!P) return;
+  const b = P.N.bio;
+  $('hudNiv').querySelector('.va').textContent = (P.niv + 1);
+  $('hudBio').textContent = b.nom;
+  $('hudTps').querySelector('.va').textContent = P.t.toFixed(1).replace('.', ',');
+  $('hudMorts').querySelector('.va').textContent = P.mortsIci;
+  const e = P.ecart;
+  $('hudEcart').querySelector('.va').textContent = e > 40 ? '—' : e.toFixed(1).replace('.', ',');
+  const pr = 1 - serre(e / 11, 0, 1);
+  $('jauge').style.width = (pr * 100).toFixed(1) + '%';
+}
+
+/* ------------------------------------------------------------------ menu */
+function montrerMenu() {
+  ecranActif = 'menu';
+  SND.fermerSouffle();
+  const n = niveauCourant();
+  const b = biomeDe(n);
+  $('mJouer').innerHTML = (META.med[n] ? 'Rejouer' : 'Continuer') +
+    '<small>' + b.nom + ' · niveau ' + (n + 1) + ' sur ' + N_NIVEAUX + '</small>';
+  ecrans('menu');
+}
+
+/* ----------------------------------------------------------------- carte */
+function montrerCarte() {
+  ecranActif = 'carte';
+  SND.fermerSouffle();
+  const n = niveauCourant();
+  bioAffiche = BIOMES.indexOf(biomeDe(n));
+  peindreCarte();
+  ecrans('carte');
+}
+
+function peindreCarte() {
+  const ong = $('ongl'); ong.innerHTML = '';
+  BIOMES.forEach((b, i) => {
+    const e = document.createElement('button');
+    e.className = 'ong' + (i === bioAffiche ? ' on' : '') + (biomeOuvert(b) ? '' : ' clos');
+    e.textContent = biomeOuvert(b) ? b.nom : '🔒 ' + b.nom;
+    e.onclick = () => { bioAffiche = i; SND.clic(); peindreCarte(); };
+    ong.appendChild(e);
+  });
+
+  const b = BIOMES[bioAffiche];
+  const faits = faitsDansBiome(b);
+  const ouvert = biomeOuvert(b);
+  $('infoBio').innerHTML = ouvert
+    ? '<b>' + b.pieges + '</b><br>' + b.devise +
+      '<br>Spectres : ' + b.spectres.map(s => SPECTRES[s].nom).join(' · ') +
+      '<br>' + faits + ' / ' + b.n + ' franchis'
+    : 'Fermé. Franchis 18 niveaux de <b>' + BIOMES[bioAffiche - 1].nom + '</b> pour ouvrir ce territoire.';
+  $('barreBio').firstElementChild.style.width = (faits / b.n * 100) + '%';
+
+  const g = $('grille'); g.innerHTML = '';
+  for (let i = 0; i < b.n; i++) {
+    const n = b.deb + i;
+    const c = document.createElement('button');
+    const m = META.med[n] || 0;
+    const ouv = niveauOuvert(n);
+    c.className = 'case' + (ouv ? ' ouv' : ' clos') + (m >= 1 ? ' fait' : '') + (m >= 3 ? ' parf' : '');
+    if (!ouv) c.innerHTML = '<span class="verrou">🔒</span>';
+    else {
+      c.textContent = n + 1;
+      if (m >= 3) c.innerHTML += '<span class="med">★</span>';
+      else if (m >= 2) c.innerHTML += '<span class="med" style="color:#8fd4ff">•</span>';
+    }
+    if (ouv) {
+      const r = META.rec[n];
+      c.title = 'Niveau ' + (n + 1) + (r ? ' — record ' + chrono(r) : '');
+      c.onclick = () => { SND.clic(); SND.reveil(); demarrerNiveau(n, false); };
+    } else c.disabled = true;
+    g.appendChild(c);
+  }
+}
+
+/* ------------------------------------------------------------ fin de niveau */
+function montrerFin(info) {
+  ecranActif = 'fin';
+  $('finTitre').textContent = 'FRANCHI';
+  $('finTitre').style.color = info.or ? '#ffd479' : '#a9dcff';
+  $('finSous').textContent = biomeDe(info.n).nom + ' · niveau ' + (info.n + 1);
+  $('fTps').textContent = chrono(info.tps);
+  $('fRec').textContent = chrono(info.rec);
+  $('fMorts').textContent = P.mortsIci;
+
+  let med = '';
+  if (info.or) med = '★ MÉDAILLE D\'OR — sans mourir, sous ' + chrono(info.par);
+  else if (info.sansMort) med = '• SANS FAUTE — l\'or demande moins de ' + chrono(info.par);
+  else med = 'Référence : ' + chrono(info.par) + ' — et sans mourir';
+  $('finMed').textContent = med;
+  $('finNouv').textContent = info.record ? '✦ Nouveau record personnel' : '';
+  if (info.or && info.monte) SND.medaille();
+
+  const suiv = info.n + 1;
+  const bs = $('fSuite');
+  if (suiv < N_NIVEAUX && niveauOuvert(suiv)) {
+    bs.disabled = false;
+    bs.innerHTML = 'Niveau suivant<small>' + biomeDe(suiv).nom + ' · ' + (suiv + 1) + '</small>';
+  } else if (suiv >= N_NIVEAUX) {
+    bs.disabled = true; bs.innerHTML = 'Achéron est franchi';
+  } else {
+    bs.disabled = true;
+    bs.innerHTML = 'Territoire suivant fermé<small>18 niveaux nécessaires ici</small>';
+  }
+  ecrans('fin');
+}
+
+/* ----------------------------------------------------------------- pause */
+function montrerPause() {
+  if (!P || P.fini) return;
+  ecranActif = 'pause';
+  $('pauInfo').textContent = biomeDe(P.niv).nom + ' · niveau ' + (P.niv + 1) +
+    ' · ' + P.mortsIci + (P.mortsIci > 1 ? ' morts' : ' mort');
+  SND.reglerSouffle(0);
+  ecrans('pause');
+}
+
+function reprendre() {
+  if (!P || P.fini) { montrerMenu(); return; }
+  ecranActif = 'jeu';
+  SND.ouvrirSouffle();
+  ecrans(null);
+}
+
+/* ----------------------------------------------------------------- règles */
+function montrerRegles(de) {
+  retourDe = de || 'menu';
+  ecranActif = 'regles';
+  $('reglesTxt').innerHTML = TEXTE_REGLES;
+  ecrans('regles');
+}
+
+const TEXTE_REGLES = `
+<p><b>Tu cours vers la porte. Rien d'autre.</b> Ce qui rend la chose difficile
+tient en une phrase :</p>
+<p style="text-align:center;color:#c9b6ff;font-size:15px;line-height:1.6">
+<b>Chaque piège veut que tu attendes le bon moment.<br>
+Les spectres, eux, n'attendent jamais.</b></p>
+<p>Une scie met deux secondes à repasser. Un mur en phase s'ouvre une fois sur
+deux. Une plateforme met son temps à revenir. Attendre est toujours la solution
+sûre — et attendre est exactement ce qui te fait rattraper. Tout le jeu est là :
+à chaque machine, tu choisis entre la fenêtre suivante et celle d'après.</p>
+
+<h3>Les commandes</h3>
+<table class="tbl">
+<tr><td>← →</td><td>avancer, reculer <span style="color:#7c7590">(ou Q/D, ou A/D)</span></td></tr>
+<tr><td>Espace ↑ Z W</td><td>sauter. <b>Plus tu gardes appuyé, plus tu montes.</b></td></tr>
+<tr><td>R</td><td>recommencer le niveau tout de suite</td></tr>
+<tr><td>Échap</td><td>pause</td></tr>
+<tr><td>Au doigt</td><td>deux touches à gauche, le saut à droite</td></tr>
+</table>
+<p>Tu grimpes <b>deux tuiles</b>, jamais trois. Tu franchis <b>quatre tuiles</b>
+de vide sans y penser, cinq en t'appliquant. Les 120 niveaux sont écrits contre
+ces deux chiffres : si quelque chose a l'air d'être à portée, ça l'est.</p>
+
+<h3>Les spectres</h3>
+<p>Ils traversent la pierre, ils ne se fatiguent pas, et on ne peut pas les tuer.
+Mais ils sont <b>plus lents que toi</b> : on les contourne, on leur tourne
+autour, on les sème. Ils ne sont pas un combat, ils sont une horloge.</p>
+<table class="tbl">
+<tr><td style="color:#8b7ad6">RÔDEUR</td><td>Il va droit sur toi, sans jamais s'arrêter.</td></tr>
+<tr><td style="color:#ff7a4d">TRAQUEUR</td><td>Plus rapide — mais il ne bouge que quand tu cours. T'arrêter le fige.</td></tr>
+<tr><td style="color:#ff4d6d">HURLEUR</td><td>Lent, puis il vise et se rue en ligne droite. Il montre toujours sa ligne avant de partir.</td></tr>
+<tr><td style="color:#4dd5c4">ÉCHO</td><td>Il refait ton propre trajet, avec du retard. Revenir sur tes pas, c'est aller à sa rencontre.</td></tr>
+</table>
+<p>Un spectre hors de l'écran est signalé par une flèche de sa couleur au bord de
+l'image, et la barre en haut de l'écran monte quand le plus proche se rapproche.
+<b>Tu ne dois jamais mourir de quelque chose que tu ne pouvais pas voir.</b></p>
+
+<h3>Les pièges</h3>
+<p>Ils changent de territoire en territoire, et chacun <b>annonce avant de
+frapper</b> : le laser trace en pointillé ce qu'il va couper, la presse tremble,
+le bloc projette son ombre, le mur en phase clignote avant de réapparaître. Un
+piège qui ne prévient pas ne serait pas difficile, seulement injuste.</p>
+<table class="tbl">
+<tr><td>La Cave</td><td>Pics, dalles friables, blocs qui tombent.</td></tr>
+<tr><td>La Scierie</td><td>Scies sur rail, presses, tapis roulants (dont certains te tirent en arrière).</td></tr>
+<tr><td>Les Égouts</td><td>Acide, jets de vapeur, plateformes mobiles — les seules machines sur lesquelles on monte.</td></tr>
+<tr><td>La Forge</td><td>Fonte, lames pendulaires, lance-flammes.</td></tr>
+<tr><td>Le Sanctuaire</td><td>Rayons, murs qui n'existent qu'une fois sur deux, piques qui sortent du sol.</td></tr>
+</table>
+<p>Une <b>dalle friable</b> ne cède pas quand tu la touches, mais quand tu restes
+dessus : un pont entier se traverse intact si tu ne t'arrêtes jamais. C'est la
+leçon du jeu en miniature.</p>
+
+<h3>Les médailles</h3>
+<table class="tbl">
+<tr><td style="color:#a9dcff">Franchi</td><td>tu es sorti.</td></tr>
+<tr><td style="color:#8fd4ff">• Sans faute</td><td>sorti sans mourir une seule fois depuis que tu es entré.</td></tr>
+<tr><td style="color:#ffd479">★ Or</td><td>sans faute <b>et</b> sous le temps de référence du niveau.</td></tr>
+</table>
+<p>Rien de tout cela ne rend plus fort. Il n'y a ni boutique, ni amélioration,
+ni monnaie : le niveau 63 est identique au premier essai et au centième. C'est
+la seule façon pour qu'un temps veuille dire quelque chose.</p>
+
+<h3>Si tu bloques</h3>
+<p>Tu peux prendre <b>deux niveaux d'avance</b> dans un territoire, et il suffit
+d'en franchir 18 sur 24 pour ouvrir le suivant. Un seul niveau ne doit jamais
+fermer les soixante qui restent.</p>
+`;
+
+/* ----------------------------------------------------------------- profil */
+function montrerProfil(de) {
+  retourDe = de || 'menu';
+  ecranActif = 'profil';
+  let faits = 0;
+  for (let i = 0; i < N_NIVEAUX; i++) if (META.med[i]) faits++;
+  let som = 0, nb = 0;
+  for (let i = 0; i < N_NIVEAUX; i++) if (META.rec[i]) { som += META.rec[i]; nb++; }
+
+  let h = '<div class="fiches">' +
+    fiche('Niveaux franchis', faits + ' / ' + N_NIVEAUX) +
+    fiche('Médailles d\'or', META.or) +
+    fiche('Sans faute', META.net) +
+    fiche('Morts', META.morts) +
+    fiche('Meilleure série', META.serieMax + ' sans mourir') +
+    fiche('Temps de jeu', chrono(META.tJeu)) +
+    '</div>';
+
+  h += '<div style="height:6px"></div>';
+  for (const b of BIOMES) {
+    const f = faitsDansBiome(b);
+    let o = 0;
+    for (let i = b.deb; i < b.deb + b.n; i++) if (META.med[i] >= 3) o++;
+    h += '<div class="exp"><span class="n" style="width:104px;color:' + b.accent + '">' + b.nom + '</span>' +
+      '<span class="b"><i style="width:' + (f / b.n * 100) + '%"></i></span>' +
+      '<span class="n">' + f + '/' + b.n + ' · ★' + o + '</span></div>';
+  }
+
+  h += '<h2 style="margin-top:24px;font-size:15px">Défis</h2>';
+  for (const D of DEFIS) {
+    const eu = !!META.defis[D.id];
+    h += '<div class="def' + (eu ? ' eu' : '') + '"><div class="ic">' + D.ic + '</div><div>' +
+      '<div class="n">' + D.n + '</div><div class="d">' + D.d + '</div></div></div>';
+  }
+  $('proCorps').innerHTML = h;
+  ecrans('profil');
+}
+
+const fiche = (et, va) => '<div class="fiche"><div class="et">' + et + '</div><div class="va">' + va + '</div></div>';
+
+/* ---------------------------------------------------------------- légales */
+function montrerLegales() {
+  ecranActif = 'legales';
+  $('legTxt').innerHTML = `
+<h3>Éditeur</h3>
+<p><b>VanNDM Creations</b> — créateur indépendant de jeux de navigateur.<br>
+Contact : <a href="mailto:cours2gtmathis78@gmail.com" style="color:#9a7bff">cours2gtmathis78@gmail.com</a></p>
+<h3>Le jeu</h3>
+<p><b>ACHÉRON</b> est un jeu de plateformes original : 120 niveaux, cinq
+territoires, des pièges qui annoncent et des spectres qui poursuivent. Tout le
+contenu — code, dessin, sons, textes, niveaux — a été créé pour ce jeu. Aucune
+image ni aucun son n'est téléchargé : le dessin est tracé au canevas et le son
+est synthétisé à la volée.</p>
+<h3>Tes données</h3>
+<p>Le jeu <b>ne collecte rien</b> et n'envoie rien nulle part. Ta progression
+(niveaux franchis, records, défis) est écrite dans le <code>localStorage</code>
+de ton navigateur, sur ton appareil uniquement. Personne d'autre n'y a accès, et
+le bouton « Effacer ma progression » du profil la supprime définitivement.</p>
+<p>Aucun compte, aucune inscription, aucun traceur, aucune publicité tierce dans
+cette version. Le jeu fonctionne hors ligne une fois la page chargée.</p>
+<h3>Droits</h3>
+<p>© VanNDM Creations. Le jeu est proposé tel quel, pour un usage personnel.</p>`;
+  ecranActif = 'legales';
+  ecrans('legales');
+}
+
+/* ==== a_12_boot.js ==== */
+/* ===========================================================================
+   ENTRÉES ET BOUCLE
+   La boucle avance par pas fixes de 1/60 s, quoi qu'il arrive à l'écran : sur
+   un écran à 144 Hz ou sur un téléphone qui rame, la physique est la même.
+   Le nombre de pas rattrapés en une image est plafonné, sinon un onglet
+   ré-affiché après trente secondes rejouerait mille huit cents pas d'un coup
+   — et tuerait le joueur pendant qu'il n'était pas là.
+   =========================================================================== */
+const TACTILE = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+const T = { g: 0, d: 0, saut: 0 };
+const CLAVIER = {};
+
+function commande() {
+  return {
+    g: T.g || CLAVIER.g ? 1 : 0,
+    d: T.d || CLAVIER.d ? 1 : 0,
+    saut: T.saut || CLAVIER.saut ? 1 : 0
+  };
+}
+
+/* --------------------------------------------------------------- clavier */
+const GAUCHE = ['ArrowLeft', 'KeyA', 'KeyQ'];
+const DROITE = ['ArrowRight', 'KeyD'];
+const SAUTE = ['Space', 'ArrowUp', 'KeyW', 'KeyZ'];
+
+window.addEventListener('keydown', e => {
+  if (e.repeat) { if (SAUTE.indexOf(e.code) >= 0) e.preventDefault(); return; }
+  SND.reveil();
+
+  if (e.code === 'Escape') {
+    e.preventDefault();
+    if (ecranActif === 'jeu') montrerPause();
+    else if (ecranActif === 'pause') reprendre();
+    else if (ecranActif === 'regles' || ecranActif === 'profil') retour();
+    else if (ecranActif === 'carte' || ecranActif === 'legales') montrerMenu();
+    return;
+  }
+
+  if (ecranActif !== 'jeu') {
+    if (SAUTE.indexOf(e.code) >= 0) {
+      e.preventDefault();
+      if (ecranActif === 'fin' && !$('fSuite').disabled) niveauSuivant();
+      else if (ecranActif === 'menu') { demarrerNiveau(niveauCourant(), false); }
+      else if (ecranActif === 'pause') reprendre();
+    }
+    return;
+  }
+
+  if (GAUCHE.indexOf(e.code) >= 0) { CLAVIER.g = 1; e.preventDefault(); }
+  if (DROITE.indexOf(e.code) >= 0) { CLAVIER.d = 1; e.preventDefault(); }
+  if (SAUTE.indexOf(e.code) >= 0) {
+    CLAVIER.saut = 1; e.preventDefault();
+    if (P && P.fini && !P.gagne) relancer();
+  }
+  if (e.code === 'KeyR') { e.preventDefault(); relancer(); }
+});
+
+window.addEventListener('keyup', e => {
+  if (GAUCHE.indexOf(e.code) >= 0) CLAVIER.g = 0;
+  if (DROITE.indexOf(e.code) >= 0) CLAVIER.d = 0;
+  if (SAUTE.indexOf(e.code) >= 0) CLAVIER.saut = 0;
+});
+window.addEventListener('blur', () => { CLAVIER.g = CLAVIER.d = CLAVIER.saut = 0; });
+
+/* --------------------------------------------------------------- tactile */
+function boutonTactile(id, champ) {
+  const b = $(id);
+  const bas = e => {
+    e.preventDefault(); SND.reveil();
+    T[champ] = 1; b.classList.add('on');
+    if (champ === 'saut' && P && P.fini && !P.gagne) relancer();
+  };
+  const haut = e => { e.preventDefault(); T[champ] = 0; b.classList.remove('on'); };
+  b.addEventListener('pointerdown', bas);
+  b.addEventListener('pointerup', haut);
+  b.addEventListener('pointercancel', haut);
+  b.addEventListener('pointerleave', haut);
+  b.addEventListener('contextmenu', e => e.preventDefault());
+}
+boutonTactile('tG', 'g');
+boutonTactile('tD', 'd');
+boutonTactile('tSaut', 'saut');
+
+/* un appui n'importe où sur l'image relance après une mort : au doigt comme
+   au clavier, recommencer doit être le geste le plus facile du jeu */
+cv.addEventListener('pointerdown', e => {
+  SND.reveil();
+  if (ecranActif === 'jeu' && P && P.fini && !P.gagne) relancer();
+});
+
+/* ------------------------------------------------------------------ boutons */
+function retour() {
+  if (retourDe === 'pause' && P && !P.fini) montrerPause();
+  else montrerMenu();
+}
+
+$('mJouer').onclick = () => { SND.reveil(); SND.clic(); demarrerNiveau(niveauCourant(), false); };
+$('mCarte').onclick = () => { SND.reveil(); SND.clic(); montrerCarte(); };
+$('mRegles').onclick = () => { SND.clic(); montrerRegles('menu'); };
+$('mProfil').onclick = () => { SND.clic(); montrerProfil('menu'); };
+$('mLeg').onclick = e => { e.preventDefault(); SND.clic(); montrerLegales(); };
+$('caRetour').onclick = () => { SND.clic(); montrerMenu(); };
+$('leRetour').onclick = () => { SND.clic(); montrerMenu(); };
+$('reRetour').onclick = () => { SND.clic(); retour(); };
+$('prRetour').onclick = () => { SND.clic(); retour(); };
+
+$('fSuite').onclick = () => { SND.clic(); niveauSuivant(); };
+$('fRejouer').onclick = () => { SND.clic(); demarrerNiveau(P.niv, false); };
+$('fCarte').onclick = () => { SND.clic(); montrerCarte(); };
+
+$('btnPause').onclick = () => { SND.clic(); montrerPause(); };
+$('pReprendre').onclick = () => { SND.clic(); reprendre(); };
+$('pRecom').onclick = () => { SND.clic(); demarrerNiveau(P.niv, true); };
+$('pRegles').onclick = () => { SND.clic(); montrerRegles('pause'); };
+$('pCarte').onclick = () => { SND.clic(); montrerCarte(); };
+$('pMenu').onclick = () => { SND.clic(); montrerMenu(); };
+
+$('prEffacer').onclick = () => {
+  if (!confirm('Effacer définitivement ta progression — 120 niveaux, records et défis ?')) return;
+  effacerMeta(); P = null; SND.clic(); montrerMenu();
+};
+
+/* ==================================================================== boucle */
+let der = 0, reste = 0;
+
+function boucle(ts) {
+  requestAnimationFrame(boucle);
+  const dt = Math.min(.05, der ? (ts - der) / 1000 : 0);
+  der = ts;
+  if (ecranActif !== 'jeu' || !P) return;
+
+  if (P.aTraiter) conclure();
+
+  if (!P.fini) {
+    reste += dt;
+    let n = 0;
+    while (reste >= PAS && n < 6) {
+      reste -= PAS; n++;
+      unPas(commande());
+      if (!P || P.fini) break;
+    }
+    if (P.aTraiter) conclure();
+    if (reste > PAS * 6) reste = 0;         // on ne rattrape jamais un long gel
+  } else {
+    P.tFin += dt;
+    majParticules(dt);
+    if (P.gagne && !P.montre && P.tFin > .45) {
+      P.montre = 1;
+      enregistrerNiveau(P.niv, P.t, P.mortsIci === 0, P.ecartMin, P.spectres.length);
+      return;
+    }
+    if (!P.gagne && P.tFin > .85) { relancer(); return; }
+  }
+
+  dessiner(dt);
+  if ((cptHud++ % 3) === 0) majHud();
+}
+
+/* ==================================================================== départ */
+function demarrer() {
+  chargerMeta();
+  cadrer();
+  ecrans('menu');
+  montrerMenu();
+  requestAnimationFrame(boucle);
+}
+demarrer();
+
+/* Un onglet qu'on quitte met le jeu en pause : revenir sur une partie qui a
+   continué sans toi, c'est revenir sur une mort que tu n'as pas vue. */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && ecranActif === 'jeu' && P && !P.fini) montrerPause();
+});
+</script>
+</body>
+</html>
