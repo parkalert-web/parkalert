@@ -115,7 +115,7 @@ fermer les soixante qui restent.
 
 Le site est prévu pour être éligible au programme Google AdSense.
 
-- **Domaine** : `https://acheron.netlify.app/`. Il n'apparaît qu'à **deux
+- **Domaine** : `https://acherongame.netlify.app/`. Il n'apparaît qu'à **deux
   endroits**, côte à côte en haut du fichier (`link rel="canonical"` et
   `og:url`), sous un commentaire qui le signale. Changer de domaine = changer
   ces deux lignes.

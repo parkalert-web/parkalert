@@ -9,7 +9,7 @@
 # domaine, séparément :
 #     https://zonemorte.netlify.app/ads.txt
 #     https://supermarchetycoon.netlify.app/ads.txt
-#     https://acheron.netlify.app/ads.txt
+#     https://acherongame.netlify.app/ads.txt
 #
 # netlify.app figure sur la Public Suffix List : chaque sous-domaine compte
 # donc comme un domaine racine à part entière, et il n'y a rien à demander
