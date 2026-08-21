@@ -4,8 +4,8 @@
  * §21 ne pas bloquer la rue · §22 proximité · §23 retard · §26 « je ne peux pas me garer »
  */
 
-import { TUNING, COMFORT } from './config.js';
-import { distanceM, fmtDistance, cancelImpact } from './core.js';
+import { TUNING } from './config.js';
+import { distanceM, fmtDistance, cancelImpact, fmtMetres } from './core.js';
 import * as db from './backend.js';
 import {
   S, setPhase, currentVehicle, vehicleById, vehicleCard, neededForVehicle,
@@ -29,7 +29,7 @@ export async function startSearch() {
   const form = await destinationForm(pos, vehicle);
   if (!form) return;
 
-  const needed = neededForVehicle(form.vehicle, form.marginMode, form.marginCm);
+  const needed = neededForVehicle(form.vehicle);
   const seeker = {
     uid: S.uid,
     pseudo: S.profile?.pseudo || 'Conducteur',
@@ -42,7 +42,6 @@ export async function startSearch() {
     destLabel: form.dest.label || 'Destination',
     radiusM: form.radiusM,
     neededCm: needed,
-    marginMode: form.marginMode,
     vehicle: vehicleCard(form.vehicle),
     state: 'searching',
     ts: db.now(),
@@ -114,7 +113,7 @@ async function destinationForm(pos, defaultVehicle) {
       const name = await reverseGeocode(pos);
       if (name && dest?.label === 'Ma position actuelle') setDest({ ...dest, label: name });
     },
-  }, 'MA POSITION');
+  }, 'Ma position');
 
   const btnMap = el('button', {
     class: 'btn btn-ghost small', type: 'button',
@@ -125,34 +124,36 @@ async function destinationForm(pos, defaultVehicle) {
       const name = await reverseGeocode(p);
       pendingPick = { ...p, label: name || 'Point choisi sur la carte' };
     },
-  }, 'SUR LA CARTE');
+  }, 'Sur la carte');
 
   const radius = el('input', { type: 'range', min: '100', max: '1500', step: '50', value: String(S.lastRadius || 400), class: 'slider' });
   const radiusVal = el('b', { text: `${S.lastRadius || 400} m` });
   radius.addEventListener('input', () => { radiusVal.textContent = `${radius.value} m`; });
 
-  const vehiclePicker = chooser(S.vehicles.map((v) => ({ id: v.id, label: `${v.brand} ${v.model}`, hint: `${(v.lengthCm / 100).toFixed(2)} m${v.color ? ` · ${v.color}` : ''}` })),
+  const vehiclePicker = chooser(S.vehicles.map((v) => ({ id: v.id, label: `${v.brand} ${v.model}`, hint: `${fmtMetres(v.lengthCm)}${v.color ? ` · ${v.color}` : ''}` })),
     { value: defaultVehicle.id, columns: 1 });
 
-  const comfort = chooser(COMFORT.map((c) => ({ id: c.id, label: c.label.toUpperCase() })),
-    { value: defaultVehicle.marginMode || 'normal', columns: 2 });
-  const customCm = el('div', { class: 'custom-row', style: { display: (defaultVehicle.marginMode === 'perso') ? 'flex' : 'none' } },
-    el('label', { text: 'Marge' }), el('input', { type: 'number', id: 'seek-cm', min: '0', max: '300', step: '5', value: String(defaultVehicle.marginCm || 60) }), el('span', { text: 'cm' }));
-  comfort.addEventListener('choose', (e) => { customCm.style.display = e.detail === 'perso' ? 'flex' : 'none'; });
+  const needNote = el('p', { class: 'form-note' });
+  const refreshNeed = () => {
+    const v = vehicleById(vehiclePicker.value);
+    needNote.textContent = v
+      ? `Nous chercherons une place d’au moins ${fmtMetres(neededForVehicle(v))} — la taille qu’il faut à cette voiture.`
+      : '';
+  };
+  vehiclePicker.addEventListener('choose', refreshNeed);
+  refreshNeed();
 
   const body = el('div', {},
-    el('div', { class: 'sublabel', text: 'OÙ ALLEZ-VOUS ?' }),
+    el('div', { class: 'sublabel', text: 'Où allez-vous ?' }),
     input,
     el('div', { class: 'btn-row' }, btnHere, btnMap),
     results,
     chosen,
-    el('div', { class: 'sublabel', text: 'DISTANCE MAXIMALE ENTRE LA PLACE ET VOTRE DESTINATION' }),
+    el('div', { class: 'sublabel', text: 'À quelle distance maximale ?' }),
     el('div', { class: 'slider-row' }, radius, radiusVal),
-    el('div', { class: 'sublabel', text: 'VÉHICULE UTILISÉ' }),
+    el('div', { class: 'sublabel', text: 'Véhicule utilisé' }),
     vehiclePicker,
-    el('div', { class: 'sublabel', text: 'PRÉFÉRENCE DE STATIONNEMENT' }),
-    comfort,
-    customCm,
+    needNote,
   );
 
   if (S.pendingDest) { setDest(S.pendingDest); S.pendingDest = null; }
@@ -160,7 +161,7 @@ async function destinationForm(pos, defaultVehicle) {
   const res = await openModal({
     title: 'Je cherche une place',
     body,
-    actions: [{ label: 'LANCER LA RECHERCHE', value: 'ok', variant: 'btn-blue', keep: true, onClick: () => {
+    actions: [{ label: 'Lancer la recherche', value: 'ok', variant: 'btn-blue', keep: true, onClick: () => {
       if (!dest) { toast('Destination manquante', 'Indiquez où vous allez.', '#ef4444'); return; }
       closeModal('ok');
     } }],
@@ -180,8 +181,6 @@ async function destinationForm(pos, defaultVehicle) {
     dest,
     radiusM: Number(radius.value),
     vehicle: vehicleById(vehiclePicker.value),
-    marginMode: comfort.value,
-    marginCm: Number(customCm.querySelector('#seek-cm')?.value) || 0,
   };
 }
 
@@ -261,8 +260,8 @@ async function showOffer(offer) {
     title: 'Une place compatible va se libérer',
     body,
     actions: [
-      { label: 'JE VEUX CETTE PLACE', value: 'accept', variant: 'btn-green' },
-      { label: 'NON MERCI', value: 'decline' },
+      { label: 'Je veux cette place', value: 'accept', variant: 'btn-green' },
+      { label: 'Non merci', value: 'decline' },
     ],
     dismissible: false,
   });
@@ -304,7 +303,7 @@ function onSeekerSessionUpdate(session) {
       exitSeekerSession();
       infoSheet('La place a été réattribuée',
         'Le conducteur qui donnait la place ne pouvait plus attendre.<br>'
-        + 'Un retard ponctuel n’a pas d’impact important sur votre fiabilité (§24).');
+        + 'Un retard ponctuel n’a pas d’impact important sur votre fiabilité.');
       relaunchSearch();
     } else if (session.reason === 'cancelled-donor') {
       exitSeekerSession();
@@ -362,7 +361,7 @@ export async function cannotPark() {
     await infoSheet('Vous n’êtes pas encore sur place',
       `Ce motif n’est accepté sans malus que si le GPS confirme votre présence près de la place `
       + `(vous êtes à ${fmtDistance(d)}).<br>Si vous souhaitez abandonner, utilisez « Annuler ma réservation ».`,
-      'J’AI COMPRIS');
+      'J’ai compris');
     return;
   }
 
@@ -377,7 +376,7 @@ export async function cannotPark() {
   exitSeekerSession();
   await infoSheet('Merci pour le retour',
     'Aucun malus : le GPS confirme que vous étiez bien sur place.<br>'
-    + 'La place est immédiatement reproposée à un véhicule plus petit (§27).');
+    + 'La place est immédiatement reproposée à un véhicule plus petit.');
   relaunchSearch();
 }
 
@@ -410,7 +409,7 @@ async function finishSeeker(session) {
   await infoSheet('Bon stationnement !',
     'La transmission est validée des deux côtés.<br>'
     + 'Les points de cette transmission reviennent au conducteur qui vous a laissé la place : '
-    + 'votre bénéfice à vous, c’est la place (§29).');
+    + 'votre bénéfice à vous, c’est la place.');
 }
 
 export function exitSeekerSession() {
@@ -436,9 +435,9 @@ export async function cancelReservation() {
   const ok = await confirmSheet(
     'Annuler ma réservation ?',
     impact.label,
-    'OUI, ANNULER', 'NON, JE CONTINUE', 'btn-red',
+    'Oui, annuler', 'Non, je continue', 'btn-red',
     impact.severity === 'high'
-      ? 'Une annulation à la dernière minute pénalise le conducteur qui vous attend : répétée, elle fait baisser votre fiabilité (§25).'
+      ? 'Une annulation à la dernière minute pénalise le conducteur qui vous attend : répétée, elle fait baisser votre fiabilité.'
       : 'Annuler tôt n’a aucune conséquence : c’est le bon réflexe si vous changez d’avis.');
   if (!ok) return;
 
@@ -478,7 +477,7 @@ export async function thankSignal(id) {
 }
 
 export async function reportSignal(id) {
-  const ok = await confirmSheet('Signaler une information erronée ?', 'Cette place n’existe pas ou est déjà occupée.', 'SIGNALER', 'ANNULER', 'btn-red');
+  const ok = await confirmSheet('Signaler une information erronée ?', 'Cette place n’existe pas ou est déjà occupée.', 'Signaler', 'Annuler', 'btn-red');
   if (!ok) return;
   const signal = await db.readOnce(`freespots/${id}`);
   await db.patch(`freespots/${id}/reports`, { [S.uid]: db.now() });

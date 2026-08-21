@@ -4,7 +4,7 @@
  */
 
 import { TUNING } from './config.js';
-import { distanceM, fmtDistance } from './core.js';
+import { distanceM, fmtDistance, fmtMetres } from './core.js';
 import * as db from './backend.js';
 import {
   S, emit, onChange, setPhase, startGPS, unsubscribe, every,
@@ -22,7 +22,7 @@ function authTab(tab) {
   $('#tab-login').classList.toggle('active', tab === 'login');
   $('#tab-signup').classList.toggle('active', tab === 'signup');
   $('#field-pseudo').style.display = tab === 'signup' ? 'block' : 'none';
-  $('#btn-auth').textContent = tab === 'signup' ? 'CRÉER MON COMPTE' : 'SE CONNECTER';
+  $('#btn-auth').textContent = tab === 'signup' ? 'Créer mon compte' : 'Se connecter';
   $('#auth-err').textContent = '';
 }
 
@@ -133,7 +133,7 @@ function spotPopup(s) {
   return `<div class="pop">
     <b style="color:#f59e0b">Place annoncée</b>
     <div>${esc(s.donorPseudo || 'Conducteur')} ${esc(ready)}</div>
-    <div class="muted">Longueur estimée ${(s.spotCm / 100).toFixed(2)} m · ${esc([v.label, v.color].filter(Boolean).join(' '))}</div>
+    <div class="muted">Longueur estimée ${fmtMetres(s.spotCm)} · ${esc([v.label, v.color].filter(Boolean).join(' '))}</div>
     <div class="muted">À ${d} de vous${mine ? ' · votre place' : ''}</div>
     <div class="muted small">${s.status === 'reserved' ? 'Déjà réservée' : 'Les conducteurs compatibles sont contactés par ordre de priorité.'}</div>
   </div>`;
@@ -204,7 +204,7 @@ function showHelp() {
       en priorité les conducteurs qui ont le plus de points — sauf en cas d’urgence, où c’est le plus rapide qui passe devant.</p>
       <p>Une transmission ne compte que si elle est <b>confirmée des deux côtés</b>, avec les deux téléphones près de la place.</p>
       <p class="muted">Le partage de position démarre à la réservation et s’arrête automatiquement à la fin.</p>` }),
-    actions: [{ label: 'FERMER', value: true, variant: 'btn-green' }],
+    actions: [{ label: 'Fermer', value: true, variant: 'btn-green' }],
   });
 }
 

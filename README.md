@@ -79,6 +79,7 @@ database.rules.json   règles de sécurité de la base temps réel
 
 src/
   config.js     toutes les constantes de calibration (§7 : à ajuster pendant les tests)
+  ui.js         briques d'interface : feuilles modales, sélecteurs, notifications
   vehicles.js   base automobile (210 modèles, cotes constructeur) + identification assistée
   core.js       logique pure : compatibilité, priorités, points, fiabilité — testée
   backend.js    accès Firebase (authentification, base temps réel)
@@ -114,7 +115,7 @@ Le MVP décrit au §37 du cahier des charges est intégralement implémenté.
 |---|---|---|
 | 3 | Pseudonyme, points d'entraide, indice de fiabilité | `profile.js`, `core.js` |
 | 4 | Identification du véhicule assistée, dimensions issues d'une base réelle | `vehicles.js` |
-| 5 | Marge Serré / Normal / À l'aise / Personnalisé, mémorisée par véhicule | `core.js`, `pickers.js` |
+| 5 | Place nécessaire déduite des dimensions du véhicule | `core.js`, `config.js` |
 | 6 | Qualification de la place, maintenant ou plus tard | `give.js` |
 | 7 | Croisement des deux estimations, calibration centralisée | `core.js`, `config.js` |
 | 8-9 | Recherche autour d'une destination, rayon intelligent | `seek.js`, `core.js` |
@@ -137,14 +138,51 @@ Elles sont toutes regroupées dans [`src/config.js`](src/config.js) :
 
 | Réglage | Valeur retenue | Référence |
 |---|---|---|
-| Marges Serré / Normal / À l'aise | +30 / +50 / +100 cm | §5 |
-| Longueur de place estimée | véhicule du donneur + même barème | §6-7 |
+| Place nécessaire pour se garer | longueur + 15 %, minimum +45 cm | §5 |
+| Longueur de place estimée | véhicule du donneur + Serré/Normal/Large | §6-7 |
 | Délai de réponse à une proposition | 45 s | §15 |
 | Rayon de confirmation d'arrivée | 40 m | §22 |
 | Tolérance de retard | 2 min | §23 |
 | Points par transmission validée | +10 | §29 |
 | Anti-triche | 30 min / 24 h | §30 |
 | Estimation de trajet | 20 km/h, détour ×1,35, +1 min de manœuvre | §38 |
+
+### Deux écarts assumés par rapport au cahier des charges
+
+**La taille de place ne se choisit plus (§5).** Le cahier des charges laissait le conducteur
+qui cherche choisir « Serré / Normal / À l'aise ». À l'usage, cela permettait à une petite
+voiture de réclamer une grande place « pour être à l'aise », et de bloquer un créneau dont
+une autre voiture avait réellement besoin. La place nécessaire est donc maintenant **déduite
+des dimensions du véhicule** : longueur + 15 %, avec un minimum de 45 cm — un créneau se
+prend en biais, et plus la voiture est longue, plus il lui faut de débattement.
+
+| Véhicule | Longueur | Place nécessaire |
+|---|---|---|
+| Citroën Ami | 2,41 m | 2,86 m |
+| Fiat 500 | 3,57 m | 4,11 m |
+| Peugeot 208 | 4,06 m | 4,67 m |
+| Renault Captur | 4,23 m | 4,86 m |
+| Tesla Model Y | 4,75 m | 5,46 m |
+
+Le conducteur n'a donc plus aucune question à se poser, et une petite voiture ne peut plus
+occuper la place d'une grande. Le ratio et le minimum vivent dans `TUNING.manoeuvre`.
+
+En revanche, **celui qui donne décrit toujours sa place** (§6) : là il ne s'agit pas d'une
+préférence mais d'une observation — l'espace réellement libre autour de sa voiture — et elle
+reste indispensable pour estimer la longueur du créneau.
+
+**L'interface est en casse normale, sans références au cahier des charges.** Les libellés
+tout en capitales et les renvois « (§29) » ont été retirés des écrans : ils restent dans les
+commentaires du code, où ils servent à retrouver la règle d'origine.
+
+### Parti pris d'interface
+
+- police du système, pour un rendu natif sur chaque téléphone ;
+- une seule couleur d'accent, aucun dégradé, aucune lueur ;
+- thème clair et thème sombre, choisis d'après le réglage du téléphone ;
+- un écran répond à une seule question : l'information utile est en gros, le reste tient
+  en une phrase, et il n'y a jamais plus d'une action principale ;
+- la légende de la carte et les compteurs ne sont plus affichés en permanence.
 
 ### Reste à faire (§38)
 
@@ -161,7 +199,8 @@ npm test          # logique métier : compatibilité, priorités, points, fiabil
 ```
 
 18 tests rejouent les exemples chiffrés du cahier des charges — dont le tableau du §13
-(A/520 pts, B/300 pts, C/80 pts) et l'exception « Maintenant » du §14.
+(A/520 pts, B/300 pts, C/80 pts), l'exception « Maintenant » du §14, et le fait qu'une
+petite voiture ne peut jamais réclamer la place d'une grande.
 
 ```bash
 npm install --no-save playwright undici

@@ -20,12 +20,12 @@ export const S = {
   phase: 'idle',        // idle | parked | giving | searching | offered | session
   role: null,           // 'donor' | 'seeker' pendant une réservation
 
-  parking: null,        // stationnement déclaré (§6)
+  parking: null,        // stationnement déclaré
   spot: null,           // place que je propose (donneur)
   seeker: null,         // ma recherche en cours
   offer: null,          // proposition reçue
   session: null,        // réservation active
-  signal: null,         // mon signalement de place libre (§32)
+  signal: null,         // mon signalement de place libre
 
   liveSpots: [],
   liveSeekers: [],
@@ -72,12 +72,10 @@ export function vehicleById(id) {
   return S.vehicles.find((v) => v.id === id) || currentVehicle();
 }
 
-/** Longueur nécessaire pour se garer avec le confort mémorisé du véhicule (§5). */
-export function neededForVehicle(vehicle, overrideMode, overrideCustom) {
+/** Longueur de place dont ce véhicule a besoin — déduite de ses dimensions. */
+export function neededForVehicle(vehicle) {
   if (!vehicle) return null;
-  const mode = overrideMode || vehicle.marginMode || 'normal';
-  const custom = overrideCustom ?? vehicle.marginCm;
-  return neededLengthCm(vehicle.lengthCm, mode, custom);
+  return neededLengthCm(vehicle.lengthCm);
 }
 
 /** Résumé affiché aux deux conducteurs (§17) : modèle + couleur uniquement. */

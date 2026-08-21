@@ -112,8 +112,8 @@ export async function announceDeparture() {
         'Si personne de l’application ne récupère réellement votre place, <b>vous ne gagnerez pas de points</b>. '
         + 'Vous recevrez seulement un « Merci » pour le signalement.' }),
       actions: [
-        { label: 'J’ATTENDS UN CONDUCTEUR', value: 'wait', variant: 'btn-green' },
-        { label: 'JE PARS SANS ATTENDRE', value: 'leave', variant: 'btn-orange' },
+        { label: 'J’attends un conducteur', value: 'wait', variant: 'btn-green' },
+        { label: 'Je pars sans attendre', value: 'leave', variant: 'btn-orange' },
       ],
     });
     if (choice === 'leave') { await signalFreeSpot({ pos, qual, customCm, vehicle, fromDeparture: true }); return; }
@@ -314,8 +314,8 @@ async function confirmCandidate(spot, candidate, offer) {
       + `<div class="kv"><span>Distance</span><b>${fmtDistance(candidate.approachM)}</b></div>`
       + `<div class="kv"><span>Points d’entraide</span><b>${Number(candidate.points) || 0}</b></div>` }),
     actions: [
-      { label: 'ACCEPTER', value: 'yes', variant: 'btn-green' },
-      { label: 'REFUSER', value: 'no', variant: 'btn-red' },
+      { label: 'Accepter', value: 'yes', variant: 'btn-green' },
+      { label: 'Refuser', value: 'no', variant: 'btn-red' },
     ],
     dismissible: false,
   });
@@ -400,8 +400,8 @@ async function handleLate(session) {
     subtitle: 'Vous n’êtes pas obligé d’attendre.',
     body: el('div', { class: 'note note-orange', html: 'La réattribution donne la place au conducteur compatible qui peut arriver <b>le plus vite</b>.' }),
     actions: [
-      { label: 'OUI, J’ATTENDS ENCORE', value: 'wait', variant: 'btn-green' },
-      { label: 'NON, CHERCHER UN AUTRE CONDUCTEUR', value: 'reassign', variant: 'btn-orange' },
+      { label: 'Oui, j’attends encore', value: 'wait', variant: 'btn-green' },
+      { label: 'Non, chercher un autre conducteur', value: 'reassign', variant: 'btn-orange' },
     ],
     dismissible: false,
   });
@@ -512,7 +512,7 @@ function finishDonor(session) {
   } else {
     infoSheet('Transmission réussie',
       'Merci pour votre entraide !<br>Aucun point cette fois : une récompense n’est possible '
-      + 'qu’une fois toutes les 30 minutes, et une fois par jour avec le même conducteur (§30 anti-triche).');
+      + 'qu’une fois toutes les 30 minutes, et une fois par jour avec le même conducteur, pour éviter les fausses transmissions.');
   }
 }
 
@@ -534,8 +534,8 @@ export async function donorCancelSession() {
   const ok = await confirmSheet(
     'Annuler la transmission ?',
     'Un conducteur est déjà en route vers votre place.',
-    'OUI, ANNULER', 'NON, JE CONTINUE', 'btn-red',
-    'Une annulation tardive répétée fait baisser votre indice de fiabilité (§31).');
+    'Oui, annuler', 'Non, je continue', 'btn-red',
+    'Une annulation tardive répétée fait baisser votre indice de fiabilité.');
   if (!ok) return;
   await db.bumpCounter(S.uid, 'lateCancel');
   await sess.closeSession(session.id, 'cancelled', 'cancelled-donor');
@@ -552,8 +552,8 @@ export async function onSeekerCannotPark(session) {
     subtitle: session.noFitReason === 'short' ? 'Place trop courte pour son véhicule' : 'Accès impossible',
     body: el('div', { class: 'note', html: 'Nous pouvons rechercher immédiatement un véhicule plus petit, ou vous pouvez partir : la place deviendra alors un simple signalement.' }),
     actions: [
-      { label: 'CHERCHER UN AUTRE CONDUCTEUR', value: 'keep', variant: 'btn-green' },
-      { label: 'JE PARS MAINTENANT', value: 'go', variant: 'btn-orange' },
+      { label: 'Chercher un autre conducteur', value: 'keep', variant: 'btn-green' },
+      { label: 'Je pars maintenant', value: 'go', variant: 'btn-orange' },
     ],
     dismissible: false,
   });
@@ -657,8 +657,8 @@ export async function signalFreeSpot(preset = null) {
 
   await infoSheet('Place signalée — disponibilité non garantie',
     'Merci ! Votre signalement est visible quelques minutes sur la carte.<br>'
-    + 'Un simple signalement ne rapporte pas de points : seule une transmission confirmée des deux côtés en donne (§29).',
-    'C’EST NOTÉ');
+    + 'Un simple signalement ne rapporte pas de points : seule une transmission confirmée des deux côtés en donne.',
+    'C’est noté');
 }
 
 export async function removeSignal() {
@@ -671,7 +671,7 @@ export async function removeSignal() {
 /* ─────────────────────── Annulation de l'annonce ─────────────────────── */
 
 export async function cancelGiving() {
-  const ok = await confirmSheet('Retirer votre place ?', 'Elle ne sera plus proposée aux conducteurs.', 'RETIRER', 'GARDER', 'btn-red');
+  const ok = await confirmSheet('Retirer votre place ?', 'Elle ne sera plus proposée aux conducteurs.', 'Retirer', 'Garder', 'btn-red');
   if (!ok) return;
   stopOfferLoop();
   const spot = await db.readOnce(SPOT(S.uid));
@@ -686,8 +686,8 @@ export async function leaveWithoutWaiting() {
   const ok = await confirmSheet(
     'Partir sans attendre ?',
     'Votre place deviendra un simple signalement.',
-    'JE PARS', 'J’ATTENDS ENCORE', 'btn-orange',
-    'Pas de transmission confirmée = <b>pas de points</b>. Simple « Merci » pour avoir alerté la communauté (§33).');
+    'Je pars', 'J’attends encore', 'btn-orange',
+    'Pas de transmission confirmée = <b>pas de points</b>. Simple « Merci » pour avoir alerté la communauté.');
   if (!ok) return;
   stopOfferLoop();
   const spot = await db.readOnce(SPOT(S.uid));

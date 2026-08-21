@@ -33,6 +33,12 @@ export function travelEstimate(distM, tuning = TUNING) {
   return { distM: Math.round(distM), roadM: Math.round(roadM), seconds: Math.round(seconds), minutes: Math.max(1, Math.round(seconds / 60)) };
 }
 
+/** Longueur en mètres, écrite à la française : 4,23 m. */
+export function fmtMetres(cm) {
+  if (!cm) return '—';
+  return `${(cm / 100).toFixed(2).replace('.', ',')} m`;
+}
+
 /** §19 — position volontairement approximative tant que le partage précis n'est pas justifié. */
 export function coarsen(pos, decimals = TUNING.coarseDecimals) {
   if (!pos) return null;
@@ -40,14 +46,21 @@ export function coarsen(pos, decimals = TUNING.coarseDecimals) {
   return { lat: Math.round(pos.lat * f) / f, lng: Math.round(pos.lng * f) / f, approx: true };
 }
 
-/* ─────────────────── Compatibilité de taille (§5 §6 §7) ─────────────────── */
+/* ─────────────────── Compatibilité de taille (§6 §7) ─────────────────── */
 
-/** Longueur dont a besoin celui qui cherche : véhicule + marge de confort. */
-export function neededLengthCm(vehicleLengthCm, mode, customCm, tuning = TUNING) {
-  const margin = mode === 'perso'
-    ? Math.max(0, Number(customCm) || 0)
-    : (tuning.seekerMargin[mode] ?? tuning.seekerMargin.normal);
-  return Math.round((Number(vehicleLengthCm) || 0) + margin);
+/**
+ * Longueur de place nécessaire à un véhicule donné.
+ *
+ * Ce n'est PAS une préférence de confort : c'est la place que prend réellement
+ * la voiture pour entrer dans un créneau. Une petite voiture n'a donc jamais
+ * besoin d'une grande place, et une grande voiture n'est jamais envoyée sur un
+ * créneau où elle ne rentrerait pas.
+ */
+export function neededLengthCm(vehicleLengthCm, tuning = TUNING) {
+  const len = Number(vehicleLengthCm) || 0;
+  if (!len) return 0;
+  const { ratioPct, minCm } = tuning.manoeuvre;
+  return Math.round(len + Math.max(minCm, (len * ratioPct) / 100));
 }
 
 /**

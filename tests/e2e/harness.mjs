@@ -116,8 +116,8 @@ export async function clickAction(page, text) {
   await btn.click();
 }
 
-/** Inscription + parcours de première configuration (pseudonyme, véhicule, confort). */
-export async function signUp(phone, { pseudo, vehicle, comfort = 'NORMAL' }) {
+/** Inscription + parcours de première configuration (pseudonyme, véhicule). */
+export async function signUp(phone, { pseudo, vehicle }) {
   const { page, tag } = phone;
   phone.email = `pa-e2e-${pseudo.toLowerCase()}-${Date.now()}@example.com`;
   await page.click('#tab-signup');
@@ -137,10 +137,7 @@ export async function signUp(phone, { pseudo, vehicle, comfort = 'NORMAL' }) {
   await page.waitForSelector('#modal-body .result.sel', { timeout: 15000 });
   const found = await page.locator('#modal-body .result.sel b').first().textContent();
   await clickAction(page, 'CONFIRMER CE VÉHICULE');
-  await waitModal(page, /comment aimez-vous vous garer/i);
-  await page.click(`#modal-body .choice:has-text("${comfort}")`);
-  await clickAction(page, 'VALIDER');
-  await sleep(1000);
+  await sleep(1500);
   log(tag, `inscrit — véhicule reconnu : ${found}`);
   return found;
 }
@@ -148,20 +145,20 @@ export async function signUp(phone, { pseudo, vehicle, comfort = 'NORMAL' }) {
 /** Lance une recherche centrée sur la position courante (§8). */
 export async function startSearch(phone, { radius } = {}) {
   const { page, tag } = phone;
-  await page.click('#panel .btn-blue');
+  await page.click('#panel .btn:has-text("Je cherche une place")');
   await waitModal(page, /Je cherche une place/);
   await page.click('#modal-body .btn-row .btn:has-text("MA POSITION")');
   await page.waitForSelector('#modal-body .chosen.ok', { timeout: 15000 });
   if (radius) await page.locator('#modal-body .slider').fill(String(radius));
   await clickAction(page, 'LANCER LA RECHERCHE');
-  await page.waitForSelector('#panel .btn-ghost:has-text("ANNULER LA RECHERCHE")', { timeout: 15000 });
+  await page.waitForSelector('#panel .btn:has-text("Annuler la recherche")', { timeout: 15000 });
   log(tag, 'recherche active');
 }
 
 /** Annonce un départ (§10). `when` = libellé du choix : MAINTENANT, 5 min, 10 min… */
 export async function announceDeparture(phone, when = '10 min') {
   const { page, tag } = phone;
-  await page.click('#panel .btn-green');
+  await page.click('#panel .btn:has-text("Je vais libérer ma place")');
   const t = await waitModal(page, /espace autour de votre voiture|Dans combien de temps/i);
   if (/espace autour/i.test(t)) {
     await clickAction(page, 'VALIDER');

@@ -18,8 +18,13 @@ export const FIREBASE_CONFIG = {
 };
 
 export const TUNING = {
-  /** §5 — marge demandée par celui qui cherche (cm ajoutés à la longueur du véhicule). */
-  seekerMargin: { serre: 30, normal: 50, aise: 100 },
+  /**
+   * Place nécessaire pour se garer : elle dépend de la VOITURE, pas d'une envie.
+   * Un créneau se prend en biais : plus la voiture est longue, plus il faut de
+   * débattement. On ajoute donc un pourcentage de la longueur, avec un minimum
+   * absolu pour les toutes petites voitures.
+   */
+  manoeuvre: { ratioPct: 15, minCm: 45 },
 
   /** §6/§7 — longueur estimée d'une place à partir du gabarit du donneur (cm ajoutés). */
   spotBonus: { serre: 30, normal: 50, aise: 100 },
@@ -76,23 +81,23 @@ export const TUNING = {
   liveShareIntervalS: 8,
 };
 
-/** §5 / §6 — libellés uniques, utilisés côté chercheur et côté donneur. */
+/** §6 — comment le donneur décrit l'espace réellement libre autour de sa voiture. */
 export const COMFORT = [
   { id: 'serre', label: 'Serré', hint: 'Presque pare-chocs contre pare-chocs' },
-  { id: 'normal', label: 'Normal', hint: 'Un espace normal' },
-  { id: 'aise', label: 'À l’aise', hint: 'Beaucoup de marge' },
-  { id: 'perso', label: 'Personnalisé', hint: 'Je choisis ma marge' },
+  { id: 'normal', label: 'Normal', hint: 'Un espace normal devant et derrière' },
+  { id: 'aise', label: 'Large', hint: 'Beaucoup de place autour' },
+  { id: 'perso', label: 'Je mesure', hint: 'J’indique l’espace en cm' },
 ];
 
 /** §10 — la seule question de temps posée au donneur. */
 export const DEPARTURE_CHOICES = [
-  { id: 'now', label: 'MAINTENANT', minutes: 0 },
+  { id: 'now', label: 'Maintenant', minutes: 0 },
   { id: 'm5', label: '5 min', minutes: 5 },
   { id: 'm10', label: '10 min', minutes: 10 },
   { id: 'm15', label: '15 min', minutes: 15 },
   { id: 'm20', label: '20 min', minutes: 20 },
   { id: 'm30', label: '30 min', minutes: 30 },
-  { id: 'custom', label: 'PERSONNALISÉ', minutes: null },
+  { id: 'custom', label: 'Personnalisé', minutes: null },
 ];
 
 export const COLORS = [

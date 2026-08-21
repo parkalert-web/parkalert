@@ -19,11 +19,22 @@ test('distance et estimation de trajet', () => {
   assert.equal(travelEstimate(Infinity).minutes, Infinity);
 });
 
-test('§5 marge du chercheur : 4,20 m + Normal = 4,70 m', () => {
-  assert.equal(neededLengthCm(420, 'normal'), 470);
-  assert.equal(neededLengthCm(420, 'serre'), 450);
-  assert.equal(neededLengthCm(420, 'aise'), 520);
-  assert.equal(neededLengthCm(420, 'perso', 75), 495);
+test('la place nécessaire dépend de la voiture, pas d’une préférence', () => {
+  // 4,20 m + 15 % => 4,83 m ; une seule entrée : la longueur du véhicule.
+  assert.equal(neededLengthCm(420), 483);
+  assert.equal(neededLengthCm(357), 411);   // Fiat 500
+  assert.equal(neededLengthCm(475), 546);   // Tesla Model Y
+  assert.equal(neededLengthCm(0), 0);
+
+  // Plus la voiture est longue, plus il lui faut de place — jamais l'inverse.
+  const besoins = [241, 357, 420, 475, 508].map((cm) => neededLengthCm(cm));
+  for (let i = 1; i < besoins.length; i += 1) assert.ok(besoins[i] > besoins[i - 1]);
+
+  // Une petite voiture ne peut pas réclamer la place d'une grande.
+  assert.ok(neededLengthCm(357) < neededLengthCm(475));
+
+  // Le minimum absolu protège les tout petits véhicules (Citroën Ami).
+  assert.equal(neededLengthCm(241), 241 + TUNING.manoeuvre.minCm);
 });
 
 test('§6/§7 qualification de la place par le donneur', () => {
@@ -32,11 +43,13 @@ test('§6/§7 qualification de la place par le donneur', () => {
   assert.equal(estimatedSpotCm(423, 'aise'), 523);
   assert.deepEqual(sizeFit(473, 470), { ok: true, marginal: true, gapCm: 3 });
   assert.equal(sizeFit(453, 520).ok, false);
+  // Peugeot 208 (4,06 m) dans la place « normale » d'un Captur : ça passe, tout juste.
+  assert.deepEqual(sizeFit(estimatedSpotCm(423, 'normal'), neededLengthCm(406)), { ok: true, marginal: true, gapCm: 6 });
 });
 
 test('§7 une petite voiture qui quitte une place serrée n’alerte pas les grandes', () => {
   const smallSpot = estimatedSpotCm(357, 'serre'); // Fiat 500 garée serrée => 387 cm
-  const bigNeed = neededLengthCm(475, 'normal');   // Tesla Model Y + normal => 525 cm
+  const bigNeed = neededLengthCm(475);             // Tesla Model Y => 546 cm
   assert.equal(sizeFit(smallSpot, bigNeed).ok, false);
 });
 
@@ -176,7 +189,8 @@ test('§4 l’identification propose des dimensions issues de la base, jamais in
 });
 
 test('les constantes de calibration restent centralisées', () => {
-  assert.equal(TUNING.seekerMargin.normal, 50);
+  assert.equal(TUNING.manoeuvre.ratioPct, 15);
+  assert.equal(TUNING.manoeuvre.minCm, 45);
   assert.equal(TUNING.lateToleranceS, 120);
   assert.equal(TUNING.points.transfer, 10);
 });

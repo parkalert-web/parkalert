@@ -4,15 +4,15 @@
  * §5 préférence de stationnement mémorisée · §31 fiabilité
  */
 
-import { COMFORT, COLORS } from './config.js';
-import { reliabilityFrom, reliabilityLabel, RELIABILITY_WEIGHTS, neededLengthCm } from './core.js';
+import { COLORS } from './config.js';
+import { reliabilityFrom, reliabilityLabel, RELIABILITY_WEIGHTS, neededLengthCm, fmtMetres } from './core.js';
 import { identify, TEMPLATES, vehicleLabel } from './vehicles.js';
 import * as db from './backend.js';
 import { S, emit } from './state.js';
 import { el, $, toast, openModal, closeModal, chooser, askNotificationPermission, LS } from './ui.js';
-import { askComfort, confirmSheet, infoSheet } from './pickers.js';
+import { confirmSheet, infoSheet } from './pickers.js';
 
-const metres = (cm) => `${(cm / 100).toFixed(2)} m`;
+const metres = fmtMetres;
 
 /* ─────────────────────── §4 — enregistrer un véhicule ─────────────────────── */
 
@@ -55,13 +55,13 @@ export async function addVehicleFlow(first = false) {
 
   const manual = el('details', { class: 'manual' },
     el('summary', { text: 'Mon véhicule n’est pas dans la liste' }),
-    el('div', { class: 'sublabel', text: 'GABARIT APPROCHANT (ESTIMATION)' }),
+    el('div', { class: 'sublabel', text: 'Gabarit approchant (estimation)' }),
     (() => {
       const c = chooser(TEMPLATES.map((t) => ({ id: t.id, label: t.label })), { value: null, columns: 1 });
       c.id = 'tpl-picker';
       return c;
     })(),
-    el('div', { class: 'sublabel', text: 'OU DIMENSIONS EXACTES DE VOTRE CARTE GRISE' }),
+    el('div', { class: 'sublabel', text: 'Ou dimensions exactes de votre carte grise' }),
     el('div', { class: 'custom-row' },
       el('label', { text: 'Longueur' }), el('input', { type: 'number', id: 'man-len', min: '200', max: '900', step: '1', placeholder: 'cm' }), el('span', { text: 'cm' })),
     el('div', { class: 'custom-row' },
@@ -72,9 +72,9 @@ export async function addVehicleFlow(first = false) {
   const yearField = el('input', { class: 'field', id: 'veh-year', type: 'number', min: '1990', max: '2030', placeholder: 'Année' });
 
   const body = el('div', {},
-    el('div', { class: 'sublabel', text: 'DÉCRIVEZ VOTRE VÉHICULE' }),
+    el('div', { class: 'sublabel', text: 'Décrivez votre véhicule' }),
     input, hint, results, manual,
-    el('div', { class: 'sublabel', text: 'COULEUR ET ANNÉE (POUR ÊTRE RECONNU SUR PLACE)' }),
+    el('div', { class: 'sublabel', text: 'Couleur et année (pour être reconnu sur place)' }),
     el('div', { class: 'btn-row' }, colorField, yearField),
     el('datalist', { id: 'color-list' }, ...COLORS.map((c) => el('option', { value: c }))),
   );
@@ -90,7 +90,7 @@ export async function addVehicleFlow(first = false) {
     subtitle: 'L’IA aide à identifier le modèle ; les dimensions viennent d’une base automobile.',
     body,
     actions: [{
-      label: 'CONFIRMER CE VÉHICULE', value: 'ok', variant: 'btn-green', keep: true,
+      label: 'Confirmer ce véhicule', value: 'ok', variant: 'btn-green', keep: true,
       onClick: () => {
         const tpl = manual.querySelector('#tpl-picker')?.value;
         const manLen = Number(manual.querySelector('#man-len').value) || 0;
@@ -122,16 +122,6 @@ export async function addVehicleFlow(first = false) {
   vehicle.color = colorField.value.trim() || detected.color || '';
   vehicle.year = Number(yearField.value) || detected.year || null;
 
-  // §5 — préférence de stationnement mémorisée pour ce véhicule.
-  const comfort = await askComfort({
-    title: 'Avec ce véhicule, comment aimez-vous vous garer ?',
-    subtitle: 'Mémorisé pour ce véhicule, modifiable à chaque recherche.',
-    value: 'normal',
-    explain: `Exemple : ${metres(vehicle.lengthCm)} + mode Normal = besoin estimé de ${metres(neededLengthCm(vehicle.lengthCm, 'normal'))}.`,
-  });
-  vehicle.marginMode = comfort && comfort !== 'later' ? comfort.qual : 'normal';
-  vehicle.marginCm = comfort && comfort !== 'later' ? comfort.customCm : null;
-
   const id = db.pushKey(`users/${S.uid}/vehicles`);
   vehicle.id = id;
   vehicle.createdAt = db.now();
@@ -153,7 +143,7 @@ export async function addVehicleFlow(first = false) {
 }
 
 export async function removeVehicle(id) {
-  const ok = await confirmSheet('Supprimer ce véhicule ?', '', 'SUPPRIMER', 'ANNULER', 'btn-red');
+  const ok = await confirmSheet('Supprimer ce véhicule ?', '', 'Supprimer', 'Annuler', 'btn-red');
   if (!ok) return;
   await db.del(`users/${S.uid}/vehicles/${id}`);
   if (S.defaultVehicleId === id) {
@@ -169,17 +159,6 @@ export async function setDefaultVehicle(id) {
   emit();
 }
 
-export async function editVehicleComfort(v) {
-  const comfort = await askComfort({
-    title: `Préférence pour ${vehicleLabel(v)}`,
-    value: v.marginMode || 'normal',
-    customCm: v.marginCm || 60,
-  });
-  if (!comfort || comfort === 'later') return;
-  await db.patch(`users/${S.uid}/vehicles/${v.id}`, { marginMode: comfort.qual, marginCm: comfort.customCm ?? null });
-  emit();
-}
-
 /* ─────────────────────── Vue Profil ─────────────────────── */
 
 export function renderProfile() {
@@ -192,31 +171,31 @@ export function renderProfile() {
   root.innerHTML = '';
   root.append(
     el('div', { class: 'card' },
-      el('div', { class: 'card-title', text: S.profile?.pseudo || 'Conducteur' }),
-      el('div', { class: 'muted', text: S.user?.isAnonymous ? 'Compte invité (données non conservées)' : (S.user?.email || '') }),
+      el('div', { class: 'profile-name', text: S.profile?.pseudo || 'Conducteur' }),
+      el('div', { class: 'muted small', text: S.user?.isAnonymous ? 'Compte invité — données non conservées' : (S.user?.email || '') }),
       el('div', { class: 'twin' },
-        el('div', {}, el('div', { class: 'sublabel', text: 'POINTS D’ENTRAIDE' }), el('div', { class: 'big', style: { color: '#4ade80' }, text: String(S.profile?.points || 0) })),
-        el('div', {}, el('div', { class: 'sublabel', text: 'INDICE DE FIABILITÉ' }), el('div', { class: 'big', style: { color }, text: String(rel) }), el('div', { class: 'muted', text: label })),
+        el('div', {}, el('div', { class: 'sublabel', text: 'Points d’entraide' }), el('div', { class: 'big', text: String(S.profile?.points || 0) })),
+        el('div', {}, el('div', { class: 'sublabel', text: 'Fiabilité' }), el('div', { class: 'big', style: { color }, text: String(rel) }), el('div', { class: 'muted small', text: label })),
       ),
-      el('div', { class: 'note', html: 'Les points récompensent les transmissions réussies et vous rendent <b>prioritaire</b> quand vous cherchez. La fiabilité, elle, reflète le respect de vos réservations (§3).' }),
+      el('div', { class: 'note', html: 'Les points récompensent les transmissions réussies et vous rendent <b>prioritaire</b> quand vous cherchez. La fiabilité, elle, reflète le respect de vos réservations.' }),
     ),
 
     el('div', { class: 'card' },
-      el('div', { class: 'sublabel', text: 'STATISTIQUES' }),
+      el('div', { class: 'sublabel', text: 'Statistiques' }),
       el('div', { class: 'kv', html: '<span>Places transmises</span><b>' + (stats.given || 0) + '</b>' }),
       el('div', { class: 'kv', html: '<span>Places obtenues</span><b>' + (stats.taken || 0) + '</b>' }),
       el('div', { class: 'kv', html: '<span>Signalements</span><b>' + (stats.signals || 0) + '</b>' }),
     ),
 
     el('div', { class: 'card' },
-      el('div', { class: 'sublabel', text: 'MES VÉHICULES' }),
+      el('div', { class: 'sublabel', text: 'Mes véhicules' }),
       ...(S.vehicles.length ? S.vehicles.map(vehicleRow) : [el('div', { class: 'muted', text: 'Aucun véhicule enregistré.' })]),
-      el('button', { class: 'btn btn-ghost small', onclick: () => addVehicleFlow() }, 'AJOUTER UN VÉHICULE'),
+      el('button', { class: 'btn btn-ghost small', onclick: () => addVehicleFlow() }, 'Ajouter un véhicule'),
     ),
 
     el('div', { class: 'card' },
-      el('div', { class: 'sublabel', text: 'RÉGLAGES' }),
-      toggleRow('Rappels avant départ (§11)', !!S.profile?.prefs?.reminders, async (v) => {
+      el('div', { class: 'sublabel', text: 'Réglages' }),
+      toggleRow('Rappels avant départ', !!S.profile?.prefs?.reminders, async (v) => {
         await db.patch(`users/${S.uid}/prefs`, { reminders: v });
         S.profile.prefs = { ...(S.profile.prefs || {}), reminders: v };
       }),
@@ -225,9 +204,9 @@ export function renderProfile() {
         const ok = await askNotificationPermission();
         input.checked = ok;
       }),
-      el('div', { class: 'note', html: 'Le partage de position ne démarre qu’après une réservation et s’arrête automatiquement à la fin (§19).' }),
-      el('button', { class: 'btn btn-ghost small', onclick: () => showReliabilityDetail() }, 'COMMENT EST CALCULÉE MA FIABILITÉ ?'),
-      el('button', { class: 'btn btn-red small', onclick: () => import('./app.js').then((m) => m.doLogout()) }, 'SE DÉCONNECTER'),
+      el('div', { class: 'note', html: 'Le partage de position ne démarre qu’après une réservation et s’arrête automatiquement à la fin.' }),
+      el('button', { class: 'btn btn-ghost small', onclick: () => showReliabilityDetail() }, 'Comment est calculée ma fiabilité ?'),
+      el('button', { class: 'btn btn-red small', onclick: () => import('./app.js').then((m) => m.doLogout()) }, 'Se déconnecter'),
     ),
   );
 }
@@ -238,12 +217,11 @@ function vehicleRow(v) {
     el('div', { class: 'veh-main' },
       el('b', { text: vehicleLabel(v) }),
       el('span', { class: 'muted', text: `${metres(v.lengthCm)}${v.color ? ` · ${v.color}` : ''} · ${sourceLabel(v.source)}` }),
-      el('span', { class: 'muted', text: `Confort : ${COMFORT.find((c) => c.id === (v.marginMode || 'normal'))?.label} → besoin ${metres(neededLengthCm(v.lengthCm, v.marginMode || 'normal', v.marginCm))}` }),
+      el('span', { class: 'muted', text: `Place nécessaire : ${metres(neededLengthCm(v.lengthCm))}` }),
     ),
     el('div', { class: 'veh-actions' },
-      isDefault ? el('span', { class: 'badge badge-green', text: 'PAR DÉFAUT' })
+      isDefault ? el('span', { class: 'badge badge-green', text: 'Par défaut' })
         : el('button', { class: 'chip', onclick: () => setDefaultVehicle(v.id) }, 'Utiliser'),
-      el('button', { class: 'chip', onclick: () => editVehicleComfort(v) }, 'Confort'),
       el('button', { class: 'chip danger', onclick: () => removeVehicle(v.id) }, 'Supprimer'),
     ));
 }
@@ -272,7 +250,7 @@ function showReliabilityDetail() {
   }).join('');
   infoSheet('Indice de fiabilité',
     'Une erreur occasionnelle n’est <b>jamais</b> sanctionnée : la première occurrence de chaque type d’incident est neutre. '
-    + 'Seule la répétition fait baisser l’indice (§31).<br><br>' + rows);
+    + 'Seule la répétition fait baisser l’indice.<br><br>' + rows);
 }
 
 /* ─────────────────────── Vue Historique ─────────────────────── */
@@ -281,7 +259,7 @@ export function renderHistory(entries) {
   const root = $('#view-history');
   if (!root) return;
   root.innerHTML = '';
-  root.append(el('div', { class: 'sublabel', text: 'HISTORIQUE DE VOS ACTIONS' }));
+  root.append(el('div', { class: 'sublabel', text: 'Historique de vos actions' }));
   if (!entries.length) {
     root.append(el('div', { class: 'empty', text: 'Aucune action pour l’instant.' }));
     return;
@@ -304,8 +282,8 @@ export async function onboarding() {
     const res = await openModal({
       title: 'Bienvenue sur ParkAlert',
       subtitle: 'Comment souhaitez-vous être appelé ?',
-      body: el('div', {}, el('div', { class: 'note', html: 'Un pseudonyme suffit : les autres conducteurs ne voient jamais votre nom complet, votre téléphone ni votre plaque (§17).' }), input),
-      actions: [{ label: 'CONTINUER', value: 'ok', variant: 'btn-green' }],
+      body: el('div', {}, el('div', { class: 'note', html: 'Un pseudonyme suffit : les autres conducteurs ne voient jamais votre nom complet, votre téléphone ni votre plaque.' }), input),
+      actions: [{ label: 'Continuer', value: 'ok', variant: 'btn-green' }],
       dismissible: false,
     });
     const pseudo = input.value.trim() || 'Conducteur';

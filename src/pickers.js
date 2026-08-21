@@ -11,9 +11,9 @@ import { openModal, chooser, el, esc } from './ui.js';
  * @returns {Promise<{qual:string, customCm:number|null}|'later'|null>}
  */
 export async function askComfort({
-  title, subtitle, value = 'normal', customCm = 60, allowLater = false, laterLabel = 'PLUS TARD', explain = null,
+  title, subtitle, value = 'normal', customCm = 60, allowLater = false, laterLabel = 'Plus tard', explain = null,
 } = {}) {
-  const opts = COMFORT.map((c) => ({ id: c.id, label: c.label.toUpperCase(), hint: c.hint }));
+  const opts = COMFORT.map((c) => ({ id: c.id, label: c.label, hint: c.hint }));
   const picker = chooser(opts, { value, columns: 2 });
 
   const custom = el('div', { class: 'custom-row', style: { display: value === 'perso' ? 'flex' : 'none' } },
@@ -31,7 +31,7 @@ export async function askComfort({
     custom);
 
   const actions = [
-    { label: 'VALIDER', value: 'ok', variant: 'btn-green' },
+    { label: 'Valider', value: 'ok', variant: 'btn-green' },
     ...(allowLater ? [{ label: laterLabel, value: 'later' }] : []),
   ];
 
@@ -62,7 +62,7 @@ export async function askDeparture() {
   const res = await openModal({
     title: 'Dans combien de temps maximum êtes-vous prêt à libérer votre place ?',
     body,
-    actions: [{ label: 'CONTINUER', value: 'ok', variant: 'btn-green' }],
+    actions: [{ label: 'Continuer', value: 'ok', variant: 'btn-green' }],
   });
   if (res !== 'ok') return null;
   const choice = DEPARTURE_CHOICES.find((d) => d.id === picker.value);
@@ -74,7 +74,7 @@ export async function askDeparture() {
 export async function askExtraWait() {
   const options = [
     { id: '2', label: '+2 MIN' }, { id: '5', label: '+5 MIN' },
-    { id: '10', label: '+10 MIN' }, { id: 'custom', label: 'PERSONNALISÉ' },
+    { id: '10', label: '+10 MIN' }, { id: 'custom', label: 'Personnalisé' },
   ];
   const picker = chooser(options, { value: '2', columns: 2 });
   const custom = el('div', { class: 'custom-row', style: { display: 'none' } },
@@ -86,7 +86,7 @@ export async function askExtraWait() {
   const res = await openModal({
     title: 'Combien de temps attendez-vous encore ?',
     body: el('div', {}, picker, custom),
-    actions: [{ label: 'VALIDER', value: 'ok', variant: 'btn-green' }],
+    actions: [{ label: 'Valider', value: 'ok', variant: 'btn-green' }],
     dismissible: false,
   });
   if (res !== 'ok') return null;
@@ -99,15 +99,15 @@ export async function askExtraWait() {
 /** §26 — motif d'échec, sans jamais demander de mesure précise. */
 export async function askNoFitReason() {
   const picker = chooser([
-    { id: 'short', label: 'PLACE TROP COURTE' },
-    { id: 'access', label: 'ACCÈS IMPOSSIBLE' },
-    { id: 'other', label: 'AUTRE PROBLÈME' },
+    { id: 'short', label: 'Place trop courte' },
+    { id: 'access', label: 'Accès impossible' },
+    { id: 'other', label: 'Autre problème' },
   ], { value: 'short', columns: 1 });
 
   const degree = chooser([
-    { id: 'little', label: 'UN PEU TROP GRANDE' },
-    { id: 'much', label: 'BEAUCOUP TROP GRANDE' },
-    { id: 'unknown', label: 'JE NE SAIS PAS' },
+    { id: 'little', label: 'Un peu trop grande' },
+    { id: 'much', label: 'Beaucoup trop grande' },
+    { id: 'unknown', label: 'Je ne sais pas' },
   ], { value: 'unknown', columns: 1 });
   const degreeWrap = el('div', {}, el('div', { class: 'sublabel', text: 'VOTRE VOITURE EST…' }), degree);
   picker.addEventListener('choose', (e) => { degreeWrap.style.display = e.detail === 'short' ? 'block' : 'none'; });
@@ -116,7 +116,7 @@ export async function askNoFitReason() {
     title: 'Pourquoi ne pouvez-vous pas vous garer ?',
     subtitle: 'Aucun malus : vous êtes bien sur place.',
     body: el('div', {}, picker, degreeWrap),
-    actions: [{ label: 'ENVOYER', value: 'ok', variant: 'btn-orange' }],
+    actions: [{ label: 'Envoyer', value: 'ok', variant: 'btn-orange' }],
   });
   if (res !== 'ok') return null;
   return { reason: picker.value, degree: picker.value === 'short' ? degree.value : null };
@@ -135,7 +135,7 @@ export function confirmSheet(title, subtitle, yes = 'OUI', no = 'NON', variant =
   });
 }
 
-export function infoSheet(title, html, label = 'J’AI COMPRIS') {
+export function infoSheet(title, html, label = 'J’ai compris') {
   return openModal({ title, body: el('div', { class: 'note', html }), actions: [{ label, value: true, variant: 'btn-green' }] });
 }
 
