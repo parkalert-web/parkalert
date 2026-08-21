@@ -4,8 +4,85 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#07060b">
-<title>ACHÉRON — 120 niveaux, des pièges, et ce qui te suit</title>
-<meta name="description" content="Un jeu de plateformes en 120 niveaux. Les pièges veulent que tu attendes. Les spectres t'interdisent d'attendre. À toi de trancher.">
+
+<!-- ===========================================================================
+     >>> LE SEUL ENDROIT À CHANGER SI LE DOMAINE CHANGE <<<
+     Deux balises portent l'adresse publique du site, et elles sont côte à côte
+     juste en dessous : le lien canonique et og:url. Rien d'autre dans le
+     fichier ne contient le domaine.
+     =========================================================================== -->
+<link rel="canonical" href="https://acheron.netlify.app/">
+<meta property="og:url" content="https://acheron.netlify.app/">
+
+<meta name="author" content="VanNDM Creations">
+<meta name="keywords" content="jeu de plateformes gratuit, jeu 2d navigateur, 120 niveaux, jeu de pièges, jeu html5 sans installation, achéron">
+<!-- Balise de propriété AdSense : elle relie ce site au compte éditeur. -->
+<meta name="google-adsense-account" content="ca-pub-5640171592773109">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ACHÉRON — 120 niveaux de plateformes, gratuit">
+<meta property="og:description" content="Cinq territoires, des scies, des presses, de l'acide, des rayons. Chaque machine a une fenêtre et te la montre avant de frapper. Gratuit, sans installation.">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"VideoGame","name":"ACHÉRON",
+"description":"Jeu de plateformes gratuit jouable dans le navigateur : 120 niveaux répartis en cinq territoires, chacun avec ses propres machines mortelles.",
+"genre":["Action","Plateforme"],"gamePlatform":"Navigateur web","inLanguage":"fr",
+"applicationCategory":"Game","operatingSystem":"Tout navigateur moderne",
+"author":{"@type":"Organization","name":"VanNDM Creations"},
+"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
+</script>
+
+<!-- Google Consent Mode v2 : tout est refusé par défaut.
+     Le CMP certifié met ensuite à jour ces signaux selon le choix réel de la
+     personne. Ce bloc doit rester AVANT tout script publicitaire. -->
+<script>
+window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments);}
+gtag('consent','default',{
+  ad_storage:'denied',
+  ad_user_data:'denied',
+  ad_personalization:'denied',
+  analytics_storage:'denied',
+  functionality_storage:'granted',
+  security_storage:'granted',
+  wait_for_update:2000
+});
+gtag('set','ads_data_redaction',true);
+gtag('set','url_passthrough',true);
+</script>
+
+<!-- CMP certifié IAB TCF v2.2 : Google Funding Choices.
+     À activer dans AdSense > Confidentialité et messages > Message de consentement UE. -->
+<script async src="https://fundingchoicesmessages.google.com/i/pub-5640171592773109?ers=1"></script>
+<script>(function(){function signalGooglefcPresent(){if(!window.frames['googlefcPresent']){
+if(document.body){const i=document.createElement('iframe');i.style='width:0;height:0;border:none;z-index:-1000;left:-1000px;top:-1000px;';
+i.style.display='none';i.name='googlefcPresent';document.body.appendChild(i);}else{setTimeout(signalGooglefcPresent,0);}}}
+signalGooglefcPresent();})();</script>
+<script>
+/* AdSense n'est chargé qu'une fois le CMP prêt : c'est ce que Google exige
+   pour que les annonces respectent le choix de la personne. Aucun bloc
+   d'annonce n'est écrit dans la page — seules les annonces automatiques,
+   pilotées depuis le compte AdSense, ont le droit de se placer. */
+(function(){
+  var lance=false;
+  function charger(){
+    if(lance) return; lance=true;
+    var t=document.createElement('script');
+    t.async=true; t.crossOrigin='anonymous';
+    t.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5640171592773109';
+    document.head.appendChild(t);
+  }
+  if(window.__tcfapi){
+    window.__tcfapi('addEventListener',2,function(d,ok){
+      if(ok && d && (d.eventStatus==='tcloaded'||d.eventStatus==='useractioncomplete')) charger();
+    });
+  }
+  /* filet : hors zone TCF (Canada, Japon...), le CMP ne s'affiche pas */
+  setTimeout(charger,2500);
+})();
+</script>
+<title>ACHÉRON — 120 niveaux de plateformes et de pièges, gratuit dans le navigateur</title>
+<meta name="description" content="ACHÉRON est un jeu de plateformes gratuit et sans installation : 120 niveaux, cinq territoires, des scies, des presses, de l'acide, des rayons. Chaque machine a une fenêtre et te la montre avant de frapper. Jouable au clavier et au doigt.">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:#07060b;color:#e8e4f0;
@@ -26,15 +103,19 @@ body{position:fixed;inset:0}
 #hudNiv .va{color:#fff}
 #hudTps .va{color:#8fd4ff}
 #hudMorts .va{color:#ff7a90}
-#hudEcart{margin-left:auto;text-align:right}
-#hudEcart .va{color:#c6a7ff}
+#hudObj{margin-left:auto;text-align:right}
+#hudObj .va{color:#ffd479}
+#hudTps.perdu .va{color:#8b82a6}
 #hudBio{font-size:10px;letter-spacing:.22em;color:#8b82a6;text-transform:uppercase;
   border-left:2px solid #2a2440;padding-left:9px;margin-left:2px}
 
-/* la jauge de proximite : la seule chose qu'il faut regarder en jouant */
+/* la jauge du temps : elle se remplit jusqu'au temps de référence de la
+   médaille d'or, puis passe au rouge. Elle ne coûte jamais une vie — c'est
+   la seule pression du jeu, et elle ne porte que sur les médailles. */
 #jauge{position:absolute;top:0;left:0;height:3px;width:0%;z-index:21;
-  background:linear-gradient(90deg,#6b4bd6,#ff3860);transition:width .08s linear;
-  box-shadow:0 0 10px #ff386088}
+  background:linear-gradient(90deg,#4dd5a0,#ffd479);transition:width .12s linear;
+  box-shadow:0 0 10px #ffd47955}
+#jauge.perdu{background:#ff3860;box-shadow:0 0 10px #ff386088}
 
 #btnPause{position:absolute;top:calc(6px + env(safe-area-inset-top));right:8px;z-index:24;
   width:34px;height:34px;border-radius:9px;border:1px solid #2e2748;background:#100d1ccc;
@@ -192,7 +273,7 @@ h2{font-size:20px;letter-spacing:.14em;text-transform:uppercase;color:#fff;
   #hud .va{font-size:14px}
   #hud .et{font-size:8px;letter-spacing:.12em}
   #hudBio{display:none}
-  #hudEcart .et{max-width:56px;line-height:1.15}
+  #hudObj .et{max-width:60px;line-height:1.15}
 }
 @media(max-height:520px){
   h1{font-size:clamp(28px,9vh,44px)}
@@ -214,7 +295,7 @@ h2{font-size:20px;letter-spacing:.14em;text-transform:uppercase;color:#fff;
   <div id="hudBio">La Cave</div>
   <div class="bloc" id="hudTps"><span class="et">Temps</span><span class="va">0.0</span></div>
   <div class="bloc" id="hudMorts"><span class="et">Morts</span><span class="va">0</span></div>
-  <div class="bloc" id="hudEcart"><span class="et">Le plus proche</span><span class="va">—</span></div>
+  <div class="bloc" id="hudObj"><span class="et">Objectif ★</span><span class="va">—</span></div>
 </div>
 <button id="btnPause" title="Pause (Échap)">❚❚</button>
 
@@ -235,8 +316,7 @@ h2{font-size:20px;letter-spacing:.14em;text-transform:uppercase;color:#fff;
   <div class="dedans" style="margin:auto">
     <h1>ACHÉRON</h1>
     <div class="sst">120 niveaux · 5 territoires · rien qui pardonne</div>
-    <p class="phrase">Chaque piège veut que tu attendes le bon moment.<br>
-      Les spectres, eux, n'attendent jamais.</p>
+    <p class="phrase">Chaque machine a une fenêtre,<br>et te la montre avant de frapper.</p>
     <div style="height:14px"></div>
     <button class="bt pri" id="mJouer">Continuer</button>
     <button class="bt" id="mCarte">Carte des territoires</button>
@@ -245,8 +325,9 @@ h2{font-size:20px;letter-spacing:.14em;text-transform:uppercase;color:#fff;
       <button class="bt pt" id="mProfil">Profil</button>
     </div>
     <div class="pied">
-      VanNDM Creations · <a href="#" id="mLeg">Mentions légales</a><br>
-      Un seul fichier. Aucune donnée ne quitte ton appareil.
+      VanNDM Creations · <a href="#" id="mLeg">Mentions légales</a>
+      · <a href="#" id="mConf">Confidentialité</a><br>
+      Jeu gratuit, sans installation, sans compte.
     </div>
   </div>
 </div>
@@ -318,6 +399,16 @@ h2{font-size:20px;letter-spacing:.14em;text-transform:uppercase;color:#fff;
     <div style="height:10px"></div>
     <button class="bt pt" id="prRetour">Retour</button>
     <button class="bt pt" id="prEffacer" style="border-color:#6b2440;color:#ff9db0">Effacer ma progression</button>
+  </div>
+</div>
+
+<!-- ====================== CONFIDENTIALITÉ ====================== -->
+<div class="ecran" id="confid">
+  <div class="dedans">
+    <h2>Confidentialité et cookies</h2>
+    <div class="txt" id="confTxt"></div>
+    <button class="bt pt" id="gererConsent">Gérer mes choix publicitaires</button>
+    <button class="bt pt" id="coRetour">Retour</button>
   </div>
 </div>
 
@@ -413,13 +504,11 @@ function ecritStock(d) {
 /* ===========================================================================
    SON — tout est synthétisé, aucun fichier n'est téléchargé.
    Un jeu de plateformes se joue beaucoup à l'oreille : le pas qui rebondit,
-   la scie qui approche, le souffle du spectre. Chaque son porte une info que
+   la scie qui approche, la presse qui s'arme. Chaque son porte une info que
    l'image ne donne pas toujours (ce qui arrive hors champ, derrière soi).
    =========================================================================== */
 const SND = {
   ctx: null, maitre: null, muet: false, pret: false,
-  /* le souffle des spectres : un bruit continu dont le volume dit la distance */
-  souffle: null, souffleG: null, souffleF: null,
 
   init() {
     if (this.ctx) return;
@@ -498,47 +587,10 @@ const SND = {
       setTimeout(() => this.note(f, .28, .1, 'triangle'), i * 110));
   },
 
-  /* --- le souffle : monté une seule fois, on ne fait que bouger son volume ---
-     Créer un oscillateur par image coûterait cher et cliquerait ; ici une
-     seule source vit tant que le niveau tourne. */
-  ouvrirSouffle() {
-    if (!this.pret || !this.ctx || this.souffle) return;
-    try {
-      const n = Math.floor(this.ctx.sampleRate * 2);
-      const b = this.ctx.createBuffer(1, n, this.ctx.sampleRate);
-      const d = b.getChannelData(0);
-      let der = 0;
-      for (let i = 0; i < n; i++) {           // bruit brun : plus sourd, plus organique
-        der = (der + (Math.random() * 2 - 1) * .06);
-        der = serre(der, -1, 1);
-        d[i] = der * .7;
-      }
-      const s = this.ctx.createBufferSource();
-      s.buffer = b; s.loop = true;
-      const f = this.ctx.createBiquadFilter();
-      f.type = 'bandpass'; f.frequency.value = 420; f.Q.value = 1.1;
-      const g = this.ctx.createGain(); g.gain.value = 0;
-      s.connect(f); f.connect(g); g.connect(this.maitre);
-      s.start();
-      this.souffle = s; this.souffleG = g; this.souffleF = f;
-    } catch (e) { this.souffle = null; }
-  },
-
-  /* p va de 0 (loin) à 1 (sur toi) */
-  reglerSouffle(p) {
-    if (!this.souffleG || !this.ctx) return;
-    const v = this.muet ? 0 : serre(p, 0, 1);
-    try {
-      this.souffleG.gain.setTargetAtTime(v * v * .30, this.ctx.currentTime, .08);
-      this.souffleF.frequency.setTargetAtTime(300 + v * 700, this.ctx.currentTime, .12);
-    } catch (e) { }
-  },
-
-  fermerSouffle() {
-    if (!this.souffle) return;
-    try { this.souffle.stop(); } catch (e) { }
-    this.souffle = null; this.souffleG = null; this.souffleF = null;
-  }
+  /* le bruit d'un piège qui va partir : c'est souvent lui qu'on entend avant
+     de le voir, quand la machine est hors champ */
+  annonce() { this.note(700, .07, .035, 'square', 950); },
+  porte() { this.note(392, .5, .07, 'sine', 784); }
 };
 
 /* ==== a_03_data.js ==== */
@@ -587,7 +639,7 @@ const LEGENDE = {
   '+': T_PHASE_A, '-': T_PHASE_B, 'E': T_SORTIE
 };
 /* les lettres ne posent pas de tuile : elles plantent une machine sur du vide */
-const MACHINES = 'stpfljmnob';
+const MACHINES = 'stpfghklvjmnob';
 
 const DALLE_TENUE = .30;      // temps qu'une dalle supporte avant de céder
 const DALLE_REPOUSSE = 3.0;   // et temps qu'elle met à revenir
@@ -595,75 +647,54 @@ const PHASE_DUREE = 1.5;      // les murs en phase changent toutes les 1,5 s
 const TAPIS_V = 4.2;          // ce qu'un tapis roulant ajoute à ta vitesse
 
 /* ===========================================================================
-   LES SPECTRES
-   Quatre façons de te poursuivre, et surtout quatre façons différentes de
-   te forcer la main. Aucun ne peut être tué : ils ne sont pas un combat,
-   ils sont une horloge.
-   =========================================================================== */
-const SPECTRES = {
-  rodeur: {
-    nom: 'RÔDEUR', teinte: '#8b7ad6', v: 3.55,
-    quoi: 'Il va droit sur toi, à travers la pierre, sans jamais s\'arrêter.'
-  },
-  traqueur: {
-    nom: 'TRAQUEUR', teinte: '#ff7a4d', v: 5.10,
-    quoi: 'Plus rapide — mais il ne bouge que quand TU cours. S\'arrêter le fige.'
-  },
-  hurleur: {
-    nom: 'HURLEUR', teinte: '#ff4d6d', v: 2.35, ruee: 17.5, ruee_d: .42,
-    ruee_cycle: 3.1, ruee_annonce: .55,
-    quoi: 'Lent, jusqu\'à ce qu\'il vise et se rue en ligne droite. Il annonce toujours.'
-  },
-  echo: {
-    nom: 'ÉCHO', teinte: '#4dd5c4', v: 0, retard: 2.6,
-    quoi: 'Il refait ton propre trajet avec du retard. Revenir sur tes pas, c\'est le rencontrer.'
-  }
-};
-
-/* ===========================================================================
    LES CINQ TERRITOIRES
-   Chacun apporte ses pièges ET un spectre de plus. C'est le seul axe de
-   difficulté du jeu : on n'augmente pas des points de vie, on ajoute des
-   façons de mourir — et le joueur peut les nommer.
+   Chacun apporte ses propres machines. C'est le seul axe de difficulté du
+   jeu : on n'augmente pas des points de vie, on change les façons de mourir
+   — et le joueur peut les nommer.
+
+   `rythme` accélère toutes les machines du territoire. Les fenêtres de
+   passage se resserrent de vingt-cinq pour cent entre le premier couloir et
+   le dernier, sans qu'aucun piège ne change de nature. Chaque morceau est
+   vérifié au rythme le plus rapide, donc au cas le plus serré.
    =========================================================================== */
 const BIOMES = [
   {
-    id: 'cave', nom: 'La Cave', n: 24, deb: 0,
-    devise: 'Ça goutte, ça s\'effondre, et quelque chose respire au fond.',
-    pieges: 'Pics · dalles friables · stalactites',
-    spectres: ['rodeur'], vFant: 1.00, grace: 2.0, nMax: 2,
+    id: 'cave', nom: 'La Cave', n: 24, deb: 0, rythme: 1.00,
+    devise: 'Ça goutte, ça s\'effondre, et rien ici ne se répare.',
+    pieges: 'Pics · dalles friables · blocs qui se détachent',
+    lecon: 'Une dalle friable ne cède pas quand tu la touches, mais quand tu restes dessus.',
     ciel: '#0b0813', roche: '#3c3350', roche2: '#4d4166', bord: '#7a6a9e',
     fond: '#17122a', accent: '#a893ff', brume: '#1e1733'
   },
   {
-    id: 'scierie', nom: 'La Scierie', n: 24, deb: 24,
+    id: 'scierie', nom: 'La Scierie', n: 24, deb: 24, rythme: 1.06,
     devise: 'Les machines ne se sont jamais arrêtées. Personne n\'est venu couper le courant.',
-    pieges: 'Scies · presses · tapis roulants',
-    spectres: ['rodeur', 'traqueur'], vFant: 1.06, grace: 1.7, nMax: 3,
+    pieges: 'Scies sur rail · presses · tapis roulants',
+    lecon: 'Certains tapis te tirent en arrière : la course n\'y vaut plus la moitié.',
     ciel: '#150d07', roche: '#6b4a2e', roche2: '#82603c', bord: '#b98a52',
     fond: '#241810', accent: '#ffab5e', brume: '#2c1c12'
   },
   {
-    id: 'egouts', nom: 'Les Égouts', n: 24, deb: 48,
+    id: 'egouts', nom: 'Les Égouts', n: 24, deb: 48, rythme: 1.12,
     devise: 'L\'eau est montée. Ce qui flotte dedans n\'était pas de l\'eau.',
-    pieges: 'Acide · vapeur · plateformes mobiles',
-    spectres: ['rodeur', 'traqueur', 'hurleur'], vFant: 1.12, grace: 1.5, nMax: 4,
+    pieges: 'Acide · jets de vapeur · plateformes mobiles',
+    lecon: 'La plateforme est la seule machine sur laquelle on monte — et la seule qu\'il faut attendre.',
     ciel: '#07130f', roche: '#2b5a4c', roche2: '#3a7161', bord: '#58a68e',
     fond: '#0e211c', accent: '#56e6ad', brume: '#123028'
   },
   {
-    id: 'forge', nom: 'La Forge', n: 24, deb: 72,
+    id: 'forge', nom: 'La Forge', n: 24, deb: 72, rythme: 1.18,
     devise: 'On y fondait quelque chose. On y fond encore.',
-    pieges: 'Flammes · lave · pendules',
-    spectres: ['rodeur', 'traqueur', 'hurleur'], vFant: 1.19, grace: 1.3, nMax: 5,
+    pieges: 'Fonte · lames pendulaires · lance-flammes',
+    lecon: 'Une lame pendulaire n\'a pas de fenêtre fixe : elle en a deux, une à chaque bout.',
     ciel: '#180706', roche: '#5c2a22', roche2: '#75372c', bord: '#b5573c',
     fond: '#260c09', accent: '#ff7a4a', brume: '#34120c'
   },
   {
-    id: 'sanctuaire', nom: 'Le Sanctuaire', n: 24, deb: 96,
+    id: 'sanctuaire', nom: 'Le Sanctuaire', n: 24, deb: 96, rythme: 1.25,
     devise: 'Ici, la pierre obéit à autre chose qu\'à la pesanteur.',
-    pieges: 'Lasers · murs en phase · pièges dormants',
-    spectres: ['rodeur', 'traqueur', 'hurleur', 'echo'], vFant: 1.26, grace: 1.2, nMax: 6,
+    pieges: 'Rayons · murs en phase · piques rétractables',
+    lecon: 'Un mur qui n\'existe qu\'une fois sur deux est un sol la moitié du temps.',
     ciel: '#0a0719', roche: '#362b60', roche2: '#453878', bord: '#7b66bc',
     fond: '#150f2c', accent: '#c49bff', brume: '#1d1440'
   }
@@ -692,12 +723,12 @@ const DEFIS = [
   { id: 'net40', ic: '🏹', n: 'Très propre', d: 'Franchir 40 niveaux du premier coup.' },
   { id: 'or10', ic: '🥇', n: 'Rapide', d: 'Décrocher 10 médailles d\'or.' },
   { id: 'or50', ic: '👑', n: 'Intouchable', d: 'Décrocher 50 médailles d\'or.' },
-  { id: 'frole', ic: '💨', n: 'À un cheveu', d: 'Sortir d\'un niveau avec un spectre à moins d\'une tuile.' },
   { id: 'sansfaute5', ic: '🧊', n: 'Cinq d\'affilée', d: 'Franchir 5 niveaux de suite sans mourir.' },
+  { id: 'sansfaute12', ic: '💎', n: 'Douze d\'affilée', d: 'Franchir 12 niveaux de suite sans mourir.' },
+  { id: 'expert', ic: '🜂', n: 'Or au Sanctuaire', d: 'Décrocher une médaille d\'or dans Le Sanctuaire.' },
   { id: 'cent', ic: '💀', n: 'Cent fois', d: 'Mourir cent fois. Ça arrive.' },
   { id: 'demi', ic: '🌗', n: 'À mi-chemin', d: 'Franchir 60 niveaux.' },
-  { id: 'vite', ic: '⚡', n: 'Sous les dix', d: 'Franchir un niveau en moins de 10 secondes.' },
-  { id: 'quatre', ic: '👥', n: 'Encerclé', d: 'Franchir un niveau avec quatre spectres ou plus aux trousses.' }
+  { id: 'vite', ic: '⚡', n: 'Sous les dix', d: 'Franchir un niveau en moins de 10 secondes.' }
 ];
 
 /* ==== a_04_morceaux.js ==== */
@@ -1136,9 +1167,9 @@ const MORCEAUX = [
     '############',
     '############',
     '............',
-    '.......t....',
+    '.........t..',
     '............',
-    '...s........',
+    '..s.........',
     '############',
     '############',
     '############',
@@ -1825,7 +1856,10 @@ function poserPlateforme(M, t) {
    =========================================================================== */
 function tirerMorceaux(bio, prog, r, k) {
   const bassin = MORCEAUX.filter(m => (m.bio === bio.id || m.bio === 'tous') && m.d > 0);
-  const cible = 1 + prog * 2.15;
+  /* la difficulté visée monte à l'intérieur d'un territoire ET d'un
+     territoire à l'autre : le premier couloir de La Forge est déjà plus dur
+     que le dernier de La Cave */
+  const cible = Math.min(3.05, 1 + prog * 2.0 + BIOMES.indexOf(bio) * .13);
   const out = [];
   let der = '', deder = '';
   for (let i = 0; i < k; i++) {
@@ -1848,7 +1882,9 @@ function construireNiveau(n) {
   const bio = biomeDe(n);
   const prog = (n - bio.deb) / (bio.n - 1);
   const r = semeur((n * 2654435761 + 0x9E3779B1) >>> 0);
-  const k = 3 + Math.round(prog * 3);                 // 3 à 6 morceaux au milieu
+  /* les couloirs s'allongent avec la progression : 3 morceaux au premier
+     niveau, 8 au dernier */
+  const k = 3 + Math.round(prog * 3 + BIOMES.indexOf(bio) * .5);
   const suite = [PAR_NOM.depart].concat(tirerMorceaux(bio, prog, r, k), [PAR_NOM.sortie]);
   return assembler(suite, bio, n, prog);
 }
@@ -1860,6 +1896,7 @@ function assembler(suite, bio, n, prog) {
   const L = suite.length * L_MORCEAU, H = H_MORCEAU;
   const N = {
     niv: n, bio, L, H, prog: prog || 0,
+    rythme: bio.rythme || 1, tPhase: PHASE_DUREE / (bio.rythme || 1),
     sol: new Uint8Array(L * H),
     mach: [], noms: suite.map(m => m.nom),
     etatD: new Uint8Array(L * H), timD: new Float32Array(L * H)
@@ -1899,7 +1936,7 @@ function assembler(suite, bio, n, prog) {
   for (let i = 0; i < N.sol.length; i++)
     if (N.sol[i] === T_PHASE_A || N.sol[i] === T_PHASE_B) phase++;
   N.par = Math.max(6,
-    (.1474 * L + .24 * mortelles + 1.22 * plateformes + .055 * phase - 1.55) * 1.35);
+    (.1816 * L + .079 * mortelles + .402 * plateformes + .062 * phase - 3.80) * 1.30);
 
   return N;
 }
@@ -1924,10 +1961,16 @@ function estSolide(N, x, y, phA) {
 
 function estMortel(N, x, y) { return !!MORTEL[tuile(N, x, y)]; }
 
+/* Toutes les machines d'un territoire battent au rythme de ce territoire.
+   Un seul multiplicateur sur le temps, et les fenêtres de passage se
+   resserrent de vingt-cinq pour cent entre le premier couloir et le dernier
+   sans qu'aucun piège ne change de nature. Chaque morceau est vérifié au
+   rythme le PLUS RAPIDE, c'est-à-dire au cas le plus serré. */
 function majMachines(N, t) {
+  const u = t * N.rythme;
   for (const M of N.mach) {
-    if (M.t === 'plateforme') poserPlateforme(M, t);
-    else poserMachine(M, t);
+    if (M.t === 'plateforme') poserPlateforme(M, u);
+    else poserMachine(M, u);
   }
 }
 
@@ -2191,137 +2234,6 @@ function majChutes(N, j, dt, phA) {
   }
 }
 
-/* ==== a_07_spectres.js ==== */
-/* ===========================================================================
-   LES SPECTRES
-   Ils traversent la pierre et vont droit sur toi. Ils sont plus lents que
-   toi — c'est ce qui rend le jeu jouable : on peut les contourner, les
-   semer, leur tourner autour. Ce qu'on ne peut pas, c'est les faire
-   attendre. Or chaque piège du jeu demande d'attendre.
-
-   Tout le jeu tient dans ce frottement : le piège veut que tu patientes,
-   le spectre te l'interdit. Un niveau se gagne en décidant, à chaque
-   machine, si tu prends la fenêtre suivante ou celle d'après.
-   =========================================================================== */
-const R_SPECTRE = .46;
-
-/* « le ÉCHO » se lit mal. L'élision devant voyelle, y compris accentuée. */
-const article = nom => ('AEIOUÉÈÊÀÂÎÔÛ'.indexOf(nom[0]) >= 0 ? "l'" : 'le ') + nom;
-
-function nbSpectres(bio, prog) {
-  return Math.max(1, Math.min(bio.nMax, 1 + Math.round(prog * (bio.nMax - 1))));
-}
-
-/* Le spectre neuf du territoire arrive SEUL sur ses premiers niveaux : on ne
-   comprend un comportement que si on l'a vu isolé une fois. */
-function typesSpectres(bio, prog, nb) {
-  const dispo = bio.spectres, neuf = dispo[dispo.length - 1];
-  const out = [];
-  if (prog < .12) { for (let i = 0; i < nb; i++) out.push(neuf); return out; }
-  out.push(neuf);
-  for (let i = 1; i < nb; i++) out.push(dispo[(i - 1) % dispo.length]);
-  return out;
-}
-
-function creerSpectres(N) {
-  const bio = N.bio, prog = N.prog;
-  const nb = nbSpectres(bio, prog);
-  const types = typesSpectres(bio, prog, nb);
-  const grace = Math.max(.75, bio.grace - .40 * prog);
-  const out = [];
-  let nEcho = 0;
-  for (let i = 0; i < types.length; i++) {
-    const d = SPECTRES[types[i]];
-    /* deux ÉCHOS au même retard se superposeraient au pixel près : chacun
-       reprend ton trajet à une distance différente dans le passé */
-    const retard = d.retard ? d.retard + 1.6 * (nEcho++) : 0;
-    out.push({
-      retard,
-      k: types[i], nom: d.nom, teinte: d.teinte,
-      v: d.v * bio.vFant * (1 + .10 * prog),
-      x: .9 + i * .55, y: RANG_SOL - 1.2 - i * .35,
-      vx: 0, vy: 0, r: R_SPECTRE,
-      /* chacun entre en scène un peu après le précédent : arriver tous
-         ensemble ne se lit pas, arriver en file se lit très bien */
-      grace: grace + i * .55,
-      tim: d.ruee_cycle || 0, vise: 0, ruee: 0, dx: 1, dy: 0,
-      onde: DECO() * 6.28, dormant: 1
-    });
-  }
-  return out;
-}
-
-function pasSpectres(N, P, dt) {
-  const j = P.j;
-  const cx = j.x + J_L / 2, cy = j.y + J_H / 2;
-  let plusProche = 1e9, tueur = null;
-
-  for (const f of P.spectres) {
-    f.onde += dt * 2.4;
-    if (P.t < f.grace) { f.dormant = 1; continue; }
-    if (f.dormant) { f.dormant = 0; SND.note(120, .5, .07, 'sine', 70); }
-
-    if (f.k === 'echo') {
-      /* il ne cherche pas où tu es : il refait où tu étais. Revenir sur ses
-         pas, dans ce jeu, c'est aller à sa rencontre. */
-      const recul = Math.round((f.retard || SPECTRES.echo.retard) / dt);
-      const i = Math.max(0, P.nTrace - recul);
-      if (P.nTrace > 0) { f.x = P.trace[i * 2]; f.y = P.trace[i * 2 + 1]; }
-    } else {
-      let dx = cx - f.x, dy = cy - f.y;
-      const d = Math.hypot(dx, dy) || 1;
-
-      if (f.k === 'hurleur') {
-        const S = SPECTRES.hurleur;
-        if (f.ruee > 0) {
-          f.ruee -= dt;
-          f.x += f.dx * S.ruee * dt; f.y += f.dy * S.ruee * dt;
-        } else {
-          f.tim -= dt;
-          if (f.tim <= S.ruee_annonce && !f.vise) {
-            /* il vise MAINTENANT et ne corrigera plus : la ruée se contourne */
-            f.vise = 1; f.dx = dx / d; f.dy = dy / d; SND.note(880, .18, .05, 'square', 1500);
-          }
-          if (f.tim <= 0) { f.ruee = S.ruee_d; f.tim = S.ruee_cycle; f.vise = 0; SND.note(300, .3, .09, 'sawtooth', 90); }
-          else { f.x += dx / d * f.v * dt; f.y += dy / d * f.v * dt; }
-        }
-      } else if (f.k === 'traqueur') {
-        /* il ne bouge que quand tu cours. S'arrêter le fige — mais s'arrêter,
-           c'est laisser les autres arriver. */
-        f.fige = Math.abs(j.vx) < 1.6 && j.sol ? 1 : 0;
-        if (!f.fige) { f.x += dx / d * f.v * dt; f.y += dy / d * f.v * dt; }
-      } else {
-        f.x += dx / d * f.v * dt; f.y += dy / d * f.v * dt;
-      }
-    }
-
-    f.x = serre(f.x, .3, N.L - .3);
-    f.y = serre(f.y, -1, N.H + 1);
-    f.enPierre = estSolide(N, Math.floor(f.x), Math.floor(f.y), P.phA) ? 1 : 0;
-
-    /* distance de la boîte du joueur, pas de son centre : c'est ce qu'on voit */
-    const px = serre(f.x, j.x, j.x + J_L), py = serre(f.y, j.y, j.y + J_H);
-    const dd = Math.hypot(f.x - px, f.y - py);
-    if (dd < plusProche) { plusProche = dd; }
-    if (dd < f.r && !tueur) tueur = f;
-  }
-
-  P.ecart = plusProche;
-  if (plusProche < P.ecartMin) P.ecartMin = plusProche;
-  return tueur;
-}
-
-/* On garde la trace du joueur pour l'ÉCHO. Un tableau plat de flottants :
-   deux minutes de jeu tiennent dans 60 Ko, et on n'alloue rien par image. */
-const MAX_TRACE = 60 * 60 * 3;
-
-function noterTrace(P) {
-  if (P.nTrace >= MAX_TRACE) return;
-  P.trace[P.nTrace * 2] = P.j.x + J_L / 2;
-  P.trace[P.nTrace * 2 + 1] = P.j.y + J_H / 2;
-  P.nTrace++;
-}
-
 /* ==== a_08_jeu.js ==== */
 /* ===========================================================================
    LA PARTIE
@@ -2339,16 +2251,13 @@ function demarrerNiveau(n, reprise) {
   P = {
     N, niv: n, t: 0, phA: true,
     j: nouveauJoueur(N),
-    spectres: creerSpectres(N),
-    trace: new Float32Array(MAX_TRACE * 2), nTrace: 0,
-    fini: 0, gagne: 0, tFin: 0,
-    ecart: 99, ecartMin: 99, mortsIci: morts,
+    fini: 0, gagne: 0, tFin: 0, aTraiter: 0,
+    mortsIci: morts,
     parts: [], camX: 0, camY: 0, camPret: 0,
-    secousse: 0, tapis: 0
+    secousse: 0
   };
   majMachines(N, 0);
-  for (const M of N.mach) if (M.t === 'chute') { M.etat = 0; M.cy0 = M.repos; M.vy = 0; }
-  SND.ouvrirSouffle();
+  for (const M of N.mach) if (M.t === 'chute') { M.etat = 0; M.cy0 = M.repos; M.vy = 0; M.actif = 0; }
   ecranActif = 'jeu';
   ecrans(null);
   majHud();
@@ -2387,7 +2296,7 @@ function unPas(cmd) {
   P.t += PAS;
 
   const phAvant = P.phA;
-  P.phA = Math.floor(P.t / PHASE_DUREE) % 2 === 0;
+  P.phA = Math.floor(P.t / N.tPhase) % 2 === 0;
   if (P.phA !== phAvant && !degager(N, j, P.phA)) {
     j.vivant = 0; j.cause = 'la pierre';
   }
@@ -2397,13 +2306,9 @@ function unPas(cmd) {
   majDalles(N, PAS);
 
   if (j.vivant) pasJoueur(N, j, cmd, P.t, P.phA);
-  noterTrace(P);
-  const tueur = pasSpectres(N, P, PAS);
-  if (j.vivant && tueur) { j.vivant = 0; j.cause = article(tueur.nom); }
 
   if (P.secousse > 0) P.secousse = Math.max(0, P.secousse - PAS * 3.2);
   majParticules(PAS);
-  SND.reglerSouffle(1 - serre(P.ecart / 11, 0, 1));
 
   if (!j.vivant) { P.fini = 1; P.gagne = 0; P.tFin = 0; P.aTraiter = 1; return; }
   if (surSortie(N, j)) { P.fini = 1; P.gagne = 1; P.tFin = 0; P.montre = 0; P.aTraiter = 1; }
@@ -2425,8 +2330,8 @@ function mourir() {
   sauverMeta();
   P.secousse = 1;
   gerbe(P.j.x + J_L / 2, P.j.y + J_H / 2, 26, '#ff4d6d', 9);
-  SND.mort(); SND.reglerSouffle(0);
-  $('mortTxt').querySelector('.q').textContent = 'RATTRAPÉ';
+  SND.mort();
+  $('mortTxt').querySelector('.q').textContent = 'MORT';
   $('mortTxt').querySelector('.p').textContent = 'par ' + (P.j.cause || 'le décor');
   $('mortTxt').style.display = 'flex';
   majHud();
@@ -2435,7 +2340,7 @@ function mourir() {
 /* ------------------------------------------------------------------ victoire */
 function gagner() {
   gerbe(P.j.x + J_L / 2, P.j.y + J_H / 2, 30, P.N.bio.accent, 7);
-  SND.fin(); SND.fermerSouffle();
+  SND.fin();
   /* l'écran de fin attend une demi-seconde : sans ça on ne voit jamais le
      bonhomme franchir la porte, et une victoire qu'on ne voit pas ne
      récompense rien */
@@ -2621,7 +2526,7 @@ function dessinerTuiles(N, bio, t) {
   const x0 = Math.max(0, Math.floor(SX) - 1), x1 = Math.min(N.L - 1, Math.ceil(SX + LP / ECH) + 1);
   const y0 = Math.max(0, Math.floor(SY) - 1), y1 = Math.min(N.H - 1, Math.ceil(SY + HV / ECH) + 1);
   const E = ECH;
-  const versPh = PHASE_DUREE - (P.t % PHASE_DUREE);
+  const versPh = N.tPhase - (P.t % N.tPhase);
   const bascule = versPh < .40 ? 1 - versPh / .40 : 0;
 
   for (let y = y0; y <= y1; y++) {
@@ -3017,101 +2922,6 @@ function dessinerSortie(N, bio, t) {
   }
 }
 
-/* --------------------------------------------------------------- spectres */
-function dessinerSpectres(t) {
-  for (const f of P.spectres) {
-    const px = ax(f.x), py = ay(f.y);
-    const dehors = px < -ECH || px > LP + ECH || py < -ECH || py > HP + ECH;
-    if (dehors) { flecheSpectre(f, px, py); continue; }
-    if (f.dormant) { naissanceSpectre(f, px, py, t); continue; }
-
-    const a = f.enPierre ? .40 : 1;
-    const E = ECH, r = f.r * E;
-
-    if (f.k === 'hurleur' && f.vise) {
-      /* la ruée est annoncée par sa ligne : on peut s'en écarter */
-      ctx.strokeStyle = rgba(f.teinte, .55);
-      ctx.lineWidth = Math.max(1.5, E * .06);
-      ctx.setLineDash([E * .2, E * .16]);
-      ctx.beginPath(); ctx.moveTo(px, py);
-      ctx.lineTo(px + f.dx * E * 9, py + f.dy * E * 9);
-      ctx.stroke(); ctx.setLineDash([]);
-    }
-    if (f.k === 'traqueur' && f.fige) {
-      ctx.strokeStyle = rgba(f.teinte, .5); ctx.lineWidth = Math.max(1, E * .05);
-      ctx.beginPath(); ctx.arc(px, py, r * 1.7, 0, 6.283); ctx.stroke();
-    }
-
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.globalCompositeOperation = 'lighter';
-    const g = ctx.createRadialGradient(px, py, 0, px, py, r * 3.2);
-    g.addColorStop(0, rgba(f.teinte, .45));
-    g.addColorStop(1, rgba(f.teinte, 0));
-    ctx.fillStyle = g;
-    ctx.fillRect(px - r * 3.4, py - r * 3.4, r * 6.8, r * 6.8);
-    ctx.restore();
-
-    ctx.save();
-    ctx.globalAlpha = a;
-    ctx.fillStyle = melangeC(f.teinte, '#000000', .35);
-    ctx.beginPath();
-    ctx.moveTo(px, py - r * 1.25);
-    ctx.quadraticCurveTo(px + r * 1.15, py - r * .55, px + r * .95, py + r * .45);
-    for (let i = 0; i <= 4; i++) {
-      const u = i / 4;
-      ctx.quadraticCurveTo(
-        px + r * (.95 - u * 1.9) + Math.sin(f.onde + u * 6) * r * .18, py + r * (.75 + Math.sin(f.onde * 1.4 + u * 5) * .22),
-        px + r * (.95 - (u + .125) * 1.9), py + r * .45);
-    }
-    ctx.quadraticCurveTo(px - r * 1.15, py - r * .55, px, py - r * 1.25);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = rgba(f.teinte, .30);
-    ctx.beginPath(); ctx.arc(px, py - r * .1, r * .82, 0, 6.283); ctx.fill();
-    /* les yeux : c'est par eux qu'on sent qu'il regarde */
-    const ex = serre((P.j.x + J_L / 2 - f.x) * .18, -.3, .3) * r;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath(); ctx.arc(px - r * .32 + ex, py - r * .30, r * .17, 0, 6.283); ctx.fill();
-    ctx.beginPath(); ctx.arc(px + r * .32 + ex, py - r * .30, r * .17, 0, 6.283); ctx.fill();
-    ctx.fillStyle = melangeC(f.teinte, '#ffffff', .2);
-    ctx.beginPath(); ctx.arc(px - r * .32 + ex * 1.4, py - r * .30, r * .08, 0, 6.283); ctx.fill();
-    ctx.beginPath(); ctx.arc(px + r * .32 + ex * 1.4, py - r * .30, r * .08, 0, 6.283); ctx.fill();
-    ctx.restore();
-  }
-}
-
-function naissanceSpectre(f, px, py, t) {
-  const reste = f.grace - P.t;
-  const k = 1 - serre(reste / 1.2, 0, 1);
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.strokeStyle = rgba(f.teinte, .3 + .5 * k);
-  ctx.lineWidth = Math.max(1.5, ECH * .06);
-  ctx.beginPath();
-  ctx.arc(px, py, ECH * (1.6 - k * 1.1), 0, 6.283);
-  ctx.stroke();
-  ctx.fillStyle = rgba(f.teinte, .18 + .5 * k);
-  ctx.beginPath(); ctx.arc(px, py, ECH * .4 * k, 0, 6.283); ctx.fill();
-  ctx.restore();
-}
-
-/* Un spectre hors champ reste une information : on montre sa direction et sa
-   distance au bord de l'écran. Mourir de ce qu'on ne pouvait pas voir n'a
-   jamais rendu un jeu plus difficile, seulement plus bête. */
-function flecheSpectre(f, px, py) {
-  const m = 26;
-  const cx = serre(px, m, LP - m), cy = serre(py, VY + m + 40, VY + HV - m);
-  const a = Math.atan2(py - cy, px - cx);
-  const d = Math.hypot(P.j.x - f.x, P.j.y - f.y);
-  ctx.save();
-  ctx.translate(cx, cy); ctx.rotate(a);
-  ctx.globalAlpha = serre(1.25 - d / 26, .28, .95);
-  ctx.fillStyle = f.teinte;
-  ctx.beginPath(); ctx.moveTo(13, 0); ctx.lineTo(-6, -8); ctx.lineTo(-2, 0); ctx.lineTo(-6, 8);
-  ctx.closePath(); ctx.fill();
-  ctx.restore();
-}
-
 /* --------------------------------------------------------------- le joueur */
 function dessinerJoueur(t, bio) {
   const j = P.j;
@@ -3222,19 +3032,7 @@ function dessiner(dt) {
   dessinerMachines(N, bio, t);
   dessinerParticules();
   dessinerJoueur(t, bio);
-  dessinerSpectres(t);
   ctx.restore();
-
-  /* le halo rouge quand ça se resserre : on le sent avant de le lire */
-  const pr = 1 - serre(P.ecart / 6.5, 0, 1);
-  if (pr > .02) {
-    const my = VY + HV / 2;
-    const g = ctx.createRadialGradient(LP / 2, my, Math.min(LP, HV) * .22,
-                                       LP / 2, my, Math.max(LP, HV) * .72);
-    g.addColorStop(0, 'rgba(255,0,40,0)');
-    g.addColorStop(1, 'rgba(255,0,40,' + (pr * pr * .40).toFixed(3) + ')');
-    ctx.fillStyle = g; ctx.fillRect(0, VY, LP, HV);
-  }
   /* un liseré qui ferme la bande, quand il y en a une */
   if (VY > 2) {
     ctx.fillStyle = rgba(bio.bord, .30);
@@ -3363,11 +3161,12 @@ function verifierDefis() {
   if (META.or >= 10) decrocher('or10');
   if (META.or >= 50) decrocher('or50');
   if (META.serieMax >= 5) decrocher('sansfaute5');
+  if (META.serieMax >= 12) decrocher('sansfaute12');
   if (META.morts >= 100) decrocher('cent');
 }
 
 /* ------------------------------------------------------- fin d'un niveau */
-function enregistrerNiveau(n, tps, sansMort, ecartMin, nbSpectres) {
+function enregistrerNiveau(n, tps, sansMort) {
   const par = P.N.par;
   const or = sansMort && tps <= par;
   const niveau = or ? 3 : (sansMort ? 2 : 1);
@@ -3384,9 +3183,8 @@ function enregistrerNiveau(n, tps, sansMort, ecartMin, nbSpectres) {
   else META.serie = 0;
   recompter();
 
-  if (ecartMin < 1.0) decrocher('frole');
   if (tps < 10) decrocher('vite');
-  if (nbSpectres >= 4) decrocher('quatre');
+  if (or && biomeDe(n).id === 'sanctuaire') decrocher('expert');
   verifierDefis();
   sauverMeta();
 
@@ -3402,7 +3200,7 @@ function enregistrerNiveau(n, tps, sansMort, ecartMin, nbSpectres) {
 /* ===========================================================================
    LES ÉCRANS
    =========================================================================== */
-const ECRANS = ['menu', 'carte', 'fin', 'pause', 'regles', 'profil', 'legales'];
+const ECRANS = ['menu', 'carte', 'fin', 'pause', 'regles', 'profil', 'legales', 'confid'];
 let bioAffiche = 0;
 let retourDe = 'menu';
 
@@ -3438,21 +3236,24 @@ function message(txt) {
 let cptHud = 0;
 function majHud() {
   if (!P) return;
-  const b = P.N.bio;
+  const b = P.N.bio, par = P.N.par;
   $('hudNiv').querySelector('.va').textContent = (P.niv + 1);
   $('hudBio').textContent = b.nom;
   $('hudTps').querySelector('.va').textContent = P.t.toFixed(1).replace('.', ',');
   $('hudMorts').querySelector('.va').textContent = P.mortsIci;
-  const e = P.ecart;
-  $('hudEcart').querySelector('.va').textContent = e > 40 ? '—' : e.toFixed(1).replace('.', ',');
-  const pr = 1 - serre(e / 11, 0, 1);
-  $('jauge').style.width = (pr * 100).toFixed(1) + '%';
+  $('hudObj').querySelector('.va').textContent = par.toFixed(1).replace('.', ',');
+  /* la jauge se remplit jusqu'au temps de l'or, puis passe au rouge : on sait
+     à tout moment si la médaille est encore jouable, sans quitter le décor
+     des yeux */
+  const perdu = P.t > par;
+  $('jauge').style.width = (serre(P.t / par, 0, 1) * 100).toFixed(1) + '%';
+  $('jauge').classList.toggle('perdu', perdu);
+  $('hudTps').classList.toggle('perdu', perdu);
 }
 
 /* ------------------------------------------------------------------ menu */
 function montrerMenu() {
   ecranActif = 'menu';
-  SND.fermerSouffle();
   const n = niveauCourant();
   const b = biomeDe(n);
   $('mJouer').innerHTML = (META.med[n] ? 'Rejouer' : 'Continuer') +
@@ -3463,7 +3264,6 @@ function montrerMenu() {
 /* ----------------------------------------------------------------- carte */
 function montrerCarte() {
   ecranActif = 'carte';
-  SND.fermerSouffle();
   const n = niveauCourant();
   bioAffiche = BIOMES.indexOf(biomeDe(n));
   peindreCarte();
@@ -3485,8 +3285,9 @@ function peindreCarte() {
   const ouvert = biomeOuvert(b);
   $('infoBio').innerHTML = ouvert
     ? '<b>' + b.pieges + '</b><br>' + b.devise +
-      '<br>Spectres : ' + b.spectres.map(s => SPECTRES[s].nom).join(' · ') +
-      '<br>' + faits + ' / ' + b.n + ' franchis'
+      '<br><i style="color:#9c93bd">' + b.lecon + '</i>' +
+      '<br>' + faits + ' / ' + b.n + ' franchis' +
+      ' · machines à ' + Math.round(b.rythme * 100) + ' %'
     : 'Fermé. Franchis 18 niveaux de <b>' + BIOMES[bioAffiche - 1].nom + '</b> pour ouvrir ce territoire.';
   $('barreBio').firstElementChild.style.width = (faits / b.n * 100) + '%';
 
@@ -3550,14 +3351,12 @@ function montrerPause() {
   ecranActif = 'pause';
   $('pauInfo').textContent = biomeDe(P.niv).nom + ' · niveau ' + (P.niv + 1) +
     ' · ' + P.mortsIci + (P.mortsIci > 1 ? ' morts' : ' mort');
-  SND.reglerSouffle(0);
   ecrans('pause');
 }
 
 function reprendre() {
   if (!P || P.fini) { montrerMenu(); return; }
   ecranActif = 'jeu';
-  SND.ouvrirSouffle();
   ecrans(null);
 }
 
@@ -3570,15 +3369,14 @@ function montrerRegles(de) {
 }
 
 const TEXTE_REGLES = `
-<p><b>Tu cours vers la porte. Rien d'autre.</b> Ce qui rend la chose difficile
-tient en une phrase :</p>
+<p><b>Tu cours vers la porte. Rien d'autre.</b> Entre toi et elle, des machines
+qui tuent en une touche.</p>
 <p style="text-align:center;color:#c9b6ff;font-size:15px;line-height:1.6">
-<b>Chaque piège veut que tu attendes le bon moment.<br>
-Les spectres, eux, n'attendent jamais.</b></p>
-<p>Une scie met deux secondes à repasser. Un mur en phase s'ouvre une fois sur
-deux. Une plateforme met son temps à revenir. Attendre est toujours la solution
-sûre — et attendre est exactement ce qui te fait rattraper. Tout le jeu est là :
-à chaque machine, tu choisis entre la fenêtre suivante et celle d'après.</p>
+<b>Chaque machine a une fenêtre,<br>et te la montre avant de frapper.</b></p>
+<p>La scie repasse toutes les 1,2 s. La presse laisse 1,7 s de répit. Le mur en
+phase s'ouvre une fois sur deux. Rien n'est jamais fermé pour de bon : il n'y a
+que des moments. Le jeu consiste à lire ces moments <b>sans t'arrêter</b> —
+parce que t'arrêter ne te tue pas, mais te coûte la médaille.</p>
 
 <h3>Les commandes</h3>
 <table class="tbl">
@@ -3591,42 +3389,49 @@ sûre — et attendre est exactement ce qui te fait rattraper. Tout le jeu est l
 <p>Tu grimpes <b>deux tuiles</b>, jamais trois. Tu franchis <b>quatre tuiles</b>
 de vide sans y penser, cinq en t'appliquant. Les 120 niveaux sont écrits contre
 ces deux chiffres : si quelque chose a l'air d'être à portée, ça l'est.</p>
+<p>Après une mort, le niveau repart tout seul en moins d'une seconde, et
+n'importe quel appui va plus vite. Recommencer doit être le geste le plus
+facile du jeu.</p>
 
-<h3>Les spectres</h3>
-<p>Ils traversent la pierre, ils ne se fatiguent pas, et on ne peut pas les tuer.
-Mais ils sont <b>plus lents que toi</b> : on les contourne, on leur tourne
-autour, on les sème. Ils ne sont pas un combat, ils sont une horloge.</p>
-<table class="tbl">
-<tr><td style="color:#8b7ad6">RÔDEUR</td><td>Il va droit sur toi, sans jamais s'arrêter.</td></tr>
-<tr><td style="color:#ff7a4d">TRAQUEUR</td><td>Plus rapide — mais il ne bouge que quand tu cours. T'arrêter le fige.</td></tr>
-<tr><td style="color:#ff4d6d">HURLEUR</td><td>Lent, puis il vise et se rue en ligne droite. Il montre toujours sa ligne avant de partir.</td></tr>
-<tr><td style="color:#4dd5c4">ÉCHO</td><td>Il refait ton propre trajet, avec du retard. Revenir sur tes pas, c'est aller à sa rencontre.</td></tr>
-</table>
-<p>Un spectre hors de l'écran est signalé par une flèche de sa couleur au bord de
-l'image, et la barre en haut de l'écran monte quand le plus proche se rapproche.
-<b>Tu ne dois jamais mourir de quelque chose que tu ne pouvais pas voir.</b></p>
+<h3>Rien ne tue sans prévenir</h3>
+<p>C'est la règle que le jeu s'impose, et elle vaut pour chaque machine :</p>
+<ul>
+<li>le <b>rayon</b> trace en pointillé exactement ce qu'il va couper ;</li>
+<li>le <b>jet</b> montre sa portée avant de cracher ;</li>
+<li>la <b>presse</b> tremble et s'allume en rouge ;</li>
+<li>le <b>bloc</b> projette son ombre au sol bien avant de tomber ;</li>
+<li>la <b>scie</b> et la <b>plateforme</b> montrent leur rail en entier ;</li>
+<li>les <b>piques</b> font rougir le sol d'où elles vont sortir ;</li>
+<li>le <b>mur en phase</b> clignote avant de réapparaître — et s'il réapparaît
+sur toi, il te <b>dégage</b> au lieu de t'écraser.</li>
+</ul>
+<p>Dans un jeu où l'on meurt en une touche, un piège qui ne prévient pas n'est
+pas difficile, il est seulement injuste.</p>
+<p>Une <b>dalle friable</b> ne cède pas quand tu la touches, mais quand tu restes
+dessus : un pont entier se traverse intact si tu ne t'arrêtes jamais.</p>
 
-<h3>Les pièges</h3>
-<p>Ils changent de territoire en territoire, et chacun <b>annonce avant de
-frapper</b> : le laser trace en pointillé ce qu'il va couper, la presse tremble,
-le bloc projette son ombre, le mur en phase clignote avant de réapparaître. Un
-piège qui ne prévient pas ne serait pas difficile, seulement injuste.</p>
+<h3>Les cinq territoires</h3>
+<p>Les pièges changent complètement d'un territoire à l'autre, et les machines
+y battent de plus en plus vite — les fenêtres se resserrent d'un quart entre le
+premier couloir et le dernier.</p>
 <table class="tbl">
-<tr><td>La Cave</td><td>Pics, dalles friables, blocs qui tombent.</td></tr>
-<tr><td>La Scierie</td><td>Scies sur rail, presses, tapis roulants (dont certains te tirent en arrière).</td></tr>
-<tr><td>Les Égouts</td><td>Acide, jets de vapeur, plateformes mobiles — les seules machines sur lesquelles on monte.</td></tr>
+<tr><td>La Cave</td><td>Pics, dalles friables, blocs qui se détachent du plafond.</td></tr>
+<tr><td>La Scierie</td><td>Scies sur rail, presses, tapis roulants — dont certains te tirent en arrière.</td></tr>
+<tr><td>Les Égouts</td><td>Acide, jets de vapeur, plateformes mobiles : les seules machines sur lesquelles on monte.</td></tr>
 <tr><td>La Forge</td><td>Fonte, lames pendulaires, lance-flammes.</td></tr>
 <tr><td>Le Sanctuaire</td><td>Rayons, murs qui n'existent qu'une fois sur deux, piques qui sortent du sol.</td></tr>
 </table>
-<p>Une <b>dalle friable</b> ne cède pas quand tu la touches, mais quand tu restes
-dessus : un pont entier se traverse intact si tu ne t'arrêtes jamais. C'est la
-leçon du jeu en miniature.</p>
+<p>Les couloirs s'allongent aussi : trois tronçons au premier niveau, huit au
+dernier.</p>
 
 <h3>Les médailles</h3>
+<p>La barre en haut de l'écran se remplit jusqu'au <b>temps de référence</b> du
+niveau, puis passe au rouge. Elle ne te coûtera jamais une vie — c'est la seule
+pression du jeu, et elle ne porte que sur les médailles.</p>
 <table class="tbl">
 <tr><td style="color:#a9dcff">Franchi</td><td>tu es sorti.</td></tr>
 <tr><td style="color:#8fd4ff">• Sans faute</td><td>sorti sans mourir une seule fois depuis que tu es entré.</td></tr>
-<tr><td style="color:#ffd479">★ Or</td><td>sans faute <b>et</b> sous le temps de référence du niveau.</td></tr>
+<tr><td style="color:#ffd479">★ Or</td><td>sans faute <b>et</b> sous le temps de référence.</td></tr>
 </table>
 <p>Rien de tout cela ne rend plus fort. Il n'y a ni boutique, ni amélioration,
 ni monnaie : le niveau 63 est identique au premier essai et au centième. C'est
@@ -3637,6 +3442,7 @@ la seule façon pour qu'un temps veuille dire quelque chose.</p>
 d'en franchir 18 sur 24 pour ouvrir le suivant. Un seul niveau ne doit jamais
 fermer les soixante qui restent.</p>
 `;
+
 
 /* ----------------------------------------------------------------- profil */
 function montrerProfil(de) {
@@ -3678,30 +3484,123 @@ function montrerProfil(de) {
 
 const fiche = (et, va) => '<div class="fiche"><div class="et">' + et + '</div><div class="va">' + va + '</div></div>';
 
-/* ---------------------------------------------------------------- légales */
+/* ==========================================================================
+   MENTIONS LÉGALES ET CONFIDENTIALITÉ
+   Un site qui affiche de la publicité doit pouvoir être joint et doit dire ce
+   qu'il fait des données : c'est une obligation légale, et Google refuse
+   l'inscription d'un site sans éditeur identifiable ni page de confidentialité.
+   ========================================================================== */
+
+/* >>> UNE SEULE LIGNE À REMPLIR <<<
+   L'adresse de contact publique du site. Tant qu'elle est vide, les mentions
+   légales le disent en toutes lettres plutôt que de faire semblant. */
+const ADRESSE_CONTACT = 'cours2gtmathis78@gmail.com';
+const EDITEUR = 'VanNDM Creations';
+
+const lienContact = () => ADRESSE_CONTACT
+  ? '<a href="mailto:' + ADRESSE_CONTACT + '" style="color:#9a7bff">' + ADRESSE_CONTACT + '</a>'
+  : '<b style="color:#ff7a90">ADRESSE DE CONTACT À RENSEIGNER</b> — remplis la constante '
+    + '<code>ADRESSE_CONTACT</code> avant la mise en ligne : sans elle, AdSense refusera le site.';
+
 function montrerLegales() {
   ecranActif = 'legales';
   $('legTxt').innerHTML = `
-<h3>Éditeur</h3>
-<p><b>VanNDM Creations</b> — créateur indépendant de jeux de navigateur.<br>
-Contact : <a href="mailto:cours2gtmathis78@gmail.com" style="color:#9a7bff">cours2gtmathis78@gmail.com</a></p>
+<h3>Éditeur du site</h3>
+<p><b>${EDITEUR}</b> — créateur indépendant de jeux de navigateur, personne
+physique éditant ce site à titre non professionnel.<br>
+Contact : ${lienContact()}</p>
+<p>Le site est hébergé par <b>Netlify, Inc.</b>, 512 2nd Street, Suite 200,
+San Francisco, CA 94107, États-Unis.</p>
+
 <h3>Le jeu</h3>
-<p><b>ACHÉRON</b> est un jeu de plateformes original : 120 niveaux, cinq
-territoires, des pièges qui annoncent et des spectres qui poursuivent. Tout le
-contenu — code, dessin, sons, textes, niveaux — a été créé pour ce jeu. Aucune
-image ni aucun son n'est téléchargé : le dessin est tracé au canevas et le son
-est synthétisé à la volée.</p>
+<p><b>ACHÉRON</b> est un jeu de plateformes original : 120 niveaux répartis en
+cinq territoires, chacun avec ses propres machines. Tout le contenu — code,
+dessin, sons, textes, niveaux — a été créé pour ce jeu. Aucune image ni aucun
+son n'est téléchargé : le dessin est tracé au canevas et le son est synthétisé
+à la volée. Le jeu est gratuit, sans compte et sans achat.</p>
+
+<h3>Propriété intellectuelle</h3>
+<p>© ${EDITEUR}. Le code, les niveaux, les textes et les éléments graphiques et
+sonores de ce jeu sont la propriété de l'éditeur. Ils sont proposés pour un
+usage personnel : leur reproduction ou leur réutilisation sans autorisation
+n'est pas permise.</p>
+
+<h3>Responsabilité</h3>
+<p>Le jeu est fourni tel quel, sans garantie. L'éditeur ne peut être tenu
+responsable d'une indisponibilité du site ni d'une perte de progression, celle-ci
+étant enregistrée uniquement dans le navigateur de la personne qui joue.</p>
+
 <h3>Tes données</h3>
-<p>Le jeu <b>ne collecte rien</b> et n'envoie rien nulle part. Ta progression
-(niveaux franchis, records, défis) est écrite dans le <code>localStorage</code>
-de ton navigateur, sur ton appareil uniquement. Personne d'autre n'y a accès, et
-le bouton « Effacer ma progression » du profil la supprime définitivement.</p>
-<p>Aucun compte, aucune inscription, aucun traceur, aucune publicité tierce dans
-cette version. Le jeu fonctionne hors ligne une fois la page chargée.</p>
-<h3>Droits</h3>
-<p>© VanNDM Creations. Le jeu est proposé tel quel, pour un usage personnel.</p>`;
-  ecranActif = 'legales';
+<p>Le résumé : le jeu lui-même ne collecte rien. Les annonces, elles, peuvent
+déposer des cookies — avec ton accord. Le détail est sur la page
+<a href="#" id="versConfid" style="color:#9a7bff">Confidentialité et cookies</a>.</p>`;
+  const v = $('versConfid');
+  if (v) v.onclick = e => { e.preventDefault(); montrerConfid(); };
   ecrans('legales');
+}
+
+function montrerConfid() {
+  ecranActif = 'confid';
+  $('confTxt').innerHTML = `
+<h3>Ce que le jeu enregistre</h3>
+<p>Ta progression — niveaux franchis, records, médailles, défis, nombre de morts
+— est écrite dans le <code>localStorage</code> de ton navigateur, <b>sur ton
+appareil uniquement</b>. Elle n'est envoyée nulle part, personne d'autre n'y a
+accès, et le bouton « Effacer ma progression » du profil la supprime
+définitivement.</p>
+<p>Le jeu ne demande aucun compte, aucune inscription, aucune adresse. Il
+fonctionne hors ligne une fois la page chargée.</p>
+
+<h3>La publicité</h3>
+<p>Ce site est financé par des annonces fournies par <b>Google AdSense</b>. Pour
+les afficher, Google et ses partenaires peuvent lire et écrire des cookies ou des
+identifiants sur ton appareil, afin de mesurer l'audience, limiter la répétition
+d'une même annonce, détecter la fraude et — <b>si tu l'as accepté</b> — te
+proposer des annonces personnalisées.</p>
+<p>Tant que tu n'as pas donné ton accord, les signaux de consentement
+publicitaire sont réglés sur <code>refusé</code> (Google Consent Mode v2), la
+réduction des données publicitaires est active, et aucun cookie publicitaire
+n'est écrit. Le script d'annonces n'est même chargé qu'une fois la fenêtre de
+consentement passée.</p>
+<p>Dans l'Espace économique européen, au Royaume-Uni et en Suisse, une fenêtre de
+consentement conforme au cadre de transparence et de consentement de l'IAB
+(TCF v2.2) s'affiche à la première visite. Tu peux revenir sur ton choix à tout
+moment avec le bouton ci-dessous.</p>
+<p>Informations de Google sur l'usage des données publicitaires :
+<a href="https://policies.google.com/technologies/partner-sites" target="_blank"
+rel="noopener noreferrer" style="color:#9a7bff">policies.google.com/technologies/partner-sites</a>.
+Réglages personnels :
+<a href="https://myadcenter.google.com/" target="_blank" rel="noopener noreferrer"
+style="color:#9a7bff">myadcenter.google.com</a>.</p>
+
+<h3>Tes droits</h3>
+<p>Aucune donnée personnelle n'étant conservée par l'éditeur, il n'y a rien à
+consulter, corriger ou supprimer de son côté : la progression est sur ton
+appareil et t'appartient. Pour toute question sur le site, la publicité ou tes
+données, écris à ${lienContact()}.</p>
+
+<h3>Ce que ce site ne fait pas</h3>
+<p>Pas de traceur d'analyse, pas de réseau social embarqué, pas de revente de
+données, pas de contenu payant. Le jeu tient dans un seul fichier et
+n'adresse aucune requête réseau en dehors de celles de la publicité.</p>`;
+  ecrans('confid');
+}
+
+/* Rouvre la fenêtre de consentement du CMP certifié. Hors zone TCF, il n'y a
+   simplement rien à rouvrir : on le dit plutôt que de laisser un bouton mort. */
+function gererConsentement() {
+  let ouvert = false;
+  try {
+    if (window.googlefc && window.googlefc.showRevocationMessage) {
+      window.googlefc.showRevocationMessage(); ouvert = true;
+    } else if (window.__tcfapi) {
+      window.__tcfapi('displayConsentUi', 2, () => { }); ouvert = true;
+    }
+  } catch (e) { }
+  if (!ouvert) {
+    const b = $('gererConsent');
+    if (b) b.textContent = 'Aucune fenêtre à afficher dans ta région';
+  }
 }
 
 /* ==== a_12_boot.js ==== */
@@ -3739,7 +3638,8 @@ window.addEventListener('keydown', e => {
     if (ecranActif === 'jeu') montrerPause();
     else if (ecranActif === 'pause') reprendre();
     else if (ecranActif === 'regles' || ecranActif === 'profil') retour();
-    else if (ecranActif === 'carte' || ecranActif === 'legales') montrerMenu();
+    else if (ecranActif === 'carte' || ecranActif === 'legales'
+             || ecranActif === 'confid') montrerMenu();
     return;
   }
 
@@ -3806,6 +3706,9 @@ $('mCarte').onclick = () => { SND.reveil(); SND.clic(); montrerCarte(); };
 $('mRegles').onclick = () => { SND.clic(); montrerRegles('menu'); };
 $('mProfil').onclick = () => { SND.clic(); montrerProfil('menu'); };
 $('mLeg').onclick = e => { e.preventDefault(); SND.clic(); montrerLegales(); };
+$('mConf').onclick = e => { e.preventDefault(); SND.clic(); montrerConfid(); };
+$('coRetour').onclick = () => { SND.clic(); montrerMenu(); };
+$('gererConsent').onclick = () => { SND.clic(); gererConsentement(); };
 $('caRetour').onclick = () => { SND.clic(); montrerMenu(); };
 $('leRetour').onclick = () => { SND.clic(); montrerMenu(); };
 $('reRetour').onclick = () => { SND.clic(); retour(); };
@@ -3853,7 +3756,7 @@ function boucle(ts) {
     majParticules(dt);
     if (P.gagne && !P.montre && P.tFin > .45) {
       P.montre = 1;
-      enregistrerNiveau(P.niv, P.t, P.mortsIci === 0, P.ecartMin, P.spectres.length);
+      enregistrerNiveau(P.niv, P.t, P.mortsIci === 0);
       return;
     }
     if (!P.gagne && P.tFin > .85) { relancer(); return; }
@@ -3862,6 +3765,18 @@ function boucle(ts) {
   dessiner(dt);
   if ((cptHud++ % 3) === 0) majHud();
 }
+
+/* Les annonces d'ancrage des Auto ads se collent en haut et en bas de l'écran.
+   Les commandes tactiles et le bouton pause y sont aussi : sans ce marqueur,
+   une annonce viendrait se poser exactement dessus, et chaque saut deviendrait
+   un clic publicitaire involontaire — ce que Google compte comme du trafic
+   invalide, et ce qui rendrait le jeu injouable au doigt. */
+(function () {
+  for (const id of ['tact', 'tG', 'tD', 'tSaut', 'btnPause', 'hud', 'jauge', 'mortTxt']) {
+    const e = $(id);
+    if (e) e.classList.add('adsbygoogle-noablate');
+  }
+})();
 
 /* ==================================================================== départ */
 function demarrer() {
