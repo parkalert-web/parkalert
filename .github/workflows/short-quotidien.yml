@@ -1,0 +1,83 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Publication automatique d'un Short YouTube, une fois par jour.
+#
+# Gratuit : GitHub Actions offre 2 000 minutes/mois sur les dépôts privés et
+# un usage illimité sur les dépôts publics ; ce travail dure moins d'une minute.
+#
+# ⚠ Trois points à connaître :
+#   1. Un déclencheur `schedule` n'est actif que si le fichier est présent sur
+#      la branche par défaut (`main`) : fusionnez la branche de travail.
+#   2. L'heure est en UTC. Paris = UTC+2 en été, UTC+1 en hiver.
+#      « 0 17 * * * » = 19 h à Paris en été, 18 h en hiver.
+#   3. GitHub met en pause les tâches planifiées d'un dépôt resté 60 jours sans
+#      activité — le robot pousse un commit à chaque publication, ce qui suffit
+#      à garder le compteur à zéro.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Short quotidien
+
+on:
+  schedule:
+    - cron: '0 17 * * *'
+  workflow_dispatch:
+    inputs:
+      essai_a_blanc:
+        description: "Essai à blanc (affiche le titre sans rien publier)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: short-quotidien
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Publier le Short du jour
+        id: publication
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          YT_DRIVE_FOLDER_ID: ${{ secrets.YT_DRIVE_FOLDER_ID }}
+        run: |
+          node youtube-autopost/src/publish.mjs \
+            ${{ inputs.essai_a_blanc && '--dry-run' || '' }}
+
+      # Toujours exécuté : si la vidéo est partie sur YouTube, l'historique doit
+      # être enregistré même si une étape ultérieure échoue — sinon le même
+      # fichier repartirait demain.
+      - name: Enregistrer l'historique
+        if: always()
+        env:
+          # Passé par l'environnement plutôt qu'interpolé dans le script :
+          # un titre contenant une apostrophe ou un $ ne peut rien casser.
+          TITRE: ${{ steps.publication.outputs.titre }}
+        run: |
+          if [ -z "$(git status --porcelain -- youtube-autopost/)" ]; then
+            echo "Rien à enregistrer."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A youtube-autopost/state.json youtube-autopost/videos
+          git commit -m "Short publié : ${TITRE:-mise à jour de la file} [skip ci]"
+          for essai in 1 2 3 4; do
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && \
+              git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            echo "Push impossible, nouvelle tentative dans $((2 ** essai)) s…"
+            sleep $((2 ** essai))
+          done
+          exit 1

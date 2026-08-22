@@ -7,7 +7,13 @@
   "scripts": {
     "test": "node --test tests/core.test.mjs",
     "test:e2e": "node tests/e2e/transfer.e2e.mjs && node tests/e2e/priority.e2e.mjs",
-    "start": "python3 -m http.server 8080"
+    "start": "python3 -m http.server 8080",
+    "test:yt": "node --test youtube-autopost/tests/titles.test.mjs",
+    "yt:auth": "node youtube-autopost/src/authorize.mjs",
+    "yt:check": "node youtube-autopost/src/publish.mjs --check",
+    "yt:preview": "node youtube-autopost/src/publish.mjs --preview=30",
+    "yt:dry": "node youtube-autopost/src/publish.mjs --dry-run",
+    "yt:publish": "node youtube-autopost/src/publish.mjs"
   },
   "license": "UNLICENSED"
 }

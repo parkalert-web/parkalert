@@ -1,0 +1,79 @@
+{
+  "source": "depot",
+  "dossierVideos": "videos",
+  "driveDossierId": "",
+
+  "publication": {
+    "confidentialite": "public",
+    "categorieId": "22",
+    "langue": "fr",
+    "pourEnfants": false,
+    "notifierAbonnes": true
+  },
+
+  "titre": {
+    "modeles": [
+      "{accroche} {sujet} {emoji}",
+      "{sujet} : {promesse} {emoji}",
+      "{question} {sujet} ?",
+      "{accroche} : {sujet} en {duree} {emoji}",
+      "{question} {sujet} ? {promesse}",
+      "POV : {sujet}, {consequence}",
+      "{sujet} en {duree} {emoji}",
+      "Personne ne parle de {sujet} et {consequence}",
+      "Le jour où j'ai compris {sujet} — {consequence}",
+      "{sujet}, épisode {numero} : {promesse}"
+    ],
+    "variables": {
+      "accroche": [
+        "Tu ne vas pas y croire",
+        "Le truc que personne ne fait",
+        "J'aurais aimé le savoir avant",
+        "Ça change absolument tout",
+        "À tester d'urgence",
+        "Regarde jusqu'au bout",
+        "Arrête tout et regarde"
+      ],
+      "promesse": [
+        "l'astuce qui fait gagner 10 minutes",
+        "la méthode la plus simple",
+        "ce que personne ne t'a dit",
+        "la vérité en 30 secondes",
+        "le détail qui change tout",
+        "à connaître absolument"
+      ],
+      "question": [
+        "Tu connaissais",
+        "Sérieusement, qui savait pour",
+        "Pourquoi personne ne parle de",
+        "Est-ce que tu fais ça avec"
+      ],
+      "consequence": [
+        "et ça m'a tout changé",
+        "et je ne reviendrai pas en arrière",
+        "et personne ne me croit",
+        "et c'était sous mes yeux",
+        "et ça prend 10 secondes"
+      ],
+      "duree": ["10 secondes", "30 secondes", "moins d'une minute", "3 étapes"],
+      "emoji": ["🔥", "😱", "👀", "🤯", "✅", "💡", ""]
+    },
+    "sujetParDefaut": "cette astuce",
+    "longueurMax": 100,
+    "eviterRepetitionJours": 120
+  },
+
+  "description": {
+    "modeles": [
+      "{titre}\n\nSi ça t'a été utile, un petit like aide vraiment la chaîne 🙏",
+      "{sujet} 👇\n\nAbonne-toi pour une nouvelle vidéo chaque jour.",
+      "Nouvel épisode du jour : {sujet}.\n\nDis-moi en commentaire ce que tu en penses !"
+    ],
+    "variables": {},
+    "signature": "#shorts #short #astuce"
+  },
+
+  "tags": ["shorts", "astuce", "conseil", "france"],
+
+  "quandLaFileEstVide": "echouer"
+}

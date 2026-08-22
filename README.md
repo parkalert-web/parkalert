@@ -239,3 +239,15 @@ La géolocalisation exige un contexte sécurisé : `localhost` et `https://` con
 
 Si votre réseau bloque les WebSockets, ajoutez `?transport=longpolling` à l'URL pour
 basculer la base temps réel sur son mode de secours.
+
+---
+
+## Outil annexe : publication automatique de Shorts
+
+Le dossier [`youtube-autopost/`](youtube-autopost/) contient un petit robot,
+indépendant de l'application, qui publie **un Short par jour sur YouTube avec un
+titre qui change à chaque fois**. Il tourne sur GitHub Actions, sans serveur ni
+abonnement.
+
+- Guide de mise en service : [`youtube-autopost/README.md`](youtube-autopost/README.md)
+- Console de réglage des titres : https://parkalert-web.github.io/parkalert/youtube-autopost/

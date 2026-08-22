@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Console — Shorts automatiques</title>
+<meta name="description" content="Réglage des titres et de la file d'attente du robot de publication quotidienne de Shorts YouTube.">
+<style>
+/* Console de réglage — mêmes jetons de couleur que ParkAlert, feuille autonome. */
+:root{
+  --bg:#f4f5f7; --surface:#fff; --surface-2:#f8f9fb; --text:#101623; --text-2:#59626f;
+  --text-3:#8b929d; --border:#e2e5ea; --accent:#0b5fd0; --accent-text:#fff; --accent-soft:#e8f0fd;
+  --success:#0f7a45; --success-soft:#e6f4ec; --warning:#9a5b00; --warning-soft:#fdf1de;
+  --danger:#c0332b; --danger-soft:#fdeceb; --r-sm:10px; --r-md:14px; --r-lg:18px;
+  --shadow:0 1px 2px rgba(16,22,35,.06),0 8px 24px rgba(16,22,35,.06); color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0e1116; --surface:#171b21; --surface-2:#1e232b; --text:#eef1f5; --text-2:#a4acb8;
+  --text-3:#767e8a; --border:#272d36; --accent:#4b93ff; --accent-text:#071426; --accent-soft:#16263d;
+  --success:#3cc17f; --success-soft:#12291f; --warning:#e0a33f; --warning-soft:#2a2116;
+  --danger:#ff6f62; --danger-soft:#2d1917;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35); color-scheme:dark;
+}}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-text-size-adjust:100%}
+.wrap{max-width:60rem;margin:0 auto;padding:1.5rem 1rem 4rem}
+header{padding:2rem 0 1rem}
+h1{font-size:1.6rem;margin:0 0 .3rem;letter-spacing:-.02em}
+h2{font-size:1.05rem;margin:0 0 .2rem;letter-spacing:-.01em}
+h3{font-size:.92rem;margin:1.2rem 0 .4rem;color:var(--text-2)}
+p{margin:.35rem 0}
+.sub{color:var(--text-2);margin:0}
+.grid{display:grid;gap:1rem;grid-template-columns:1fr}
+@media(min-width:56rem){
+  .grid{grid-template-columns:1fr 1fr}
+  /* La colonne d'aperçu suit le regard pendant qu'on modifie les modèles. */
+  .grid>div:last-child{position:sticky;top:1rem;align-self:start}
+  #variables{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;align-items:start}
+  #variables .var{margin-bottom:0}
+}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:1.1rem 1.2rem;box-shadow:var(--shadow);margin-bottom:1rem}
+.card>h2+p{color:var(--text-2);font-size:.9rem;margin-bottom:.8rem}
+label{display:block;font-size:.82rem;font-weight:600;color:var(--text-2);margin:.7rem 0 .25rem}
+textarea,input[type=text],input[type=number]{width:100%;background:var(--surface-2);color:var(--text);
+  border:1px solid var(--border);border-radius:var(--r-sm);padding:.6rem .7rem;font:inherit;font-size:.9rem}
+textarea{min-height:6.5rem;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.83rem;line-height:1.5}
+input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+button{font:inherit;font-weight:600;border-radius:var(--r-sm);border:1px solid var(--border);
+  background:var(--surface-2);color:var(--text);padding:.55rem .9rem;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-text);border-color:transparent}
+.row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-top:.9rem}
+.var{border:1px solid var(--border);border-radius:var(--r-md);padding:.7rem .8rem;margin-bottom:.6rem;background:var(--surface-2)}
+.var .head{display:flex;gap:.5rem;align-items:center}
+.var .head input{flex:1;min-width:0;background:var(--surface)}
+.var .head .supprimer{padding:.3rem .55rem;line-height:1;color:var(--text-2)}
+.var .head .supprimer:hover{color:var(--danger);border-color:var(--danger)}
+.var button{padding:.35rem .6rem;font-size:.8rem}
+.badge{display:inline-block;padding:.15rem .5rem;border-radius:999px;font-size:.78rem;font-weight:600}
+.badge.ok{background:var(--success-soft);color:var(--success)}
+.badge.warn{background:var(--warning-soft);color:var(--warning)}
+.badge.bad{background:var(--danger-soft);color:var(--danger)}
+#modeles{min-height:10rem}
+ol.preview{list-style:none;margin:0;padding:0;max-height:30rem;overflow:auto}
+ol.preview li{display:flex;gap:.6rem;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.9rem}
+ol.preview li:last-child{border-bottom:0}
+ol.preview .d{color:var(--text-3);font-variant-numeric:tabular-nums;font-size:.8rem;min-width:5.2rem;padding-top:.12rem}
+ol.preview .t{flex:1}
+ol.preview .len{color:var(--text-3);font-size:.76rem;font-variant-numeric:tabular-nums}
+.hist{font-size:.88rem;margin:0;padding:0;list-style:none}
+.hist li{padding:.35rem 0;border-bottom:1px solid var(--border)}
+.hist li:last-child{border-bottom:0}
+.hist .d{color:var(--text-3);font-size:.78rem}
+code{background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:.1rem .35rem;font-size:.85em}
+pre{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);
+  padding:.8rem;overflow-x:auto;font-size:.8rem;margin:.5rem 0}
+a{color:var(--accent)}
+.steps{counter-reset:s;list-style:none;padding:0;margin:.4rem 0 0}
+.steps li{counter-increment:s;position:relative;padding:.45rem 0 .45rem 2rem;border-bottom:1px solid var(--border);font-size:.92rem}
+.steps li:last-child{border-bottom:0}
+.steps li::before{content:counter(s);position:absolute;left:0;top:.5rem;width:1.4rem;height:1.4rem;
+  border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:.78rem;font-weight:700;
+  display:grid;place-items:center}
+.note{background:var(--warning-soft);color:var(--warning);border-radius:var(--r-sm);padding:.6rem .8rem;font-size:.86rem;margin-top:.8rem}
+footer{color:var(--text-3);font-size:.82rem;text-align:center;padding:2rem 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Shorts automatiques — console de réglage</h1>
+  <p class="sub">Composez vos modèles de titres, vérifiez qu'ils ne se répètent jamais, puis
+     recopiez le <code>config.json</code> obtenu dans le dépôt. Le robot publie une vidéo par jour.</p>
+</header>
+
+<div class="grid">
+  <div>
+    <section class="card">
+      <h2>1. Modèles de titres</h2>
+      <p>Un modèle par ligne. <code>{sujet}</code> est déduit du nom du fichier vidéo ;
+         <code>{numero}</code>, <code>{jour}</code> et <code>{date}</code> sont automatiques.</p>
+      <textarea id="modeles" spellcheck="false"></textarea>
+
+      <h3>Variables</h3>
+      <div id="variables"></div>
+      <button id="ajouter">+ Ajouter une variable</button>
+
+      <label for="sujet">Sujet par défaut (si le nom du fichier ne dit rien)</label>
+      <input id="sujet" type="text" placeholder="se garer à Paris sans tourner">
+
+      <label for="max">Longueur maximale du titre</label>
+      <input id="max" type="number" min="20" max="100" step="1">
+
+      <div class="row">
+        <button class="primary" id="telecharger">Télécharger config.json</button>
+        <button id="copier">Copier le JSON</button>
+        <button id="recharger">Annuler mes modifications</button>
+      </div>
+      <div class="note" id="note" hidden></div>
+    </section>
+
+    <section class="card">
+      <h2>Dernières publications</h2>
+      <p>Lu dans <code>state.json</code>, écrit par le robot après chaque envoi.</p>
+      <ul class="hist" id="historique"><li class="d">Chargement…</li></ul>
+    </section>
+  </div>
+
+  <div>
+    <section class="card">
+      <h2>2. Aperçu des 30 prochains jours</h2>
+      <p id="stats"></p>
+      <ol class="preview" id="apercu"></ol>
+    </section>
+
+    <section class="card">
+      <h2>3. Mise en service</h2>
+      <ol class="steps">
+        <li>Créer un projet sur <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud</a>,
+            y activer <strong>YouTube Data API v3</strong>.</li>
+        <li>Écran de consentement OAuth → <strong>Publier l'application</strong> (sinon le jeton meurt au bout de 7 jours).</li>
+        <li>Identifiants → <strong>Application de bureau</strong> → noter l'ID client et le code secret.</li>
+        <li>Sur votre ordinateur : <code>npm run yt:auth</code> → autorise la chaîne, récupère le jeton.</li>
+        <li>GitHub → <em>Settings → Secrets → Actions</em> : <code>YT_CLIENT_ID</code>,
+            <code>YT_CLIENT_SECRET</code>, <code>YT_REFRESH_TOKEN</code>.</li>
+        <li>Déposer les vidéos dans <code>youtube-autopost/videos/</code>, fusionner dans <code>main</code>.</li>
+        <li>Onglet <em>Actions</em> → « Short quotidien » → <em>Run workflow</em> pour un premier essai.</li>
+      </ol>
+      <p style="margin-top:.8rem"><a href="https://github.com/parkalert-web/parkalert/tree/main/youtube-autopost#readme" target="_blank" rel="noopener">Guide détaillé (README) →</a></p>
+    </section>
+  </div>
+</div>
+
+<footer>Tout est gratuit : GitHub Actions pour l'horloge, l'API YouTube pour l'envoi. Aucun serveur à payer.</footer>
+</div>
+
+<script type="module">
+import { previewTitles, countDistinctTitles, normalize } from './src/titles.mjs';
+
+const $ = (id) => document.getElementById(id);
+const DEFAUT = {
+  titre: {
+    modeles: ['{accroche} {sujet} {emoji}', '{sujet} : {promesse} {emoji}'],
+    variables: { accroche: ['Tu ne vas pas y croire'], promesse: ['la méthode la plus simple'], emoji: ['🔥', ''] },
+    sujetParDefaut: 'cette astuce', longueurMax: 100, eviterRepetitionJours: 90,
+  },
+};
+
+let config = structuredClone(DEFAUT);
+
+/* ── Chargement ─────────────────────────────────────────────── */
+
+async function charger() {
+  try {
+    const r = await fetch('config.json', { cache: 'no-store' });
+    if (r.ok) config = await r.json();
+  } catch {
+    note("config.json n'a pas pu être lu (ouvrez cette page depuis GitHub Pages ou <code>npm start</code>). Réglages par défaut affichés.");
+  }
+  remplir();
+  rendre();
+}
+
+function note(html) { $('note').innerHTML = html; $('note').hidden = !html; }
+
+/* ── Formulaire ─────────────────────────────────────────────── */
+
+function remplir() {
+  const t = config.titre || (config.titre = {});
+  $('modeles').value = (t.modeles || []).join('\n');
+  $('sujet').value = t.sujetParDefaut || '';
+  $('max').value = t.longueurMax || 100;
+  $('variables').innerHTML = '';
+  for (const [nom, valeurs] of Object.entries(t.variables || {})) ajouterVariable(nom, valeurs);
+}
+
+function ajouterVariable(nom = '', valeurs = []) {
+  const bloc = document.createElement('div');
+  bloc.className = 'var';
+  bloc.innerHTML = `
+    <div class="head">
+      <label style="margin:0">{</label>
+      <input type="text" class="nom" value="" placeholder="accroche" aria-label="Nom de la variable">
+      <label style="margin:0">}</label>
+      <button type="button" class="supprimer" title="Supprimer cette variable" aria-label="Supprimer cette variable">✕</button>
+    </div>
+    <textarea class="valeurs" spellcheck="false" placeholder="une valeur par ligne — &quot;&quot; pour « rien »"></textarea>`;
+  bloc.querySelector('.nom').value = nom;
+  bloc.querySelector('.valeurs').value = (valeurs || []).map((v) => (v === '' ? '""' : v)).join('\n');
+  bloc.querySelector('.supprimer').addEventListener('click', () => { bloc.remove(); rendre(); });
+  $('variables').append(bloc);
+}
+
+/** Reconstruit l'objet `titre` à partir du formulaire. */
+function lireFormulaire() {
+  const variables = {};
+  for (const bloc of $('variables').querySelectorAll('.var')) {
+    const nom = bloc.querySelector('.nom').value.trim();
+    if (!nom) continue;
+    variables[nom] = bloc.querySelector('.valeurs').value
+      .split('\n').map((v) => v.trim()).filter(Boolean)
+      .map((v) => (v === '""' ? '' : v));   // «""» = valeur vide (ex. « pas d'emoji »)
+  }
+  return {
+    ...config.titre,
+    modeles: $('modeles').value.split('\n').map((m) => m.trim()).filter(Boolean),
+    variables,
+    sujetParDefaut: $('sujet').value.trim(),
+    longueurMax: Math.min(100, Math.max(20, Number($('max').value) || 100)),
+  };
+}
+
+/* ── Aperçu ─────────────────────────────────────────────────── */
+
+function rendre() {
+  const titre = lireFormulaire();
+  config.titre = titre;
+  const liste = $('apercu');
+  liste.innerHTML = '';
+
+  if (!titre.modeles.length) {
+    $('stats').innerHTML = '<span class="badge bad">Aucun modèle</span> Écrivez au moins un modèle de titre.';
+    return;
+  }
+
+  let lignes;
+  try {
+    lignes = previewTitles(titre, 30, { subject: titre.sujetParDefaut || 'cette astuce' });
+  } catch (err) {
+    $('stats').innerHTML = `<span class="badge bad">Erreur</span> ${err.message}`;
+    return;
+  }
+
+  const possibles = countDistinctTitles(titre);
+  const uniques = new Set(lignes.map((l) => normalize(l.titre))).size;
+  const trop = lignes.filter((l) => l.titre.length > titre.longueurMax).length;
+  const inconnues = [...new Set(lignes.flatMap((l) => l.manquantes || []))];
+  const etat = possibles >= 60 ? 'ok' : possibles >= 30 ? 'warn' : 'bad';
+  $('stats').innerHTML =
+    `<span class="badge ${etat}">${possibles} jours sans répétition</span> `
+    + `<span class="badge ${uniques === lignes.length ? 'ok' : 'warn'}">${uniques}/30 différents ci-dessous</span>`
+    + (trop ? ` <span class="badge warn">${trop} trop longs</span>` : '')
+    + (inconnues.length ? ` <span class="badge bad">variable inconnue : {${inconnues.join('}, {')}}</span>` : '')
+    + (possibles < 60
+      ? '<br><small>Visez au moins deux mois. Le plus efficace : un modèle qui croise deux variables, '
+        + 'comme <code>{accroche} : {sujet} en {duree}</code>. Attention, deux modèles qui ne diffèrent '
+        + 'que par la ponctuation comptent pour un seul.</small>'
+      : '');
+
+  for (const l of lignes) {
+    const li = document.createElement('li');
+    const d = document.createElement('span'); d.className = 'd';
+    d.textContent = new Date(`${l.date}T12:00:00`).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+    const t = document.createElement('span'); t.className = 't'; t.textContent = l.titre;
+    const n = document.createElement('span'); n.className = 'len'; n.textContent = l.titre.length;
+    if (l.repete) { t.style.color = 'var(--warning)'; t.title = 'Répétition : pas assez de combinaisons'; }
+    li.append(d, t, n);
+    liste.append(li);
+  }
+}
+
+/* ── Historique ─────────────────────────────────────────────── */
+
+async function historique() {
+  const ul = $('historique');
+  try {
+    const r = await fetch('state.json', { cache: 'no-store' });
+    const s = r.ok ? await r.json() : { publications: [] };
+    const pubs = (s.publications || []).slice(-8).reverse();
+    ul.innerHTML = '';
+    if (!pubs.length) { ul.innerHTML = '<li class="d">Aucune publication pour l\'instant.</li>'; return; }
+    for (const p of pubs) {
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      a.href = p.url || '#'; a.target = '_blank'; a.rel = 'noopener'; a.textContent = p.titre || '(sans titre)';
+      const d = document.createElement('div'); d.className = 'd';
+      d.textContent = `${new Date(p.date).toLocaleDateString('fr-FR')} — ${p.fichier || ''}`;
+      li.append(a, d);
+      ul.append(li);
+    }
+  } catch {
+    ul.innerHTML = '<li class="d">Historique indisponible.</li>';
+  }
+}
+
+/* ── Sortie ─────────────────────────────────────────────────── */
+
+const json = () => `${JSON.stringify({ ...config, titre: lireFormulaire() }, null, 2)}\n`;
+
+$('telecharger').addEventListener('click', () => {
+  const url = URL.createObjectURL(new Blob([json()], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = 'config.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+$('copier').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(json());
+    $('copier').textContent = 'Copié ✅';
+    setTimeout(() => { $('copier').textContent = 'Copier le JSON'; }, 1500);
+  } catch {
+    note('Copie refusée par le navigateur — utilisez « Télécharger config.json ».');
+  }
+});
+
+$('ajouter').addEventListener('click', () => { ajouterVariable(); rendre(); });
+$('recharger').addEventListener('click', () => { note(''); charger(); });
+document.addEventListener('input', (e) => { if (e.target.closest('.card')) rendre(); });
+
+charger();
+historique();
+</script>
+</body>
+</html>
