@@ -13,6 +13,9 @@ export class Input {
     this.mouse = { left: false, right: false };
     this.wheel = 0;
     this.locked = false;
+    this.lockDenied = false;       // capture refusée (page embarquée) : on vise à la souris tenue
+    this.dragging = false;
+    this.dragX = 0; this.dragY = 0;
     this.enabled = true;
     this.sensitivity = 0.0022;
     this.invertY = false;
@@ -29,11 +32,15 @@ export class Input {
     addEventListener('blur', () => { this.keys.clear(); });
 
     canvas.addEventListener('mousedown', (e) => {
-      if (!this.locked && this.enabled) { canvas.requestPointerLock(); return; }
+      this.dragX = e.clientX; this.dragY = e.clientY;
+      this.dragging = true;
+      // Premier clic : on tente la capture du pointeur, et ce clic-là ne tire pas.
+      if (!this.locked && this.enabled && !this.lockDenied) { this.requestLock(); return; }
       if (e.button === 0) this.mouse.left = true;
       if (e.button === 2) this.mouse.right = true;
     });
     addEventListener('mouseup', (e) => {
+      this.dragging = false;
       if (e.button === 0) this.mouse.left = false;
       if (e.button === 2) this.mouse.right = false;
     });
@@ -42,12 +49,22 @@ export class Input {
       if (this.locked) {
         this.mouseDX += e.movementX;
         this.mouseDY += e.movementY * (this.invertY ? -1 : 1);
+        return;
       }
+      // Sans capture (page embarquée, permission refusée) : on tourne la tête
+      // en gardant le bouton enfoncé. Sinon la caméra serait bloquée.
+      if (!this.dragging || !this.enabled) return;
+      const dx = e.clientX - this.dragX, dy = e.clientY - this.dragY;
+      this.dragX = e.clientX; this.dragY = e.clientY;
+      this.mouseDX += dx;
+      this.mouseDY += dy * (this.invertY ? -1 : 1);
     });
     addEventListener('wheel', (e) => { this.wheel += Math.sign(e.deltaY); }, { passive: true });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas;
+      if (this.locked) this.lockDenied = false;
     });
+    document.addEventListener('pointerlockerror', () => { this.lockDenied = true; });
     addEventListener('gamepadconnected', (e) => { this.gamepadIndex = e.gamepad.index; });
     addEventListener('gamepaddisconnected', () => { this.gamepadIndex = null; });
   }
@@ -59,10 +76,14 @@ export class Input {
    */
   requestLock() {
     if (!this.enabled || this.locked) return;
+    const refuse = () => { this.lockDenied = true; };
     try {
       const r = this.canvas.requestPointerLock();
-      if (r && typeof r.catch === 'function') r.catch(() => {});
-    } catch (e) { /* refus du navigateur : on continue à la souris libre */ }
+      if (r && typeof r.catch === 'function') r.catch(refuse);
+      // Certains navigateurs échouent sans rien rejeter (cadre embarqué) :
+      // si la capture n'a pas pris, on passe définitivement en souris tenue.
+      setTimeout(() => { if (!this.locked) refuse(); }, 600);
+    } catch (e) { refuse(); }
   }
 
   releaseLock() {

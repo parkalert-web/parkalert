@@ -821,6 +821,13 @@ export class Game {
     this.input.begin();
     this.handleGlobalKeys();
 
+    // Page embarquée : le navigateur refuse la capture de la souris. On le dit
+    // une fois, sinon le joueur croit que la caméra est cassée.
+    if (this.input.lockDenied && !this.dragHintShown && this.state === 'play') {
+      this.dragHintShown = true;
+      this.notify('Souris', 'Maintiens le bouton enfoncé pour tourner la caméra');
+    }
+
     let scale = this.timeScale;
     if (this.paused || this.hud.mapOpen || this.shopOpen) scale = 0;
     const sdt = dt * scale;
