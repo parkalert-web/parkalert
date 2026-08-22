@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b1016">
+<title>Los Santos — Grand Theft Auto V façon navigateur</title>
+<meta name="description" content="Un monde ouvert inspiré de GTA V, entièrement en WebGL, sans aucune dépendance : conduite, missions, police et cycle jour/nuit.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b1016'/%3E%3Ctext x='16' y='23' font-size='20' font-family='Impact,sans-serif' text-anchor='middle' fill='%23f5d442'%3ELS%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="scene"></canvas>
+  <canvas id="overlay"></canvas>
+  <div id="damage-flash"></div>
+
+  <!-- ------------------------------------------------------------------ HUD -->
+  <div id="hud">
+    <div id="top-right">
+      <div id="money-wrap">
+        <div id="money">$0</div>
+        <div id="money-delta"></div>
+      </div>
+      <div id="weapon">
+        <span id="weapon-icon">🔫</span>
+        <span id="weapon-block">
+          <span id="weapon-name">Pistolet</span>
+          <span id="weapon-ammo">12 / 90</span>
+        </span>
+      </div>
+      <div id="stars"></div>
+    </div>
+
+    <div id="objective"></div>
+
+    <div id="bottom-left">
+      <div id="radar-wrap">
+        <canvas id="radar" width="230" height="150"></canvas>
+        <div id="bars">
+          <div class="bar hp"><i id="hp-bar"></i></div>
+          <div class="bar armor"><i id="armor-bar"></i></div>
+          <div class="bar ability" id="ability-wrap"><i id="ability-bar"></i></div>
+        </div>
+        <div id="zone"></div>
+        <div id="radio"></div>
+      </div>
+    </div>
+
+    <div id="speedo">
+      <div id="vehicle-name">—</div>
+      <div id="speed-row"><span id="speed-value">0</span><span id="speed-unit">km/h</span><span id="gear">1</span></div>
+      <div class="bar veh"><i id="veh-health"></i></div>
+    </div>
+
+    <div id="notification"><div class="n-title"></div><div class="n-sub"></div></div>
+    <div id="banner"><div class="b-title"></div><div class="b-sub"></div></div>
+  </div>
+
+  <!-- --------------------------------------------------------------- roues -->
+  <div id="weapon-wheel"></div>
+  <div id="char-wheel"></div>
+
+  <!-- --------------------------------------------------------------- carte -->
+  <div id="map-screen">
+    <canvas id="map-canvas"></canvas>
+    <div class="map-legend">
+      <b>CARTE DE LOS SANTOS</b>
+      <span>Clic : placer un point de destination · Molette : zoom · Glisser : déplacer</span>
+      <span>M ou Échap pour fermer</span>
+    </div>
+  </div>
+
+  <!-- ------------------------------------------------------------- boutique -->
+  <div id="shop">
+    <div class="shop-panel">
+      <div class="shop-title">AMMU-NATION</div>
+      <div class="shop-list"></div>
+      <div class="shop-foot">Chiffres pour acheter · E ou Échap pour sortir</div>
+    </div>
+  </div>
+
+  <!-- ----------------------------------------------------------------- pause -->
+  <div id="pause">
+    <div class="pause-panel">
+      <h1>LOS SANTOS</h1>
+      <div class="pause-cols">
+        <div id="pause-stats"></div>
+        <div id="pause-help">
+          <h2>Commandes</h2>
+          <div class="keys">
+            <div><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd><span>Se déplacer / conduire</span></div>
+            <div><kbd>Souris</kbd><span>Regarder</span></div>
+            <div><kbd>Clic droit</kbd><span>Viser</span></div>
+            <div><kbd>Clic gauche</kbd><span>Tirer / frapper</span></div>
+            <div><kbd>Maj</kbd><span>Courir</span></div>
+            <div><kbd>Espace</kbd><span>Sauter / frein à main</span></div>
+            <div><kbd>F</kbd><span>Monter / descendre d'un véhicule</span></div>
+            <div><kbd>E</kbd><span>Interagir (boutiques)</span></div>
+            <div><kbd>R</kbd><span>Recharger</span></div>
+            <div><kbd>Tab</kbd><span>Roue des armes (maintenir)</span></div>
+            <div><kbd>G</kbd><span>Changer de personnage (maintenir)</span></div>
+            <div><kbd>X</kbd><span>Capacité spéciale</span></div>
+            <div><kbd>1</kbd>–<kbd>9</kbd><span>Armes</span></div>
+            <div><kbd>M</kbd><span>Carte</span></div>
+            <div><kbd>V</kbd><span>Vue caméra</span></div>
+            <div><kbd>H</kbd><span>Klaxon</span></div>
+            <div><kbd>,</kbd><kbd>.</kbd><span>Station de radio</span></div>
+            <div><kbd>C</kbd><span>Caméra libre en voiture</span></div>
+            <div><kbd>Échap</kbd><span>Pause</span></div>
+          </div>
+          <h2>Codes de triche</h2>
+          <p class="cheats">Tapez : <b>SANTE</b>, <b>ARSENAL</b>, <b>FORTUNE</b>, <b>AVOCAT</b>,
+            <b>RECHERCHE</b>, <b>BOLIDE</b>, <b>TANK</b>, <b>NUIT</b>, <b>JOUR</b>, <b>RALENTI</b></p>
+        </div>
+      </div>
+      <div class="pause-foot">
+        <button id="btn-resume">Reprendre</button>
+        <label>Ombres <input type="checkbox" id="opt-shadows" checked></label>
+        <label>Qualité <input type="range" id="opt-scale" min="50" max="100" value="100"></label>
+        <label>Sensibilité <input type="range" id="opt-sens" min="5" max="60" value="22"></label>
+        <label>Volume <input type="range" id="opt-vol" min="0" max="100" value="85"></label>
+        <label>Musique <input type="range" id="opt-music" min="0" max="100" value="50"></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ------------------------------------------------------------ tactile -->
+  <div id="touch-ui">
+    <div id="stick"><div id="stick-knob"></div></div>
+    <div id="touch-buttons">
+      <button data-btn="fire">TIR</button>
+      <button data-btn="aim">VISER</button>
+      <button data-btn="jump">SAUT</button>
+      <button data-btn="enter" data-once="1" data-key="KeyF">F</button>
+      <button data-btn="brake">FREIN</button>
+    </div>
+  </div>
+
+  <!-- ------------------------------------------------------------ chargement -->
+  <div id="loading">
+    <div class="load-inner">
+      <div class="load-logo">LOS<span>SANTOS</span></div>
+      <div class="load-sub">Un bac à sable façon Grand Theft Auto V, écrit en WebGL sans aucune dépendance</div>
+      <div class="load-bar"><i id="load-fill"></i></div>
+      <div class="load-step" id="load-step">Initialisation…</div>
+      <div class="load-tip" id="load-tip"></div>
+      <button id="btn-play" hidden>ENTRER DANS LOS SANTOS</button>
+    </div>
+  </div>
+</div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
