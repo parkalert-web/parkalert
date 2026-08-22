@@ -15,6 +15,7 @@ const C = {
   lineWhite: color('#d8d6cc'),
   lineYellow: color('#c9a83c'),
   walk: color('#b0aca4'),
+  median: color('#6f7c5a'),
   walkEdge: color('#87847e'),
   curb: color('#c6c2b8'),
   pavement: color('#a09c94'),
@@ -78,7 +79,7 @@ function roadMarkings(g, r) {
       // terre-plein central planté
       for (let x = x0; x < x1; x += 24) {
         const seg = Math.min(18, x1 - x);
-        g.slab(x + seg / 2, r.z, seg, 3.4, 0.2, C.walk);
+        g.slab(x + seg / 2, r.z, seg, 3.6, 0.2, C.median);
       }
     } else {
       for (let x = x0; x < x1; x += 8) g.slab(x + 2, r.z, 4, 0.32, y, C.lineYellow);
@@ -96,7 +97,7 @@ function roadMarkings(g, r) {
     if (r.boulevard) {
       for (let z = z0; z < z1; z += 24) {
         const seg = Math.min(18, z1 - z);
-        g.slab(r.x, z + seg / 2, 3.4, seg, 0.2, C.walk);
+        g.slab(r.x, z + seg / 2, 3.6, seg, 0.2, C.median);
       }
     } else {
       for (let z = z0; z < z1; z += 8) g.slab(r.x, z + 2, 0.32, 4, y, C.lineYellow);

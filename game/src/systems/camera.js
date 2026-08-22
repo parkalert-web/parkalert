@@ -63,10 +63,15 @@ export class Camera {
 
     if (mode === 2) {
       // première personne : l'œil est dans la tête, ou au poste de conduite
-      const eyeY = veh ? veh.y + veh.geo.floor + veh.geo.bodyH * 0.72 : p.y + 1.62 - (p.crouch ? 0.24 : 0);
-      const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
-      const ex = (veh ? veh.x : p.x) + fx * 0.28;
-      const ez = (veh ? veh.z : p.z) + fz * 0.28;
+      // Au volant, l'œil se place à hauteur de pare-brise et légèrement en
+      // avant : nos carrosseries n'ont pas d'habitacle à montrer.
+      const eyeY = veh
+        ? veh.y + veh.geo.floor + veh.geo.bodyH * (veh.model.fly ? 0.75 : 0.92)
+        : p.y + 1.62 - (p.crouch ? 0.24 : 0);
+      const fx = Math.sin(veh ? veh.yaw : this.yaw), fz = Math.cos(veh ? veh.yaw : this.yaw);
+      const ahead = veh ? veh.model.len * (veh.model.fly ? 0.16 : 0.22) : 0.28;
+      const ex = (veh ? veh.x : p.x) + fx * ahead;
+      const ez = (veh ? veh.z : p.z) + fz * ahead;
       this.fov = damp(this.fov, p.aiming ? 0.8 : 1.28, 6, dt);
       this.dist = 0;
       this.focus = [ex, eyeY, ez];

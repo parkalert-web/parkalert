@@ -200,11 +200,13 @@ out vec3 vNorm;
 void main() {
   vec3 p = aPos;
   p.x += uCenter.x; p.z += uCenter.y;
-  p.y -= 0.35;                       // le plan d'eau passe sous la plage
+  p.y -= 0.8;                        // le plan d'eau passe sous la plage
+  // la houle s'apaise en approchant du rivage, sinon elle déborde sur le sable
+  float shore = clamp((uShore - p.x) / 130.0, 0.0, 1.0);
   float w1 = sin(p.x * 0.055 + uTime * 1.1) * 0.34;
   float w2 = sin(p.z * 0.085 - uTime * 0.85) * 0.24;
   float w3 = sin((p.x + p.z) * 0.03 + uTime * 0.6) * 0.42;
-  p.y += w1 + w2 + w3;
+  p.y += (w1 + w2 + w3) * shore;
   float dx = cos(p.x * 0.055 + uTime * 1.1) * 0.34 * 0.055 + cos((p.x + p.z) * 0.03 + uTime * 0.6) * 0.42 * 0.03;
   float dz = cos(p.z * 0.085 - uTime * 0.85) * 0.24 * 0.085 + cos((p.x + p.z) * 0.03 + uTime * 0.6) * 0.42 * 0.03;
   vNorm = normalize(vec3(-dx, 1.0, -dz));
@@ -233,8 +235,9 @@ vec3 tonemap(vec3 x) {
 void main() {
   vec3 n = normalize(vNorm);
   vec3 v = normalize(uEye - vWorld);
-  float fres = pow(1.0 - max(dot(n, v), 0.0), 3.0);
-  vec3 col = mix(uDeep, uSkyColor * 1.15, clamp(fres * 1.6, 0.0, 1.0));
+  // moins de ciel réfléchi en incidence rasante : l'eau garde sa couleur
+  float fres = pow(1.0 - max(dot(n, v), 0.0), 4.0);
+  vec3 col = mix(uDeep, uSkyColor * 1.05, clamp(fres * 0.85, 0.0, 0.72));
   vec3 h = normalize(uSunDir + v);
   col += uSunColor * pow(max(dot(n, h), 0.0), 220.0) * 2.6;
   col += uSunColor * pow(max(dot(n, h), 0.0), 18.0) * 0.16;

@@ -60,7 +60,7 @@ function envAt(hour) {
     fogColor: mix('fog'),
     ambSky: mix('amb'),
     ambGround: mix('gnd'),
-    waterDeep: mixColor(color('#0a2233'), color('#123d52'), 1 - night),
+    waterDeep: mixColor(color('#06172a'), color('#0e5b78'), 1 - night),
     fogDensity: lerp(0.0016, 0.0011, 1 - night),
     emitBoost: night * 1.15,
     night,
@@ -1277,7 +1277,9 @@ export class Game {
       fov: this.camera.fov, focus: this.camera.focus,
     }, env);
 
+    const hidden = this.camera.firstPerson ? p.vehicle : null;   // pas d'habitacle à dessiner
     for (const v of this.vehicles) {
+      if (v === hidden) continue;
       if (dist2D(v.x, v.z, this.camera.eye[0], this.camera.eye[2]) < this.drawDistance) v.draw(R, env, this.time);
     }
     for (const ped of this.peds) {

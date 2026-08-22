@@ -260,6 +260,16 @@ export function generateWorld(seed = 20130917) {
     colliders.push({ x, z, hw: 6.2, hd: 2.6, h: 2.7, kind: 'prop' });
   }
 
+  // Palmiers sur les terre-pleins des grands boulevards
+  for (let g = -GRID; g <= GRID; g++) {
+    if (!isBoulevard(g)) continue;
+    for (let t = -GRID * STREET + 30; t < GRID * STREET; t += 60) {
+      if (Math.abs(t % STREET) < 26) continue;             // on dégage les carrefours
+      props.push({ kind: 'palm', x: t, z: g * STREET, r: rand() * 6.28, s: range(rand, 0.8, 1.1) });
+      props.push({ kind: 'palm', x: g * STREET, z: t, r: rand() * 6.28, s: range(rand, 0.8, 1.1) });
+    }
+  }
+
   /* ------------------------------------------------- lampadaires et feux */
   for (let g = -GRID; g <= GRID; g++) {
     for (let t = -GRID * STREET; t <= GRID * STREET; t += 45) {

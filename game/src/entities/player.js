@@ -231,7 +231,8 @@ export class Player {
     const wasSwimming = this.swimming;
     this.swimming = this.x < -738;
     if (this.swimming) {
-      this.y = damp(this.y, -0.55, 6, dt);
+      // on flotte : la surface est à -0,8, on n'a que la tête et les épaules dehors
+      this.y = damp(this.y, -1.95, 4, dt);
       this.vy = 0;
       this.onGround = true;
       this.breath = clamp((this.breath ?? 1) - dt * 0.03, 0, 1);
