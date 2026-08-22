@@ -431,6 +431,112 @@ test('les places assises et la sortie restent près du véhicule', () => {
   assert.ok(dist2D(ex, ez, v.x, v.z) < 4);
 });
 
+/* ------------------------------------------------- commandes et collisions */
+
+/** Un jeu minimal, suffisant pour faire marcher le joueur. */
+async function stubGame(world, vehicles = []) {
+  const { Player } = await import('../game/src/entities/player.js');
+  const player = new Player('franklin');
+  const game = {
+    world, vehicles, peds: [], weather: { wet: 0 },
+    camera: { yaw: 0, pitch: 0 },
+    input: { moveX: 0, moveY: 0, sprint: false, jumpPressed: false, aim: false, down: () => false },
+    audio: { impact() {}, footstep() {} },
+    player,
+  };
+  player.update = player.update.bind(player);
+  return { game, player };
+}
+
+function walk(game, player, seconds, moveX, moveY) {
+  const dt = 1 / 60;
+  game.input.moveX = moveX;
+  game.input.moveY = moveY;
+  for (let i = 0; i < seconds * 60; i++) player.update(dt, game);
+}
+
+test('les commandes envoient là où on regarde', async () => {
+  const world = new World(generateWorld(20130917));
+  const { game, player } = await stubGame(world);
+  // au milieu d'un carrefour dégagé, caméra vers +Z
+  player.x = 0; player.z = -45; game.camera.yaw = 0;
+
+  walk(game, player, 2, 0, 1);
+  assert.ok(player.z > -43, `avancer doit suivre l'axe de la caméra (z=${player.z.toFixed(1)})`);
+  assert.ok(Math.abs(player.x) < 0.5, 'sans dérive latérale');
+
+  player.x = 0; player.z = -45; player.vx = 0; player.vz = 0;
+  walk(game, player, 2, 1, 0);
+  // La droite de l'écran est (-cos, sin) : à lacet nul, c'est -X.
+  assert.ok(player.x < -2, `« droite » doit aller vers -X (x=${player.x.toFixed(1)})`);
+
+  player.x = 0; player.z = -45; player.vx = 0; player.vz = 0;
+  game.camera.yaw = Math.PI / 2;                 // caméra vers +X
+  walk(game, player, 2, 0, 1);
+  assert.ok(player.x > 2, `avancer suit la caméra tournée (x=${player.x.toFixed(1)})`);
+
+  player.x = 0; player.z = -45; player.vx = 0; player.vz = 0;
+  walk(game, player, 2, 1, 0);
+  assert.ok(player.z > -43, `et « droite » reste à droite de l'écran (z=${player.z.toFixed(1)})`);
+});
+
+test('le joueur ne traverse ni les murs ni les voitures', async () => {
+  const data = generateWorld(20130917);
+  const world = new World(data);
+  const wall = data.colliders.find((c) => c.kind === 'building' && c.h > 8 && c.hw > 8);
+  const { game, player } = await stubGame(world);
+
+  // face sud du bâtiment, on fonce dedans pendant six secondes
+  player.x = wall.x; player.z = wall.z - wall.hd - 5;
+  game.camera.yaw = 0;
+  walk(game, player, 6, 0, 1);
+  assert.ok(player.z < wall.z - wall.hd + 0.5,
+    `le mur doit arrêter le joueur (z=${player.z.toFixed(1)}, façade=${(wall.z - wall.hd).toFixed(1)})`);
+  assert.ok(player.z > wall.z - wall.hd - 1.6, 'et il doit tout de même arriver au contact');
+
+  // une voiture en travers du chemin
+  const v = new Vehicle('granger', 0, -40, 0);
+  const { game: g2, player: p2 } = await stubGame(world, [v]);
+  p2.x = 0; p2.z = -55;
+  g2.camera.yaw = 0;
+  walk(g2, p2, 6, 0, 1);
+  assert.ok(p2.z < v.z - v.hl + 0.4,
+    `la voiture doit arrêter le joueur (z=${p2.z.toFixed(1)}, pare-chocs=${(v.z - v.hl).toFixed(1)})`);
+});
+
+test('deux véhicules se repoussent selon leur vraie emprise', async () => {
+  const { resolveVehicleCollisions, supportRadius } = await import('../game/src/systems/physics.js');
+  // Une boîte vue de face : son rayon d'appui vaut sa demi-longueur.
+  const probe = new Vehicle('asterope', 0, 0, 0);
+  assert.ok(Math.abs(supportRadius(probe, 0, 1) - probe.hl) < 1e-6, 'de face : demi-longueur');
+  assert.ok(Math.abs(supportRadius(probe, 1, 0) - probe.hw) < 1e-6, 'de côté : demi-largeur');
+
+  // Choc arrière : la voiture qui suit ne doit pas entrer dans celle de devant.
+  const a = new Vehicle('comete', 0, 0, 0);
+  const b = new Vehicle('granger', 0, 6, 0);
+  a.vz = 20;
+  const w = { pushCircle: () => null };
+  let crashes = 0;
+  for (let i = 0; i < 120; i++) {
+    a.update(1 / 60, w, null);
+    b.update(1 / 60, w, null);
+    resolveVehicleCollisions([a, b], () => { crashes++; });
+  }
+  assert.ok(crashes > 0, 'le choc doit être signalé');
+  const gap = b.z - a.z;
+  assert.ok(gap > a.hl + b.hl - 0.35,
+    `pas d'interpénétration à l'arrêt (écart ${gap.toFixed(2)} m pour ${(a.hl + b.hl).toFixed(2)} m)`);
+  assert.ok(b.vz > 0.5, 'la voiture percutée est poussée en avant');
+  assert.ok(a.health < a.maxHealth, 'et les deux encaissent');
+
+  // Choc latéral : l'emprise utile est bien plus étroite.
+  const c = new Vehicle('comete', 0, 0, 0);
+  const d = new Vehicle('comete', 2.6, 0, 0);
+  resolveVehicleCollisions([c, d], null);
+  assert.ok(d.x - c.x > c.hw + d.hw - 0.05, 'côte à côte : on se sépare à la largeur');
+  assert.ok(d.x - c.x < 4, 'sans pousser jusqu’à la longueur');
+});
+
 /* ------------------------------------------------------------- circulation */
 
 test('la circulation roule et reste sur la chaussée', async () => {

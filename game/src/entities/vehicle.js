@@ -34,17 +34,25 @@ export const CIVILIAN_MODELS = ['asterope', 'ingot', 'comete', 'dominator', 'gra
 
 const partCache = new Map();
 
+/** Rayon de roue selon la catégorie. */
+function wheelRadiusFor(m) {
+  if (m.cls === 'truck' || m.cls === 'bus') return 0.55;
+  if (m.cls === 'suv' || m.cls === 'pickup' || m.cls === 'van') return 0.42;
+  return 0.36;
+}
+
 /** Construit la carrosserie (dans le repère local : X droite, Y haut, Z avant). */
 function buildParts(key) {
   if (partCache.has(key)) return partCache.get(key);
   const m = { ...MODELS[key], key };
   const L = m.len, W = m.wid, H = m.h;
   const p = [];
-  const wheelR = m.cls === 'truck' || m.cls === 'bus' ? 0.55 : m.cls === 'suv' || m.cls === 'pickup' || m.cls === 'van' ? 0.42 : 0.36;
+  const wheelR = wheelRadiusFor(m);
   const floor = wheelR * (m.cls === 'sports' || m.cls === 'super' ? 0.52 : m.cls === 'truck' || m.cls === 'bus' ? 0.95 : 0.66);
   const bodyH = H - floor;
 
   const glass = 'glass', paint = 'paint', dark = 'dark';
+  /** Ajoute une pièce. `extra` accepte shape ('cyl'|'ball') et rx / ry / rz. */
   const add = (x, y, z, sx, sy, sz, c, extra) => p.push({ x, y, z, sx, sy, sz, c, ...extra });
 
   if (m.cls === 'heli') {
@@ -93,28 +101,50 @@ function buildParts(key) {
     add(0, floor + bodyH * 0.86, L * 0.12, W * 0.94, bodyH * 0.4, L * 0.34, glass);
     add(0, floor + bodyH * 0.72, -L * 0.28, W * 0.94, bodyH * 0.34, L * 0.42, dark);
   } else {
-    // berlines, sportives, SUV : caisse basse, pavillon vitré, toit
-    const lowH = bodyH * (m.cls === 'sports' || m.cls === 'super' ? 0.66 : m.cls === 'suv' ? 0.54 : 0.58);
+    // berlines, sportives, SUV : caisse basse, pavillon vitré galbé
+    const lowH = bodyH * (m.cls === 'sports' || m.cls === 'super' ? 0.58 : m.cls === 'suv' ? 0.5 : 0.54);
     const cabH = bodyH - lowH;
     const cabZ = m.cls === 'sports' || m.cls === 'super' ? -L * 0.08 : L * 0.01;
     const cabL = m.cls === 'super' ? L * 0.38 : m.cls === 'sports' ? L * 0.44 : L * 0.52;
+    const beltY = floor + lowH;
     add(0, floor + lowH * 0.5, 0, W, lowH, L, paint);
     add(0, floor + lowH * 0.28, 0, W + 0.05, lowH * 0.46, L * 0.97, 'skirt');
     add(0, floor + lowH * 0.86, L * 0.3, W * 0.97, lowH * 0.3, L * 0.34, paint);          // capot
-    add(0, floor + lowH + cabH * 0.5, cabZ, W * 0.88, cabH, cabL, paint);
-    add(0, floor + lowH + cabH * 0.42, cabZ, W * 0.9, cabH * 0.5, cabL * 0.99, glass);
-    add(0, floor + lowH + cabH * 0.92, cabZ, W * 0.82, cabH * 0.18, cabL * 0.9, paint);   // toit
+    add(0, beltY + cabH * 0.48, cabZ, W * 0.9, cabH * 0.96, cabL, paint);            // habitacle
+    add(0, beltY + cabH * 0.38, cabZ, W * 0.915, cabH * 0.44, cabL * 0.99, glass);    // vitres
+    // pavillon galbé : un tube couché dans l'axe de la voiture
+    add(0, beltY + cabH * 0.76, cabZ, W * 0.95, cabL * 0.96, cabH * 0.66, paint,
+      { shape: 'cyl', rx: Math.PI / 2 });
+    // pare-brise et lunette arrière inclinés
+    add(0, beltY + cabH * 0.46, cabZ + cabL * 0.5, W * 0.86, cabH * 1.0, 0.1, glass, { rx: -0.5 });
+    add(0, beltY + cabH * 0.46, cabZ - cabL * 0.5, W * 0.86, cabH * 0.95, 0.1, glass, { rx: 0.55 });
+    for (const sd of [-1, 1]) {                                                          // rétroviseurs
+      add(sd * (W * 0.53), beltY + cabH * 0.26, cabZ + cabL * 0.4, 0.17, 0.09, 0.08, 'skirt');
+    }
     if (m.cls === 'muscle') add(0, floor + lowH + 0.06, L * 0.3, W * 0.34, 0.14, L * 0.16, dark);
-    if (m.cls === 'super' || m.cls === 'sports') add(0, floor + lowH + cabH * 0.6, -L * 0.44, W * 0.86, 0.1, 0.42, dark);
+    if (m.cls === 'super' || m.cls === 'sports') {
+      add(0, beltY + cabH * 0.62, -L * 0.45, W * 0.86, 0.09, 0.42, dark);
+      for (const sd of [-1, 1]) add(sd * W * 0.36, beltY + cabH * 0.42, -L * 0.45, 0.09, 0.28, 0.28, dark);
+    }
   }
 
-  // pare-chocs, phares, feux
+  // pare-chocs, phares ronds, feux
   const noseZ = L / 2 - 0.12, tailZ = -L / 2 + 0.12;
   add(0, floor + bodyH * 0.28, noseZ, W * 0.98, bodyH * 0.3, 0.22, dark);
   add(0, floor + bodyH * 0.28, tailZ, W * 0.98, bodyH * 0.3, 0.22, dark);
+  add(0, floor + bodyH * 0.34, noseZ - 0.03, bodyH * 0.44, W * 0.95, bodyH * 0.44, 'skirt',
+    { shape: 'cyl', rz: Math.PI / 2 });                                    // nez adouci
+  add(0, floor + bodyH * 0.34, tailZ + 0.03, bodyH * 0.42, W * 0.95, bodyH * 0.42, 'skirt',
+    { shape: 'cyl', rz: Math.PI / 2 });                                    // poupe adoucie
   for (const s of [-1, 1]) {
-    add(s * W * 0.33, floor + bodyH * 0.52, noseZ + 0.02, W * 0.26, bodyH * 0.2, 0.14, 'head');
-    add(s * W * 0.34, floor + bodyH * 0.55, tailZ - 0.02, W * 0.24, bodyH * 0.18, 0.12, 'tail');
+    add(s * W * 0.31, floor + bodyH * 0.52, noseZ + 0.03, bodyH * 0.19, bodyH * 0.19, bodyH * 0.19,
+      'head', { shape: 'ball' });
+    add(s * W * 0.34, floor + bodyH * 0.55, tailZ - 0.03, W * 0.22, bodyH * 0.16, 0.1, 'tail');
+  }
+  // ailes : un tube en travers, juste au-dessus de chaque roue
+  for (const [sx2, sz2] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) {
+    add(sx2 * (W / 2 - 0.02), wheelR * 0.98, sz2 * L * 0.33, wheelR * 2.15, 0.12, wheelR * 2.15,
+      'skirt', { shape: 'cyl', rz: Math.PI / 2 });
   }
   if (m.taxi) {
     add(0, floor + bodyH * 1.28, L * 0.02, 0.9, 0.32, 0.42, 'sign');
@@ -464,7 +494,7 @@ export class Vehicle {
         case 'metal': c = [0.55, 0.57, 0.6]; break;
         case 'cargo': c = shade(body, 0.85); break;
         case 'livery': c = [0.92, 0.92, 0.94]; break;
-        case 'head': c = lightsOn ? [1, 0.97, 0.85] : [0.75, 0.75, 0.72]; emit = lightsOn ? 1 : 0; break;
+        case 'head': c = lightsOn ? [1, 0.97, 0.85] : [0.5, 0.52, 0.5]; emit = lightsOn ? 1 : 0; break;
         case 'tail': c = [0.8, 0.1, 0.08]; emit = braking ? 1 : (lightsOn ? 0.45 : 0.08); break;
         case 'sign': c = [1, 0.85, 0.2]; emit = 0.9; break;
         case 'rotor': case 'tailrotor': c = [0.16, 0.16, 0.18]; break;
@@ -478,13 +508,15 @@ export class Vehicle {
       }
       const half = p.c === 'lightbarL' ? -1 : p.c === 'lightbarR' ? 1 : 0;
       let ry = p.ry || 0;
-      let rz = 0;
+      let rz = p.rz || 0;
       if (p.c === 'rotor') ry = this.rotorSpin || 0;
       if (p.c === 'tailrotor') rz = (this.rotorSpin || 0) * 1.7;
       m4compose(this.tmp, p.x + half * p.sx * 0.26, p.y, p.z,
-        ry, half ? p.sx * 0.48 : p.sx, p.sy, p.sz, 0, rz);
+        ry, half ? p.sx * 0.48 : p.sx, p.sy, p.sz, p.rx || 0, rz);
       m4mul(this.out, this.mat, this.tmp);
-      R.cube(this.out, c, emit);
+      if (p.shape === 'cyl') R.cyl(this.out, c, emit);
+      else if (p.shape === 'ball') R.sphere(this.out, c, emit);
+      else R.cube(this.out, c, emit);
     }
 
     // occupants : buste et tête visibles derrière le pare-brise

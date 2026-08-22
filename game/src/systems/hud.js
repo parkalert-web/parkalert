@@ -213,7 +213,7 @@ export class HUD {
       z.classList.add('show');
     }
 
-    this.drawRadar(dt);
+    this.drawRadar();
     if (this.mapOpen) this.drawMap();
   }
 
@@ -249,114 +249,110 @@ export class HUD {
     return list;
   }
 
-  drawRadar(dt) {
+  drawRadar() {
     const g = this.game;
     const p = g.player;
     const c = this.rctx;
     const W = this.radar.width, H = this.radar.height;
     const scale = p.vehicle ? 0.30 : 0.42;
-    const ang = -g.camera.yaw;
+    const yaw = g.camera.yaw;
+    const cy = Math.cos(yaw), sy = Math.sin(yaw);
+
+    /**
+     * Le cap du joueur pointe vers le haut et la gauche du radar est la gauche
+     * de l'écran. L'avant du monde vaut (sin, cos) et la droite de l'écran
+     * (-cos, sin) : d'où cette matrice, qui n'est pas un simple pivot.
+     */
+    const toRadar = (wx, wz) => [
+      (-(wx - p.x) * cy + (wz - p.z) * sy) * scale + W / 2,
+      (-(wx - p.x) * sy - (wz - p.z) * cy) * scale + H / 2,
+    ];
+
     c.save();
     c.clearRect(0, 0, W, H);
     c.beginPath();
-    c.roundRect ? c.roundRect(0, 0, W, H, 10) : c.rect(0, 0, W, H);
+    if (c.roundRect) c.roundRect(0, 0, W, H, 10); else c.rect(0, 0, W, H);
     c.clip();
     c.fillStyle = '#222d38';
     c.fillRect(0, 0, W, H);
 
     c.translate(W / 2, H / 2);
-    c.rotate(ang);
-    c.scale(scale, scale);
+    c.transform(-cy * scale, -sy * scale, sy * scale, -cy * scale, 0, 0);
     c.translate(-p.x, -p.z);
 
-    const R = Math.max(W, H) / scale;
-    // mer
+    // mer, sable, parcs
     c.fillStyle = '#17394f';
     c.fillRect(-2000, -2000, 2000 + OCEAN_X, 4000);
-    // sable
     c.fillStyle = '#c9b58a';
     c.fillRect(OCEAN_X, -2000, SHORE_X - OCEAN_X + 40, 4000);
-    // parcs
     c.fillStyle = '#3e5c33';
     for (const b of g.data.blocks) {
       if (b.ground === 'grass') c.fillRect(b.x - b.half, b.z - b.half, b.half * 2, b.half * 2);
     }
     // routes
-    c.strokeStyle = '#6e7d8b';
-    for (const r of g.data.roads) {
-      c.lineWidth = r.horiz ? r.d : r.w;
-      c.beginPath();
-      if (r.horiz) { c.moveTo(r.x - r.w / 2, r.z); c.lineTo(r.x + r.w / 2, r.z); }
-      else { c.moveTo(r.x, r.z - r.d / 2); c.lineTo(r.x, r.z + r.d / 2); }
-      c.stroke();
-    }
-    // pointillés des grands axes
-    c.strokeStyle = '#93a2b0';
-    c.lineWidth = 1.2;
-    for (const r of g.data.roads) {
-      if (!r.boulevard) continue;
-      c.beginPath();
-      if (r.horiz) { c.moveTo(r.x - r.w / 2, r.z); c.lineTo(r.x + r.w / 2, r.z); }
-      else { c.moveTo(r.x, r.z - r.d / 2); c.lineTo(r.x, r.z + r.d / 2); }
-      c.stroke();
-    }
-
-    // zone de recherche : cercle clignotant quand la police vous a perdu
-    if (g.player.wanted > 0 && g.police.flash > 0 && g.police.lastSeen) {
-      const r = 55 + g.player.wanted * 45;
-      c.save();
-      c.strokeStyle = Math.floor(g.time * 3) % 2 ? 'rgba(90,140,240,0.95)' : 'rgba(240,80,80,0.95)';
-      c.fillStyle = 'rgba(60,100,200,0.16)';
-      c.lineWidth = 3 / scale;
-      c.beginPath();
-      c.arc(g.police.lastSeen.x, g.police.lastSeen.z, r, 0, 6.29);
-      c.fill(); c.stroke();
-      c.restore();
-    }
-
-    // blips
-    for (const b of this.blips()) {
-      const dx = b.x - p.x, dz = b.z - p.z;
-      const d = Math.hypot(dx, dz);
-      const maxD = (Math.min(W, H) / 2 - 10) / scale;
-      let bx = b.x, bz = b.z;
-      if (d > maxD) { bx = p.x + (dx / d) * maxD; bz = p.z + (dz / d) * maxD; }
-      c.save();
-      c.translate(bx, bz);
-      c.rotate(-ang);
-      c.fillStyle = b.color;
-      const s = (b.size || 5) / scale * 0.55;
-      if (b.ring) {
-        c.strokeStyle = b.color; c.lineWidth = 2.4 / scale;
-        c.beginPath(); c.arc(0, 0, s, 0, 6.29); c.stroke();
-        c.beginPath(); c.arc(0, 0, s * 0.35, 0, 6.29); c.fill();
-      } else {
+    for (const pass of [0, 1]) {
+      c.strokeStyle = pass ? '#93a2b0' : '#6e7d8b';
+      for (const r of g.data.roads) {
+        if (pass && !r.boulevard) continue;
+        c.lineWidth = pass ? 1.6 : (r.horiz ? r.d : r.w);
         c.beginPath();
-        c.arc(0, 0, s, 0, 6.29);
-        c.fill();
+        if (r.horiz) { c.moveTo(r.x - r.w / 2, r.z); c.lineTo(r.x + r.w / 2, r.z); }
+        else { c.moveTo(r.x, r.z - r.d / 2); c.lineTo(r.x, r.z + r.d / 2); }
+        c.stroke();
+      }
+    }
+    c.restore();
+
+    // Repères et joueur : dessinés à plat, pour rester lisibles.
+    c.save();
+    c.beginPath();
+    if (c.roundRect) c.roundRect(0, 0, W, H, 10); else c.rect(0, 0, W, H);
+    c.clip();
+
+    if (p.wanted > 0 && g.police.flash > 0 && g.police.lastSeen) {
+      const [sx, sz] = toRadar(g.police.lastSeen.x, g.police.lastSeen.z);
+      const r = (55 + p.wanted * 45) * scale;
+      c.strokeStyle = Math.floor(g.time * 3) % 2 ? 'rgba(90,140,240,.95)' : 'rgba(240,80,80,.95)';
+      c.fillStyle = 'rgba(60,100,200,.16)';
+      c.lineWidth = 2;
+      c.beginPath(); c.arc(sx, sz, r, 0, 6.29); c.fill(); c.stroke();
+    }
+
+    const limit = Math.min(W, H) / 2 - 9;
+    for (const b of this.blips()) {
+      let [sx, sz] = toRadar(b.x, b.z);
+      const dx = sx - W / 2, dz = sz - H / 2;
+      const d = Math.hypot(dx, dz);
+      if (d > limit) { sx = W / 2 + (dx / d) * limit; sz = H / 2 + (dz / d) * limit; }
+      const r = (b.size || 5) * 0.85;
+      c.fillStyle = b.color;
+      if (b.ring) {
+        c.strokeStyle = b.color; c.lineWidth = 2.2;
+        c.beginPath(); c.arc(sx, sz, r, 0, 6.29); c.stroke();
+        c.beginPath(); c.arc(sx, sz, r * 0.38, 0, 6.29); c.fill();
+      } else {
+        c.beginPath(); c.arc(sx, sz, r, 0, 6.29); c.fill();
         if (b.letter && b.letter.length === 1) {
           c.fillStyle = '#101418';
-          c.font = `bold ${s * 1.35}px Arial`;
+          c.font = `bold ${Math.round(r * 1.4)}px Arial`;
           c.textAlign = 'center'; c.textBaseline = 'middle';
-          c.fillText(b.letter, 0, s * 0.06);
+          c.fillText(b.letter, sx, sz + 0.5);
         }
       }
-      c.restore();
     }
 
-    // joueur
-    c.save();
-    c.translate(p.x, p.z);
-    c.rotate(p.vehicle ? p.vehicle.yaw : p.yaw);
+    // le joueur, toujours au centre et pointé vers le haut
+    c.translate(W / 2, H / 2);
     c.fillStyle = '#ffffff';
-    const s = 7 / scale;
+    c.strokeStyle = 'rgba(0,0,0,.6)';
+    c.lineWidth = 1.5;
+    const a = 7;
     c.beginPath();
-    c.moveTo(0, s); c.lineTo(-s * 0.62, -s * 0.72); c.lineTo(0, -s * 0.36); c.lineTo(s * 0.62, -s * 0.72);
-    c.closePath(); c.fill();
-    c.restore();
+    c.moveTo(0, -a); c.lineTo(a * 0.62, a * 0.72); c.lineTo(0, a * 0.36); c.lineTo(-a * 0.62, a * 0.72);
+    c.closePath(); c.fill(); c.stroke();
     c.restore();
 
-    // cadre + cône de vue
+    // cadre
     c.save();
     c.strokeStyle = 'rgba(0,0,0,0.85)';
     c.lineWidth = 3;

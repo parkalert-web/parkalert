@@ -4,6 +4,7 @@
  * panique collective et morts.
  */
 import { m4, m4compose, m4mul, color, shade, clamp, lerp, damp, dampAngle, wrapAngle, rng, range, pick, dist2D } from '../engine/math.js';
+import { pushOutOfVehicles } from '../systems/physics.js';
 
 const SKIN = ['#e8b48c', '#c98d63', '#8d5a3b', '#f0c9a6', '#6b4229', '#d9a077'];
 const SHIRT = ['#d8453c', '#2f6fb4', '#e6e6e6', '#3f9a5c', '#e0a33a', '#7a4f9a', '#2b2f36', '#d97ea8', '#4fb0c0', '#f0f0f0'];
@@ -12,64 +13,140 @@ const HAIR = ['#241a12', '#4a3620', '#7a5a32', '#1a1a1a', '#a08050', '#5a5a5a'];
 
 const tmpA = m4(), tmpB = m4();
 
+/* Proportions, en mètres. Un adulte fait 1,78 m. */
+const THIGH = 0.44, CALF = 0.42, UPPER_ARM = 0.30, FOREARM = 0.28;
+
 /**
- * Dessine un humanoïde.
- * @param {object} s état : x,y,z,yaw,anim(0..1 phase),move(0..1),aim,dead,crouch
+ * Dessine un humanoïde articulé : membres en cylindres, articulations en
+ * sphères, tête ronde. Les jambes et les bras ont deux segments, si bien que
+ * le genou et le coude plient vraiment pendant la marche.
+ *
+ * @param {object} s x, y, z, yaw, anim (phase), move (0..1), aim, crouch,
+ *                   deadT, swimming, et les couleurs (skin, shirt, pants…)
+ * @param {number|null} look inclinaison de la tête (visée)
  */
 export function drawHuman(R, s, look = null) {
-  const dead = s.deadT !== undefined && s.deadT > 0;
-  const fall = dead ? clamp(s.deadT * 3.2, 0, 1) : 0;
-  const pitch = fall * Math.PI * 0.47;
-  const drop = fall * 0.62;
-  const base = m4compose(tmpA, s.x, s.y - drop * 0.0, s.z, s.yaw, 1, 1, 1, 0, 0);
-  const bodyM = m4();
+  const fall = s.deadT > 0 ? clamp(s.deadT * 3.2, 0, 1) : 0;
+  const base = m4compose(tmpA, s.x, s.y, s.z, s.yaw, 1, 1, 1, 0, 0);
   if (fall > 0) {
-    m4compose(bodyM, 0, 0, 0, 0, 1, 1, 1, pitch, 0);
-    m4mul(base, base, bodyM);
+    m4compose(tmpB, 0, 0, 0, 0, 1, 1, 1, fall * Math.PI * 0.47, 0);
+    m4mul(base, base, tmpB);
   }
-  const swimming = !!s.swimming;
-  const swing = Math.sin(s.anim * Math.PI * (swimming ? 3 : 2)) * (0.35 + s.move * 0.65) * (1 - fall);
-  const swing2 = Math.sin(s.anim * Math.PI * 2 + Math.PI) * (0.35 + s.move * 0.65) * (1 - fall);
-  const bob = Math.abs(Math.sin(s.anim * Math.PI)) * 0.045 * s.move * (1 - fall);
-  const crouch = s.crouch ? 0.24 : 0;
-  const legLen = 0.86, armLen = 0.62;
-  const hipY = 0.92 - crouch + bob;
+
   const skin = s.skin || [0.9, 0.72, 0.55];
   const shirt = s.shirt || [0.8, 0.25, 0.22];
   const pants = s.pants || [0.2, 0.24, 0.3];
   const hair = s.hair || [0.15, 0.11, 0.08];
-  const shoe = [0.12, 0.11, 0.1];
+  const shoe = [0.11, 0.1, 0.1];
 
-  const part = (px, py, pz, sx, sy, sz, c, rx = 0, ry = 0, rz = 0, emit = 0) => {
-    m4compose(tmpB, px, py, pz, ry, sx, sy, sz, rx, rz);
+  // pièces élémentaires, exprimées dans le repère du personnage
+  const box = (x, y, z, sx, sy, sz, c, rx = 0, ry = 0, rz = 0) => {
+    m4compose(tmpB, x, y, z, ry, sx, sy, sz, rx, rz);
     m4mul(tmpB, base, tmpB);
-    R.cube(tmpB, c, emit);
+    R.cube(tmpB, c);
+  };
+  const ball = (x, y, z, d, c, dy = d, dz = d) => {
+    m4compose(tmpB, x, y, z, 0, d, dy, dz);
+    m4mul(tmpB, base, tmpB);
+    R.sphere(tmpB, c);
+  };
+  /** Segment de membre : cylindre partant du pivot, incliné de `a` (plan sagittal). */
+  const limb = (px, py, pz, a, len, thick, c) => {
+    const cx = px;
+    const cy = py - Math.cos(a) * len / 2;
+    const cz = pz - Math.sin(a) * len / 2;
+    m4compose(tmpB, cx, cy, cz, 0, thick, len, thick, a, 0);
+    m4mul(tmpB, base, tmpB);
+    R.cyl(tmpB, c);
+    return [px, py - Math.cos(a) * len, pz - Math.sin(a) * len];   // extrémité
   };
 
-  // jambes (pivot à la hanche)
-  for (const [sx, a] of [[-1, swing], [1, swing2]]) {
-    const cx = sx * 0.13;
-    part(cx, hipY - Math.cos(a) * legLen / 2, -Math.sin(a) * legLen / 2, 0.19, legLen, 0.21, pants, a);
-    part(cx, hipY - Math.cos(a) * legLen - 0.02, -Math.sin(a) * legLen + 0.04, 0.2, 0.11, 0.3, shoe, a * 0.4);
+  const swimming = !!s.swimming;
+  const phase = s.anim * Math.PI * 2;
+  const amp = (0.28 + s.move * 0.62) * (1 - fall);
+  const crouch = s.crouch ? 0.22 : 0;
+  const bob = Math.abs(Math.sin(phase)) * 0.04 * s.move * (1 - fall);
+  const hipY = 0.90 - crouch + bob;
+  const lean = fall ? 0 : (s.aim ? 0.06 : s.move * 0.14);
+
+  /* ------------------------------------------------------------- jambes */
+  for (const side of [-1, 1]) {
+    const swing = Math.sin(phase + (side > 0 ? Math.PI : 0)) * amp;
+    // le genou plie quand la jambe part vers l'arrière
+    const bend = Math.max(0, -Math.sin(phase + (side > 0 ? Math.PI : 0))) * amp * 1.5 + 0.06;
+    const hx = side * 0.115;
+    ball(hx, hipY, 0, 0.24, pants);
+    const knee = limb(hx, hipY, 0, swing, THIGH, 0.19, pants);
+    ball(knee[0], knee[1], knee[2], 0.185, pants);
+    const ankle = limb(knee[0], knee[1], knee[2], swing + bend, CALF, 0.16, pants);
+    ball(ankle[0], ankle[1], ankle[2], 0.15, shoe);
+    box(ankle[0], ankle[1] - 0.03, ankle[2] + 0.07, 0.15, 0.09, 0.28, shoe, swing * 0.25);
   }
-  // torse
-  const lean = s.aim ? 0.08 : s.move * 0.12;
-  part(0, hipY + 0.34, 0, 0.46, 0.68, 0.27, shirt, lean);
-  part(0, hipY + 0.64, 0, 0.4, 0.14, 0.25, skin, 0);
-  // bras
-  const aimAngle = s.aim ? -Math.PI / 2 + (look ? clamp(-look, -0.6, 0.6) : 0) : 0;
-  for (const [sx, a0] of [[-1, swing2], [1, swing]]) {
-    const a = s.aim ? aimAngle : a0 * 0.8;
-    const shoulderY = hipY + 0.6;
-    const cx = sx * 0.31;
-    part(cx, shoulderY - Math.cos(a) * armLen / 2, -Math.sin(a) * armLen / 2, 0.15, armLen, 0.17, shirt, a);
-    part(cx, shoulderY - Math.cos(a) * armLen - 0.03, -Math.sin(a) * armLen, 0.14, 0.14, 0.16, skin, a);
+
+  /* -------------------------------------------------------------- tronc */
+  const chestY = hipY + 0.34;
+  box(0, hipY + 0.08, -lean * 0.05, 0.32, 0.22, 0.23, pants, lean);      // bassin
+  m4compose(tmpB, 0, hipY + 0.2, 0, 0, 0.29, 0.24, 0.25, lean, 0);
+  m4mul(tmpB, base, tmpB); R.cyl(tmpB, shirt);                           // taille
+  box(0, chestY - 0.02, 0, 0.36, 0.26, 0.25, shirt, lean);               // bas du torse
+  box(0, chestY + 0.16, 0, 0.42, 0.24, 0.27, shirt, lean);               // poitrine
+  ball(0, chestY + 0.24, 0, 0.44, shirt, 0.2, 0.28);                     // épaules arrondies
+
+  /* --------------------------------------------------------------- tête */
+  const neckY = chestY + 0.32;
+  m4compose(tmpB, 0, neckY - 0.03, 0, 0, 0.12, 0.11, 0.12);
+  m4mul(tmpB, base, tmpB); R.cyl(tmpB, skin);
+  const headTilt = look !== null ? clamp(look * 0.3, -0.35, 0.35) : 0;
+  const hy = neckY + 0.16;
+  ball(0, hy, 0.012, 0.235, skin, 0.26, 0.245);                          // crâne
+  if (!s.hat) {
+    ball(0, hy + 0.075, -0.022, 0.245, hair, 0.15, 0.235);               // cheveux
+    ball(0, hy + 0.02, -0.09, 0.22, hair, 0.2, 0.12);                    // nuque
   }
-  // tête
-  const headY = hipY + 0.82;
-  part(0, headY, 0.01, 0.25, 0.28, 0.26, skin, 0, look ? clamp(look * 0.3, -0.4, 0.4) : 0);
-  part(0, headY + 0.15, -0.01, 0.27, 0.09, 0.28, hair);
-  if (s.hat) part(0, headY + 0.22, 0, 0.3, 0.12, 0.31, s.hatColor || [0.1, 0.12, 0.2]);
+  box(0, hy - 0.025, 0.115, 0.055, 0.06, 0.05, skin, headTilt);          // nez
+  for (const e of [-1, 1]) ball(e * 0.062, hy + 0.02, 0.1, 0.045, [0.1, 0.1, 0.12]);
+  if (s.hat) {
+    ball(0, hy + 0.06, -0.01, 0.26, s.hatColor || [0.1, 0.12, 0.2], 0.2, 0.26);
+    box(0, hy + 0.045, 0.15, 0.24, 0.035, 0.14, s.hatColor || [0.1, 0.12, 0.2]);
+  }
+
+  /* --------------------------------------------------------------- bras */
+  const shoulderY = chestY + 0.24;
+  let hand = null;
+  for (const side of [-1, 1]) {
+    const sx = side * 0.225;
+    let a1;
+    let a2;
+    if (s.aim) {                                   // les deux mains sur l'arme
+      a1 = -Math.PI / 2 + (look !== null ? clamp(-look, -0.5, 0.5) : 0);
+      a2 = side > 0 ? 0.12 : 0.55;
+    } else if (swimming) {
+      a1 = Math.sin(phase + (side > 0 ? 0 : Math.PI)) * 1.5 - 0.8;
+      a2 = 0.5;
+    } else {
+      a1 = Math.sin(phase + (side > 0 ? 0 : Math.PI)) * amp * 0.8;
+      a2 = 0.1 + Math.max(0, Math.sin(phase + (side > 0 ? 0 : Math.PI))) * amp * 0.55;
+    }
+    ball(sx, shoulderY, 0, 0.185, shirt);
+    const elbow = limb(sx, shoulderY, 0, a1, UPPER_ARM, 0.155, shirt);
+    ball(elbow[0], elbow[1], elbow[2], 0.15, shirt);
+    const wrist = limb(elbow[0], elbow[1], elbow[2], a1 + a2, FOREARM, 0.13, skin);
+    ball(wrist[0], wrist[1], wrist[2], 0.125, skin);
+    if (side > 0) hand = wrist;                   // point d'accroche de l'arme
+  }
+
+  /* --------------------------------------------------------------- arme */
+  if (s.weapon && !fall && hand) {
+    const w = s.weapon;
+    const pitch = s.aim && look !== null ? clamp(-look, -0.5, 0.5) : 0;
+    const fwd = s.aim ? 1 : 0.35;
+    const gx = hand[0];
+    const gy = hand[1] + (s.aim ? 0.04 : -0.02);
+    const gz = hand[2] + w.len * 0.35 * fwd;
+    box(gx, gy, gz, w.wide || 0.075, 0.11, w.len, w.color || [0.13, 0.13, 0.15], pitch);
+    if (w.len > 0.45) box(gx, gy - 0.09, gz - w.len * 0.2, 0.06, 0.14, 0.1, [0.3, 0.22, 0.15], pitch);
+    if (!s.aim) box(gx, gy - 0.08, gz - w.len * 0.3, 0.07, 0.13, 0.09, w.color || [0.13, 0.13, 0.15], pitch);
+  }
 }
 
 /** Habillage aléatoire cohérent. */
@@ -177,10 +254,10 @@ export class Ped {
     } else if (this.state === 'flee') {
       const away = Math.atan2(-dpx, -dpz);
       this.yaw = dampAngle(this.yaw, away, 6, dt);
-      this.moveForward(dt, this.speed * 2.5, world);
+      this.moveForward(dt, this.speed * 2.5, world, game && game.vehicles);
       if (distPlayer > 70 && this.panic <= 0) this.state = 'walk';
     } else {
-      this.walkUpdate(dt, world);
+      this.walkUpdate(dt, world, game && game.vehicles);
       // réaction : arme sortie, coup de feu, voiture qui fonce
       if (game && game.threatLevel > 0 && distPlayer < 26) this.state = 'flee';
     }
@@ -198,7 +275,7 @@ export class Ped {
     const canSee = world.visible(this.x, 1.5, this.z, tx, 1.4, tz);
     this.aim = canSee && d < 42;
     if (d > (this.cop ? 12 : 9) || !canSee) {
-      this.moveForward(dt, this.speed * (this.cop ? 2.4 : 2.1), world);
+      this.moveForward(dt, this.speed * (this.cop ? 2.4 : 2.1), world, game && game.vehicles);
     } else {
       this.move = damp(this.move, 0, 8, dt);
     }
@@ -209,7 +286,7 @@ export class Ped {
     }
   }
 
-  walkUpdate(dt, world) {
+  walkUpdate(dt, world, vehicles) {
     if (!this.target) { this.move = 0; return; }
     const dx = this.target[0] - this.x, dz = this.target[1] - this.z;
     const d = Math.hypot(dx, dz);
@@ -220,15 +297,16 @@ export class Ped {
       return;
     }
     this.yaw = dampAngle(this.yaw, Math.atan2(dx, dz), 5, dt);
-    this.moveForward(dt, this.speed, world);
+    this.moveForward(dt, this.speed, world, vehicles);
   }
 
-  moveForward(dt, speed, world) {
+  moveForward(dt, speed, world, vehicles) {
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
     this.x += fx * speed * dt;
     this.z += fz * speed * dt;
     const p = { x: this.x, z: this.z };
     world.pushCircle(p, 0.4, 2);
+    if (vehicles) pushOutOfVehicles(p, 0.4, vehicles);
     this.x = p.x; this.z = p.z;
     this.move = clamp(speed / 2.4, 0, 1.4);
   }
@@ -238,13 +316,8 @@ export class Ped {
     drawHuman(R, {
       x: this.x, y: this.y, z: this.z, yaw: this.yaw,
       anim: this.anim, move: this.move, aim: this.aim, deadT: this.deadT,
+      weapon: this.armed && !this.dead ? { len: this.cop ? 0.3 : 0.44 } : null,
       ...this.look,
-    });
-    if (this.armed && !this.dead) {
-      const s = Math.sin(this.yaw), c = Math.cos(this.yaw);
-      const lx = 0.3, lz = this.aim ? 0.5 : 0.15;
-      m4compose(tmpB, this.x + lx * c + lz * s, 1.28, this.z - lx * s + lz * c, this.yaw, 0.08, 0.14, 0.42);
-      R.cube(tmpB, [0.12, 0.12, 0.14]);
-    }
+    }, this.aim ? 0 : null);
   }
 }

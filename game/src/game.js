@@ -17,6 +17,7 @@ import { PoliceSystem } from './systems/police.js';
 import { MissionSystem, MISSIONS } from './systems/missions.js';
 import { HUD } from './systems/hud.js';
 import { WEAPONS, WEAPON_ORDER, raycastScene, Projectile } from './systems/weapons.js';
+import { resolveVehicleCollisions, separateCharacters } from './systems/physics.js';
 import {
   m4, m4compose, clamp, lerp, damp, rng, range, pick, dist2D, color, mixColor, TAU,
 } from './engine/math.js';
@@ -355,19 +356,28 @@ export class Game {
     this.audio.ui(420, 0.06, 0.08);
   }
 
-  /** Un délit visible fait monter l'indice de recherche. */
-  crime(reason, stars, x, z) {
+  /**
+   * Un délit fait monter l'indice de recherche s'il est constaté. Un coup de
+   * feu s'entend à travers les murs (`heard`) ; un vol de voiture, lui, doit
+   * être vu. En quartier peuplé, on considère qu'on appelle la police même
+   * sans témoin à portée : sinon on pouvait vider un chargeur sans réaction.
+   */
+  crime(reason, stars, x, z, heard = false) {
+    const radius = heard ? 95 : 60;
     let witness = false;
     for (const c of this.peds) {
       if (c.dead) continue;
-      if ((c.cop || !c.hostile) && dist2D(c.x, c.z, x, z) < 55 && this.world.visible(c.x, 1.5, c.z, x, 1.2, z)) {
-        witness = true;
-        if (!c.cop) { c.state = 'flee'; c.panic = 1; }
-      }
+      const d = dist2D(c.x, c.z, x, z);
+      if (d > radius) continue;
+      if (!heard && !this.world.visible(c.x, 1.5, c.z, x, 1.2, z)) continue;
+      witness = true;
+      if (!c.cop && !c.hostile) { c.state = 'flee'; c.panic = 1; }
     }
     for (const v of this.vehicles) {
-      if (v.ai && v.ai.chase && dist2D(v.x, v.z, x, z) < 80) witness = true;
+      if (v.model.police && dist2D(v.x, v.z, x, z) < 130) witness = true;
     }
+    // Los Santos est dense : un tir en pleine ville finit toujours par se savoir
+    if (!witness && heard && densityAt(x, z) > 0.18) witness = true;
     if (witness || this.player.wanted > 0) this.police.addWanted(stars, reason);
     this.threatLevel = 2.5;
   }
@@ -393,7 +403,7 @@ export class Game {
     if (ped.cop) {
       this.police.addWanted(this.player.wanted < 3 ? 3 - this.player.wanted : 1, 'Policier abattu');
     } else {
-      this.crime('homicide', this.player.wanted === 0 ? 2 : 1, ped.x, ped.z);
+      this.crime('homicide', this.player.wanted === 0 ? 2 : 1, ped.x, ped.z, true);
     }
   }
 
@@ -516,10 +526,12 @@ export class Game {
       this.tracers.push({ x1: ox, y1: originY, z1: oz, x2: hit.x, y2: hit.y, z2: hit.z, life: 0.055 });
       this.impactEffect(hit, dx, dy, dz);
       if (hit.type === 'ped') {
+        this.hitMarker = hit.head ? 0.35 : 0.22;
         const dead = hit.ent.damage(w.dmg * dmgMul, this, true, hit.head);
         if (!dead && !hit.ent.hostile && !hit.ent.cop) this.crime('agression', p.wanted === 0 ? 1 : 0, hit.ent.x, hit.ent.z);
         if (dead && hit.head) this.notify('Tir à la tête', '');
       } else if (hit.type === 'vehicle') {
+        this.hitMarker = Math.max(this.hitMarker || 0, 0.12);
         hit.ent.damage(w.dmg * 0.55 * dmgMul);
         if (hit.ent.ai && hit.ent.ai.chase) this.police.addWanted(0, '');
       }
@@ -527,7 +539,7 @@ export class Game {
     this.audio.gunshot(p.weapon, p.x, p.z);
     this.camera.addShake(w.slot >= 5 ? 0.4 : w.slot >= 3 ? 0.22 : 0.12);
     this.threatLevel = 3;
-    if (w.noise) this.crime('coups de feu', p.wanted === 0 ? 1 : 0, p.x, p.z);
+    if (w.noise) this.crime('coups de feu', p.wanted === 0 ? 1 : 0, p.x, p.z, true);
   }
 
   impactEffect(hit, dx, dy, dz) {
@@ -612,7 +624,9 @@ export class Game {
     for (const h of this.police.helis) {
       if (dist2D(h.x, h.z, x, z) < radius * 1.5 && Math.abs(h.y - y) < radius * 1.5) h.damage(200, this);
     }
-    if (owner === this.player) this.crime('explosion', this.player.wanted < 3 ? 3 - this.player.wanted : 0, x, z);
+    if (owner === this.player) {
+      this.crime('explosion', this.player.wanted < 3 ? 3 - this.player.wanted : 0, x, z, true);
+    }
   }
 
   /* ------------------------------------------------------------- boutiques */
@@ -1066,6 +1080,7 @@ export class Game {
     this.hour = (this.hour + dt / 60) % 24;      // une journée = 24 minutes réelles
     this.threatLevel = Math.max(0, this.threatLevel - dt);
     this.fade = Math.max(0, this.fade - realDt * 1.4);
+    if (this.hitMarker > 0) this.hitMarker = Math.max(0, this.hitMarker - realDt * 1.1);
     this.cinematic = Math.max(0, this.cinematic - realDt);
 
     // ralenti : capacité spéciale ou triche
@@ -1131,7 +1146,13 @@ export class Game {
     }
 
     // collisions entre véhicules
-    this.vehicleCollisions(dt);
+    resolveVehicleCollisions(this.vehicles, (a, b, force, x, z) => {
+      this.onCrash(a, force, x, 0.8, z);
+      const chase = (v) => v.ai && v.ai.chase;
+      if ((a === p.vehicle && chase(b)) || (b === p.vehicle && chase(a))) {
+        this.crime('refus d’obtempérer', p.wanted === 0 ? 2 : 0, x, z);
+      }
+    });
 
     const ctx = { player: p, world: this.world, game: this };
     for (let i = this.peds.length - 1; i >= 0; i--) {
@@ -1162,6 +1183,8 @@ export class Game {
         }
       }
     }
+
+    separateCharacters(this.peds, p);
 
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const pr = this.projectiles[i];
@@ -1216,40 +1239,6 @@ export class Game {
 
     this.camera.update(realDt, this);
     this.hud.update(realDt);
-  }
-
-  vehicleCollisions(dt) {
-    const list = this.vehicles;
-    for (let i = 0; i < list.length; i++) {
-      const a = list[i];
-      for (let j = i + 1; j < list.length; j++) {
-        const b = list[j];
-        const dx = b.x - a.x, dz = b.z - a.z;
-        const d = Math.hypot(dx, dz);
-        const minD = (a.hl + b.hl) * 0.78;
-        if (d > minD || d < 0.001) continue;
-        const nx = dx / d, nz = dz / d;
-        const overlap = minD - d;
-        const ma = a.mass, mb = b.mass;
-        const total = ma + mb;
-        a.x -= nx * overlap * (mb / total); a.z -= nz * overlap * (mb / total);
-        b.x += nx * overlap * (ma / total); b.z += nz * overlap * (ma / total);
-        const rvx = b.vx - a.vx, rvz = b.vz - a.vz;
-        const vn = rvx * nx + rvz * nz;
-        if (vn > 0) continue;
-        const imp = -(1.35) * vn / (1 / ma + 1 / mb);
-        a.vx -= (imp * nx) / ma; a.vz -= (imp * nz) / ma;
-        b.vx += (imp * nx) / mb; b.vz += (imp * nz) / mb;
-        const force = Math.abs(vn);
-        if (force > 3.5) {
-          a.damage(force * 4); b.damage(force * 4);
-          this.onCrash(a, force, (a.x + b.x) / 2, 0.8, (a.z + b.z) / 2);
-          if ((a === this.player.vehicle && b.ai && b.ai.chase) || (b === this.player.vehicle && a.ai && a.ai.chase)) {
-            this.crime('refus d’obtempérer', this.player.wanted === 0 ? 2 : 0, a.x, a.z);
-          }
-        }
-      }
-    }
   }
 
   checkBusted(dt) {
@@ -1448,6 +1437,7 @@ export class Game {
         c.beginPath(); c.moveTo(cx - w, cy); c.lineTo(cx + w, cy);
         c.moveTo(cx, cy - h); c.lineTo(cx, cy + h); c.stroke();
       }
+      const hit = this.hitMarker || 0;
       const spread = 8 + (WEAPONS[p.weapon].spread || 0) * 900 + Math.hypot(p.vx || 0, p.vz || 0) * 2;
       c.strokeStyle = 'rgba(255,255,255,0.9)';
       c.lineWidth = 2;
@@ -1460,6 +1450,20 @@ export class Game {
       }
       c.fillStyle = 'rgba(255,255,255,0.85)';
       c.fillRect(cx - 1, cy - 1, 2, 2);
+      // marqueur de touche : quatre traits en X, rouges sur un tir à la tête
+      if (hit > 0) {
+        const big = hit > 0.3;
+        c.strokeStyle = big ? 'rgba(255,90,70,0.95)' : 'rgba(255,255,255,0.95)';
+        c.lineWidth = big ? 3 : 2;
+        const r0 = 4, r1 = 4 + hit * 34;
+        for (const a of [45, 135, 225, 315]) {
+          const t = (a * Math.PI) / 180;
+          c.beginPath();
+          c.moveTo(cx + Math.cos(t) * r0, cy + Math.sin(t) * r0);
+          c.lineTo(cx + Math.cos(t) * r1, cy + Math.sin(t) * r1);
+          c.stroke();
+        }
+      }
     }
 
     // fondu

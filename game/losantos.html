@@ -3634,17 +3634,25 @@ const CIVILIAN_MODELS = ['asterope', 'ingot', 'comete', 'dominator', 'granger', 
 
 const partCache = new Map();
 
+/** Rayon de roue selon la catégorie. */
+function wheelRadiusFor(m) {
+  if (m.cls === 'truck' || m.cls === 'bus') return 0.55;
+  if (m.cls === 'suv' || m.cls === 'pickup' || m.cls === 'van') return 0.42;
+  return 0.36;
+}
+
 /** Construit la carrosserie (dans le repère local : X droite, Y haut, Z avant). */
 function buildParts(key) {
   if (partCache.has(key)) return partCache.get(key);
   const m = { ...MODELS[key], key };
   const L = m.len, W = m.wid, H = m.h;
   const p = [];
-  const wheelR = m.cls === 'truck' || m.cls === 'bus' ? 0.55 : m.cls === 'suv' || m.cls === 'pickup' || m.cls === 'van' ? 0.42 : 0.36;
+  const wheelR = wheelRadiusFor(m);
   const floor = wheelR * (m.cls === 'sports' || m.cls === 'super' ? 0.52 : m.cls === 'truck' || m.cls === 'bus' ? 0.95 : 0.66);
   const bodyH = H - floor;
 
   const glass = 'glass', paint = 'paint', dark = 'dark';
+  /** Ajoute une pièce. `extra` accepte shape ('cyl'|'ball') et rx / ry / rz. */
   const add = (x, y, z, sx, sy, sz, c, extra) => p.push({ x, y, z, sx, sy, sz, c, ...extra });
 
   if (m.cls === 'heli') {
@@ -3693,28 +3701,50 @@ function buildParts(key) {
     add(0, floor + bodyH * 0.86, L * 0.12, W * 0.94, bodyH * 0.4, L * 0.34, glass);
     add(0, floor + bodyH * 0.72, -L * 0.28, W * 0.94, bodyH * 0.34, L * 0.42, dark);
   } else {
-    // berlines, sportives, SUV : caisse basse, pavillon vitré, toit
-    const lowH = bodyH * (m.cls === 'sports' || m.cls === 'super' ? 0.66 : m.cls === 'suv' ? 0.54 : 0.58);
+    // berlines, sportives, SUV : caisse basse, pavillon vitré galbé
+    const lowH = bodyH * (m.cls === 'sports' || m.cls === 'super' ? 0.58 : m.cls === 'suv' ? 0.5 : 0.54);
     const cabH = bodyH - lowH;
     const cabZ = m.cls === 'sports' || m.cls === 'super' ? -L * 0.08 : L * 0.01;
     const cabL = m.cls === 'super' ? L * 0.38 : m.cls === 'sports' ? L * 0.44 : L * 0.52;
+    const beltY = floor + lowH;
     add(0, floor + lowH * 0.5, 0, W, lowH, L, paint);
     add(0, floor + lowH * 0.28, 0, W + 0.05, lowH * 0.46, L * 0.97, 'skirt');
     add(0, floor + lowH * 0.86, L * 0.3, W * 0.97, lowH * 0.3, L * 0.34, paint);          // capot
-    add(0, floor + lowH + cabH * 0.5, cabZ, W * 0.88, cabH, cabL, paint);
-    add(0, floor + lowH + cabH * 0.42, cabZ, W * 0.9, cabH * 0.5, cabL * 0.99, glass);
-    add(0, floor + lowH + cabH * 0.92, cabZ, W * 0.82, cabH * 0.18, cabL * 0.9, paint);   // toit
+    add(0, beltY + cabH * 0.48, cabZ, W * 0.9, cabH * 0.96, cabL, paint);            // habitacle
+    add(0, beltY + cabH * 0.38, cabZ, W * 0.915, cabH * 0.44, cabL * 0.99, glass);    // vitres
+    // pavillon galbé : un tube couché dans l'axe de la voiture
+    add(0, beltY + cabH * 0.76, cabZ, W * 0.95, cabL * 0.96, cabH * 0.66, paint,
+      { shape: 'cyl', rx: Math.PI / 2 });
+    // pare-brise et lunette arrière inclinés
+    add(0, beltY + cabH * 0.46, cabZ + cabL * 0.5, W * 0.86, cabH * 1.0, 0.1, glass, { rx: -0.5 });
+    add(0, beltY + cabH * 0.46, cabZ - cabL * 0.5, W * 0.86, cabH * 0.95, 0.1, glass, { rx: 0.55 });
+    for (const sd of [-1, 1]) {                                                          // rétroviseurs
+      add(sd * (W * 0.53), beltY + cabH * 0.26, cabZ + cabL * 0.4, 0.17, 0.09, 0.08, 'skirt');
+    }
     if (m.cls === 'muscle') add(0, floor + lowH + 0.06, L * 0.3, W * 0.34, 0.14, L * 0.16, dark);
-    if (m.cls === 'super' || m.cls === 'sports') add(0, floor + lowH + cabH * 0.6, -L * 0.44, W * 0.86, 0.1, 0.42, dark);
+    if (m.cls === 'super' || m.cls === 'sports') {
+      add(0, beltY + cabH * 0.62, -L * 0.45, W * 0.86, 0.09, 0.42, dark);
+      for (const sd of [-1, 1]) add(sd * W * 0.36, beltY + cabH * 0.42, -L * 0.45, 0.09, 0.28, 0.28, dark);
+    }
   }
 
-  // pare-chocs, phares, feux
+  // pare-chocs, phares ronds, feux
   const noseZ = L / 2 - 0.12, tailZ = -L / 2 + 0.12;
   add(0, floor + bodyH * 0.28, noseZ, W * 0.98, bodyH * 0.3, 0.22, dark);
   add(0, floor + bodyH * 0.28, tailZ, W * 0.98, bodyH * 0.3, 0.22, dark);
+  add(0, floor + bodyH * 0.34, noseZ - 0.03, bodyH * 0.44, W * 0.95, bodyH * 0.44, 'skirt',
+    { shape: 'cyl', rz: Math.PI / 2 });                                    // nez adouci
+  add(0, floor + bodyH * 0.34, tailZ + 0.03, bodyH * 0.42, W * 0.95, bodyH * 0.42, 'skirt',
+    { shape: 'cyl', rz: Math.PI / 2 });                                    // poupe adoucie
   for (const s of [-1, 1]) {
-    add(s * W * 0.33, floor + bodyH * 0.52, noseZ + 0.02, W * 0.26, bodyH * 0.2, 0.14, 'head');
-    add(s * W * 0.34, floor + bodyH * 0.55, tailZ - 0.02, W * 0.24, bodyH * 0.18, 0.12, 'tail');
+    add(s * W * 0.31, floor + bodyH * 0.52, noseZ + 0.03, bodyH * 0.19, bodyH * 0.19, bodyH * 0.19,
+      'head', { shape: 'ball' });
+    add(s * W * 0.34, floor + bodyH * 0.55, tailZ - 0.03, W * 0.22, bodyH * 0.16, 0.1, 'tail');
+  }
+  // ailes : un tube en travers, juste au-dessus de chaque roue
+  for (const [sx2, sz2] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) {
+    add(sx2 * (W / 2 - 0.02), wheelR * 0.98, sz2 * L * 0.33, wheelR * 2.15, 0.12, wheelR * 2.15,
+      'skirt', { shape: 'cyl', rz: Math.PI / 2 });
   }
   if (m.taxi) {
     add(0, floor + bodyH * 1.28, L * 0.02, 0.9, 0.32, 0.42, 'sign');
@@ -4063,7 +4093,7 @@ class Vehicle {
         case 'metal': c = [0.55, 0.57, 0.6]; break;
         case 'cargo': c = shade(body, 0.85); break;
         case 'livery': c = [0.92, 0.92, 0.94]; break;
-        case 'head': c = lightsOn ? [1, 0.97, 0.85] : [0.75, 0.75, 0.72]; emit = lightsOn ? 1 : 0; break;
+        case 'head': c = lightsOn ? [1, 0.97, 0.85] : [0.5, 0.52, 0.5]; emit = lightsOn ? 1 : 0; break;
         case 'tail': c = [0.8, 0.1, 0.08]; emit = braking ? 1 : (lightsOn ? 0.45 : 0.08); break;
         case 'sign': c = [1, 0.85, 0.2]; emit = 0.9; break;
         case 'rotor': case 'tailrotor': c = [0.16, 0.16, 0.18]; break;
@@ -4077,13 +4107,15 @@ class Vehicle {
       }
       const half = p.c === 'lightbarL' ? -1 : p.c === 'lightbarR' ? 1 : 0;
       let ry = p.ry || 0;
-      let rz = 0;
+      let rz = p.rz || 0;
       if (p.c === 'rotor') ry = this.rotorSpin || 0;
       if (p.c === 'tailrotor') rz = (this.rotorSpin || 0) * 1.7;
       m4compose(this.tmp, p.x + half * p.sx * 0.26, p.y, p.z,
-        ry, half ? p.sx * 0.48 : p.sx, p.sy, p.sz, 0, rz);
+        ry, half ? p.sx * 0.48 : p.sx, p.sy, p.sz, p.rx || 0, rz);
       m4mul(this.out, this.mat, this.tmp);
-      R.cube(this.out, c, emit);
+      if (p.shape === 'cyl') R.cyl(this.out, c, emit);
+      else if (p.shape === 'ball') R.sphere(this.out, c, emit);
+      else R.cube(this.out, c, emit);
     }
 
     // occupants : buste et tête visibles derrière le pare-brise
@@ -4121,6 +4153,135 @@ function randomCivilianModel(rand) {
 }
     return { MODELS, CIVILIAN_MODELS, Vehicle, randomCivilianModel };
   })();
+  /* ---------------------------------------------- systems/physics.js */
+  __m["systems/physics.js"] = (() => {
+/**
+ * Collisions entre corps mobiles : véhicule contre véhicule, et personnage
+ * contre véhicule. Le monde statique est traité par world/collide.js.
+ *
+ * Un véhicule est une boîte orientée. On l'approche par son « rayon d'appui »
+ * dans une direction donnée : la demi-longueur et la demi-largeur projetées sur
+ * cette direction. Un simple cercle laissait les voitures s'enfoncer les unes
+ * dans les autres de plus d'un mètre.
+ */
+
+/** Demi-encombrement du véhicule dans la direction (nx, nz), normalisée. */
+function supportRadius(v, nx, nz) {
+  const s = Math.sin(v.yaw), c = Math.cos(v.yaw);
+  const alongForward = Math.abs(nx * s + nz * c);
+  const alongSide = Math.abs(nx * c - nz * s);
+  return v.hl * alongForward + v.hw * alongSide;
+}
+
+/**
+ * Sépare les véhicules qui se chevauchent et échange leur quantité de mouvement.
+ * @param {Array} list véhicules
+ * @param {(a, b, force: number, x: number, z: number) => void} [onCrash]
+ */
+function resolveVehicleCollisions(list, onCrash) {
+  for (let i = 0; i < list.length; i++) {
+    const a = list[i];
+    for (let j = i + 1; j < list.length; j++) {
+      const b = list[j];
+      let dx = b.x - a.x, dz = b.z - a.z;
+      let d = Math.hypot(dx, dz);
+      const reach = a.hl + b.hl;
+      if (d > reach) continue;                       // trop loin pour se toucher
+      if (d < 1e-4) { dx = 1; dz = 0; d = 1e-4; }
+      const nx = dx / d, nz = dz / d;
+      const minD = supportRadius(a, nx, nz) + supportRadius(b, nx, nz);
+      if (d >= minD) continue;
+
+      const overlap = minD - d;
+      const ma = a.mass, mb = b.mass, total = ma + mb;
+      a.x -= nx * overlap * (mb / total); a.z -= nz * overlap * (mb / total);
+      b.x += nx * overlap * (ma / total); b.z += nz * overlap * (ma / total);
+
+      const vn = (b.vx - a.vx) * nx + (b.vz - a.vz) * nz;
+      if (vn > 0) continue;                          // ils s'éloignent déjà
+      const imp = -1.35 * vn / (1 / ma + 1 / mb);
+      a.vx -= (imp * nx) / ma; a.vz -= (imp * nz) / ma;
+      b.vx += (imp * nx) / mb; b.vz += (imp * nz) / mb;
+      const force = Math.abs(vn);
+      if (force > 3.5) {
+        a.damage(force * 4); b.damage(force * 4);
+        if (onCrash) onCrash(a, b, force, (a.x + b.x) / 2, (a.z + b.z) / 2);
+      }
+    }
+  }
+}
+
+/**
+ * Repousse un disque (piéton, joueur) hors d'un véhicule.
+ * @returns {boolean} vrai si la position a été corrigée
+ */
+function pushOutOfVehicle(p, r, v) {
+  const s = Math.sin(v.yaw), c = Math.cos(v.yaw);
+  const dx = p.x - v.x, dz = p.z - v.z;
+  // coordonnées dans le repère du véhicule : avant (s, c), côté (c, -s)
+  const along = dx * s + dz * c;
+  const side = dx * c - dz * s;
+  const penF = v.hl + r - Math.abs(along);
+  const penS = v.hw + r - Math.abs(side);
+  if (penF <= 0 || penS <= 0) return false;
+  if (penF < penS) {
+    const sign = along >= 0 ? 1 : -1;
+    p.x += s * sign * penF;
+    p.z += c * sign * penF;
+  } else {
+    const sign = side >= 0 ? 1 : -1;
+    p.x += c * sign * penS;
+    p.z -= s * sign * penS;
+  }
+  return true;
+}
+
+/** Repousse un disque hors de tous les véhicules proches. */
+function pushOutOfVehicles(p, r, vehicles) {
+  let touched = false;
+  for (const v of vehicles) {
+    if (Math.abs(p.x - v.x) > v.hl + r + 1 || Math.abs(p.z - v.z) > v.hl + r + 1) continue;
+    if (pushOutOfVehicle(p, r, v)) touched = true;
+  }
+  return touched;
+}
+
+/**
+ * Écarte les personnages qui se chevauchent. Sans cela, piétons et joueur se
+ * traversent comme des fantômes dès qu'ils se croisent.
+ * @param {Array} peds
+ * @param {object} [player] traité comme un piéton un peu plus lourd
+ */
+function separateCharacters(peds, player) {
+  const R = 0.44;
+  const push = (a, b, weightA, weightB) => {
+    let dx = b.x - a.x, dz = b.z - a.z;
+    let d = Math.hypot(dx, dz);
+    if (d > R * 2 || d < 1e-5) {
+      if (d >= R * 2) return;
+      dx = 0.01; dz = 0; d = 0.01;
+    }
+    const push2 = (R * 2 - d) / d;
+    a.x -= dx * push2 * weightA; a.z -= dz * push2 * weightA;
+    b.x += dx * push2 * weightB; b.z += dz * push2 * weightB;
+  };
+  for (let i = 0; i < peds.length; i++) {
+    const a = peds[i];
+    if (a.dead || a.inVehicle) continue;
+    for (let j = i + 1; j < peds.length; j++) {
+      const b = peds[j];
+      if (b.dead || b.inVehicle) continue;
+      if (Math.abs(a.x - b.x) > 1 || Math.abs(a.z - b.z) > 1) continue;
+      push(a, b, 0.5, 0.5);
+    }
+    if (player && player.onFoot && !player.dead
+      && Math.abs(a.x - player.x) < 1 && Math.abs(a.z - player.z) < 1) {
+      push(a, player, 0.75, 0.25);           // le joueur bouscule plus qu'il n'est bousculé
+    }
+  }
+}
+    return { supportRadius, resolveVehicleCollisions, pushOutOfVehicle, pushOutOfVehicles, separateCharacters };
+  })();
   /* ---------------------------------------------- entities/character.js */
   __m["entities/character.js"] = (() => {
 /**
@@ -4129,6 +4290,7 @@ function randomCivilianModel(rand) {
  * panique collective et morts.
  */
   const { m4, m4compose, m4mul, color, shade, clamp, lerp, damp, dampAngle, wrapAngle, rng, range, pick, dist2D } = __m["engine/math.js"];
+  const { pushOutOfVehicles } = __m["systems/physics.js"];
 const SKIN = ['#e8b48c', '#c98d63', '#8d5a3b', '#f0c9a6', '#6b4229', '#d9a077'];
 const SHIRT = ['#d8453c', '#2f6fb4', '#e6e6e6', '#3f9a5c', '#e0a33a', '#7a4f9a', '#2b2f36', '#d97ea8', '#4fb0c0', '#f0f0f0'];
 const PANTS = ['#2f3947', '#3a3a3a', '#5c4a34', '#22304a', '#6b6b6b', '#1f1f24'];
@@ -4136,64 +4298,140 @@ const HAIR = ['#241a12', '#4a3620', '#7a5a32', '#1a1a1a', '#a08050', '#5a5a5a'];
 
 const tmpA = m4(), tmpB = m4();
 
+/* Proportions, en mètres. Un adulte fait 1,78 m. */
+const THIGH = 0.44, CALF = 0.42, UPPER_ARM = 0.30, FOREARM = 0.28;
+
 /**
- * Dessine un humanoïde.
- * @param {object} s état : x,y,z,yaw,anim(0..1 phase),move(0..1),aim,dead,crouch
+ * Dessine un humanoïde articulé : membres en cylindres, articulations en
+ * sphères, tête ronde. Les jambes et les bras ont deux segments, si bien que
+ * le genou et le coude plient vraiment pendant la marche.
+ *
+ * @param {object} s x, y, z, yaw, anim (phase), move (0..1), aim, crouch,
+ *                   deadT, swimming, et les couleurs (skin, shirt, pants…)
+ * @param {number|null} look inclinaison de la tête (visée)
  */
 function drawHuman(R, s, look = null) {
-  const dead = s.deadT !== undefined && s.deadT > 0;
-  const fall = dead ? clamp(s.deadT * 3.2, 0, 1) : 0;
-  const pitch = fall * Math.PI * 0.47;
-  const drop = fall * 0.62;
-  const base = m4compose(tmpA, s.x, s.y - drop * 0.0, s.z, s.yaw, 1, 1, 1, 0, 0);
-  const bodyM = m4();
+  const fall = s.deadT > 0 ? clamp(s.deadT * 3.2, 0, 1) : 0;
+  const base = m4compose(tmpA, s.x, s.y, s.z, s.yaw, 1, 1, 1, 0, 0);
   if (fall > 0) {
-    m4compose(bodyM, 0, 0, 0, 0, 1, 1, 1, pitch, 0);
-    m4mul(base, base, bodyM);
+    m4compose(tmpB, 0, 0, 0, 0, 1, 1, 1, fall * Math.PI * 0.47, 0);
+    m4mul(base, base, tmpB);
   }
-  const swimming = !!s.swimming;
-  const swing = Math.sin(s.anim * Math.PI * (swimming ? 3 : 2)) * (0.35 + s.move * 0.65) * (1 - fall);
-  const swing2 = Math.sin(s.anim * Math.PI * 2 + Math.PI) * (0.35 + s.move * 0.65) * (1 - fall);
-  const bob = Math.abs(Math.sin(s.anim * Math.PI)) * 0.045 * s.move * (1 - fall);
-  const crouch = s.crouch ? 0.24 : 0;
-  const legLen = 0.86, armLen = 0.62;
-  const hipY = 0.92 - crouch + bob;
+
   const skin = s.skin || [0.9, 0.72, 0.55];
   const shirt = s.shirt || [0.8, 0.25, 0.22];
   const pants = s.pants || [0.2, 0.24, 0.3];
   const hair = s.hair || [0.15, 0.11, 0.08];
-  const shoe = [0.12, 0.11, 0.1];
+  const shoe = [0.11, 0.1, 0.1];
 
-  const part = (px, py, pz, sx, sy, sz, c, rx = 0, ry = 0, rz = 0, emit = 0) => {
-    m4compose(tmpB, px, py, pz, ry, sx, sy, sz, rx, rz);
+  // pièces élémentaires, exprimées dans le repère du personnage
+  const box = (x, y, z, sx, sy, sz, c, rx = 0, ry = 0, rz = 0) => {
+    m4compose(tmpB, x, y, z, ry, sx, sy, sz, rx, rz);
     m4mul(tmpB, base, tmpB);
-    R.cube(tmpB, c, emit);
+    R.cube(tmpB, c);
+  };
+  const ball = (x, y, z, d, c, dy = d, dz = d) => {
+    m4compose(tmpB, x, y, z, 0, d, dy, dz);
+    m4mul(tmpB, base, tmpB);
+    R.sphere(tmpB, c);
+  };
+  /** Segment de membre : cylindre partant du pivot, incliné de `a` (plan sagittal). */
+  const limb = (px, py, pz, a, len, thick, c) => {
+    const cx = px;
+    const cy = py - Math.cos(a) * len / 2;
+    const cz = pz - Math.sin(a) * len / 2;
+    m4compose(tmpB, cx, cy, cz, 0, thick, len, thick, a, 0);
+    m4mul(tmpB, base, tmpB);
+    R.cyl(tmpB, c);
+    return [px, py - Math.cos(a) * len, pz - Math.sin(a) * len];   // extrémité
   };
 
-  // jambes (pivot à la hanche)
-  for (const [sx, a] of [[-1, swing], [1, swing2]]) {
-    const cx = sx * 0.13;
-    part(cx, hipY - Math.cos(a) * legLen / 2, -Math.sin(a) * legLen / 2, 0.19, legLen, 0.21, pants, a);
-    part(cx, hipY - Math.cos(a) * legLen - 0.02, -Math.sin(a) * legLen + 0.04, 0.2, 0.11, 0.3, shoe, a * 0.4);
+  const swimming = !!s.swimming;
+  const phase = s.anim * Math.PI * 2;
+  const amp = (0.28 + s.move * 0.62) * (1 - fall);
+  const crouch = s.crouch ? 0.22 : 0;
+  const bob = Math.abs(Math.sin(phase)) * 0.04 * s.move * (1 - fall);
+  const hipY = 0.90 - crouch + bob;
+  const lean = fall ? 0 : (s.aim ? 0.06 : s.move * 0.14);
+
+  /* ------------------------------------------------------------- jambes */
+  for (const side of [-1, 1]) {
+    const swing = Math.sin(phase + (side > 0 ? Math.PI : 0)) * amp;
+    // le genou plie quand la jambe part vers l'arrière
+    const bend = Math.max(0, -Math.sin(phase + (side > 0 ? Math.PI : 0))) * amp * 1.5 + 0.06;
+    const hx = side * 0.115;
+    ball(hx, hipY, 0, 0.24, pants);
+    const knee = limb(hx, hipY, 0, swing, THIGH, 0.19, pants);
+    ball(knee[0], knee[1], knee[2], 0.185, pants);
+    const ankle = limb(knee[0], knee[1], knee[2], swing + bend, CALF, 0.16, pants);
+    ball(ankle[0], ankle[1], ankle[2], 0.15, shoe);
+    box(ankle[0], ankle[1] - 0.03, ankle[2] + 0.07, 0.15, 0.09, 0.28, shoe, swing * 0.25);
   }
-  // torse
-  const lean = s.aim ? 0.08 : s.move * 0.12;
-  part(0, hipY + 0.34, 0, 0.46, 0.68, 0.27, shirt, lean);
-  part(0, hipY + 0.64, 0, 0.4, 0.14, 0.25, skin, 0);
-  // bras
-  const aimAngle = s.aim ? -Math.PI / 2 + (look ? clamp(-look, -0.6, 0.6) : 0) : 0;
-  for (const [sx, a0] of [[-1, swing2], [1, swing]]) {
-    const a = s.aim ? aimAngle : a0 * 0.8;
-    const shoulderY = hipY + 0.6;
-    const cx = sx * 0.31;
-    part(cx, shoulderY - Math.cos(a) * armLen / 2, -Math.sin(a) * armLen / 2, 0.15, armLen, 0.17, shirt, a);
-    part(cx, shoulderY - Math.cos(a) * armLen - 0.03, -Math.sin(a) * armLen, 0.14, 0.14, 0.16, skin, a);
+
+  /* -------------------------------------------------------------- tronc */
+  const chestY = hipY + 0.34;
+  box(0, hipY + 0.08, -lean * 0.05, 0.32, 0.22, 0.23, pants, lean);      // bassin
+  m4compose(tmpB, 0, hipY + 0.2, 0, 0, 0.29, 0.24, 0.25, lean, 0);
+  m4mul(tmpB, base, tmpB); R.cyl(tmpB, shirt);                           // taille
+  box(0, chestY - 0.02, 0, 0.36, 0.26, 0.25, shirt, lean);               // bas du torse
+  box(0, chestY + 0.16, 0, 0.42, 0.24, 0.27, shirt, lean);               // poitrine
+  ball(0, chestY + 0.24, 0, 0.44, shirt, 0.2, 0.28);                     // épaules arrondies
+
+  /* --------------------------------------------------------------- tête */
+  const neckY = chestY + 0.32;
+  m4compose(tmpB, 0, neckY - 0.03, 0, 0, 0.12, 0.11, 0.12);
+  m4mul(tmpB, base, tmpB); R.cyl(tmpB, skin);
+  const headTilt = look !== null ? clamp(look * 0.3, -0.35, 0.35) : 0;
+  const hy = neckY + 0.16;
+  ball(0, hy, 0.012, 0.235, skin, 0.26, 0.245);                          // crâne
+  if (!s.hat) {
+    ball(0, hy + 0.075, -0.022, 0.245, hair, 0.15, 0.235);               // cheveux
+    ball(0, hy + 0.02, -0.09, 0.22, hair, 0.2, 0.12);                    // nuque
   }
-  // tête
-  const headY = hipY + 0.82;
-  part(0, headY, 0.01, 0.25, 0.28, 0.26, skin, 0, look ? clamp(look * 0.3, -0.4, 0.4) : 0);
-  part(0, headY + 0.15, -0.01, 0.27, 0.09, 0.28, hair);
-  if (s.hat) part(0, headY + 0.22, 0, 0.3, 0.12, 0.31, s.hatColor || [0.1, 0.12, 0.2]);
+  box(0, hy - 0.025, 0.115, 0.055, 0.06, 0.05, skin, headTilt);          // nez
+  for (const e of [-1, 1]) ball(e * 0.062, hy + 0.02, 0.1, 0.045, [0.1, 0.1, 0.12]);
+  if (s.hat) {
+    ball(0, hy + 0.06, -0.01, 0.26, s.hatColor || [0.1, 0.12, 0.2], 0.2, 0.26);
+    box(0, hy + 0.045, 0.15, 0.24, 0.035, 0.14, s.hatColor || [0.1, 0.12, 0.2]);
+  }
+
+  /* --------------------------------------------------------------- bras */
+  const shoulderY = chestY + 0.24;
+  let hand = null;
+  for (const side of [-1, 1]) {
+    const sx = side * 0.225;
+    let a1;
+    let a2;
+    if (s.aim) {                                   // les deux mains sur l'arme
+      a1 = -Math.PI / 2 + (look !== null ? clamp(-look, -0.5, 0.5) : 0);
+      a2 = side > 0 ? 0.12 : 0.55;
+    } else if (swimming) {
+      a1 = Math.sin(phase + (side > 0 ? 0 : Math.PI)) * 1.5 - 0.8;
+      a2 = 0.5;
+    } else {
+      a1 = Math.sin(phase + (side > 0 ? 0 : Math.PI)) * amp * 0.8;
+      a2 = 0.1 + Math.max(0, Math.sin(phase + (side > 0 ? 0 : Math.PI))) * amp * 0.55;
+    }
+    ball(sx, shoulderY, 0, 0.185, shirt);
+    const elbow = limb(sx, shoulderY, 0, a1, UPPER_ARM, 0.155, shirt);
+    ball(elbow[0], elbow[1], elbow[2], 0.15, shirt);
+    const wrist = limb(elbow[0], elbow[1], elbow[2], a1 + a2, FOREARM, 0.13, skin);
+    ball(wrist[0], wrist[1], wrist[2], 0.125, skin);
+    if (side > 0) hand = wrist;                   // point d'accroche de l'arme
+  }
+
+  /* --------------------------------------------------------------- arme */
+  if (s.weapon && !fall && hand) {
+    const w = s.weapon;
+    const pitch = s.aim && look !== null ? clamp(-look, -0.5, 0.5) : 0;
+    const fwd = s.aim ? 1 : 0.35;
+    const gx = hand[0];
+    const gy = hand[1] + (s.aim ? 0.04 : -0.02);
+    const gz = hand[2] + w.len * 0.35 * fwd;
+    box(gx, gy, gz, w.wide || 0.075, 0.11, w.len, w.color || [0.13, 0.13, 0.15], pitch);
+    if (w.len > 0.45) box(gx, gy - 0.09, gz - w.len * 0.2, 0.06, 0.14, 0.1, [0.3, 0.22, 0.15], pitch);
+    if (!s.aim) box(gx, gy - 0.08, gz - w.len * 0.3, 0.07, 0.13, 0.09, w.color || [0.13, 0.13, 0.15], pitch);
+  }
 }
 
 /** Habillage aléatoire cohérent. */
@@ -4300,10 +4538,10 @@ class Ped {
     } else if (this.state === 'flee') {
       const away = Math.atan2(-dpx, -dpz);
       this.yaw = dampAngle(this.yaw, away, 6, dt);
-      this.moveForward(dt, this.speed * 2.5, world);
+      this.moveForward(dt, this.speed * 2.5, world, game && game.vehicles);
       if (distPlayer > 70 && this.panic <= 0) this.state = 'walk';
     } else {
-      this.walkUpdate(dt, world);
+      this.walkUpdate(dt, world, game && game.vehicles);
       // réaction : arme sortie, coup de feu, voiture qui fonce
       if (game && game.threatLevel > 0 && distPlayer < 26) this.state = 'flee';
     }
@@ -4321,7 +4559,7 @@ class Ped {
     const canSee = world.visible(this.x, 1.5, this.z, tx, 1.4, tz);
     this.aim = canSee && d < 42;
     if (d > (this.cop ? 12 : 9) || !canSee) {
-      this.moveForward(dt, this.speed * (this.cop ? 2.4 : 2.1), world);
+      this.moveForward(dt, this.speed * (this.cop ? 2.4 : 2.1), world, game && game.vehicles);
     } else {
       this.move = damp(this.move, 0, 8, dt);
     }
@@ -4332,7 +4570,7 @@ class Ped {
     }
   }
 
-  walkUpdate(dt, world) {
+  walkUpdate(dt, world, vehicles) {
     if (!this.target) { this.move = 0; return; }
     const dx = this.target[0] - this.x, dz = this.target[1] - this.z;
     const d = Math.hypot(dx, dz);
@@ -4343,15 +4581,16 @@ class Ped {
       return;
     }
     this.yaw = dampAngle(this.yaw, Math.atan2(dx, dz), 5, dt);
-    this.moveForward(dt, this.speed, world);
+    this.moveForward(dt, this.speed, world, vehicles);
   }
 
-  moveForward(dt, speed, world) {
+  moveForward(dt, speed, world, vehicles) {
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
     this.x += fx * speed * dt;
     this.z += fz * speed * dt;
     const p = { x: this.x, z: this.z };
     world.pushCircle(p, 0.4, 2);
+    if (vehicles) pushOutOfVehicles(p, 0.4, vehicles);
     this.x = p.x; this.z = p.z;
     this.move = clamp(speed / 2.4, 0, 1.4);
   }
@@ -4361,14 +4600,9 @@ class Ped {
     drawHuman(R, {
       x: this.x, y: this.y, z: this.z, yaw: this.yaw,
       anim: this.anim, move: this.move, aim: this.aim, deadT: this.deadT,
+      weapon: this.armed && !this.dead ? { len: this.cop ? 0.3 : 0.44 } : null,
       ...this.look,
-    });
-    if (this.armed && !this.dead) {
-      const s = Math.sin(this.yaw), c = Math.cos(this.yaw);
-      const lx = 0.3, lz = this.aim ? 0.5 : 0.15;
-      m4compose(tmpB, this.x + lx * c + lz * s, 1.28, this.z - lx * s + lz * c, this.yaw, 0.08, 0.14, 0.42);
-      R.cube(tmpB, [0.12, 0.12, 0.14]);
-    }
+    }, this.aim ? 0 : null);
   }
 }
     return { drawHuman, randomLook, Ped };
@@ -4526,6 +4760,7 @@ class Projectile {
  */
   const { drawHuman, randomLook } = __m["entities/character.js"];
   const { WEAPONS, WEAPON_ORDER } = __m["systems/weapons.js"];
+  const { pushOutOfVehicles } = __m["systems/physics.js"];
   const { m4compose, clamp, damp, dampAngle, lerp, color } = __m["engine/math.js"];
 const CHARACTERS = {
   michael: {
@@ -4683,13 +4918,15 @@ class Player {
     const v = this.vehicle;
     const inp = game.input;
     if (this.seat === 0) {
+      // Le lacet croissant fait pivoter vers +X, qui est à GAUCHE de l'écran :
+      // la commande du joueur est donc inversée (l'IA, elle, raisonne en lacet).
       if (v.model.fly) {
         v.collective = inp.climb;
         v.pitchInput = inp.throttle;
-        v.yawInput = inp.steer;
+        v.yawInput = -inp.steer;
       } else {
         v.throttle = inp.throttle;
-        v.steerInput = inp.steer;
+        v.steerInput = -inp.steer;
         v.handbrake = inp.handbrake;
       }
       if (inp.horn) v.horn = 0.2;
@@ -4711,9 +4948,11 @@ class Player {
     const sprinting = inp.sprint && len > 0.1 && !this.aiming && this.stamina > 0;
     if (len > 1) { mx /= len; mz /= len; }
 
+    // Repère : l'avant de la caméra est (sin, cos) et, l'espace étant direct
+    // avec Y vers le haut, sa DROITE à l'écran est (-cos, sin) — et non (cos, -sin).
     const cs = Math.sin(cam.yaw), cc = Math.cos(cam.yaw);
-    const wx = mx * cc + mz * cs;
-    const wz = -mx * cs + mz * cc;
+    const wx = mz * cs - mx * cc;
+    const wz = mz * cc + mx * cs;
 
     let speed = this.swimming ? (sprinting ? 3.4 : 2.2) : this.crouch ? 1.5 : this.aiming ? 2.1 : sprinting ? 6.4 : 4.1;
     if (len < 0.02) speed = 0;
@@ -4766,6 +5005,8 @@ class Player {
 
     const p = { x: this.x, z: this.z };
     game.world.pushCircle(p, 0.42, 2);
+    pushOutOfVehicles(p, 0.42, game.vehicles);      // on ne traverse pas les voitures
+    game.world.pushCircle(p, 0.42, 2);              // ni un mur en s'en écartant
     this.x = p.x; this.z = p.z;
     const B = 1080;
     this.x = clamp(this.x, -B, B); this.z = clamp(this.z, -B, B);
@@ -4822,22 +5063,17 @@ class Player {
 
   draw(R, game) {
     if (this.vehicle || game.camera.firstPerson) return;
+    const w = this.weaponDef;
     drawHuman(R, {
       x: this.x, y: this.y, z: this.z, yaw: this.yaw,
       anim: this.anim, move: this.move, aim: this.aiming && !this.swimming,
       crouch: this.crouch, swimming: this.swimming, deadT: this.dead ? this.deadT : 0,
+      weapon: w.melee || this.dead ? null : {
+        len: w.slot >= 5 ? 0.78 : w.slot >= 4 ? 0.66 : w.slot >= 2 ? 0.5 : 0.32,
+        wide: w.slot >= 4 ? 0.09 : 0.075,
+      },
       ...this.look,
     }, game.camera.pitch);
-    const w = this.weaponDef;
-    if (!w.melee && !this.dead) {
-      const s = Math.sin(this.yaw), c = Math.cos(this.yaw);
-      const lx = 0.3, lz = this.aiming ? 0.55 : 0.12;
-      const len = w.slot >= 4 ? 0.72 : w.slot >= 2 ? 0.5 : 0.34;
-      const mat = m4compose(R.tmpMat || (R.tmpMat = new Float32Array(16)),
-        this.x + lx * c + lz * s, 1.3 - (this.crouch ? 0.24 : 0), this.z - lx * s + lz * c,
-        this.yaw, 0.09, 0.15, len, this.aiming ? game.camera.pitch * 0.6 : 0);
-      R.cube(mat, [0.13, 0.13, 0.15]);
-    }
   }
 }
     return { CHARACTERS, Player };
@@ -4938,7 +5174,7 @@ class Camera {
 
     // décalage épaule en visée
     let ox = 0, oy = 0;
-    if (p.aiming && !veh) { ox = 0.65; oy = 0.12; }
+    if (p.aiming && !veh) { ox = -0.65; oy = 0.12; }   // épaule droite (écran)
 
     const cy = Math.cos(this.pitch);
     const dirX = Math.sin(this.yaw) * cy;
@@ -6039,7 +6275,7 @@ class HUD {
       z.classList.add('show');
     }
 
-    this.drawRadar(dt);
+    this.drawRadar();
     if (this.mapOpen) this.drawMap();
   }
 
@@ -6075,114 +6311,110 @@ class HUD {
     return list;
   }
 
-  drawRadar(dt) {
+  drawRadar() {
     const g = this.game;
     const p = g.player;
     const c = this.rctx;
     const W = this.radar.width, H = this.radar.height;
     const scale = p.vehicle ? 0.30 : 0.42;
-    const ang = -g.camera.yaw;
+    const yaw = g.camera.yaw;
+    const cy = Math.cos(yaw), sy = Math.sin(yaw);
+
+    /**
+     * Le cap du joueur pointe vers le haut et la gauche du radar est la gauche
+     * de l'écran. L'avant du monde vaut (sin, cos) et la droite de l'écran
+     * (-cos, sin) : d'où cette matrice, qui n'est pas un simple pivot.
+     */
+    const toRadar = (wx, wz) => [
+      (-(wx - p.x) * cy + (wz - p.z) * sy) * scale + W / 2,
+      (-(wx - p.x) * sy - (wz - p.z) * cy) * scale + H / 2,
+    ];
+
     c.save();
     c.clearRect(0, 0, W, H);
     c.beginPath();
-    c.roundRect ? c.roundRect(0, 0, W, H, 10) : c.rect(0, 0, W, H);
+    if (c.roundRect) c.roundRect(0, 0, W, H, 10); else c.rect(0, 0, W, H);
     c.clip();
     c.fillStyle = '#222d38';
     c.fillRect(0, 0, W, H);
 
     c.translate(W / 2, H / 2);
-    c.rotate(ang);
-    c.scale(scale, scale);
+    c.transform(-cy * scale, -sy * scale, sy * scale, -cy * scale, 0, 0);
     c.translate(-p.x, -p.z);
 
-    const R = Math.max(W, H) / scale;
-    // mer
+    // mer, sable, parcs
     c.fillStyle = '#17394f';
     c.fillRect(-2000, -2000, 2000 + OCEAN_X, 4000);
-    // sable
     c.fillStyle = '#c9b58a';
     c.fillRect(OCEAN_X, -2000, SHORE_X - OCEAN_X + 40, 4000);
-    // parcs
     c.fillStyle = '#3e5c33';
     for (const b of g.data.blocks) {
       if (b.ground === 'grass') c.fillRect(b.x - b.half, b.z - b.half, b.half * 2, b.half * 2);
     }
     // routes
-    c.strokeStyle = '#6e7d8b';
-    for (const r of g.data.roads) {
-      c.lineWidth = r.horiz ? r.d : r.w;
-      c.beginPath();
-      if (r.horiz) { c.moveTo(r.x - r.w / 2, r.z); c.lineTo(r.x + r.w / 2, r.z); }
-      else { c.moveTo(r.x, r.z - r.d / 2); c.lineTo(r.x, r.z + r.d / 2); }
-      c.stroke();
-    }
-    // pointillés des grands axes
-    c.strokeStyle = '#93a2b0';
-    c.lineWidth = 1.2;
-    for (const r of g.data.roads) {
-      if (!r.boulevard) continue;
-      c.beginPath();
-      if (r.horiz) { c.moveTo(r.x - r.w / 2, r.z); c.lineTo(r.x + r.w / 2, r.z); }
-      else { c.moveTo(r.x, r.z - r.d / 2); c.lineTo(r.x, r.z + r.d / 2); }
-      c.stroke();
-    }
-
-    // zone de recherche : cercle clignotant quand la police vous a perdu
-    if (g.player.wanted > 0 && g.police.flash > 0 && g.police.lastSeen) {
-      const r = 55 + g.player.wanted * 45;
-      c.save();
-      c.strokeStyle = Math.floor(g.time * 3) % 2 ? 'rgba(90,140,240,0.95)' : 'rgba(240,80,80,0.95)';
-      c.fillStyle = 'rgba(60,100,200,0.16)';
-      c.lineWidth = 3 / scale;
-      c.beginPath();
-      c.arc(g.police.lastSeen.x, g.police.lastSeen.z, r, 0, 6.29);
-      c.fill(); c.stroke();
-      c.restore();
-    }
-
-    // blips
-    for (const b of this.blips()) {
-      const dx = b.x - p.x, dz = b.z - p.z;
-      const d = Math.hypot(dx, dz);
-      const maxD = (Math.min(W, H) / 2 - 10) / scale;
-      let bx = b.x, bz = b.z;
-      if (d > maxD) { bx = p.x + (dx / d) * maxD; bz = p.z + (dz / d) * maxD; }
-      c.save();
-      c.translate(bx, bz);
-      c.rotate(-ang);
-      c.fillStyle = b.color;
-      const s = (b.size || 5) / scale * 0.55;
-      if (b.ring) {
-        c.strokeStyle = b.color; c.lineWidth = 2.4 / scale;
-        c.beginPath(); c.arc(0, 0, s, 0, 6.29); c.stroke();
-        c.beginPath(); c.arc(0, 0, s * 0.35, 0, 6.29); c.fill();
-      } else {
+    for (const pass of [0, 1]) {
+      c.strokeStyle = pass ? '#93a2b0' : '#6e7d8b';
+      for (const r of g.data.roads) {
+        if (pass && !r.boulevard) continue;
+        c.lineWidth = pass ? 1.6 : (r.horiz ? r.d : r.w);
         c.beginPath();
-        c.arc(0, 0, s, 0, 6.29);
-        c.fill();
+        if (r.horiz) { c.moveTo(r.x - r.w / 2, r.z); c.lineTo(r.x + r.w / 2, r.z); }
+        else { c.moveTo(r.x, r.z - r.d / 2); c.lineTo(r.x, r.z + r.d / 2); }
+        c.stroke();
+      }
+    }
+    c.restore();
+
+    // Repères et joueur : dessinés à plat, pour rester lisibles.
+    c.save();
+    c.beginPath();
+    if (c.roundRect) c.roundRect(0, 0, W, H, 10); else c.rect(0, 0, W, H);
+    c.clip();
+
+    if (p.wanted > 0 && g.police.flash > 0 && g.police.lastSeen) {
+      const [sx, sz] = toRadar(g.police.lastSeen.x, g.police.lastSeen.z);
+      const r = (55 + p.wanted * 45) * scale;
+      c.strokeStyle = Math.floor(g.time * 3) % 2 ? 'rgba(90,140,240,.95)' : 'rgba(240,80,80,.95)';
+      c.fillStyle = 'rgba(60,100,200,.16)';
+      c.lineWidth = 2;
+      c.beginPath(); c.arc(sx, sz, r, 0, 6.29); c.fill(); c.stroke();
+    }
+
+    const limit = Math.min(W, H) / 2 - 9;
+    for (const b of this.blips()) {
+      let [sx, sz] = toRadar(b.x, b.z);
+      const dx = sx - W / 2, dz = sz - H / 2;
+      const d = Math.hypot(dx, dz);
+      if (d > limit) { sx = W / 2 + (dx / d) * limit; sz = H / 2 + (dz / d) * limit; }
+      const r = (b.size || 5) * 0.85;
+      c.fillStyle = b.color;
+      if (b.ring) {
+        c.strokeStyle = b.color; c.lineWidth = 2.2;
+        c.beginPath(); c.arc(sx, sz, r, 0, 6.29); c.stroke();
+        c.beginPath(); c.arc(sx, sz, r * 0.38, 0, 6.29); c.fill();
+      } else {
+        c.beginPath(); c.arc(sx, sz, r, 0, 6.29); c.fill();
         if (b.letter && b.letter.length === 1) {
           c.fillStyle = '#101418';
-          c.font = `bold ${s * 1.35}px Arial`;
+          c.font = `bold ${Math.round(r * 1.4)}px Arial`;
           c.textAlign = 'center'; c.textBaseline = 'middle';
-          c.fillText(b.letter, 0, s * 0.06);
+          c.fillText(b.letter, sx, sz + 0.5);
         }
       }
-      c.restore();
     }
 
-    // joueur
-    c.save();
-    c.translate(p.x, p.z);
-    c.rotate(p.vehicle ? p.vehicle.yaw : p.yaw);
+    // le joueur, toujours au centre et pointé vers le haut
+    c.translate(W / 2, H / 2);
     c.fillStyle = '#ffffff';
-    const s = 7 / scale;
+    c.strokeStyle = 'rgba(0,0,0,.6)';
+    c.lineWidth = 1.5;
+    const a = 7;
     c.beginPath();
-    c.moveTo(0, s); c.lineTo(-s * 0.62, -s * 0.72); c.lineTo(0, -s * 0.36); c.lineTo(s * 0.62, -s * 0.72);
-    c.closePath(); c.fill();
-    c.restore();
+    c.moveTo(0, -a); c.lineTo(a * 0.62, a * 0.72); c.lineTo(0, a * 0.36); c.lineTo(-a * 0.62, a * 0.72);
+    c.closePath(); c.fill(); c.stroke();
     c.restore();
 
-    // cadre + cône de vue
+    // cadre
     c.save();
     c.strokeStyle = 'rgba(0,0,0,0.85)';
     c.lineWidth = 3;
@@ -6366,6 +6598,7 @@ class HUD {
   const { MissionSystem, MISSIONS } = __m["systems/missions.js"];
   const { HUD } = __m["systems/hud.js"];
   const { WEAPONS, WEAPON_ORDER, raycastScene, Projectile } = __m["systems/weapons.js"];
+  const { resolveVehicleCollisions, separateCharacters } = __m["systems/physics.js"];
   const { m4, m4compose, clamp, lerp, damp, rng, range, pick, dist2D, color, mixColor, TAU } = __m["engine/math.js"];
 /* --------------------------------------------------- ambiances horaires */
 
@@ -6700,19 +6933,28 @@ class Game {
     this.audio.ui(420, 0.06, 0.08);
   }
 
-  /** Un délit visible fait monter l'indice de recherche. */
-  crime(reason, stars, x, z) {
+  /**
+   * Un délit fait monter l'indice de recherche s'il est constaté. Un coup de
+   * feu s'entend à travers les murs (`heard`) ; un vol de voiture, lui, doit
+   * être vu. En quartier peuplé, on considère qu'on appelle la police même
+   * sans témoin à portée : sinon on pouvait vider un chargeur sans réaction.
+   */
+  crime(reason, stars, x, z, heard = false) {
+    const radius = heard ? 95 : 60;
     let witness = false;
     for (const c of this.peds) {
       if (c.dead) continue;
-      if ((c.cop || !c.hostile) && dist2D(c.x, c.z, x, z) < 55 && this.world.visible(c.x, 1.5, c.z, x, 1.2, z)) {
-        witness = true;
-        if (!c.cop) { c.state = 'flee'; c.panic = 1; }
-      }
+      const d = dist2D(c.x, c.z, x, z);
+      if (d > radius) continue;
+      if (!heard && !this.world.visible(c.x, 1.5, c.z, x, 1.2, z)) continue;
+      witness = true;
+      if (!c.cop && !c.hostile) { c.state = 'flee'; c.panic = 1; }
     }
     for (const v of this.vehicles) {
-      if (v.ai && v.ai.chase && dist2D(v.x, v.z, x, z) < 80) witness = true;
+      if (v.model.police && dist2D(v.x, v.z, x, z) < 130) witness = true;
     }
+    // Los Santos est dense : un tir en pleine ville finit toujours par se savoir
+    if (!witness && heard && densityAt(x, z) > 0.18) witness = true;
     if (witness || this.player.wanted > 0) this.police.addWanted(stars, reason);
     this.threatLevel = 2.5;
   }
@@ -6738,7 +6980,7 @@ class Game {
     if (ped.cop) {
       this.police.addWanted(this.player.wanted < 3 ? 3 - this.player.wanted : 1, 'Policier abattu');
     } else {
-      this.crime('homicide', this.player.wanted === 0 ? 2 : 1, ped.x, ped.z);
+      this.crime('homicide', this.player.wanted === 0 ? 2 : 1, ped.x, ped.z, true);
     }
   }
 
@@ -6861,10 +7103,12 @@ class Game {
       this.tracers.push({ x1: ox, y1: originY, z1: oz, x2: hit.x, y2: hit.y, z2: hit.z, life: 0.055 });
       this.impactEffect(hit, dx, dy, dz);
       if (hit.type === 'ped') {
+        this.hitMarker = hit.head ? 0.35 : 0.22;
         const dead = hit.ent.damage(w.dmg * dmgMul, this, true, hit.head);
         if (!dead && !hit.ent.hostile && !hit.ent.cop) this.crime('agression', p.wanted === 0 ? 1 : 0, hit.ent.x, hit.ent.z);
         if (dead && hit.head) this.notify('Tir à la tête', '');
       } else if (hit.type === 'vehicle') {
+        this.hitMarker = Math.max(this.hitMarker || 0, 0.12);
         hit.ent.damage(w.dmg * 0.55 * dmgMul);
         if (hit.ent.ai && hit.ent.ai.chase) this.police.addWanted(0, '');
       }
@@ -6872,7 +7116,7 @@ class Game {
     this.audio.gunshot(p.weapon, p.x, p.z);
     this.camera.addShake(w.slot >= 5 ? 0.4 : w.slot >= 3 ? 0.22 : 0.12);
     this.threatLevel = 3;
-    if (w.noise) this.crime('coups de feu', p.wanted === 0 ? 1 : 0, p.x, p.z);
+    if (w.noise) this.crime('coups de feu', p.wanted === 0 ? 1 : 0, p.x, p.z, true);
   }
 
   impactEffect(hit, dx, dy, dz) {
@@ -6957,7 +7201,9 @@ class Game {
     for (const h of this.police.helis) {
       if (dist2D(h.x, h.z, x, z) < radius * 1.5 && Math.abs(h.y - y) < radius * 1.5) h.damage(200, this);
     }
-    if (owner === this.player) this.crime('explosion', this.player.wanted < 3 ? 3 - this.player.wanted : 0, x, z);
+    if (owner === this.player) {
+      this.crime('explosion', this.player.wanted < 3 ? 3 - this.player.wanted : 0, x, z, true);
+    }
   }
 
   /* ------------------------------------------------------------- boutiques */
@@ -7411,6 +7657,7 @@ class Game {
     this.hour = (this.hour + dt / 60) % 24;      // une journée = 24 minutes réelles
     this.threatLevel = Math.max(0, this.threatLevel - dt);
     this.fade = Math.max(0, this.fade - realDt * 1.4);
+    if (this.hitMarker > 0) this.hitMarker = Math.max(0, this.hitMarker - realDt * 1.1);
     this.cinematic = Math.max(0, this.cinematic - realDt);
 
     // ralenti : capacité spéciale ou triche
@@ -7476,7 +7723,13 @@ class Game {
     }
 
     // collisions entre véhicules
-    this.vehicleCollisions(dt);
+    resolveVehicleCollisions(this.vehicles, (a, b, force, x, z) => {
+      this.onCrash(a, force, x, 0.8, z);
+      const chase = (v) => v.ai && v.ai.chase;
+      if ((a === p.vehicle && chase(b)) || (b === p.vehicle && chase(a))) {
+        this.crime('refus d’obtempérer', p.wanted === 0 ? 2 : 0, x, z);
+      }
+    });
 
     const ctx = { player: p, world: this.world, game: this };
     for (let i = this.peds.length - 1; i >= 0; i--) {
@@ -7507,6 +7760,8 @@ class Game {
         }
       }
     }
+
+    separateCharacters(this.peds, p);
 
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const pr = this.projectiles[i];
@@ -7561,40 +7816,6 @@ class Game {
 
     this.camera.update(realDt, this);
     this.hud.update(realDt);
-  }
-
-  vehicleCollisions(dt) {
-    const list = this.vehicles;
-    for (let i = 0; i < list.length; i++) {
-      const a = list[i];
-      for (let j = i + 1; j < list.length; j++) {
-        const b = list[j];
-        const dx = b.x - a.x, dz = b.z - a.z;
-        const d = Math.hypot(dx, dz);
-        const minD = (a.hl + b.hl) * 0.78;
-        if (d > minD || d < 0.001) continue;
-        const nx = dx / d, nz = dz / d;
-        const overlap = minD - d;
-        const ma = a.mass, mb = b.mass;
-        const total = ma + mb;
-        a.x -= nx * overlap * (mb / total); a.z -= nz * overlap * (mb / total);
-        b.x += nx * overlap * (ma / total); b.z += nz * overlap * (ma / total);
-        const rvx = b.vx - a.vx, rvz = b.vz - a.vz;
-        const vn = rvx * nx + rvz * nz;
-        if (vn > 0) continue;
-        const imp = -(1.35) * vn / (1 / ma + 1 / mb);
-        a.vx -= (imp * nx) / ma; a.vz -= (imp * nz) / ma;
-        b.vx += (imp * nx) / mb; b.vz += (imp * nz) / mb;
-        const force = Math.abs(vn);
-        if (force > 3.5) {
-          a.damage(force * 4); b.damage(force * 4);
-          this.onCrash(a, force, (a.x + b.x) / 2, 0.8, (a.z + b.z) / 2);
-          if ((a === this.player.vehicle && b.ai && b.ai.chase) || (b === this.player.vehicle && a.ai && a.ai.chase)) {
-            this.crime('refus d’obtempérer', this.player.wanted === 0 ? 2 : 0, a.x, a.z);
-          }
-        }
-      }
-    }
   }
 
   checkBusted(dt) {
@@ -7793,6 +8014,7 @@ class Game {
         c.beginPath(); c.moveTo(cx - w, cy); c.lineTo(cx + w, cy);
         c.moveTo(cx, cy - h); c.lineTo(cx, cy + h); c.stroke();
       }
+      const hit = this.hitMarker || 0;
       const spread = 8 + (WEAPONS[p.weapon].spread || 0) * 900 + Math.hypot(p.vx || 0, p.vz || 0) * 2;
       c.strokeStyle = 'rgba(255,255,255,0.9)';
       c.lineWidth = 2;
@@ -7805,6 +8027,20 @@ class Game {
       }
       c.fillStyle = 'rgba(255,255,255,0.85)';
       c.fillRect(cx - 1, cy - 1, 2, 2);
+      // marqueur de touche : quatre traits en X, rouges sur un tir à la tête
+      if (hit > 0) {
+        const big = hit > 0.3;
+        c.strokeStyle = big ? 'rgba(255,90,70,0.95)' : 'rgba(255,255,255,0.95)';
+        c.lineWidth = big ? 3 : 2;
+        const r0 = 4, r1 = 4 + hit * 34;
+        for (const a of [45, 135, 225, 315]) {
+          const t = (a * Math.PI) / 180;
+          c.beginPath();
+          c.moveTo(cx + Math.cos(t) * r0, cy + Math.sin(t) * r0);
+          c.lineTo(cx + Math.cos(t) * r1, cy + Math.sin(t) * r1);
+          c.stroke();
+        }
+      }
     }
 
     // fondu

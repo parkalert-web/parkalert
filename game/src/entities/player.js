@@ -4,6 +4,7 @@
  */
 import { drawHuman, randomLook } from './character.js';
 import { WEAPONS, WEAPON_ORDER } from '../systems/weapons.js';
+import { pushOutOfVehicles } from '../systems/physics.js';
 import { m4compose, clamp, damp, dampAngle, lerp, color } from '../engine/math.js';
 
 export const CHARACTERS = {
@@ -163,13 +164,15 @@ export class Player {
     const v = this.vehicle;
     const inp = game.input;
     if (this.seat === 0) {
+      // Le lacet croissant fait pivoter vers +X, qui est à GAUCHE de l'écran :
+      // la commande du joueur est donc inversée (l'IA, elle, raisonne en lacet).
       if (v.model.fly) {
         v.collective = inp.climb;
         v.pitchInput = inp.throttle;
-        v.yawInput = inp.steer;
+        v.yawInput = -inp.steer;
       } else {
         v.throttle = inp.throttle;
-        v.steerInput = inp.steer;
+        v.steerInput = -inp.steer;
         v.handbrake = inp.handbrake;
       }
       if (inp.horn) v.horn = 0.2;
@@ -191,9 +194,11 @@ export class Player {
     const sprinting = inp.sprint && len > 0.1 && !this.aiming && this.stamina > 0;
     if (len > 1) { mx /= len; mz /= len; }
 
+    // Repère : l'avant de la caméra est (sin, cos) et, l'espace étant direct
+    // avec Y vers le haut, sa DROITE à l'écran est (-cos, sin) — et non (cos, -sin).
     const cs = Math.sin(cam.yaw), cc = Math.cos(cam.yaw);
-    const wx = mx * cc + mz * cs;
-    const wz = -mx * cs + mz * cc;
+    const wx = mz * cs - mx * cc;
+    const wz = mz * cc + mx * cs;
 
     let speed = this.swimming ? (sprinting ? 3.4 : 2.2) : this.crouch ? 1.5 : this.aiming ? 2.1 : sprinting ? 6.4 : 4.1;
     if (len < 0.02) speed = 0;
@@ -246,6 +251,8 @@ export class Player {
 
     const p = { x: this.x, z: this.z };
     game.world.pushCircle(p, 0.42, 2);
+    pushOutOfVehicles(p, 0.42, game.vehicles);      // on ne traverse pas les voitures
+    game.world.pushCircle(p, 0.42, 2);              // ni un mur en s'en écartant
     this.x = p.x; this.z = p.z;
     const B = 1080;
     this.x = clamp(this.x, -B, B); this.z = clamp(this.z, -B, B);
@@ -302,21 +309,16 @@ export class Player {
 
   draw(R, game) {
     if (this.vehicle || game.camera.firstPerson) return;
+    const w = this.weaponDef;
     drawHuman(R, {
       x: this.x, y: this.y, z: this.z, yaw: this.yaw,
       anim: this.anim, move: this.move, aim: this.aiming && !this.swimming,
       crouch: this.crouch, swimming: this.swimming, deadT: this.dead ? this.deadT : 0,
+      weapon: w.melee || this.dead ? null : {
+        len: w.slot >= 5 ? 0.78 : w.slot >= 4 ? 0.66 : w.slot >= 2 ? 0.5 : 0.32,
+        wide: w.slot >= 4 ? 0.09 : 0.075,
+      },
       ...this.look,
     }, game.camera.pitch);
-    const w = this.weaponDef;
-    if (!w.melee && !this.dead) {
-      const s = Math.sin(this.yaw), c = Math.cos(this.yaw);
-      const lx = 0.3, lz = this.aiming ? 0.55 : 0.12;
-      const len = w.slot >= 4 ? 0.72 : w.slot >= 2 ? 0.5 : 0.34;
-      const mat = m4compose(R.tmpMat || (R.tmpMat = new Float32Array(16)),
-        this.x + lx * c + lz * s, 1.3 - (this.crouch ? 0.24 : 0), this.z - lx * s + lz * c,
-        this.yaw, 0.09, 0.15, len, this.aiming ? game.camera.pitch * 0.6 : 0);
-      R.cube(mat, [0.13, 0.13, 0.15]);
-    }
   }
 }

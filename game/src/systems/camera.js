@@ -93,7 +93,7 @@ export class Camera {
 
     // décalage épaule en visée
     let ox = 0, oy = 0;
-    if (p.aiming && !veh) { ox = 0.65; oy = 0.12; }
+    if (p.aiming && !veh) { ox = -0.65; oy = 0.12; }   // épaule droite (écran)
 
     const cy = Math.cos(this.pitch);
     const dirX = Math.sin(this.yaw) * cy;
