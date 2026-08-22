@@ -251,6 +251,10 @@ export function generateWorld(seed = 20130917) {
   landmarks.push({ kind: 'airport', ...airport });
   colliders.push({ x: airport.x - 250, z: airport.z - 100, hw: 46, hd: 26, h: 24, kind: 'building' });
 
+  // Deux hélisurfaces : aéroport et parking de Strawberry
+  const helipads = [{ x: -430, z: 745 }, { x: -315, z: 315 }];
+  for (const h of helipads) landmarks.push({ kind: 'helipad', x: h.x, z: h.z });
+
   // Port (sud-est) : grues et conteneurs
   const port = { x: 790, z: 700, w: 300, d: 300 };
   landmarks.push({ kind: 'port', ...port });

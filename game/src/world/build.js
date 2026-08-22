@@ -508,6 +508,18 @@ function buildLandmarks(ch, world) {
         gg.box(cx, 48, l.z - 134, 30, 4, 40, [0.9, 0.45, 0.25]);
         gg.box(cx, 46, l.z - 168, 6, 3, 40, [0.9, 0.45, 0.25]);
       }
+    } else if (l.kind === 'helipad') {
+      g.slab(l.x, l.z, 26, 26, 0.18, C.concrete);
+      for (let i = 0; i < 20; i++) {                     // cercle blanc
+        const a = (i / 20) * Math.PI * 2;
+        g.slab(l.x + Math.cos(a) * 10, l.z + Math.sin(a) * 10, 2.6, 2.6, 0.2, C.lineWhite, -a);
+      }
+      g.slab(l.x - 3, l.z, 1.4, 9, 0.2, C.lineWhite);    // le H
+      g.slab(l.x + 3, l.z, 1.4, 9, 0.2, C.lineWhite);
+      g.slab(l.x, l.z, 6, 1.4, 0.2, C.lineWhite);
+      for (const [dx, dz] of [[-12, -12], [12, -12], [12, 12], [-12, 12]]) {
+        g.box(l.x + dx, 0.35, l.z + dz, 0.4, 0.7, 0.4, [1, 0.75, 0.2], 0, { emit: 0.9, emitTop: 0.9 });
+      }
     } else if (l.kind === 'crane') {
       g.cyl(l.x, 0, l.z, 1.1, 62, [0.95, 0.75, 0.2], 4);
       g.box(l.x + 14, 63, l.z, 44, 1.8, 1.8, [0.95, 0.75, 0.2]);
