@@ -35,6 +35,12 @@ export function subjectFromName(nom) {
     .replace(/^\d{2,4}([-_.]\d{2}){0,2}[-_.\s]+/, '')   // préfixe 01_ ou 2026-08-21_
     .replace(/[-_.]+/g, ' ')
     .replace(/\s+/g, ' ')
+    // Les exports vidéo traînent souvent leurs hashtags en fin de nom
+    // (« Jour 62 ! #shorts #photography ») : c'est de l'étiquetage, pas le sujet.
+    .replace(/(\s*#[\p{Letter}\p{Number}_]+)+\s*$/gu, '')
+    .replace(/#/g, '')                        // un # isolé ailleurs : simple décoration
+    .replace(/[\s!?.,;:–—-]+$/u, '')          // ponctuation de fin
+    .replace(/\s+/g, ' ')
     .trim();
 }
 

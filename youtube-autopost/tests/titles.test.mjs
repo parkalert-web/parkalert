@@ -132,6 +132,13 @@ test('le sujet est déduit du nom de fichier', () => {
   assert.equal(subjectFromName('simple.webm'), 'simple');
 });
 
+test('les hashtags du nom de fichier ne se retrouvent pas dans le titre', () => {
+  // Nom tel que le sortent les applis de montage.
+  assert.equal(subjectFromName('01_Jour-62-!-#shorts-#photography.mp4'), 'Jour 62');
+  assert.equal(subjectFromName('#photo_du_jour.mp4'), 'photo du jour');
+  assert.equal(subjectFromName('02_Mon-sujet_#a_#b.mov'), 'Mon sujet');
+});
+
 test('extensions et types MIME reconnus', () => {
   assert.ok(isVideo('a.MP4') && isVideo('b.mov') && !isVideo('c.txt') && !isVideo('d.json'));
   assert.equal(mimeOf('a.mov'), 'video/quicktime');
