@@ -143,7 +143,7 @@ function buildParts(key) {
   }
   // ailes : un tube en travers, juste au-dessus de chaque roue
   for (const [sx2, sz2] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) {
-    add(sx2 * (W / 2 - 0.02), wheelR * 0.98, sz2 * L * 0.33, wheelR * 2.15, 0.12, wheelR * 2.15,
+    add(sx2 * (W / 2 + 0.05), wheelR * 0.98, sz2 * L * 0.33, wheelR * 2.25, 0.14, wheelR * 2.25,
       'skirt', { shape: 'cyl', rz: Math.PI / 2 });
   }
   if (m.taxi) {
@@ -161,7 +161,7 @@ function buildParts(key) {
   }
 
   const wheels = [];
-  const wx = W / 2 - 0.06, wz = L * 0.33;
+  const wx = W / 2 - 0.05, wz = L * 0.33;      // la roue affleure l'aile : c'est ce qui donne l'assise
   for (const [sx, sz] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) {
     wheels.push({ x: sx * wx, y: wheelR, z: sz * wz, r: wheelR, w: m.cls === 'truck' || m.cls === 'bus' ? 0.34 : 0.26, front: sz > 0 });
   }
@@ -556,9 +556,13 @@ export class Vehicle {
       m4compose(this.tmp, w.x, w.y, w.z, st, w.r * 2, w.w, w.r * 2, this.wheelSpin, Math.PI / 2);
       m4mul(this.out, this.mat, this.tmp);
       R.cyl(this.out, [0.06, 0.06, 0.07]);
-      m4compose(this.tmp, w.x * 1.02, w.y, w.z, st, w.r * 0.92, w.w * 1.06, w.r * 0.92, this.wheelSpin, Math.PI / 2);
+      m4compose(this.tmp, w.x * 1.02, w.y, w.z, st, w.r * 0.62, w.w * 1.03, w.r * 0.62, this.wheelSpin, Math.PI / 2);
       m4mul(this.out, this.mat, this.tmp);
-      R.cyl(this.out, [0.42, 0.44, 0.47]);
+      R.cyl(this.out, [0.58, 0.60, 0.64]);
+      // écrou central : il rend la rotation lisible
+      m4compose(this.tmp, w.x * 1.03, w.y, w.z, st, w.r * 0.19, w.w * 1.07, w.r * 0.19, this.wheelSpin, Math.PI / 2);
+      m4mul(this.out, this.mat, this.tmp);
+      R.cyl(this.out, [0.3, 0.31, 0.33]);
     }
   }
 }
