@@ -5,7 +5,28 @@ entièrement à la main : **WebGL 2, JavaScript natif, aucune dépendance, aucun
 fichier d'image ni de son**. Tout — la ville, les voitures, les passants, la
 musique des radios — est généré par le code au chargement.
 
-**Jouer :** ouvrez `game/index.html` (ou <https://parkalert-web.github.io/parkalert/game/>).
+## Trois façons d'y jouer
+
+**1. Le fichier unique (le plus simple).** Téléchargez
+[`game/losantos.html`](losantos.html) — 305 Ko, tout est dedans — et
+double-cliquez dessus. Aucun serveur, aucune installation, aucune connexion :
+il s'ouvre dans votre navigateur et le jeu démarre.
+
+**2. En ligne.** <https://parkalert-web.github.io/parkalert/game/>
+
+**3. Depuis les sources.** `game/index.html` charge des modules JavaScript, et
+les navigateurs les refusent en `file://`. Il faut donc un petit serveur local :
+
+```bash
+cd parkalert && python3 -m http.server 8080
+# puis http://localhost:8080/game/
+```
+
+Pour refabriquer le fichier unique après une modification des sources :
+
+```bash
+npm run build:game
+```
 
 ---
 
@@ -208,13 +229,18 @@ dessine en ~75 appels par image.
 baisse puis les ombres se coupent ; au-dessus de 56, tout remonte. On peut
 aussi forcer les réglages par l'URL : `?scale=60&shadows=0&quality=fixed`.
 
+**Le fichier unique.** `game/build.mjs` réunit les 19 modules, la feuille de
+style et l'interface dans une seule page : chaque module devient une fonction
+isolée enregistrée dans une petite table, et les `import` deviennent des
+lectures dans cette table. Aucun outil externe, aucune étape d'installation.
+
 ## Tests
 
 ```bash
 node --test tests/game.test.mjs
 ```
 
-28 tests couvrent les mathématiques, l'orientation des faces (un enroulement
+29 tests couvrent les mathématiques, l'orientation des faces (un enroulement
 inversé rend la géométrie invisible), la reproductibilité de la ville, la
 connexité du réseau routier, l'absence d'obstacle sur la chaussée et de
 marqueur de mission dans un mur, les collisions, la physique des véhicules
@@ -223,6 +249,8 @@ la cohérence des armes et des missions. L'un d'eux fait tourner trente secondes
 de circulation sans navigateur et vérifie que les voitures avancent, restent sur
 la chaussée et ne s'encastrent nulle part — c'est lui qui a mis au jour un
 embouteillage permanent.
+
+Un autre vérifie que `losantos.html` n'a pas pris de retard sur les sources.
 
 Deux d'entre eux sont des garde-fous nés de bugs réels : l'un vérifie qu'aucune
 classe ne déclare deux fois la même méthode — une méthode `load()` de sauvegarde

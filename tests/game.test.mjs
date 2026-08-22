@@ -35,6 +35,29 @@ function sourceFiles(dir = GAME_DIR, out = []) {
   return out;
 }
 
+/* --------------------------------------------------------- page autonome */
+
+/**
+ * `game/losantos.html` réunit tout le jeu dans un fichier ouvrable en
+ * double-clic. Il est engagé dans le dépôt : ce test refuse qu'il prenne du
+ * retard sur les sources.
+ */
+test('la page autonome est à jour et cohérente', async () => {
+  const { buildStandalone, OUTPUT } = await import('../game/build.mjs');
+  const { page, count } = buildStandalone();
+  assert.ok(count >= 15, `tous les modules doivent être embarqués (${count})`);
+  assert.ok(!/\bimport\s+\{/.test(page), 'aucun import ne doit subsister');
+  assert.ok(!page.includes('src/main.js') && !page.includes('href="style.css"'),
+    'plus aucune référence à un fichier extérieur');
+  assert.ok(page.includes('<canvas id="scene">'), 'la page garde son interface');
+  assert.ok(page.includes("+250 000 $"), 'le remplacement ne doit pas tronquer le code');
+  assert.ok(page.length > 200000, 'la page contient bien tout le jeu');
+
+  const onDisk = fs.readFileSync(OUTPUT, 'utf8');
+  assert.equal(onDisk, page,
+    'game/losantos.html est périmé : relancez « npm run build:game »');
+});
+
 /* ------------------------------------------------------------ hygiène du code */
 
 /**

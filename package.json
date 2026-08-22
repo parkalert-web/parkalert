@@ -8,7 +8,8 @@
     "test": "node --test tests/core.test.mjs tests/game.test.mjs",
     "test:e2e": "node tests/e2e/transfer.e2e.mjs && node tests/e2e/priority.e2e.mjs",
     "start": "python3 -m http.server 8080",
-    "test:game": "node --test tests/game.test.mjs"
+    "test:game": "node --test tests/game.test.mjs",
+    "build:game": "node game/build.mjs"
   },
   "license": "UNLICENSED"
 }
