@@ -4563,9 +4563,19 @@ class Ped {
   }
 
   /** Traverse vers l'îlot voisin : on vise son coin le plus proche. */
-  crossStreet() {
+  crossStreet(vehicles) {
     const b = this.block;
     if (!this.neighbour || !b) return false;
+    // on regarde avant de traverser
+    if (vehicles) {
+      for (const v of vehicles) {
+        if (v.dead || Math.abs(v.speed) < 4) continue;
+        const dx = this.x - v.x, dz = this.z - v.z;
+        if (dx * dx + dz * dz > 650) continue;
+        const dir = v.speed < 0 ? -1 : 1;
+        if (dx * Math.sin(v.yaw) * dir + dz * Math.cos(v.yaw) * dir > -2) return false;
+      }
+    }
     const side = Math.floor(this.rand() * 4);
     const gx = b.gx + [0, 1, 0, -1][side];
     const gz = b.gz + [-1, 0, 1, 0][side];
@@ -4701,7 +4711,7 @@ class Ped {
     const d = Math.hypot(dx, dz);
     if (d < 1.6) {
       const r = this.rand();
-      if (r < 0.18 && this.crossStreet()) return;   // on traverse
+      if (r < 0.22 && this.crossStreet(vehicles)) return;   // on traverse
       if (r > 0.86 && !this.jogger) {               // on s'arrête un instant
         this.idleT = 1.4 + this.rand() * 4;
         this.idleTurn = (this.rand() - 0.5) * 0.9;
