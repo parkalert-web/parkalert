@@ -140,6 +140,11 @@ export class PoliceSystem {
     return this.game.vehicles.filter((v) => v.ai && v.ai.chase && !v.dead).length;
   }
 
+  /** Tous les véhicules de police encore sur la carte, épaves comprises. */
+  copTotal() {
+    return this.game.vehicles.filter((v) => v.model.police).length;
+  }
+
   update(dt) {
     const g = this.game;
     const p = g.player;
@@ -181,7 +186,7 @@ export class PoliceSystem {
     // renforts
     this.spawnTimer -= dt;
     const wantCars = COP_CARS[p.wanted];
-    if (this.spawnTimer <= 0 && this.copCount() < wantCars) {
+    if (this.spawnTimer <= 0 && this.copCount() < wantCars && this.copTotal() < wantCars + 6) {
       this.spawnTimer = 2.2;
       this.spawnCopCar();
     }

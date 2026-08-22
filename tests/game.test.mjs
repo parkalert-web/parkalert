@@ -448,6 +448,37 @@ test('la circulation roule et reste sur la chaussée', async () => {
   assert.ok(offRoad < live.length * 0.3, `les voitures restent sur la chaussée (${offRoad} hors route)`);
 });
 
+test('une longue traque ne fait pas enfler le parc automobile', async () => {
+  const { Population } = await import('../game/src/systems/traffic.js');
+  const { PoliceSystem } = await import('../game/src/systems/police.js');
+  const data = generateWorld(20130917);
+  const world = new World(data);
+  const game = {
+    data, world, vehicles: [], peds: [], time: 0,
+    player: { x: 0, z: -45, wanted: 5, onFoot: true, dead: false, vehicle: null, damage() {} },
+    audio: { stopEngine() {}, hornSound() {}, ui() {}, updateSiren() {} },
+    notify() {}, explode() {}, npcShootFrom() {}, onPedKilled() {},
+  };
+  const pop = new Population(game);
+  const police = new PoliceSystem(game);
+  game.police = police;
+
+  const dt = 1 / 30;
+  let peak = 0;
+  for (let step = 0; step < 30 * 240; step++) {          // quatre minutes de traque
+    game.time += dt;
+    police.update(dt);
+    pop.update(dt);
+    for (const v of game.vehicles) v.update(dt, world, null);
+    game.player.wanted = 5;                               // on ne se laisse jamais semer
+    peak = Math.max(peak, game.vehicles.length);
+  }
+  assert.ok(peak < 90, `le nombre de véhicules doit rester borné (pic : ${peak})`);
+  assert.ok(game.peds.length < 140, `et celui des piétons aussi (${game.peds.length})`);
+  const wrecks = game.vehicles.filter((v) => v.dead).length;
+  assert.ok(wrecks < 25, `les épaves finissent par disparaître (${wrecks} restantes)`);
+});
+
 /* ------------------------------------------------------- armes et missions */
 
 test('le catalogue d’armes est cohérent', () => {

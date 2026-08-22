@@ -35,8 +35,9 @@ parking.
 ### La conduite
 
 16 véhicules — berlines, sportives, muscle cars, SUV, pick-up, van, taxi, bus,
-ambulance, camion de pompiers, deux voitures de police et un hélicoptère. Chacun a sa masse, sa
-puissance, son adhérence et sa carrosserie construite à partir de sa fiche.
+ambulance, camion de pompiers, deux voitures de police et un hélicoptère.
+Chacun a sa masse, sa puissance, son adhérence, et une carrosserie construite
+à partir de sa fiche technique.
 
 La physique est arcade mais honnête : modèle bicyclette pour la direction,
 **dérive latérale** quand le cap s'écarte de la trajectoire, frein à main qui
@@ -200,7 +201,7 @@ aussi forcer les réglages par l'URL : `?scale=60&shadows=0&quality=fixed`.
 node --test tests/game.test.mjs
 ```
 
-27 tests couvrent les mathématiques, l'orientation des faces (un enroulement
+28 tests couvrent les mathématiques, l'orientation des faces (un enroulement
 inversé rend la géométrie invisible), la reproductibilité de la ville, la
 connexité du réseau routier, l'absence d'obstacle sur la chaussée et de
 marqueur de mission dans un mur, les collisions, la physique des véhicules

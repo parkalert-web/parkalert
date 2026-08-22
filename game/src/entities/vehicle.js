@@ -205,6 +205,10 @@ export class Vehicle {
       this.dead = true;
       this.burnTime = 0;
       this.exploded = false;
+      // une épave n'a plus à être protégée : sans cela les voitures de police
+      // détruites s'accumulaient indéfiniment sur la carte.
+      this.persistent = false;
+      this.parked = false;
     }
   }
 

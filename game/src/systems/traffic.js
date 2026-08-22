@@ -11,6 +11,7 @@ const LANE = 4.6;
 const SPAWN_MIN = 105;
 const SPAWN_MAX = 210;
 const DESPAWN = 300;
+const MAX_VEHICLES = 70;
 
 export class Population {
   constructor(game) {
@@ -144,6 +145,18 @@ export class Population {
       if (ped.mission || ped.inVehicle) continue;
       const d = dist2D(ped.x, ped.z, px, pz);
       if (d > 190 || (ped.dead && ped.deadT > 26)) g.peds.splice(i, 1);
+    }
+
+    // Filet de sécurité : quoi qu'il arrive, on plafonne le parc automobile.
+    if (g.vehicles.length > MAX_VEHICLES) {
+      const removable = g.vehicles
+        .filter((v) => v !== p.vehicle && !v.mission)
+        .sort((a, b) => dist2D(b.x, b.z, px, pz) - dist2D(a.x, a.z, px, pz));
+      for (const v of removable.slice(0, g.vehicles.length - MAX_VEHICLES)) {
+        g.audio.stopEngine(v.id);
+        const i = g.vehicles.indexOf(v);
+        if (i >= 0) g.vehicles.splice(i, 1);
+      }
     }
 
     // apparition
