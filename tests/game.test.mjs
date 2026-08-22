@@ -7,6 +7,9 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
   clamp, lerp, wrapAngle, angleDelta, rng, color, m4, m4compose, m4mul,
@@ -20,6 +23,53 @@ import { Vehicle, MODELS } from '../game/src/entities/vehicle.js';
 import { WEAPONS, WEAPON_ORDER } from '../game/src/systems/weapons.js';
 import { MISSIONS } from '../game/src/systems/missions.js';
 import { CHARACTERS } from '../game/src/entities/player.js';
+
+const GAME_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../game/src');
+
+function sourceFiles(dir = GAME_DIR, out = []) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const f = path.join(dir, e.name);
+    if (e.isDirectory()) sourceFiles(f, out);
+    else if (e.name.endsWith('.js')) out.push(f);
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------ hygiène du code */
+
+/**
+ * Deux méthodes du même nom dans une classe : la seconde écrase la première
+ * en silence. C'est ainsi qu'une méthode `load()` de sauvegarde a un jour
+ * remplacé le chargement du monde — le jeu démarrait sur une ville vide.
+ */
+test('aucune méthode n’est déclarée deux fois dans une classe', () => {
+  const method = /^ {2}(?:static\s+)?(?:async\s+)?(?:\*\s*)?([A-Za-z_$][\w$]*)\s*\(/;
+  for (const file of sourceFiles()) {
+    const lines = fs.readFileSync(file, 'utf8').split('\n');
+    let inClass = false;
+    let seen = new Map();
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (/^(export\s+)?class\s/.test(line)) { inClass = true; seen = new Map(); continue; }
+      if (inClass && /^\}/.test(line)) { inClass = false; continue; }
+      if (!inClass) continue;
+      const m = line.match(method);
+      if (!m) continue;
+      if (['if', 'for', 'while', 'switch', 'catch', 'return', 'else'].includes(m[1])) continue;
+      const prev = seen.get(m[1]);
+      assert.equal(prev, undefined,
+        `${path.basename(file)} : méthode « ${m[1]} » déclarée ligne ${prev} puis ligne ${i + 1}`);
+      seen.set(m[1], i + 1);
+    }
+  }
+});
+
+test('les fichiers du jeu s’importent sans effet de bord', async () => {
+  for (const file of sourceFiles()) {
+    if (file.endsWith('main.js')) continue;        // point d'entrée : touche le DOM
+    await import(file);                            // une erreur ici fait échouer le test
+  }
+});
 
 /* ----------------------------------------------------------------- maths */
 
@@ -330,6 +380,46 @@ test('les places assises et la sortie restent près du véhicule', () => {
   const world = new World(generateWorld(20130917));
   const [ex, ez] = v.exitPos(world);
   assert.ok(dist2D(ex, ez, v.x, v.z) < 4);
+});
+
+/* ------------------------------------------------------------- circulation */
+
+test('la circulation roule et reste sur la chaussée', async () => {
+  const { Population } = await import('../game/src/systems/traffic.js');
+  const data = generateWorld(20130917);
+  const world = new World(data);
+  // un jeu minimal : la circulation n'a besoin que de ça
+  const game = {
+    data, world, vehicles: [], peds: [],
+    player: { x: 0, z: -45, wanted: 0, onFoot: true, dead: false, vehicle: null },
+    audio: { stopEngine() {}, hornSound() {} },
+  };
+  const pop = new Population(game);
+  for (let i = 0; i < 40; i++) pop.spawnTraffic();
+  const traffic = game.vehicles.filter((v) => v.ai);
+  assert.ok(traffic.length > 10, 'la circulation doit apparaître');
+  const start = new Map(traffic.map((v) => [v, { x: v.x, z: v.z }]));
+
+  const dt = 1 / 30;
+  for (let step = 0; step < 30 * 30; step++) {          // 30 secondes simulées
+    pop.update(dt);
+    for (const v of game.vehicles) v.update(dt, world, null);
+  }
+
+  let moved = 0; let stuck = 0; let offRoad = 0;
+  const live = game.vehicles.filter((v) => v.ai && !v.dead);
+  const near = (c) => Math.abs(((c % STREET) + STREET * 1.5) % STREET - STREET / 2);
+  for (const v of live) {
+    const s0 = start.get(v);
+    if (s0 && dist2D(v.x, v.z, s0.x, s0.z) > 30) moved++;
+    if (Math.abs(v.speed) < 0.5) stuck++;
+    if (near(v.x) > 14 && near(v.z) > 14) offRoad++;
+    assert.ok(!world.solidAt(v.x, 1, v.z), `voiture encastrée en (${v.x.toFixed(0)}, ${v.z.toFixed(0)})`);
+  }
+  assert.ok(live.length > 8, 'la circulation ne doit pas se détruire toute seule');
+  assert.ok(moved > live.length * 0.4, `les voitures doivent avancer (${moved}/${live.length})`);
+  assert.ok(stuck < live.length * 0.4, `peu de voitures à l'arrêt (${stuck}/${live.length})`);
+  assert.ok(offRoad < live.length * 0.3, `les voitures restent sur la chaussée (${offRoad} hors route)`);
 });
 
 /* ------------------------------------------------------- armes et missions */

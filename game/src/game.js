@@ -5,7 +5,7 @@
 import { Renderer } from './engine/renderer.js';
 import { Input, setupTouchControls } from './engine/input.js';
 import { AudioEngine } from './engine/audio.js';
-import { generateWorld, zoneAt } from './world/gen.js';
+import { generateWorld, zoneAt, densityAt } from './world/gen.js';
 import { buildWorldGeometry } from './world/build.js';
 import { World } from './world/collide.js';
 import { Vehicle, MODELS } from './entities/vehicle.js';
@@ -785,7 +785,8 @@ export class Game {
     }
   }
 
-  load() {
+  /** Recharge la progression enregistrée. (Le monde, lui, est bâti par `load()`.) */
+  loadSave() {
     let raw = null;
     try { raw = localStorage.getItem('losSantos.save'); } catch (e) { return false; }
     if (!raw) return false;
@@ -1138,14 +1139,22 @@ export class Game {
     // audio
     this.audio.setListener(this.camera.eye[0], this.camera.eye[1], this.camera.eye[2], this.camera.yaw);
     let engines = 0;
+    const audible = new Set();
     for (const v of this.vehicles) {
       const d = dist2D(v.x, v.z, p.x, p.z);
       if (v === p.vehicle || (d < 55 && engines < 6 && Math.abs(v.speed) > 0.5)) {
         this.audio.updateEngine(v, v === p.vehicle, dt);
+        audible.add(v.id);
         engines++;
       }
-      if (v.model.police) this.audio.updateSiren(v);
+      if (v.model.police && d < 160) { this.audio.updateSiren(v); audible.add(v.id); }
     }
+    this.audio.pruneEngines(audible);
+    // ambiance : rumeur urbaine selon la densité, ressac selon la distance à la mer
+    const seaDist = Math.max(0, p.x + 740);
+    this.audio.updateAmbience(dt,
+      clamp(densityAt(p.x, p.z) * 0.7 + 0.35, 0, 1) * (p.vehicle ? 0.5 : 1),
+      clamp(1 - seaDist / 420, 0, 1) * (p.vehicle ? 0.4 : 1));
     this.audio.setMuffled(!p.vehicle);
     this.audio.tickMusic();
     if (p.onFoot && p.move > 0.4 && !p.dead) {
@@ -1353,8 +1362,12 @@ export class Game {
       for (const m of MISSIONS) {
         if (!this.missions.available(m)) continue;
         if (dist2D(m.x, m.z, this.player.x, this.player.z) > 220) continue;
-        m4compose(pm, m.x, 0.05, m.z, 0, 3.4, 2.4, 3.4);
-        R.ghost('marker', pm, [1, 0.85, 0.2], 1);
+        const c = m.char ? color(CHARACTERS[m.char].color) : [1, 0.85, 0.2];
+        m4compose(pm, m.x, 0.05, m.z, 0, 3.4, 2.6, 3.4);
+        R.ghost('marker', pm, c, 1);
+        // repère flottant, aux couleurs du personnage
+        m4compose(pm, m.x, 3.4 + Math.sin(this.time * 1.6) * 0.18, m.z, this.time * 0.9, 0.8, 0.8, 0.8);
+        R.cube(pm, c, 0.9);
       }
     }
   }

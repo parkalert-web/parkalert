@@ -85,14 +85,35 @@ Cinq missions scénarisées, déclenchées par les lettres au sol :
 maintenant `G`. Chacun a son quartier, sa garde-robe et sa capacité spéciale :
 temps ralenti à pied, temps ralenti au volant, dégâts doublés.
 
+### Le ciel et le temps qu'il fait
+
+Cycle jour/nuit complet — une journée dure 24 minutes — avec course du soleil,
+lever et coucher colorés, étoiles, lune, nuages procéduraux et éclairage urbain
+qui s'allume à la tombée du jour : lampadaires, enseignes, phares, fenêtres
+allumées étage par étage.
+
+La météo dérive toute seule entre grand beau temps, ciel couvert, pluie et
+orage. Sous l'averse le ciel s'assombrit, les gouttes strient l'écran, les
+éclairs illuminent la ville et **la chaussée mouillée fait perdre de
+l'adhérence**.
+
+### Hors de la ville
+
+Une rocade fait le tour de l'agglomération et donne un grand circuit
+praticable. Au-delà commencent l'arrière-pays et ses bosquets, ses rochers et
+ses éoliennes, la chaîne de montagnes du nord, l'aéroport au sud et le port à
+l'est. À l'ouest, on peut entrer dans l'eau : le joueur **nage**, et les
+véhicules calent puis coulent.
+
 ### Le reste
 
-Cycle jour/nuit complet (une journée = 24 minutes) avec course du soleil,
-étoiles, lune, nuages procéduraux et éclairage urbain qui s'allume à la nuit
-tombée. Cinq stations de radio composées en direct par le synthétiseur du
-navigateur. Radar rotatif, carte plein écran avec points de destination,
-roue des armes, sélecteur de personnage, boutiques, statistiques et codes de
-triche.
+Cinq stations de radio composées en direct par le synthétiseur du navigateur,
+plus une nappe d'ambiance (rumeur urbaine, ressac). Trois vues de caméra dont
+la **première personne**. Radar rotatif avec zone de recherche de la police,
+carte plein écran avec points de destination, roue des armes, sélecteur de
+personnage, boutiques, statistiques, codes de triche — et une **sauvegarde
+locale** (argent, armes, missions réussies, personnage, heure) qui reprend la
+partie où vous l'aviez laissée.
 
 ---
 
@@ -112,7 +133,7 @@ triche.
 | `X` | capacité spéciale |
 | `1`–`9` | armes |
 | `M` | carte · clic pour poser une destination |
-| `V` | vue caméra · `C` caméra libre en voiture |
+| `V` | vue caméra (rapprochée, large, première personne) · `C` caméra libre en voiture |
 | `H` | klaxon · `,` `.` station de radio |
 | `Échap` | pause, réglages et statistiques |
 
@@ -168,7 +189,17 @@ aussi forcer les réglages par l'URL : `?scale=60&shadows=0&quality=fixed`.
 node --test tests/game.test.mjs
 ```
 
-21 tests couvrent les mathématiques, l'orientation des faces (un enroulement
-inversé rend la géométrie invisible), la reproductibilité de la ville,
-l'absence d'immeuble sur la chaussée, les collisions, la physique des véhicules
-et la cohérence des armes et des missions.
+25 tests couvrent les mathématiques, l'orientation des faces (un enroulement
+inversé rend la géométrie invisible), la reproductibilité de la ville, la
+connexité du réseau routier, l'absence d'obstacle sur la chaussée et de
+marqueur de mission dans un mur, les collisions, la physique des véhicules
+(accélération, freinage, rayon de braquage réaliste, dérive, destruction) et
+la cohérence des armes et des missions.
+
+Deux d'entre eux sont des garde-fous nés de bugs réels : l'un vérifie qu'aucune
+classe ne déclare deux fois la même méthode — une méthode `load()` de sauvegarde
+avait un jour remplacé le chargement du monde, et le jeu démarrait sur une ville
+vide — l'autre que chaque module s'importe sans effet de bord.
+
+Le jeu se teste aussi dans un vrai navigateur (Playwright + Chromium) : conduite,
+tir, police, missions de bout en bout, écrans et sauvegarde.

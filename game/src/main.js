@@ -71,7 +71,7 @@ function applyUrlSettings() {
 
 function launch() {
   clearInterval(tipTimer);
-  const resumed = game.load();
+  const resumed = game.loadSave();
   loading.classList.add('done');
   game.audio.init();
   game.audio.resume();

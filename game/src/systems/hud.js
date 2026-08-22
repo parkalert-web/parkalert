@@ -213,7 +213,10 @@ export class HUD {
     const list = [];
     for (const m of MISSIONS) {
       if (!g.missions.available(m)) continue;
-      list.push({ x: m.x, z: m.z, color: BLIP_COLORS.mission, letter: m.letter, size: 7 });
+      list.push({
+        x: m.x, z: m.z, letter: m.letter, size: 7,
+        color: m.char ? CHARACTERS[m.char].color : BLIP_COLORS.mission,
+      });
     }
     for (const l of g.data.landmarks) {
       if (l.kind === 'garage') list.push({ x: l.x, z: l.z, color: BLIP_COLORS.garage, letter: '🔧', size: 6 });

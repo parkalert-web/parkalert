@@ -186,6 +186,40 @@ export class AudioEngine {
     this.tone('sine', freq, dur, gain);
   }
 
+  /* ------------------------------------------------------------- ambiance */
+
+  /** Deux nappes de bruit filtré : rumeur de la ville et ressac de l'océan. */
+  startAmbience() {
+    if (!this.ready || this.amb) return;
+    const c = this.ctx;
+    const mk = (type, freq, q) => {
+      const src = c.createBufferSource();
+      src.buffer = this.noiseBuf;
+      src.loop = true;
+      const f = c.createBiquadFilter();
+      f.type = type; f.frequency.value = freq; f.Q.value = q;
+      const g = c.createGain();
+      g.gain.value = 0;
+      src.connect(f); f.connect(g); g.connect(this.master);
+      src.start();
+      return { src, f, g };
+    };
+    this.amb = { city: mk('bandpass', 260, 0.6), sea: mk('lowpass', 520, 0.7) };
+    this.ambPhase = 0;
+  }
+
+  updateAmbience(dt, city, sea) {
+    if (!this.ready) return;
+    this.startAmbience();
+    if (!this.amb) return;
+    const t = this.ctx.currentTime;
+    this.ambPhase += dt;
+    const swell = 0.55 + 0.45 * Math.sin(this.ambPhase * 0.42) * Math.sin(this.ambPhase * 0.17);
+    this.amb.city.g.gain.setTargetAtTime(city * 0.05, t, 0.6);
+    this.amb.sea.g.gain.setTargetAtTime(sea * swell * 0.085, t, 0.4);
+    this.amb.sea.f.frequency.setTargetAtTime(420 + swell * 500, t, 0.5);
+  }
+
   /* ----------------------------------------------------------- moteur auto */
 
   engineFor(v) {
@@ -225,6 +259,20 @@ export class AudioEngine {
     e.f.frequency.setTargetAtTime(420 + rpm * 2200 + (isPlayer ? 400 : 0), t, 0.06);
     e.g.gain.setTargetAtTime(target, t, 0.08);
     if (e.p) e.p.pan.setTargetAtTime(pan, t, 0.1);
+  }
+
+  /** Coupe les moteurs qui ne sont plus entretenus (véhicules éloignés). */
+  pruneEngines(activeIds) {
+    for (const id of [...this.engines.keys()]) {
+      if (!activeIds.has(id)) this.stopEngine(id);
+    }
+    for (const id of [...this.sirens.keys()]) {
+      if (!activeIds.has(id)) {
+        const s2 = this.sirens.get(id);
+        try { s2.o.stop(); } catch (e) { /* déjà arrêté */ }
+        this.sirens.delete(id);
+      }
+    }
   }
 
   stopEngine(id) {
@@ -322,7 +370,8 @@ export class AudioEngine {
     const c = this.ctx;
     const S = STATIONS[this.station - 1];
     const spb = 60 / S.bpm / 4;              // durée d'un seizième
-    while (this.nextBeat < c.currentTime + 0.25) {
+    let guard = 48;                          // onglet en arrière-plan : on ne rattrape pas tout
+    while (this.nextBeat < c.currentTime + 0.25 && guard-- > 0) {
       const t = Math.max(this.nextBeat, c.currentTime + 0.01);
       const b = this.beat;
       S.play(this, t, b, spb);

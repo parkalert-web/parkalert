@@ -198,39 +198,38 @@ export class Population {
     const err = angleDelta(v.yaw, desired);
     v.steerInput = clamp(err * 1.9, -1, 1);
 
-    // obstacles devant
-    let block = 60;
+    // Espace libre devant le pare-chocs. Trop prudent, et la ville s'embouteille
+    // définitivement : on ne s'arrête qu'à 2,5 m et on ralentit progressivement.
+    let gap = 60;
     const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
+    const sideX = Math.cos(v.yaw), sideZ = -Math.sin(v.yaw);
     const check = (ox, oz, len, w) => {
       const dx = ox - v.x, dz = oz - v.z;
       const along = dx * fx + dz * fz;
-      const side = Math.abs(dx * Math.cos(v.yaw) - dz * Math.sin(v.yaw));
-      if (along > 0.5 && along < 34 && side < w) block = Math.min(block, along - len);
+      const side = Math.abs(dx * sideX + dz * sideZ);
+      if (along > 0 && along < 30 && side < w) gap = Math.min(gap, along - len);
     };
     for (const o of g.vehicles) {
       if (o === v) continue;
-      const dd = dist2D(o.x, o.z, v.x, v.z);
-      if (dd > 36) continue;
-      check(o.x, o.z, o.hl + v.hl + 1.2, 2.6);
+      if (dist2D(o.x, o.z, v.x, v.z) > 32) continue;
+      check(o.x, o.z, o.hl + v.hl + 0.6, 2.1);
     }
     const pl = g.player;
-    if (pl.onFoot && !pl.dead) check(pl.x, pl.z, 2.2, 2.2);
+    if (pl.onFoot && !pl.dead) check(pl.x, pl.z, v.hl + 1.2, 1.8);
     for (const ped of g.peds) {
       if (ped.dead || ped.inVehicle) continue;
-      if (dist2D(ped.x, ped.z, v.x, v.z) < 20) check(ped.x, ped.z, 2.4, 2.0);
+      if (dist2D(ped.x, ped.z, v.x, v.z) < 20) check(ped.x, ped.z, v.hl + 1.2, 1.6);
     }
 
     const turnFactor = 1 - Math.min(Math.abs(err) / 1.2, 0.75);
     let cruise = ai.cruise * turnFactor;
     if (g.player.wanted > 0 && dist2D(v.x, v.z, pl.x, pl.z) < 70) cruise *= 0.55;
-    if (block < 8) cruise = 0;
-    else if (block < 20) cruise *= clamp((block - 8) / 12, 0, 1);
+    if (gap < 2.5) cruise = 0;
+    else if (gap < 18) cruise *= clamp((gap - 2.5) / 15.5, 0, 1);
 
-    const err2 = cruise - v.speed;
-    v.throttle = clamp(err2 * 0.5, -1, 1);
-    if (cruise === 0 && v.speed < 1) { v.throttle = 0; v.handbrake = true; }
-    else v.handbrake = false;
-    ai.impatience = block < 8 ? ai.impatience + dt : 0;
+    v.throttle = clamp((cruise - v.speed) * 0.6, -1, 1);
+    v.handbrake = cruise === 0 && v.speed < 0.4;
+    ai.impatience = gap < 6 ? ai.impatience + dt : 0;
     if (ai.impatience > 2.5 && this.rand() < dt * 1.5) { v.horn = 0.25; g.audio.hornSound(v.x, v.z); }
   }
 
