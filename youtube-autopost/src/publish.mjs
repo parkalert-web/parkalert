@@ -105,8 +105,8 @@ async function commandePreview(config) {
 
 async function commandeCheck(config) {
   log('• Configuration : valide.');
-  const identifiants = credentialsFromEnv();
-  const token = await accessToken(identifiants);
+  const identifiants = process.env.YT_REFRESH_TOKEN ? credentialsFromEnv() : null;
+  const token = identifiants ? await accessToken(identifiants) : null;   // null : essai à blanc
   log('• Jeton Google : obtenu.');
   const chaine = await myChannel(token);
   if (!chaine) throw new Error("Aucune chaîne YouTube sur ce compte Google.");
@@ -118,8 +118,22 @@ async function commandeCheck(config) {
 
 async function commandePublish(config, { dryRun }) {
   const state = await loadState();
-  const identifiants = dryRun && !process.env.YT_REFRESH_TOKEN ? null : credentialsFromEnv();
-  const token = identifiants ? await accessToken(identifiants) : null;
+
+  // Avant la fin de l'installation, les secrets n'existent pas encore : le robot
+  // se met en veille au lieu d'échouer, pour ne pas envoyer un mail d'alerte par
+  // jour pendant que la mise en service se termine.
+  if (!process.env.YT_REFRESH_TOKEN && !dryRun) {
+    const attente = "Robot en veille : les secrets Google ne sont pas encore en place "
+      + '(YT_CLIENT_ID, YT_CLIENT_SECRET, YT_REFRESH_TOKEN dans Settings → Secrets → Actions). '
+      + 'Rien n\'a été publié, et ce n\'est pas une erreur.';
+    log(`⏸ ${attente}`);
+    await resume(`### ⏸ En attente de configuration\n${attente}`);
+    await sortie('publie', 'false');
+    return;
+  }
+
+  const identifiants = process.env.YT_REFRESH_TOKEN ? credentialsFromEnv() : null;
+  const token = identifiants ? await accessToken(identifiants) : null;   // null : essai à blanc
 
   const video = await nextVideo(config, state, token);
   if (!video) {

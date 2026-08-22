@@ -256,6 +256,7 @@ sont jamais publiées. Si le dépôt est privé, le quota des 2 000 minutes s'ap
 | `Accès refusé par YouTube (403)` | L'API YouTube Data v3 n'est pas activée dans le projet Google Cloud. |
 | `youtubeSignupRequired` | Le compte Google n'a pas de chaîne YouTube. |
 | `Quota YouTube épuisé` | Plus de 6 envois dans la journée : ça repart demain. |
+| `Robot en veille` | Les trois secrets ne sont pas encore posés : le robot ne publie rien et ne signale pas d'erreur. Faites les étapes 3 à 5. |
 | `File d'attente vide` | Déposez de nouvelles vidéos dans `videos/`. |
 | La tâche ne se déclenche jamais | Le fichier n'est pas sur la branche par défaut, ou la tâche a été mise en pause après 60 jours d'inactivité. |
 | Vidéo publiée en privé | Restriction des projets API non audités (voir ci-dessus). |
