@@ -239,6 +239,16 @@ export class MissionSystem {
       if (this.timer <= 0) return this.fail('Temps écoulé');
     }
 
+    // On peut renoncer : s'éloigner longtemps de l'objectif met fin à la mission,
+    // sinon elle resterait active pour toujours et bloquerait les autres.
+    const goal = this.waypoint;
+    if (goal) {
+      // seuil large : certaines étapes envoient légitimement à 800 m
+      const far = dist2D(p.x, p.z, goal.x, goal.z) > 1100;
+      this.strayT = far ? (this.strayT || 0) + dt : 0;
+      if (this.strayT > 40) return this.fail('Vous avez abandonné la mission');
+    } else this.strayT = 0;
+
     switch (s.type) {
       case 'goto': {
         const inVeh = s.vehicle ? !!p.vehicle : true;

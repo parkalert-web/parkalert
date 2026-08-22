@@ -39,8 +39,12 @@ window.game = game;
 
 function fatal(err) {
   console.error(err);
+  const msg = String(err && err.message ? err.message : err);
   stepEl.textContent = 'Erreur au démarrage';
-  tipEl.textContent = String(err && err.message ? err.message : err);
+  tipEl.textContent = msg.includes('WebGL')
+    ? "Ce navigateur ne prend pas en charge WebGL 2. Essayez une version récente de "
+      + 'Chrome, Edge, Firefox ou Safari, et vérifiez que l’accélération matérielle est active.'
+    : msg;
   tipEl.style.color = '#e07a7a';
 }
 

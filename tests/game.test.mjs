@@ -522,6 +522,20 @@ test('les points de mission sont posés sur un terrain valide', () => {
       }
     }
   }
+  // Une mission est abandonnée au-delà de 1100 m de son objectif pendant 40 s :
+  // aucune étape légitime ne doit envoyer aussi loin.
+  for (const m of MISSIONS) {
+    let prev = [m.x, m.z];
+    for (const s2 of m.steps) {
+      const pts = s2.type === 'race' ? s2.points : (s2.x !== undefined ? [[s2.x, s2.z]] : []);
+      for (const [x, z] of pts) {
+        const d = dist2D(prev[0], prev[1], x, z);
+        assert.ok(d < 1000, `${m.id}/${s2.type} : étape de ${Math.round(d)} m, trop loin`);
+        prev = [x, z];
+      }
+    }
+  }
+
   // et les lieux de vie du jeu
   for (const k of ['hospital', 'police', 'garage', 'ammunation', 'jewelry']) {
     const spot = w.spots[k];
