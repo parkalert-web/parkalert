@@ -102,8 +102,8 @@ async function main() {
   const scopes = [...SCOPES_BASE, ...(drive ? [SCOPE_DRIVE] : [])];
 
   console.log('\n── Autorisation Google ──────────────────────────────────────\n');
-  console.log('Il vous faut un identifiant OAuth de type « Application de bureau »');
-  console.log('(Google Cloud → API et services → Identifiants). Voir le README.\n');
+  console.log('Il vous faut un identifiant OAuth (Google Cloud → API et services →');
+  console.log(`Identifiants) autorisant la redirection ${REDIRECT}. Voir le README.\n`);
 
   const clientId = await demande('YT_CLIENT_ID', 'ID client', env);
   const clientSecret = await demande('YT_CLIENT_SECRET', 'Code secret du client', env);

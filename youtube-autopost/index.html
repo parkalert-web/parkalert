@@ -143,8 +143,11 @@ footer{color:var(--text-3);font-size:.82rem;text-align:center;padding:2rem 0 0}
         <li>Créer un projet sur <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud</a>,
             y activer <strong>YouTube Data API v3</strong>.</li>
         <li>Écran de consentement OAuth → <strong>Publier l'application</strong> (sinon le jeton meurt au bout de 7 jours).</li>
-        <li>Identifiants → <strong>Application de bureau</strong> → noter l'ID client et le code secret.</li>
-        <li>Sur votre ordinateur : <code>npm run yt:auth</code> → autorise la chaîne, récupère le jeton.</li>
+        <li>Identifiants → <strong>Application Web</strong> → URI de redirection :
+            <code>https://developers.google.com/oauthplayground</code>.</li>
+        <li>Sur <a href="https://developers.google.com/oauthplayground/" target="_blank" rel="noopener">OAuth Playground</a> :
+            ⚙ → <em>Access type: Offline</em> + vos identifiants → scope
+            <code>youtube.upload</code> → copier le <strong>Refresh token</strong>.</li>
         <li>GitHub → <em>Settings → Secrets → Actions</em> : <code>YT_CLIENT_ID</code>,
             <code>YT_CLIENT_SECRET</code>, <code>YT_REFRESH_TOKEN</code>.</li>
         <li>Déposer les vidéos dans <code>youtube-autopost/videos/</code>, fusionner dans <code>main</code>.</li>

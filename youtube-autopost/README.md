@@ -52,12 +52,37 @@ Une exécution dure moins d'une minute : environ **30 minutes par mois** sur les
 
 *API et services → Identifiants → Créer des identifiants → ID client OAuth*
 
-- Type d'application : **Application de bureau**.
+- Type d'application : **Application Web**.
+- Dans *URI de redirection autorisés*, ajoutez ces deux adresses :
+  - `https://developers.google.com/oauthplayground`
+  - `http://localhost:8787/`
 - Notez l'**ID client** et le **code secret du client**.
 
-### 4. Autoriser la chaîne (sur votre ordinateur)
+### 4. Récupérer le jeton d'autorisation
 
-Il vous faut [Node.js](https://nodejs.org/) 20 ou plus, puis :
+C'est l'étape qui autorise le robot à publier sur *votre* chaîne. Deux chemins
+au choix, le premier ne demande rien d'installé.
+
+#### A. Dans le navigateur (recommandé si vous n'êtes pas à l'aise avec un terminal)
+
+1. Ouvrez [Google OAuth Playground](https://developers.google.com/oauthplayground/).
+2. Cliquez sur la **roue dentée ⚙** en haut à droite et réglez :
+   - *OAuth flow* : **Server-side**
+   - *Access type* : **Offline** ← indispensable, c'est ce qui produit le jeton durable
+   - cochez **Use your own OAuth credentials**, puis collez votre ID client et
+     votre code secret.
+3. Dans le champ de gauche *« Input your own scopes »*, collez exactement :
+   `https://www.googleapis.com/auth/youtube.upload`
+   puis **Authorize APIs**.
+4. Connectez-vous avec le compte Google **de la chaîne**, acceptez (l'écran
+   « application non validée » est normal : c'est la vôtre → *Paramètres
+   avancés* → *Accéder à …*).
+5. De retour sur la page, cliquez **Exchange authorization code for tokens**.
+6. Copiez la valeur de **Refresh token** (elle commence par `1//`).
+
+#### B. Depuis votre ordinateur
+
+Il vous faut [Node.js](https://nodejs.org/) 20 ou plus :
 
 ```bash
 git clone https://github.com/parkalert-web/parkalert.git
@@ -65,8 +90,8 @@ cd parkalert
 npm run yt:auth
 ```
 
-Le script demande vos deux identifiants, ouvre une page Google, et récupère
-l'autorisation. Il affiche à la fin trois valeurs à conserver.
+Le script demande vos deux identifiants, ouvre la page Google et affiche le
+jeton à la fin.
 
 ### 5. Donner les clés à GitHub
 
@@ -77,7 +102,7 @@ Créez **trois** secrets, exactement avec ces noms :
 |---|---|
 | `YT_CLIENT_ID` | l'ID client de l'étape 3 |
 | `YT_CLIENT_SECRET` | le code secret de l'étape 3 |
-| `YT_REFRESH_TOKEN` | le jeton affiché à l'étape 4 |
+| `YT_REFRESH_TOKEN` | le *Refresh token* de l'étape 4 |
 
 Ces valeurs ne sont jamais visibles dans le dépôt, ni dans les journaux d'exécution.
 
@@ -226,7 +251,7 @@ sont jamais publiées. Si le dépôt est privé, le quota des 2 000 minutes s'ap
 
 | Message | Cause et remède |
 |---|---|
-| `invalid_grant` | Écran de consentement resté en mode « Test » (jeton mort au bout de 7 jours) → passez en Production, puis `npm run yt:auth`. |
+| `invalid_grant` | Écran de consentement resté en mode « Test » (jeton mort au bout de 7 jours) → passez en Production, puis refaites l'étape 4 pour obtenir un nouveau jeton. |
 | `invalid_client` | `YT_CLIENT_ID` ou `YT_CLIENT_SECRET` mal recopié. |
 | `Accès refusé par YouTube (403)` | L'API YouTube Data v3 n'est pas activée dans le projet Google Cloud. |
 | `youtubeSignupRequired` | Le compte Google n'a pas de chaîne YouTube. |
@@ -234,6 +259,7 @@ sont jamais publiées. Si le dépôt est privé, le quota des 2 000 minutes s'ap
 | `File d'attente vide` | Déposez de nouvelles vidéos dans `videos/`. |
 | La tâche ne se déclenche jamais | Le fichier n'est pas sur la branche par défaut, ou la tâche a été mise en pause après 60 jours d'inactivité. |
 | Vidéo publiée en privé | Restriction des projets API non audités (voir ci-dessus). |
+| `redirect_uri_mismatch` | L'URI de redirection de l'étape 3 n'est pas exactement celle attendue (pas d'espace, pas de `/` en trop). |
 
 ---
 
