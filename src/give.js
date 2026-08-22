@@ -153,7 +153,10 @@ export async function announceDeparture() {
 /* ─────────────────────── §13 à §16 — boucle de mise en relation ─────────────────────── */
 
 export function stopOfferLoop() {
-  if (S.offerLoop) S.offerLoop.cancelled = true;
+  if (S.offerLoop) {
+    S.offerLoop.cancelled = true;
+    S.offerLoop.unwatch?.();
+  }
   S.offerLoop = null;
   clearTimer('offerTick');
 }
@@ -163,9 +166,57 @@ export function startOfferLoop() {
   const token = { cancelled: false, status: 'Recherche de conducteurs compatibles…' };
   S.offerLoop = token;
   every('offerTick', 1000, emit);
+
+  // Quand le serveur est en service, c'est lui qui cherche et qui prévient les
+  // conducteurs — y compris application fermée. Le téléphone du donneur n'a
+  // plus qu'à attendre qu'on lui présente un candidat.
+  // Sans serveur déployé, on garde l'ancien fonctionnement, piloté ici.
+  if (S.serverMatching) {
+    token.status = 'Recherche en cours — vous pouvez fermer l’application.';
+    watchServerMatching(token);
+    return;
+  }
+
   loop(token).catch((err) => {
     console.error('[parkalert] boucle de mise en relation', err);
     token.status = 'Erreur de connexion — nouvelle tentative…';
+  });
+}
+
+/**
+ * Mode serveur : on surveille sa propre place. Le serveur y dépose le candidat
+ * qu'il a retenu ; le conducteur qui part garde la décision finale.
+ */
+function watchServerMatching(token) {
+  let asking = false;
+  token.unwatch = db.subscribe(SPOT(S.uid), async (spot) => {
+    if (token.cancelled || !spot) return;
+    S.spot = spot;
+
+    if (spot.status === 'offering') {
+      token.status = 'Un conducteur a été sollicité…';
+      token.offerExpiresAt = Number(spot.offerExpiresAt) || null;
+    } else if (spot.status === 'open') {
+      token.status = 'Recherche en cours — vous pouvez fermer l’application.';
+      token.offerExpiresAt = null;
+    }
+    emit();
+
+    if (spot.status !== 'pending-confirm' || !spot.pendingSeeker || asking) return;
+
+    asking = true;
+    token.offerExpiresAt = null;
+    const candidate = { ...spot.pendingSeeker };
+    const accepted = await confirmCandidate(spot, candidate, { outOfRadius: spot.pendingSeeker.outOfRadius });
+    asking = false;
+    if (token.cancelled) return;
+
+    if (!accepted) {
+      // Refus : on écarte ce conducteur et la place repart en recherche côté serveur.
+      await db.patch(`${SPOT(S.uid)}/excluded`, { [candidate.uid]: db.now() });
+      await db.del(`offers/${candidate.uid}`).catch(() => {});
+      await db.patch(SPOT(S.uid), { status: 'open', pendingSeeker: null, offeredTo: null, offerExpiresAt: null });
+    }
   });
 }
 
@@ -329,7 +380,7 @@ async function confirmCandidate(spot, candidate, offer) {
   const session = await sess.createSession({
     spot, offer, seeker: candidate, etaMin: candidate.etaMin,
   });
-  await db.patch(SPOT(S.uid), { reservedBy: candidate.uid, sessionId: session.id });
+  await db.patch(SPOT(S.uid), { reservedBy: candidate.uid, sessionId: session.id, pendingSeeker: null });
   await db.patch(`offers/${candidate.uid}`, { response: 'confirmed', sessionId: session.id });
   await db.addHistory(S.uid, 'Place réservée par un conducteur', 0, label);
   stopOfferLoop();

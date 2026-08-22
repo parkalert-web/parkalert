@@ -10,7 +10,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
 import {
   getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
-  signInWithPopup, GoogleAuthProvider, signInAnonymously, signOut, updateProfile,
+  signInWithPopup, GoogleAuthProvider, signInAnonymously, signOut, deleteUser, updateProfile,
 } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import {
   getDatabase, ref, get, set, update, remove, push, onValue, off,
@@ -43,6 +43,9 @@ export const signIn = (email, password) => signInWithEmailAndPassword(auth, emai
 export const signInGoogle = () => signInWithPopup(auth, new GoogleAuthProvider());
 export const signInGuest = () => signInAnonymously(auth);
 export const logout = () => signOut(auth);
+
+/** Supprime le compte d'authentification lui-même, après ses données. */
+export const deleteAccount = () => deleteUser(auth.currentUser);
 
 export function authErrorMessage(code) {
   const m = {

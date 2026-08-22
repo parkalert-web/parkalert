@@ -35,6 +35,11 @@ export const S = {
   unsub: {},
   timers: {},
   offerLoop: null,      // jeton d'annulation de la boucle de mise en relation
+
+  // Vrai lorsque les fonctions serveur sont déployées : elles cherchent les
+  // conducteurs et envoient les notifications, application fermée. Faux tant
+  // qu'elles ne le sont pas — l'application pilote alors elle-même, comme avant.
+  serverMatching: false,
 };
 
 export const listeners = new Set();

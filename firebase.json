@@ -1,0 +1,21 @@
+{
+  "database": { "rules": "database.rules.json" },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "predeploy": ["node \"$RESOURCE_DIR/../scripts/sync-shared.mjs\""],
+      "ignore": ["node_modules", ".git", "*.log"]
+    }
+  ],
+  "hosting": {
+    "public": ".",
+    "ignore": ["firebase.json", "functions/**", "tests/**", "scripts/**", "node_modules/**", ".git/**", "**/.*"]
+  },
+  "emulators": {
+    "database": { "port": 9000 },
+    "functions": { "port": 5001 },
+    "ui": { "enabled": false },
+    "singleProjectMode": true
+  }
+}

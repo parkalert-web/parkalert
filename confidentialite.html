@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ParkAlert — Confidentialité et mentions légales</title>
+<meta name="description" content="Quelles données ParkAlert collecte, pourquoi, combien de temps, et comment les faire supprimer."/>
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"/>
+<meta name="theme-color" content="#171b21" media="(prefers-color-scheme: dark)"/>
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml"/>
+<link rel="stylesheet" href="styles.css"/>
+<style>
+  /* Une page de texte : on sort de la mise en page « application ». */
+  body { height: auto; overflow: auto; }
+  .doc { max-width: 44rem; margin: 0 auto; padding: 32px 20px 64px; }
+  .doc h1 { font-size: 28px; letter-spacing: -.02em; margin: 0 0 6px; }
+  .doc h2 { font-size: 19px; letter-spacing: -.01em; margin: 34px 0 10px; }
+  .doc p, .doc li { color: var(--text-2); line-height: 1.6; }
+  .doc p { margin: 0 0 12px; }
+  .doc ul { margin: 0 0 12px; padding-left: 20px; }
+  .doc li { margin-bottom: 6px; }
+  .doc b, .doc strong { color: var(--text); }
+  .doc .updated { color: var(--text-3); font-size: 14px; margin-bottom: 28px; }
+  .doc a { color: var(--accent); }
+  .doc .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-md); margin-bottom: 12px; }
+  .doc table { border-collapse: collapse; width: 100%; min-width: 30rem; font-size: 15px; }
+  .doc th { text-align: left; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); padding: 10px 14px; border-bottom: 1px solid var(--border-strong); }
+  .doc td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text-2); }
+  .doc tr:last-child td { border-bottom: none; }
+  .doc .todo { background: var(--warning-soft); border-radius: var(--r-md); padding: 14px 16px; margin-bottom: 20px; }
+  .doc .todo p { color: var(--warning); margin: 0; }
+  .back { display: inline-block; margin-bottom: 24px; color: var(--accent); text-decoration: none; font-size: 15px; }
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <a class="back" href="./">← Retour à ParkAlert</a>
+
+  <h1>Confidentialité et mentions légales</h1>
+  <p class="updated">Dernière mise à jour : août 2026</p>
+
+  <div class="todo">
+    <p><b>À compléter avant toute mise à disposition du public.</b> Les mentions légales doivent
+    porter l’identité réelle de l’éditeur (nom ou société, adresse, contact). Les champs marqués
+    « à compléter » ci-dessous sont obligatoires en France dès qu’un site est accessible au public.</p>
+  </div>
+
+  <h2>En une phrase</h2>
+  <p>
+    ParkAlert a besoin de savoir <b>où vous êtes</b> et <b>quelle voiture vous conduisez</b> pour vous
+    mettre en relation avec un conducteur qui libère une place. Rien de plus. Votre position n’est
+    partagée avec un autre conducteur qu’après une réservation, et ce partage s’arrête tout seul à la fin.
+  </p>
+
+  <h2>Qui traite vos données</h2>
+  <p>
+    Éditeur : <b>[à compléter — nom ou raison sociale]</b><br/>
+    Adresse : <b>[à compléter]</b><br/>
+    Contact : <b>[à compléter — adresse e-mail]</b>
+  </p>
+  <p>
+    Hébergement du site : GitHub Pages (GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco,
+    CA 94107, États-Unis).<br/>
+    Hébergement des données : Google Firebase, base de données située dans l’Union européenne
+    (Belgique, région <span style="font-variant-numeric:tabular-nums">europe-west1</span>).
+  </p>
+
+  <h2>Ce que nous collectons, et pourquoi</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Donnée</th><th>Pourquoi</th><th>Conservation</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Adresse e-mail</b></td>
+          <td>Créer votre compte et vous y reconnecter.</td>
+          <td>Jusqu’à la suppression du compte.</td>
+        </tr>
+        <tr>
+          <td><b>Pseudonyme</b></td>
+          <td>Vous désigner auprès de l’autre conducteur. Votre nom complet n’est jamais demandé.</td>
+          <td>Jusqu’à la suppression du compte.</td>
+        </tr>
+        <tr>
+          <td><b>Véhicule</b><br/>marque, modèle, couleur, dimensions</td>
+          <td>Savoir dans quelles places votre voiture rentre, et permettre à l’autre conducteur de
+            vous reconnaître sur place. La plaque d’immatriculation n’est jamais demandée.</td>
+          <td>Jusqu’à sa suppression par vous.</td>
+        </tr>
+        <tr>
+          <td><b>Position GPS</b></td>
+          <td>Trouver les places autour de votre destination, vérifier que vous êtes bien arrivé,
+            et synchroniser la transmission entre les deux conducteurs.</td>
+          <td>Une recherche expire après 30 minutes. La position partagée pendant une réservation
+            est effacée à la fin de celle-ci.</td>
+        </tr>
+        <tr>
+          <td><b>Points et fiabilité</b></td>
+          <td>Donner la priorité aux conducteurs qui aident le plus, et limiter les abus.</td>
+          <td>Jusqu’à la suppression du compte.</td>
+        </tr>
+        <tr>
+          <td><b>Historique de vos actions</b></td>
+          <td>Vous permettre de vérifier vos points et vos transmissions.</td>
+          <td>Jusqu’à la suppression du compte.</td>
+        </tr>
+        <tr>
+          <td><b>Abonnement aux notifications</b></td>
+          <td>Vous prévenir qu’une place se libère, même application fermée.</td>
+          <td>Jusqu’à leur désactivation ou la suppression du compte.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Votre position, précisément</h2>
+  <p>C’est la donnée la plus sensible, alors voici exactement ce qu’il en est.</p>
+  <ul>
+    <li>Votre position n’est <b>jamais</b> visible d’un autre conducteur tant qu’il n’y a pas de
+      réservation entre vous.</li>
+    <li>Pendant une réservation, les deux conducteurs voient l’avancée de l’autre — c’est ce qui
+      permet de se retrouver au bon moment.</li>
+    <li>Tant que celui qui part n’a pas rejoint sa voiture, sa position est volontairement
+      <b>approximative</b> : on ne suit pas quelqu’un jusqu’à sa table de restaurant.</li>
+    <li>Le partage s’arrête <b>automatiquement</b> à la fin de la transmission, en cas d’annulation
+      ou d’expiration. Il n’y a rien à désactiver soi-même.</li>
+    <li>Aucun historique de déplacement n’est constitué : nous ne gardons pas la trace de vos trajets.</li>
+  </ul>
+
+  <h2>Sur quelle base légale</h2>
+  <ul>
+    <li><b>L’exécution du service</b> pour votre compte, votre véhicule et la mise en relation :
+      sans ces données, l’application ne peut pas fonctionner.</li>
+    <li><b>Votre consentement</b> pour la position GPS et les notifications : votre téléphone vous
+      les demande, et vous pouvez les retirer à tout moment dans ses réglages.</li>
+  </ul>
+
+  <h2>Qui d’autre y a accès</h2>
+  <p>
+    Les autres conducteurs voient uniquement votre pseudonyme, le modèle et la couleur de votre
+    voiture, et — pendant une réservation seulement — votre position. Jamais votre e-mail,
+    jamais votre téléphone, jamais votre plaque.
+  </p>
+  <p>
+    Nous ne vendons aucune donnée, n’en cédons aucune à des annonceurs, et n’utilisons ni publicité
+    ni traceur publicitaire. Le seul sous-traitant est Google Firebase, qui héberge les comptes et
+    la base de données.
+  </p>
+
+  <h2>Vos droits</h2>
+  <p>
+    Vous pouvez accéder à vos données, les corriger, les faire effacer, en obtenir une copie, ou
+    vous opposer à leur traitement.
+  </p>
+  <p>
+    <b>La suppression se fait directement dans l’application</b> : onglet <i>Profil</i>, en bas,
+    « Supprimer mon compte ». Elle est immédiate et définitive — véhicules, points, historique et
+    positions sont effacés, sans copie conservée.
+  </p>
+  <p>
+    Pour toute autre demande, écrivez à <b>[à compléter — adresse e-mail]</b>. Si la réponse ne vous
+    satisfait pas, vous pouvez saisir la <a href="https://www.cnil.fr">CNIL</a>.
+  </p>
+
+  <h2>Sécurité</h2>
+  <p>
+    Les échanges se font en HTTPS. L’accès aux données est restreint par des règles serveur : chaque
+    utilisateur ne peut lire et modifier que ses propres informations, et une réservation n’est
+    visible que de ses deux participants.
+  </p>
+
+  <h2>Ce qu’il faut savoir sur l’état du service</h2>
+  <p>
+    ParkAlert est un service jeune, en cours de mise au point. La mise en relation dépend du nombre
+    de conducteurs présents au même endroit au même moment : une place trouvée n’est jamais garantie.
+    Un signalement de place libre n’est pas une réservation.
+  </p>
+  <p>
+    N’utilisez pas l’application en conduisant. Les réglages détaillés se font à l’arrêt.
+  </p>
+
+  <a class="back" href="./">← Retour à ParkAlert</a>
+</div>
+</body>
+</html>

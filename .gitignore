@@ -2,3 +2,7 @@ node_modules/
 package-lock.json
 fail-*.png
 .DS_Store
+functions/node_modules/
+database-debug.log
+firebase-debug.log
+ui-debug.log

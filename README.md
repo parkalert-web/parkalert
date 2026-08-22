@@ -56,6 +56,20 @@ Dans la [console Firebase](https://console.firebase.google.com/project/parking-9
 > sur deux ou trois chemins typiques — `spots/<votre uid>`, `offers/<autre uid>`,
 > `sessions/<id>` — puis rejouez le scénario complet à deux téléphones.
 
+### Mise en relation : téléphone ou serveur
+
+L'application fonctionne dans **deux modes**, et bascule toute seule de l'un à l'autre :
+
+| | Sans serveur déployé | Avec le serveur |
+|---|---|---|
+| Qui cherche les conducteurs | le téléphone de celui qui part | les fonctions Firebase |
+| Faut-il garder l'application ouverte | oui, des deux côtés | non |
+| Notification place fermée | non | oui |
+
+Le serveur se signale lui-même en écrivant `config/serverMatching` à `true` au premier
+événement traité ; l'application lit ce drapeau et lui laisse la main. Tant qu'il n'est pas
+déployé, rien ne change — voir [`DEPLOIEMENT.md`](DEPLOIEMENT.md).
+
 ### Limite assumée du plan gratuit
 
 Sans Cloud Functions (qui exigent le plan Blaze), les points et la fiabilité sont calculés
@@ -72,6 +86,7 @@ grande échelle.
 
 ```
 index.html            coquille de l'application (aucune logique)
+confidentialite.html  politique de confidentialité et mentions légales
 styles.css            feuille de style unique
 manifest.webmanifest  déclaration PWA
 sw.js                 service worker (démarrage rapide, installation)
@@ -91,6 +106,13 @@ src/
   panel.js      rendu du panneau d'action
   mapview.js    carte, marqueurs, géocodage
   app.js        amorçage
+  push.js       abonnement aux notifications, même application fermée
+
+functions/      serveur (voir DEPLOIEMENT.md)
+  index.js      déclencheurs Firebase — aucune règle métier
+  matching.js   choix du conducteur, réponses, nettoyage — testé
+  push.js       envoi des notifications (clés VAPID fabriquées toutes seules)
+  shared/       copie de src/core.js et src/config.js, synchronisée
 ```
 
 ### Le principe de la mise en relation
@@ -192,6 +214,12 @@ commentaires du code, où ils servent à retrouver la règle d'origine.
   en une phrase, et il n'y a jamais plus d'une action principale ;
 - la légende de la carte et les compteurs ne sont plus affichés en permanence.
 
+### Ce qui reste côté conformité
+
+- la politique de confidentialité attend l'identité réelle de l'éditeur ;
+- les points et la fiabilité sont encore calculés côté client — les déplacer sur le serveur
+  demande de refermer leur écriture dans les règles, ce qui suppose le serveur déjà en service.
+
 ### Reste à faire (§38)
 
 Calcul routier tenant compte des sens uniques et du trafic ; détection automatique du
@@ -204,9 +232,10 @@ fermée ; réglage fin des seuils à partir des retours réels.
 
 ```bash
 npm test          # logique métier : compatibilité, priorités, points, fiabilité
+npm run test:server   # mise en relation serveur, contre une vraie base locale
 ```
 
-19 tests rejouent les exemples chiffrés du cahier des charges — dont le tableau du §13
+20 tests rejouent les exemples chiffrés du cahier des charges — dont le tableau du §13
 (A/520 pts, B/300 pts, C/80 pts), l'exception « Maintenant » du §14, et le fait qu'une
 petite voiture ne peut jamais réclamer la place d'une grande, ni la lui prendre à points égaux.
 
@@ -225,6 +254,11 @@ Les scénarios bout en bout pilotent la vraie application contre le vrai Firebas
   la proposition au candidat suivant.
 
 Les comptes de test sont supprimés à la fin de chaque scénario.
+
+`npm run test:server` lance l'émulateur Firebase en local — aucun compte, aucune facturation,
+aucun accès réseau — et rejoue 9 scénarios de mise en relation contre une vraie base de
+données : choix du conducteur, unicité de la sollicitation, passage au suivant après un refus,
+et le fait que le serveur ne réserve jamais à la place du conducteur qui part.
 
 ---
 

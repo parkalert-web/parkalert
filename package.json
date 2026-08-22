@@ -7,7 +7,9 @@
   "scripts": {
     "test": "node --test tests/core.test.mjs",
     "test:e2e": "node tests/e2e/transfer.e2e.mjs && node tests/e2e/priority.e2e.mjs",
-    "start": "python3 -m http.server 8080"
+    "start": "python3 -m http.server 8080",
+    "test:server": "firebase emulators:exec --only database --project demo-parkalert --config firebase.test.json \"node --test tests/server.test.mjs\"",
+    "sync": "node scripts/sync-shared.mjs"
   },
   "license": "UNLICENSED"
 }

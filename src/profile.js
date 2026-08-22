@@ -11,6 +11,7 @@ import * as db from './backend.js';
 import { S, emit } from './state.js';
 import { el, $, toast, openModal, closeModal, chooser, askNotificationPermission, LS } from './ui.js';
 import { confirmSheet, infoSheet } from './pickers.js';
+import * as push from './push.js';
 
 const metres = fmtMetres;
 
@@ -199,14 +200,25 @@ export function renderProfile() {
         await db.patch(`users/${S.uid}/prefs`, { reminders: v });
         S.profile.prefs = { ...(S.profile.prefs || {}), reminders: v };
       }),
-      toggleRow('Notifications système', typeof Notification !== 'undefined' && Notification.permission === 'granted', async (v, input) => {
-        if (!v) { toast('Notifications', 'Désactivez-les depuis les réglages de votre navigateur.', '#64748b'); input.checked = true; return; }
+      toggleRow('Notifications', typeof Notification !== 'undefined' && Notification.permission === 'granted', async (v, input) => {
+        if (!v) {
+          await push.unsubscribe(S.uid);
+          toast('Notifications coupées', 'Pour les réactiver totalement, passez aussi par les réglages de votre navigateur.', '#64748b');
+          return;
+        }
         const ok = await askNotificationPermission();
         input.checked = ok;
+        if (ok) {
+          const res = await push.subscribeIfPossible(S.uid);
+          if (res === 'ok') toast('Notifications activées', 'Vous serez prévenu même application fermée.', '#0f7a45');
+        }
       }),
+      el('div', { class: 'note', html: 'Sans notifications, il faut garder l’application ouverte pour être prévenu qu’une place se libère.' }),
       el('div', { class: 'note', html: 'Le partage de position ne démarre qu’après une réservation et s’arrête automatiquement à la fin.' }),
       el('button', { class: 'btn btn-ghost small', onclick: () => showReliabilityDetail() }, 'Comment est calculée ma fiabilité ?'),
-      el('button', { class: 'btn btn-red small', onclick: () => import('./app.js').then((m) => m.doLogout()) }, 'Se déconnecter'),
+      el('a', { class: 'btn btn-quiet small', href: 'confidentialite.html' }, 'Confidentialité et mentions légales'),
+      el('button', { class: 'btn btn-quiet small', onclick: () => import('./app.js').then((m) => m.doLogout()) }, 'Se déconnecter'),
+      el('button', { class: 'btn btn-red small', onclick: () => deleteAccount() }, 'Supprimer mon compte'),
     ),
   );
 }
@@ -274,6 +286,41 @@ export function renderHistory(entries) {
         text: `${h.delta > 0 ? '+' : '−'}${Math.abs(h.delta)} points`,
       }) : null,
     ));
+  }
+}
+
+/**
+ * Suppression définitive du compte et de toutes ses données.
+ * Obligatoire pour publier sur l'App Store et Google Play, et de toute façon
+ * dû à l'utilisateur : on efface vraiment, on ne se contente pas de masquer.
+ */
+export async function deleteAccount() {
+  const ok = await confirmSheet(
+    'Supprimer votre compte ?',
+    'Cette action est définitive.',
+    'Supprimer définitivement', 'Annuler', 'btn-red',
+    'Vos véhicules, vos points, votre historique et votre position seront effacés. '
+    + 'Aucune copie n’est conservée.',
+  );
+  if (!ok) return;
+
+  const uid = S.uid;
+  try {
+    await push.unsubscribe(uid);
+    // On retire d'abord ce qui est visible des autres conducteurs.
+    await Promise.all([
+      db.del(`seekers/${uid}`),
+      db.del(`spots/${uid}`),
+      db.del(`offers/${uid}`),
+    ]);
+    await db.del(`users/${uid}`);
+    await db.deleteAccount();
+    toast('Compte supprimé', 'Toutes vos données ont été effacées.', '#0f7a45');
+  } catch (err) {
+    console.error('[parkalert] suppression du compte', err);
+    await infoSheet('Reconnexion nécessaire',
+      'Par sécurité, la suppression demande une connexion récente. '
+      + 'Déconnectez-vous, reconnectez-vous, puis réessayez.');
   }
 }
 

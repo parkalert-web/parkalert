@@ -15,6 +15,7 @@ import { renderPanel, renderHeader } from './panel.js';
 import * as profile from './profile.js';
 import * as give from './give.js';
 import * as seek from './seek.js';
+import * as push from './push.js';
 
 /* ─────────────────────────── Authentification ─────────────────────────── */
 
@@ -243,6 +244,18 @@ function scheduleRender() {
 
 /* ─────────────────────────── Démarrage ─────────────────────────── */
 
+/**
+ * Le serveur se signale lui-même dès qu'il traite un événement. Tant qu'il ne
+ * l'a pas fait, l'application garde son fonctionnement d'origine : rien ne
+ * casse si les fonctions ne sont pas déployées.
+ */
+function watchServerMode() {
+  unsubscribe('serverMode');
+  S.unsub.serverMode = db.subscribe('config/serverMatching', (value) => {
+    S.serverMatching = value === true;
+  });
+}
+
 async function onSignedIn(user) {
   S.user = user;
   S.uid = user.uid;
@@ -256,6 +269,7 @@ async function onSignedIn(user) {
     S.map.invalidate();
   }
   startGPS();
+  watchServerMode();
   watchProfile();
   watchHistory();
   watchWorld();
@@ -268,6 +282,10 @@ async function onSignedIn(user) {
   const resumed = (await give.resumeDonor()) || (await seek.resumeSeeker());
   if (!resumed) setPhase(S.parking ? 'parked' : 'idle');
   if (S.parking) give.scheduleParkedReminder();
+
+  // Abonnement aux notifications : sans bruit, et seulement si l'utilisateur
+  // a déjà donné son accord. Sans serveur déployé, l'appel ne fait rien.
+  push.subscribeIfPossible(S.uid).catch(() => {});
 
   every('uiTick', 1000, emit);
   emit();

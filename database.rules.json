@@ -2,12 +2,10 @@
   "rules": {
     ".read": false,
     ".write": false,
-
     "users": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid",
-
         "pseudo": {
           ".read": "auth != null",
           ".validate": "newData.isString() && newData.val().length <= 24"
@@ -16,7 +14,6 @@
           ".read": "auth != null",
           ".validate": "newData.isNumber() && newData.val() >= 0"
         },
-
         "stats": {
           "$key": {
             ".read": "auth != null",
@@ -31,31 +28,52 @@
             ".validate": "newData.isNumber() && newData.val() >= 0"
           }
         },
-
-        "history":  { "$hid": { ".validate": "newData.hasChildren(['ts', 'action'])" } },
-        "vehicles": { "$vid": { ".validate": "newData.hasChildren(['lengthCm'])" } },
-        "parking":  { ".validate": "!newData.exists() || newData.hasChildren(['lat', 'lng'])" }
+        "history": {
+          "$hid": {
+            ".validate": "newData.hasChildren(['ts', 'action'])"
+          }
+        },
+        "vehicles": {
+          "$vid": {
+            ".validate": "newData.hasChildren(['lengthCm'])"
+          }
+        },
+        "parking": {
+          ".validate": "!newData.exists() || newData.hasChildren(['lat', 'lng'])"
+        },
+        "pushSubs": {
+          "$device": {
+            ".validate": "newData.hasChildren(['endpoint', 'keys'])",
+            "endpoint": {
+              ".validate": "newData.isString() && newData.val().length < 1024"
+            }
+          }
+        }
       }
     },
-
     "seekers": {
       ".read": "auth != null",
       "$uid": {
         ".write": "auth != null && auth.uid === $uid",
         ".validate": "!newData.exists() || newData.hasChildren(['uid', 'lat', 'lng', 'destLat', 'destLng', 'neededCm'])",
-        "uid": { ".validate": "newData.val() === $uid" }
+        "uid": {
+          ".validate": "newData.val() === $uid"
+        }
       }
     },
-
     "spots": {
       ".read": "auth != null",
       "$uid": {
         ".write": "auth != null && auth.uid === $uid",
         ".validate": "!newData.exists() || newData.hasChildren(['donorUid', 'lat', 'lng', 'spotCm', 'status'])",
-        "donorUid": { ".validate": "newData.val() === $uid" }
+        "donorUid": {
+          ".validate": "newData.val() === $uid"
+        },
+        "pendingSeeker": {
+          ".validate": "!newData.exists() || newData.hasChildren(['uid'])"
+        }
       }
     },
-
     "offers": {
       "$uid": {
         ".read": "auth != null",
@@ -67,7 +85,6 @@
         }
       }
     },
-
     "sessions": {
       "$sid": {
         ".read": "auth != null && (data.child('donorUid').val() === auth.uid || data.child('seekerUid').val() === auth.uid)",
@@ -75,15 +92,34 @@
         ".validate": "!newData.exists() || (newData.hasChildren(['donorUid', 'seekerUid', 'spotLat', 'spotLng']) && (newData.child('donorUid').val() === auth.uid || newData.child('seekerUid').val() === auth.uid))"
       }
     },
-
     "freespots": {
       ".read": "auth != null",
       "$id": {
         ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid)",
         ".validate": "!newData.exists() || newData.hasChildren(['uid', 'lat', 'lng', 'expiresAt'])",
-        "uid":     { ".validate": "newData.val() === auth.uid" },
-        "thanks":  { "$u": { ".write": "auth != null && auth.uid === $u" } },
-        "reports": { "$u": { ".write": "auth != null && auth.uid === $u" } }
+        "uid": {
+          ".validate": "newData.val() === auth.uid"
+        },
+        "thanks": {
+          "$u": {
+            ".write": "auth != null && auth.uid === $u"
+          }
+        },
+        "reports": {
+          "$u": {
+            ".write": "auth != null && auth.uid === $u"
+          }
+        }
+      }
+    },
+    "config": {
+      ".read": false,
+      ".write": false,
+      "serverMatching": {
+        ".read": true
+      },
+      "vapidPublicKey": {
+        ".read": true
       }
     }
   }

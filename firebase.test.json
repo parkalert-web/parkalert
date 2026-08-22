@@ -1,0 +1,8 @@
+{
+  "_commentaire": "Configuration utilisée uniquement par « npm run test:server ». Elle ne charge pas les règles de sécurité : les tests parlent à la base avec les droits d'administration, exactement comme le feront les fonctions déployées.",
+  "emulators": {
+    "database": { "port": 9000, "host": "127.0.0.1" },
+    "ui": { "enabled": false },
+    "singleProjectMode": true
+  }
+}

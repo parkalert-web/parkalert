@@ -5,12 +5,13 @@
  * pour Firebase, les tuiles de carte ou le géocodage.
  */
 
-const CACHE = 'parkalert-v1';
+const CACHE = 'parkalert-v2';
 const ASSETS = [
   './',
   'index.html',
   'styles.css',
   'manifest.webmanifest',
+  'confidentialite.html',
   'icons/icon.svg',
   'icons/icon-192.png',
   'icons/icon-512.png',
@@ -29,6 +30,7 @@ const ASSETS = [
   'src/state.js',
   'src/ui.js',
   'src/vehicles.js',
+  'src/push.js',
 ];
 
 self.addEventListener('install', (e) => {
@@ -56,4 +58,42 @@ self.addEventListener('fetch', (e) => {
       })
       .catch(() => caches.match(e.request).then((hit) => hit || caches.match('index.html'))),
   );
+});
+
+/* ══════════════════════════════════════════════════════════════════════
+   Notifications reçues du serveur, application fermée.
+   ══════════════════════════════════════════════════════════════════════ */
+
+self.addEventListener('push', (e) => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch { data = { body: e.data?.text() || '' }; }
+
+  e.waitUntil(self.registration.showNotification(data.title || 'ParkAlert', {
+    body: data.body || '',
+    tag: data.tag || 'parkalert',
+    icon: 'icons/icon-192.png',
+    badge: 'icons/icon-192.png',
+    // Une place ne se garde pas : la notification doit se voir tout de suite.
+    renotify: true,
+    requireInteraction: false,
+    vibrate: [60, 40, 60],
+    data: { url: data.url || './' },
+  }));
+});
+
+/** Un appui sur la notification ramène sur l'application déjà ouverte, sinon l'ouvre. */
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const target = new URL(e.notification.data?.url || './', self.location.origin).href;
+
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    .then((list) => {
+      for (const client of list) {
+        if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+          client.navigate?.(target);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(target);
+    }));
 });

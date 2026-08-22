@@ -839,3 +839,6 @@ b, strong { font-weight: 600; }
 }
 .badge-red { background: var(--danger-soft); color: var(--danger); }
 .badge-orange { background: var(--warning-soft); color: var(--warning); }
+
+/* Un lien qui a l'apparence d'un bouton discret. */
+a.btn { text-decoration: none; }

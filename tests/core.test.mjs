@@ -224,3 +224,19 @@ test('les constantes de calibration restent centralisées', () => {
   assert.equal(TUNING.lateToleranceS, 120);
   assert.equal(TUNING.points.transfer, 10);
 });
+
+test('le serveur applique exactement les mêmes règles que l’application', async () => {
+  // functions/shared/ est une copie de src/. Si elle prenait du retard, le
+  // serveur et l'application ne choisiraient plus le même conducteur — le
+  // genre de divergence qui ne se voit qu'en production.
+  const { readFileSync } = await import('node:fs');
+  const { SHARED, sharedContent, sharedPath } = await import('../scripts/sync-shared.mjs');
+
+  for (const name of SHARED) {
+    assert.equal(
+      readFileSync(sharedPath(name), 'utf8'),
+      sharedContent(name),
+      `functions/shared/${name} n’est plus à jour — lancez « npm run sync »`,
+    );
+  }
+});
