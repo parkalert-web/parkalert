@@ -14,7 +14,7 @@ musique des radios — est généré par le code au chargement.
 ### La ville
 
 Los Santos est générée à partir d'une graine : 2,2 km de côté, une trame de
-13 × 13 rues doublée d'une rocade, **926 bâtiments**, 3 000 accessoires, et des
+13 × 13 rues doublée d'une rocade, **926 bâtiments**, 3 100 accessoires, et des
 quartiers qui ont chacun leur allure.
 
 | Quartier | Ce qu'on y trouve |
@@ -201,7 +201,7 @@ tuiles triées par frustum, les objets mobiles sont dessinés par instanciation
 (un appel de dessin pour tous les cubes, un pour tous les cylindres). S'y
 ajoutent une carte d'ombres directionnelle 2048², un ciel procédural avec
 nuages, un océan animé par les sommets, des halos lumineux additifs et un
-étalonnage ACES. La ville pèse 916 000 sommets (575 000 triangles) et se
+étalonnage ACES. La ville pèse 943 000 sommets (593 000 triangles) et se
 dessine en ~75 appels par image.
 
 **Qualité adaptative.** Sous 28 images par seconde, la résolution de rendu
