@@ -32,11 +32,28 @@ aujourd'hui, la facture sera de zéro.
 1. Ouvrez <https://console.firebase.google.com/project/parking-98737/usage/details>
 2. Cliquez sur **Modifier le forfait** puis choisissez **Blaze**
 3. Suivez les étapes (carte bancaire, pays de facturation)
-4. **Important** : sur la même page, définissez une **alerte de budget** à 5 € par mois.
-   Vous serez prévenu par e-mail bien avant toute dépense réelle.
+4. Sur la même page, définissez une **alerte de budget** à 5 € par mois.
 
-> Si vous préférez ne pas donner de carte bancaire pour l'instant, ne faites rien :
-> l'application reste en ligne et fonctionne comme aujourd'hui.
+> ⚠️ **Une alerte de budget prévient, elle ne bloque pas.** Google vous envoie un e-mail quand
+> le seuil est franchi, mais ne coupe pas le service : en cas de boucle anormale ou d'attaque,
+> la facture peut continuer de monter. C'est peu probable à cette échelle, mais il faut le
+> savoir avant de saisir une carte bancaire. Un vrai plafond automatique existe (une fonction
+> qui coupe la facturation à l'alerte) — c'est à mettre en place séparément.
+
+### Si vous ne voulez pas donner de carte bancaire
+
+**Ne faites rien.** L'application reste en ligne et fonctionne exactement comme aujourd'hui.
+C'est prévu : elle bascule toute seule le jour où le serveur existe, et pas avant.
+
+Ce que vous perdez sans serveur : les notifications application fermée, et donc la possibilité
+de publier sur un magasin. Ce que vous ne perdez pas : **tout le reste**, y compris la phase de
+test à plusieurs conducteurs, qui est de toute façon l'étape suivante.
+
+Il existe aussi une troisième voie, sans carte bancaire : héberger la mise en relation ailleurs
+que chez Firebase (Cloudflare Workers, Deno Deploy et Supabase ont de vrais paliers gratuits
+sans carte). Le code de `functions/matching.js` est déjà écrit pour être portable — il ne
+dépend de Firebase que par l'objet base de données qu'on lui passe. Compter environ une semaine
+de travail et un service de plus à gérer, contre deux commandes pour Blaze.
 
 ---
 
