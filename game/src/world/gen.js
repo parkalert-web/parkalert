@@ -13,7 +13,8 @@ export const WALK_W = 4.5;     // largeur de trottoir
 export const GRID = 6;         // indices de -6 à +6
 export const CITY_MAX = GRID * STREET;      // 540
 export const SHORE_X = -640;   // limite de la plage
-export const OCEAN_X = -700;   // début de l'eau
+export const OCEAN_X = -700;   // début de la plage
+export const SEA_X = -700;     // trait de côte : l'eau commence ici
 export const WORLD = 1100;
 
 export const ZONES = [

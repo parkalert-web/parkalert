@@ -34,6 +34,7 @@ const game = new Game(canvas, root, (label, pct) => {
   stepEl.textContent = label;
   fill.style.width = `${pct}%`;
 });
+// Exposé volontairement : console de débogage et tests de bout en bout.
 window.game = game;
 
 function fatal(err) {

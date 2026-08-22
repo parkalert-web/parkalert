@@ -65,7 +65,7 @@ function envAt(hour) {
     emitBoost: night * 1.15,
     night,
     water: true,
-    shoreX: -740,
+    shoreX: -700,
     shadowRange: 95,
   };
 }
@@ -195,7 +195,7 @@ export class Game {
     for (const key of ['pistol']) this.player.giveWeapon(key, 120);
     this.setupPickups();
     this.indexLights();
-    setupTouchControls(this.input, this.root, this);
+    setupTouchControls(this.input, this.root);
     this.bindKeys();
   }
 
@@ -1089,7 +1089,7 @@ export class Game {
 
     if (this.state === 'play' && !p.dead) {
       p.update(dt, this);
-      if (this.input.fire) this.playerFire();
+      if (this.input.fire && !p.swimming) this.playerFire();     // pas de tir à la nage
     } else if (p.dead) {
       p.deadT += realDt;
       if (p.deadT > 2.6) this.respawn(false);

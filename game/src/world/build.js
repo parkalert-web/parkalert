@@ -5,7 +5,7 @@
  */
 import { Geo } from '../engine/gl.js';
 import { color, shade, rng, range, irange, pick, clamp, lerp } from '../engine/math.js';
-import { STREET, ROAD_W, WALK_W, GRID, CITY_MAX, SHORE_X, OCEAN_X } from './gen.js';
+import { STREET, ROAD_W, WALK_W, GRID, CITY_MAX, SHORE_X, OCEAN_X, SEA_X } from './gen.js';
 
 const CHUNK = 180;
 
@@ -56,13 +56,20 @@ function buildGround(ch, world) {
   const step = CHUNK;
   for (let x = -1100; x < 1100; x += step) {
     for (let z = -1100; z < 1100; z += step) {
-      const cx = x + step / 2, cz = z + step / 2;
-      if (cx < OCEAN_X) continue;                       // c'est l'océan
+      let cx = x + step / 2;
+      const cz = z + step / 2;
+      let w = step + 0.5;
+      if (cx + step / 2 < SEA_X) continue;              // au large : c'est l'océan
+      if (cx - step / 2 < SEA_X) {                      // tuile du rivage : on la rogne
+        const right = cx + step / 2;
+        w = right - SEA_X;
+        cx = SEA_X + w / 2;
+      }
       let col = C.pavement;
       if (cx < SHORE_X + 30) col = C.sand;
       else if (Math.abs(cx) > CITY_MAX + 40 || Math.abs(cz) > CITY_MAX + 40) col = C.grassDark;
       const g = ch.at(cx, cz);
-      g.slab(cx, cz, step + 0.5, step + 0.5, 0, col);
+      g.slab(cx, cz, w, step + 0.5, 0, col);
     }
   }
   // Transition sable / ville

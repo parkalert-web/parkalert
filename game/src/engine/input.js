@@ -143,7 +143,7 @@ export class Input {
 }
 
 /** Manettes tactiles pour téléphone : joystick gauche + boutons. */
-export function setupTouchControls(input, root, game) {
+export function setupTouchControls(input, root) {
   if (!('ontouchstart' in window) && !navigator.maxTouchPoints) return null;
   input.touch.active = true;
   root.classList.add('touch');
@@ -154,7 +154,6 @@ export function setupTouchControls(input, root, game) {
 
   const onStart = (e) => {
     for (const t of e.changedTouches) {
-      const r = stick.getBoundingClientRect();
       if (t.clientX < innerWidth * 0.45 && t.clientY > innerHeight * 0.35) {
         stickId = t.identifier;
         sx = t.clientX; sy = t.clientY;

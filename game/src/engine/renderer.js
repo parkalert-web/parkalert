@@ -237,7 +237,7 @@ void main() {
   vec3 v = normalize(uEye - vWorld);
   // moins de ciel réfléchi en incidence rasante : l'eau garde sa couleur
   float fres = pow(1.0 - max(dot(n, v), 0.0), 4.0);
-  vec3 col = mix(uDeep, uSkyColor * 1.05, clamp(fres * 0.85, 0.0, 0.72));
+  vec3 col = mix(uDeep, uSkyColor * 1.05, clamp(fres * 0.8, 0.0, 0.55));
   vec3 h = normalize(uSunDir + v);
   col += uSunColor * pow(max(dot(n, h), 0.0), 220.0) * 2.6;
   col += uSunColor * pow(max(dot(n, h), 0.0), 18.0) * 0.16;

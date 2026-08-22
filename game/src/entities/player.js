@@ -197,7 +197,7 @@ export class Player {
 
     let speed = this.swimming ? (sprinting ? 3.4 : 2.2) : this.crouch ? 1.5 : this.aiming ? 2.1 : sprinting ? 6.4 : 4.1;
     if (len < 0.02) speed = 0;
-    this.stamina = clamp(this.stamina + (sprinting ? -dt * 0.16 : dt * 0.28), 0, 1);
+    if (!this.swimming) this.stamina = clamp(this.stamina + (sprinting ? -dt * 0.16 : dt * 0.28), 0, 1);
 
     const targetVX = wx * speed, targetVZ = wz * speed;
     this.vx = damp(this.vx || 0, targetVX, 12, dt);
@@ -229,17 +229,19 @@ export class Player {
 
     // nage : au-delà du trait de côte, on flotte
     const wasSwimming = this.swimming;
-    this.swimming = this.x < -738;
+    this.swimming = this.x < -698;
     if (this.swimming) {
       // on flotte : la surface est à -0,8, on n'a que la tête et les épaules dehors
       this.y = damp(this.y, -1.95, 4, dt);
       this.vy = 0;
       this.onGround = true;
-      this.breath = clamp((this.breath ?? 1) - dt * 0.03, 0, 1);
+      this.aiming = false;
+      // nager épuise : à bout de souffle, on commence à boire la tasse
+      this.stamina = clamp(this.stamina - dt * 0.035, 0, 1);
+      if (this.stamina <= 0) this.damage(9 * dt, game);
       if (!wasSwimming) game.audio.impact(6, this.x, this.z);
-    } else {
-      this.breath = clamp((this.breath ?? 1) + dt * 0.3, 0, 1);
-      if (this.y < 0 && this.onGround) this.y = Math.min(0, this.y + dt * 3);
+    } else if (this.y < 0 && this.onGround) {
+      this.y = Math.min(0, this.y + dt * 3);
     }
 
     const p = { x: this.x, z: this.z };

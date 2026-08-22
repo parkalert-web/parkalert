@@ -127,6 +127,19 @@ partie où vous l'aviez laissée.
 
 ---
 
+### Ce que ce n'est pas
+
+Grand Theft Auto V, c'est une centaine de gigaoctets, des milliers d'acteurs,
+de modèles et d'heures de dialogue. Ici il n'y a **ni texture, ni son
+enregistré, ni scénario filmé** : tout tient dans 8 000 lignes de JavaScript
+qui se chargent en quelques secondes. C'est un hommage, pas une copie — on
+retrouve les piliers du jeu (la ville ouverte, la conduite, la police, les
+missions, les trois personnages, le cycle jour/nuit), dans un style
+géométrique assumé.
+
+Aucun contenu de Rockstar Games n'est utilisé : les noms de quartiers évoquent
+Los Angeles, les véhicules et les stations de radio sont inventés.
+
 ## Commandes
 
 | | |

@@ -307,7 +307,7 @@ export class Vehicle {
     }
 
     // à l'eau : le moteur noie et l'épave s'enfonce
-    if (this.x < -740) {
+    if (this.x < -700) {
       this.inWater = true;
       this.y = damp(this.y, -1.6, 0.7, dt);
       this.vx *= Math.exp(-2.2 * dt);
