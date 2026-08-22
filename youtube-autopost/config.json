@@ -2,7 +2,6 @@
   "source": "depot",
   "dossierVideos": "videos",
   "driveDossierId": "",
-
   "publication": {
     "confidentialite": "public",
     "categorieId": "22",
@@ -10,70 +9,71 @@
     "pourEnfants": false,
     "notifierAbonnes": true
   },
-
   "titre": {
     "modeles": [
-      "{accroche} {sujet} {emoji}",
-      "{sujet} : {promesse} {emoji}",
-      "{question} {sujet} ?",
-      "{accroche} : {sujet} en {duree} {emoji}",
-      "{question} {sujet} ? {promesse}",
-      "POV : {sujet}, {consequence}",
-      "{sujet} en {duree} {emoji}",
-      "Personne ne parle de {sujet} et {consequence}",
-      "Le jour où j'ai compris {sujet} — {consequence}",
-      "{sujet}, épisode {numero} : {promesse}"
+      "{sujet} {emoji}",
+      "{sujet} — {carte}",
+      "{carte} — {sujet}",
+      "{serie} — {sujet} {emoji}",
+      "{serie} — {sujet} : {carte}",
+      "{serie} — {sujet}, {invitation}",
+      "{sujet}, {invitation}"
     ],
     "variables": {
-      "accroche": [
-        "Tu ne vas pas y croire",
-        "Le truc que personne ne fait",
-        "J'aurais aimé le savoir avant",
-        "Ça change absolument tout",
-        "À tester d'urgence",
-        "Regarde jusqu'au bout",
-        "Arrête tout et regarde"
+      "serie": [
+        "Une photo par jour",
+        "Le défi continue",
+        "Jamais raté un jour",
+        "On ne s'arrête pas",
+        "Encore une"
       ],
-      "promesse": [
-        "l'astuce qui fait gagner 10 minutes",
-        "la méthode la plus simple",
-        "ce que personne ne t'a dit",
-        "la vérité en 30 secondes",
-        "le détail qui change tout",
-        "à connaître absolument"
+      "carte": [
+        "celle-ci compte pour moi",
+        "ma préférée du moment",
+        "la lumière était parfaite",
+        "un instant que je ne reverrai pas",
+        "une seconde plus tard, elle disparaissait",
+        "simple, et c'est très bien comme ça",
+        "j'ai attendu longtemps pour celle-là",
+        "prise sans réfléchir",
+        "je l'aime plus aujourd'hui qu'hier",
+        "rien de retouché, juste la lumière",
+        "elle m'a demandé de la patience",
+        "celle que je garderais si je n'en gardais qu'une"
       ],
-      "question": [
-        "Tu connaissais",
-        "Sérieusement, qui savait pour",
-        "Pourquoi personne ne parle de",
-        "Est-ce que tu fais ça avec"
+      "invitation": [
+        "et vous en pensez quoi ?",
+        "dites-moi si elle vous parle",
+        "la suite demain"
       ],
-      "consequence": [
-        "et ça m'a tout changé",
-        "et je ne reviendrai pas en arrière",
-        "et personne ne me croit",
-        "et c'était sous mes yeux",
-        "et ça prend 10 secondes"
-      ],
-      "duree": ["10 secondes", "30 secondes", "moins d'une minute", "3 étapes"],
-      "emoji": ["🔥", "😱", "👀", "🤯", "✅", "💡", ""]
+      "emoji": [
+        "📷",
+        "🌅",
+        "🖤",
+        "✨",
+        ""
+      ]
     },
-    "sujetParDefaut": "cette astuce",
+    "sujetParDefaut": "Photo du jour",
     "longueurMax": 100,
     "eviterRepetitionJours": 120
   },
-
   "description": {
     "modeles": [
-      "{titre}\n\nSi ça t'a été utile, un petit like aide vraiment la chaîne 🙏",
-      "{sujet} 👇\n\nAbonne-toi pour une nouvelle vidéo chaque jour.",
-      "Nouvel épisode du jour : {sujet}.\n\nDis-moi en commentaire ce que tu en penses !"
+      "{sujet}\n\nUne photo par jour, sans exception.",
+      "{titre}\n\nSi elle vous plaît, un like aide vraiment la chaîne 🙏",
+      "{sujet} de la série.\n\nDites-moi en commentaire celle que vous préférez."
     ],
     "variables": {},
-    "signature": "#shorts #short #astuce"
+    "signature": "#shorts #photography #photo #photographie"
   },
-
-  "tags": ["shorts", "astuce", "conseil", "france"],
-
+  "tags": [
+    "shorts",
+    "photo",
+    "photographie",
+    "photography",
+    "photo du jour",
+    "défi photo"
+  ],
   "quandLaFileEstVide": "echouer"
 }
