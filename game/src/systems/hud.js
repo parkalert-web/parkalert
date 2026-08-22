@@ -79,6 +79,15 @@ export class HUD {
     this.game.audio.ui(620, 0.05, 0.1);
   }
 
+  /** Petite invite contextuelle : « F — Monter dans la Comète ». */
+  setHint(t) {
+    if (t === this._hint) return;
+    this._hint = t;
+    const el = this.el('#hint');
+    el.innerHTML = t || '';
+    el.classList.toggle('show', !!t);
+  }
+
   setObjective(t) {
     this.objective = t;
     const el = this.el('#objective');
@@ -183,8 +192,10 @@ export class HUD {
       this.el('#speed-value').textContent = Math.round(veh.kmh);
       this.el('#vehicle-name').textContent = veh.model.name;
       this.el('#veh-health').style.width = `${clamp(veh.health / veh.maxHealth, 0, 1) * 100}%`;
-      const gear = veh.speed < -0.5 ? 'R' : Math.min(6, Math.max(1, Math.floor(Math.abs(veh.speed) / (veh.model.top / 5)) + 1));
-      this.el('#gear').textContent = gear;
+      this.el('#gear').textContent = veh.model.fly
+        ? `${Math.round(veh.y)} m`
+        : (veh.speed < -0.5 ? 'R'
+          : Math.min(6, Math.max(1, Math.floor(Math.abs(veh.speed) / (veh.model.top / 5)) + 1)));
     } else sp.classList.remove('show');
 
     // radio

@@ -119,7 +119,9 @@ export class Player {
     const v = this.vehicle;
     if (!v) return;
     const [x, z] = v.exitPos(world);
-    this.x = x; this.z = z; this.y = 0;
+    this.x = x; this.z = z;
+    this.y = Math.max(0, v.y);
+    if (this.y > 0.3) { this.onGround = false; this.vy = v.vy || 0; this.fallFrom = this.y; }
     this.yaw = v.yaw + Math.PI / 2;
     v.driver = v.driver === this ? null : v.driver;
     v.occupants = v.occupants.filter((o) => o !== this);
@@ -161,9 +163,15 @@ export class Player {
     const v = this.vehicle;
     const inp = game.input;
     if (this.seat === 0) {
-      v.throttle = inp.throttle;
-      v.steerInput = inp.steer;
-      v.handbrake = inp.handbrake;
+      if (v.model.fly) {
+        v.collective = inp.climb;
+        v.pitchInput = inp.throttle;
+        v.yawInput = inp.steer;
+      } else {
+        v.throttle = inp.throttle;
+        v.steerInput = inp.steer;
+        v.handbrake = inp.handbrake;
+      }
       if (inp.horn) v.horn = 0.2;
     }
     this.x = v.x; this.z = v.z; this.y = v.y;
@@ -205,9 +213,18 @@ export class Player {
       inp.jumpPressed = false;
     }
     if (!this.onGround) {
+      this.fallFrom = Math.max(this.fallFrom || this.y, this.y);
       this.vy -= 21 * dt;
       this.y += this.vy * dt;
-      if (this.y <= 0) { this.y = 0; this.vy = 0; this.onGround = true; }
+      if (this.y <= 0) {
+        this.y = 0;
+        this.onGround = true;
+        // une chute de plus de huit mètres, ça se paie
+        const drop = (this.fallFrom || 0);
+        if (drop > 8) this.damage(clamp((drop - 8) * 9, 0, 400), game);
+        this.fallFrom = 0;
+        this.vy = 0;
+      }
     }
 
     // nage : au-delà du trait de côte, on flotte

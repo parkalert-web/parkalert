@@ -182,6 +182,13 @@ export class Game {
     v.persistent = true;
     this.vehicles.push(v);
 
+    // deux hélicoptères posés, l'un à l'aéroport, l'autre sur le parking couvert
+    for (const [hx, hz, hy] of [[-430, 745, 0], [-315, 315, 0]]) {
+      const h = new Vehicle('maverick', hx, hz, hy);
+      h.persistent = true;
+      this.vehicles.push(h);
+    }
+
     for (const key of ['pistol']) this.player.giveWeapon(key, 120);
     this.setupPickups();
     this.indexLights();
@@ -258,6 +265,7 @@ export class Game {
       FORTUNE: () => { this.player.money += 250000; this.notify('Triche', '+250 000 $'); },
       BOLIDE: () => { this.spawnCheatVehicle('adder'); },
       TANK: () => { this.spawnCheatVehicle('firetruck'); },
+      HELICO: () => { this.spawnCheatVehicle('maverick'); },
       NUIT: () => { this.hour = 22; this.notify('Triche', 'Il fait nuit'); },
       JOUR: () => { this.hour = 12; this.notify('Triche', 'Il fait jour'); },
       RALENTI: () => { this.cheatSlow = !this.cheatSlow; this.notify('Triche', this.cheatSlow ? 'Ralenti activé' : 'Ralenti désactivé'); },
@@ -635,7 +643,8 @@ export class Game {
     // garage : réparation et effacement de l'indice de recherche
     if (this.garage && p.vehicle) {
       const d = dist2D(p.vehicle.x, p.vehicle.z, this.garage.x, this.garage.z);
-      if (d < 11 && Math.abs(p.vehicle.speed) < 3 && !this.garageCooldown) {
+      const utile = p.vehicle.health < p.vehicle.maxHealth || p.wanted > 0;
+      if (d < 11 && Math.abs(p.vehicle.speed) < 3 && !this.garageCooldown && utile) {
         if (p.money >= 500) {
           p.money -= 500;
           p.vehicle.health = p.vehicle.maxHealth;
@@ -649,6 +658,41 @@ export class Game {
       }
     }
     if (this.garageCooldown) this.garageCooldown = Math.max(0, this.garageCooldown - dt);
+  }
+
+  /** Ce que le joueur peut faire ici et maintenant. */
+  updateHint() {
+    const p = this.player;
+    if (this.state !== 'play' || p.dead) { this.hud.setHint(''); return; }
+    if (p.vehicle) {
+      const g = this.garage;
+      if (g && dist2D(p.vehicle.x, p.vehicle.z, g.x, g.z) < 16 && !this.garageCooldown) {
+        this.hud.setHint('<b>Los Santos Customs</b> — arrêtez-vous pour réparer et repeindre (500 $)');
+      } else {
+        this.hud.setHint('<b>F</b> — descendre du véhicule');
+      }
+      return;
+    }
+    for (const pu of this.pickups) {
+      if (!pu.kind.startsWith('shop-') || dist2D(p.x, p.z, pu.x, pu.z) > 4) continue;
+      this.hud.setHint(pu.kind === 'shop-guns' ? '<b>E</b> — Ammu-Nation' : '<b>E</b> — Hôpital : soins et gilet');
+      return;
+    }
+    if (!this.missions.active) {
+      for (const m of MISSIONS) {
+        if (!this.missions.available(m)) continue;
+        if (dist2D(p.x, p.z, m.x, m.z) < 12) {
+          this.hud.setHint(`<b>${m.letter}</b> — ${m.name} : entrez dans le marqueur`);
+          return;
+        }
+      }
+    }
+    const v = this.nearestVehicle(p.x, p.z, 6);
+    if (v) {
+      this.hud.setHint(`<b>F</b> — ${v.driverPed && !v.driverPed.dead ? 'Éjecter le conducteur de' : 'Monter dans'} ${v.model.name}`);
+      return;
+    }
+    this.hud.setHint('');
   }
 
   openShop(kind) {
@@ -1134,6 +1178,7 @@ export class Game {
     this.missions.update(dt);
     this.checkPickups(dt);
     this.checkBusted(dt);
+    this.updateHint();
     if (this.time - (this.lastSave || 0) > 25) this.save();
 
     // audio

@@ -14,8 +14,8 @@ musique des radios — est généré par le code au chargement.
 ### La ville
 
 Los Santos est générée à partir d'une graine : 2,2 km de côté, une trame de
-13 × 13 rues, **996 bâtiments**, 2 800 accessoires, et des quartiers qui ont
-chacun leur allure.
+13 × 13 rues doublée d'une rocade, **926 bâtiments**, 3 000 accessoires, et des
+quartiers qui ont chacun leur allure.
 
 | Quartier | Ce qu'on y trouve |
 |---|---|
@@ -34,8 +34,8 @@ parking.
 
 ### La conduite
 
-15 véhicules — berlines, sportives, muscle cars, SUV, pick-up, van, taxi, bus,
-ambulance, camion de pompiers, deux voitures de police. Chacun a sa masse, sa
+16 véhicules — berlines, sportives, muscle cars, SUV, pick-up, van, taxi, bus,
+ambulance, camion de pompiers, deux voitures de police et un hélicoptère. Chacun a sa masse, sa
 puissance, son adhérence et sa carrosserie construite à partir de sa fiche.
 
 La physique est arcade mais honnête : modèle bicyclette pour la direction,
@@ -43,6 +43,15 @@ La physique est arcade mais honnête : modèle bicyclette pour la direction,
 casse l'adhérence, accélération latérale bornée par la tenue de route (pas de
 virage à 90° à 150 km/h), transfert de masse visible au roulis et au tangage,
 tôle froissée, fumée, incendie puis explosion.
+
+### Voler
+
+Deux **Maverick** attendent, l'un sur le tarmac de l'aéroport, l'autre sur le
+parking de Strawberry. `Espace` monte, `Ctrl` descend, `Z`/`S` piquent ou
+cabrent, `Q`/`D` font pivoter — l'appareil tient son altitude tout seul quand
+on lâche le collectif. Le pare-brise se remplit de Los Santos vue d'en haut,
+et le compteur affiche l'altitude. Poser trop vite abîme la machine ; sauter
+en marche fait mal.
 
 ### À pied
 
@@ -134,13 +143,15 @@ partie où vous l'aviez laissée.
 | `1`–`9` | armes |
 | `M` | carte · clic pour poser une destination |
 | `V` | vue caméra (rapprochée, large, première personne) · `C` caméra libre en voiture |
+| `Espace` / `Ctrl` | hélicoptère : monter / descendre |
 | `H` | klaxon · `,` `.` station de radio |
 | `Échap` | pause, réglages et statistiques |
 
 Manette (Xbox/PlayStation) et écran tactile sont également gérés.
 
 **Codes de triche** — à taper pendant la partie : `SANTE`, `ARSENAL`,
-`FORTUNE`, `AVOCAT`, `RECHERCHE`, `BOLIDE`, `TANK`, `NUIT`, `JOUR`, `RALENTI`.
+`FORTUNE`, `AVOCAT`, `RECHERCHE`, `BOLIDE`, `TANK`, `HELICO`, `NUIT`, `JOUR`,
+`RALENTI`.
 
 ---
 
@@ -176,8 +187,8 @@ tuiles triées par frustum, les objets mobiles sont dessinés par instanciation
 (un appel de dessin pour tous les cubes, un pour tous les cylindres). S'y
 ajoutent une carte d'ombres directionnelle 2048², un ciel procédural avec
 nuages, un océan animé par les sommets, des halos lumineux additifs et un
-étalonnage ACES. Environ 900 000 sommets pour la ville entière, ~75 appels de
-dessin par image.
+étalonnage ACES. La ville pèse 916 000 sommets (575 000 triangles) et se
+dessine en ~75 appels par image.
 
 **Qualité adaptative.** Sous 28 images par seconde, la résolution de rendu
 baisse puis les ombres se coupent ; au-dessus de 56, tout remonte. On peut
@@ -189,12 +200,15 @@ aussi forcer les réglages par l'URL : `?scale=60&shadows=0&quality=fixed`.
 node --test tests/game.test.mjs
 ```
 
-25 tests couvrent les mathématiques, l'orientation des faces (un enroulement
+27 tests couvrent les mathématiques, l'orientation des faces (un enroulement
 inversé rend la géométrie invisible), la reproductibilité de la ville, la
 connexité du réseau routier, l'absence d'obstacle sur la chaussée et de
 marqueur de mission dans un mur, les collisions, la physique des véhicules
 (accélération, freinage, rayon de braquage réaliste, dérive, destruction) et
-la cohérence des armes et des missions.
+la cohérence des armes et des missions. L'un d'eux fait tourner trente secondes
+de circulation sans navigateur et vérifie que les voitures avancent, restent sur
+la chaussée et ne s'encastrent nulle part — c'est lui qui a mis au jour un
+embouteillage permanent.
 
 Deux d'entre eux sont des garde-fous nés de bugs réels : l'un vérifie qu'aucune
 classe ne déclare deux fois la même méthode — une méthode `load()` de sauvegarde

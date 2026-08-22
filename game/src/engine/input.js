@@ -97,6 +97,9 @@ export class Input {
       this.throttle = clamp(pad.rt - pad.lt, -1, 1) || this.moveY;
       this.steer = clamp(pad.lx || this.moveX, -1, 1);
     }
+    // montée / descente : pour l'hélicoptère
+    this.climb = (k('Space') || (pad ? pad.a : false) || !!t.buttons.jump ? 1 : 0)
+      - (k('ControlLeft') || k('ShiftLeft') || (pad ? pad.b : false) || !!t.buttons.brake ? 1 : 0);
     this.handbrake = k('Space') || (pad ? pad.a : false) || !!t.buttons.brake;
     this.sprint = k('ShiftLeft') || k('ShiftRight') || (pad ? pad.a : false) || !!t.buttons.sprint;
     this.jumpPressed = this.pressed.has('Space') || (pad ? pad.x : false) || !!t.buttons.jump;

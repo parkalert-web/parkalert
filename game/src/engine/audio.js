@@ -249,15 +249,20 @@ export class AudioEngine {
     const gearSpan = v.model.top / 5;
     const gear = Math.min(4, Math.floor(sp / gearSpan));
     const rpm = 0.22 + ((sp - gear * gearSpan) / gearSpan) * 0.78 + Math.abs(v.throttle) * 0.15;
-    const base = (v.model.cls === 'truck' || v.model.cls === 'bus') ? 38 : 62;
-    const freq = base * (0.7 + rpm * 1.9);
+    const base = v.model.fly ? 24 : (v.model.cls === 'truck' || v.model.cls === 'bus') ? 38 : 62;
+    const freq = v.model.fly ? base * 1.6 : base * (0.7 + rpm * 1.9);
     const { gain, pan } = isPlayer ? { gain: 1, pan: 0 } : this.spatial(v.x, v.z, 22);
-    const target = Math.min(0.5, (isPlayer ? 0.16 : 0.1) + rpm * 0.14) * gain * (v.dead ? 0 : 1);
+    let target = Math.min(0.5, (isPlayer ? 0.16 : 0.1) + rpm * 0.14) * gain * (v.dead ? 0 : 1);
+    // hélicoptère : le battement des pales plutôt qu'un régime moteur
+    if (v.model.fly) {
+      const chop = 0.45 + 0.55 * Math.max(0, Math.sin((v.rotorSpin || 0) * 2));
+      target = (isPlayer ? 0.22 : 0.14) * gain * chop * (v.engineOn ? 1 : 0.15) * (v.dead ? 0 : 1);
+    }
     const t = this.ctx.currentTime;
     e.o1.frequency.setTargetAtTime(freq, t, 0.05);
     e.o2.frequency.setTargetAtTime(freq * 0.5, t, 0.05);
     e.f.frequency.setTargetAtTime(420 + rpm * 2200 + (isPlayer ? 400 : 0), t, 0.06);
-    e.g.gain.setTargetAtTime(target, t, 0.08);
+    e.g.gain.setTargetAtTime(target, t, v.model.fly ? 0.03 : 0.08);
     if (e.p) e.p.pan.setTargetAtTime(pan, t, 0.1);
   }
 

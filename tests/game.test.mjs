@@ -278,7 +278,8 @@ test('chaque modèle du catalogue est complet', () => {
     }
     const v = new Vehicle(key, 0, 0, 0);
     assert.ok(v.geo.parts.length > 4, `${key} : carrosserie trop pauvre`);
-    assert.equal(v.geo.wheels.length, 4);
+    if (m.fly) { assert.equal(v.geo.wheels.length, 0, `${key} : un aéronef n'a pas de roues`); continue; }
+    assert.equal(v.geo.wheels.length, 4, `${key} : il faut quatre roues`);
     // les roues touchent le sol et la caisse ne flotte pas
     for (const wl of v.geo.wheels) assert.ok(Math.abs(wl.y - wl.r) < 1e-9, `${key} : roue mal posée`);
     assert.ok(v.geo.floor < v.geo.wheels[0].r * 1.05, `${key} : caisse trop haute sur roues`);
@@ -370,6 +371,31 @@ test('un véhicule ne traverse pas les immeubles', () => {
   assert.ok(crashed, 'l’impact doit être signalé');
   assert.ok(v.z < b.z - b.hd + 1.5, `la voiture ne doit pas entrer dans l'immeuble (z=${v.z.toFixed(1)})`);
   assert.ok(v.health < v.maxHealth, 'et prendre des dégâts');
+});
+
+test("l'hélicoptère décolle, avance et se pose", () => {
+  const w = { pushCircle: () => null };
+  const h = new Vehicle('maverick', 0, 0, 0);
+  h.driver = {};
+  const fly = (sec, ctrl) => {
+    for (let i = 0; i < sec * 60; i++) { Object.assign(h, ctrl); h.update(1 / 60, w, null); }
+  };
+  fly(5, { collective: 1, pitchInput: 0, yawInput: 0 });
+  assert.ok(h.y > 25, `il doit monter (altitude ${h.y.toFixed(0)} m)`);
+
+  const y0 = h.y;
+  fly(5, { collective: 0, pitchInput: 1, yawInput: 0 });
+  assert.ok(h.z > 40, `il doit avancer (${h.z.toFixed(0)} m)`);
+  assert.ok(Math.abs(h.y - y0) < 12, 'et tenir à peu près son altitude sans collectif');
+  assert.ok(h.kmh > 40 && h.kmh <= MODELS.maverick.top * 3.6 + 1, `vitesse ${h.kmh.toFixed(0)} km/h`);
+
+  const yaw0 = h.yaw;
+  fly(2, { collective: 0, pitchInput: 0, yawInput: 1 });
+  assert.ok(Math.abs(h.yaw - yaw0) > 0.5, 'le lacet doit le faire pivoter');
+
+  fly(20, { collective: -0.4, pitchInput: 0, yawInput: 0 });
+  assert.ok(h.y < 1, `il doit finir posé (altitude ${h.y.toFixed(2)} m)`);
+  assert.ok(h.health > h.maxHealth * 0.55, 'un posé en douceur ne le détruit pas');
 });
 
 test('les places assises et la sortie restent près du véhicule', () => {

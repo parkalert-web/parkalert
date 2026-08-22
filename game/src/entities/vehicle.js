@@ -23,6 +23,10 @@ export const MODELS = {
   ambulance: { name: 'Ambulance', cls: 'van', len: 5.6, wid: 2.15, h: 2.4, mass: 2800, power: 11, top: 42, grip: 6.6, brake: 22, seats: 2, fixed: '#eef1f3', emergency: 'med' },
   firetruck: { name: 'Camion de pompiers', cls: 'truck', len: 7.6, wid: 2.4, h: 2.9, mass: 6500, power: 9.5, top: 36, grip: 6.2, brake: 20, seats: 2, fixed: '#b4231d', emergency: 'fire' },
   benson: { name: 'Benson', cls: 'truck', len: 7.4, wid: 2.35, h: 2.9, mass: 5200, power: 8.5, top: 34, grip: 5.9, brake: 18, seats: 2 },
+  maverick: {
+    name: 'Maverick', cls: 'heli', len: 12, wid: 3.2, h: 3.4, mass: 2600, power: 26, top: 62,
+    grip: 4, brake: 10, steer: 0.5, seats: 4, fixed: '#1d2733', fly: true,
+  },
   bus: { name: 'Bus', cls: 'bus', len: 10.5, wid: 2.5, h: 3.1, mass: 9000, power: 7.5, top: 32, grip: 5.6, brake: 17, seats: 8, fixed: '#d8b23a' },
 };
 
@@ -33,7 +37,7 @@ const partCache = new Map();
 /** Construit la carrosserie (dans le repère local : X droite, Y haut, Z avant). */
 function buildParts(key) {
   if (partCache.has(key)) return partCache.get(key);
-  const m = MODELS[key];
+  const m = { ...MODELS[key], key };
   const L = m.len, W = m.wid, H = m.h;
   const p = [];
   const wheelR = m.cls === 'truck' || m.cls === 'bus' ? 0.55 : m.cls === 'suv' || m.cls === 'pickup' || m.cls === 'van' ? 0.42 : 0.36;
@@ -42,6 +46,26 @@ function buildParts(key) {
 
   const glass = 'glass', paint = 'paint', dark = 'dark';
   const add = (x, y, z, sx, sy, sz, c, extra) => p.push({ x, y, z, sx, sy, sz, c, ...extra });
+
+  if (m.cls === 'heli') {
+    const y0 = 1.5;
+    add(0, y0 + 0.1, 0.6, W * 0.62, 1.8, L * 0.36, paint);              // cabine
+    add(0, y0 + 0.3, 2.1, W * 0.55, 1.2, 1.1, glass);                   // bulle avant
+    add(0, y0 + 0.15, -1.9, 0.9, 0.9, L * 0.42, paint);                 // poutre de queue
+    add(0, y0 + 1.0, -5.4, 0.35, 1.7, 0.9, paint);                      // dérive
+    add(0, y0 + 1.15, 0.4, 0.5, 0.7, 0.6, 'metal');                     // mât
+    for (const sd of [-1, 1]) {
+      add(sd * 1.35, y0 - 1.1, 0.3, 0.2, 0.55, L * 0.34, 'metal');      // patins
+      add(sd * 1.35, y0 - 1.45, 0.3, 0.22, 0.22, L * 0.4, 'dark');
+    }
+    add(0, y0 + 1.55, 0.4, 13, 0.12, 0.55, 'rotor');                    // rotor principal
+    add(0, y0 + 1.55, 0.4, 0.55, 0.12, 13, 'rotor');
+    add(0.6, y0 + 1.0, -5.4, 0.16, 2.8, 0.3, 'tailrotor');
+    add(0.6, y0 + 1.0, -5.4, 0.16, 0.3, 2.8, 'tailrotor');
+    for (const sd of [-1, 1]) add(sd * W * 0.3, y0 + 0.1, 2.35, 0.3, 0.3, 0.2, 'head');
+    add(0, y0 - 0.5, -5.2, 0.3, 0.3, 0.3, 'tail');
+    return finish(p, m, [], 0, y0);
+  }
 
   if (m.cls === 'bus' || m.cls === 'truck' || m.cls === 'van') {
     const cabZ = m.cls === 'bus' ? 0 : L * 0.28;
@@ -111,8 +135,12 @@ function buildParts(key) {
   for (const [sx, sz] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) {
     wheels.push({ x: sx * wx, y: wheelR, z: sz * wz, r: wheelR, w: m.cls === 'truck' || m.cls === 'bus' ? 0.34 : 0.26, front: sz > 0 });
   }
-  const out = { parts: p, wheels, wheelR, floor, bodyH };
-  partCache.set(key, out);
+  return finish(p, m, wheels, wheelR, floor, bodyH);
+}
+
+function finish(parts, m, wheels, wheelR, floor, bodyH) {
+  const out = { parts, wheels, wheelR, floor, bodyH: bodyH === undefined ? m.h - floor : bodyH };
+  partCache.set(m.key, out);
   return out;
 }
 
@@ -162,7 +190,7 @@ export class Vehicle {
   get forward() { return [Math.sin(this.yaw), Math.cos(this.yaw)]; }
 
   /** Vitesse en km/h, pour le compteur. */
-  get kmh() { return Math.abs(this.speed) * 3.6; }
+  get kmh() { return (this.model.fly ? Math.hypot(this.vx, this.vz) : Math.abs(this.speed)) * 3.6; }
 
   applyImpulse(ix, iz) {
     this.vx += ix / this.mass;
@@ -182,6 +210,7 @@ export class Vehicle {
 
   update(dt, world, game) {
     const m = this.model;
+    if (m.fly) return this.updateFlight(dt, world, game);
     if (this.dead) {
       this.burnTime += dt;
       this.throttle = 0; this.steerInput = 0;
@@ -310,6 +339,87 @@ export class Vehicle {
     }
   }
 
+  /**
+   * Vol d'hélicoptère, façon arcade : le collectif donne la portance, le
+   * tangage penche l'appareil vers l'avant (ce qui le fait avancer), le lacet
+   * fait pivoter. Sans commande, l'appareil tient son altitude tout seul.
+   */
+  updateFlight(dt, world, game) {
+    const m = this.model;
+    this.rotorSpin = (this.rotorSpin || 0) + dt * (this.dead ? 6 : 26) * (this.engineOn ? 1 : 0.25);
+    this.engineOn = !this.dead && (this.driver || this.occupants.length > 0 || this.y > 0.6);
+
+    if (this.dead) {
+      this.vy -= 16 * dt;
+      this.pitch += dt * 1.2;
+      this.yaw += dt * 3;
+    } else {
+      const col = clamp(this.collective || 0, -1, 1);
+      const targetPitch = clamp(-(this.pitchInput || 0) * 0.42, -0.42, 0.42);
+      const targetRoll = clamp(-(this.yawInput || 0) * 0.35, -0.35, 0.35);
+      this.pitch = damp(this.pitch, targetPitch, 2.6, dt);
+      this.roll = damp(this.roll, targetRoll, 2.6, dt);
+      this.yaw += (this.yawInput || 0) * 1.15 * dt;
+
+      // portance : 9,81 pour tenir en vol stationnaire, plus ou moins selon le collectif
+      const lift = 9.81 + col * 12 - (this.y < 0.4 && col <= 0 ? 9.81 : 0);
+      this.vy = (this.vy || 0) + (lift - 9.81) * dt;
+      this.vy -= this.vy * 0.9 * dt;
+      if (col === 0) this.vy = damp(this.vy, 0, 1.4, dt);
+
+      // l'assiette pousse l'appareil
+      const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
+      const rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw);
+      const accF = -Math.sin(this.pitch) * 30;
+      const accR = Math.sin(this.roll) * 18;
+      this.vx += (fx * accF + rx * accR) * dt;
+      this.vz += (fz * accF + rz * accR) * dt;
+      const drag = Math.exp(-0.55 * dt);
+      this.vx *= drag; this.vz *= drag;
+      const sp = Math.hypot(this.vx, this.vz);
+      if (sp > m.top) { this.vx = (this.vx / sp) * m.top; this.vz = (this.vz / sp) * m.top; }
+      this.speed = this.vx * fx + this.vz * fz;
+    }
+
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+    this.z += this.vz * dt;
+
+    // sol
+    if (this.y <= 0) {
+      const impact = -this.vy;
+      this.y = 0;
+      if (impact > 6) { this.damage(impact * 22); if (game) game.onCrash(this, impact, this.x, 1, this.z); }
+      this.vy = 0;
+      this.vx *= Math.exp(-4 * dt);
+      this.vz *= Math.exp(-4 * dt);
+      this.pitch = damp(this.pitch, 0, 4, dt);
+      this.roll = damp(this.roll, 0, 4, dt);
+      if (this.dead && !this.exploded && game) { this.exploded = true; game.explode(this.x, 1.5, this.z, 16, this); }
+    }
+
+    // immeubles : le rotor n'aime pas le béton
+    const p = { x: this.x, z: this.z };
+    const hit = world.pushCircle(p, 3.2, Math.max(2, this.y + 2));
+    if (hit && this.y < 220) {
+      this.x = p.x; this.z = p.z;
+      const vn = this.vx * hit.nx + this.vz * hit.nz;
+      if (vn < 0) {
+        this.vx -= hit.nx * vn * 1.2;
+        this.vz -= hit.nz * vn * 1.2;
+        const force = Math.abs(vn);
+        if (force > 3) { this.damage(force * 26); if (game) game.onCrash(this, force, this.x, this.y, this.z); }
+      }
+    }
+    const B = 1080;
+    this.x = clamp(this.x, -B, B);
+    this.z = clamp(this.z, -B, B);
+    this.y = Math.min(this.y, 340);
+    this.sirenPhase += dt;
+    if (this.horn > 0) this.horn -= dt;
+    if (this.dead) this.burnTime += dt;
+  }
+
   /** Position d'un siège (0 = conducteur). */
   seatPos(i = 0) {
     const s = Math.sin(this.yaw), c = Math.cos(this.yaw);
@@ -353,6 +463,7 @@ export class Vehicle {
         case 'head': c = lightsOn ? [1, 0.97, 0.85] : [0.75, 0.75, 0.72]; emit = lightsOn ? 1 : 0; break;
         case 'tail': c = [0.8, 0.1, 0.08]; emit = braking ? 1 : (lightsOn ? 0.45 : 0.08); break;
         case 'sign': c = [1, 0.85, 0.2]; emit = 0.9; break;
+        case 'rotor': case 'tailrotor': c = [0.16, 0.16, 0.18]; break;
         case 'lightbarL': case 'lightbarR': {
           const blink = this.siren ? (Math.sin(this.sirenPhase * 14 + (p.c === 'lightbarL' ? 0 : Math.PI)) > 0 ? 1 : 0.05) : 0.06;
           c = p.c === 'lightbarL' ? [0.2, 0.35, 1] : [1, 0.15, 0.12];
@@ -362,8 +473,12 @@ export class Vehicle {
         default: c = typeof p.c === 'string' ? color(p.c) : p.c;
       }
       const half = p.c === 'lightbarL' ? -1 : p.c === 'lightbarR' ? 1 : 0;
+      let ry = p.ry || 0;
+      let rz = 0;
+      if (p.c === 'rotor') ry = this.rotorSpin || 0;
+      if (p.c === 'tailrotor') rz = (this.rotorSpin || 0) * 1.7;
       m4compose(this.tmp, p.x + half * p.sx * 0.26, p.y, p.z,
-        p.ry || 0, half ? p.sx * 0.48 : p.sx, p.sy, p.sz);
+        ry, half ? p.sx * 0.48 : p.sx, p.sy, p.sz, 0, rz);
       m4mul(this.out, this.mat, this.tmp);
       R.cube(this.out, c, emit);
     }
