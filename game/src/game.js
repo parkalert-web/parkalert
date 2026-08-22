@@ -25,15 +25,15 @@ import {
 /* --------------------------------------------------- ambiances horaires */
 
 const SKY_KEYS = [
-  { h: 0, top: '#050a18', hor: '#0d1526', fog: '#141e30', sun: '#3a4a70', amb: '#2a3450', gnd: '#3a2c1c', night: 1 },
-  { h: 5, top: '#132038', hor: '#3b3350', fog: '#3a3346', sun: '#6a5a70', amb: '#2c3450', gnd: '#362a1c', night: 0.8 },
+  { h: 0, top: '#050a18', hor: '#0d1526', fog: '#141e30', sun: '#3a4a70', amb: '#38445f', gnd: '#4a3826', night: 1 },
+  { h: 5, top: '#132038', hor: '#3b3350', fog: '#3a3346', sun: '#6a5a70', amb: '#39445e', gnd: '#463526', night: 0.8 },
   { h: 6.5, top: '#2d5a8f', hor: '#e8905a', fog: '#d68f6a', sun: '#ffa564', amb: '#6a5c62', gnd: '#3a2e26', night: 0.15 },
   { h: 9, top: '#2f7ac4', hor: '#a8cbe0', fog: '#b6cddc', sun: '#fff2dc', amb: '#7d92ab', gnd: '#4a4238', night: 0 },
   { h: 13, top: '#2a76c8', hor: '#bcd8ea', fog: '#c3d9e6', sun: '#fff8e8', amb: '#8ba2ba', gnd: '#524838', night: 0 },
   { h: 17, top: '#3070b4', hor: '#dcc39a', fog: '#d3c0a4', sun: '#ffe4b4', amb: '#7c88a0', gnd: '#4a4030', night: 0 },
   { h: 19, top: '#1e3c6e', hor: '#e07840', fog: '#c07a55', sun: '#ff8a48', amb: '#54546a', gnd: '#2a2422', night: 0.35 },
-  { h: 21, top: '#0a1228', hor: '#1e2440', fog: '#1e2740', sun: '#38486c', amb: '#28324c', gnd: '#382a1a', night: 0.9 },
-  { h: 24, top: '#050a18', hor: '#0d1526', fog: '#141e30', sun: '#3a4a70', amb: '#2a3450', gnd: '#3a2c1c', night: 1 },
+  { h: 21, top: '#0a1228', hor: '#1e2440', fog: '#1e2740', sun: '#38486c', amb: '#36415c', gnd: '#483624', night: 0.9 },
+  { h: 24, top: '#050a18', hor: '#0d1526', fog: '#141e30', sun: '#3a4a70', amb: '#38445f', gnd: '#4a3826', night: 1 },
 ];
 
 function envAt(hour) {
@@ -204,6 +204,8 @@ export class Game {
   indexLights() {
     this.lampGrid = new Map();
     const cell = 90;
+    // les feux tricolores sont repérés à part : ils changent de couleur
+    this.lights = this.data.props.filter((pr) => pr.kind === 'trafficlight');
     for (const pr of this.data.props) {
       if (pr.kind !== 'lamp' && pr.kind !== 'billboard') continue;
       const k = `${Math.floor(pr.x / cell)},${Math.floor(pr.z / cell)}`;
@@ -397,6 +399,11 @@ export class Game {
 
   onPedKilled(ped, byPlayer) {
     this.particles.spawn(ped.x, 1.2, ped.z, 0, 0.6, 0, 0.5, 0.7, [0.5, 0.05, 0.05], { gravity: -2 });
+    // une liasse tombe, à ramasser en passant dessus
+    this.pickups.push({
+      kind: 'cash', x: ped.x + range(this.rand, -0.6, 0.6), z: ped.z + range(this.rand, -0.6, 0.6),
+      amount: Math.round(range(this.rand, 40, 260)), active: true, t: 0, expire: 45,
+    });
     if (!byPlayer) return;
     this.stats.kills++;
     if (ped.mission || ped.hostile) return;
@@ -633,15 +640,21 @@ export class Game {
 
   checkPickups(dt) {
     const p = this.player;
-    for (const pu of this.pickups) {
+    for (let i = this.pickups.length - 1; i >= 0; i--) {
+      const pu = this.pickups[i];
       pu.t += dt;
+      if (pu.expire !== undefined) {
+        pu.expire -= dt;
+        if (pu.expire <= 0) pu.remove = true;
+      }
+      if (pu.remove) { this.pickups.splice(i, 1); continue; }
       if (!pu.active) {
         pu.respawn -= dt;
         if (pu.respawn <= 0) pu.active = true;
         continue;
       }
       const d = dist2D(p.x, p.z, pu.x, pu.z);
-      if (d > 2.4 || !p.onFoot) continue;
+      if (d > (pu.kind === 'cash' ? 1.8 : 2.4) || !p.onFoot) continue;
       if (pu.kind === 'armor') {
         if (p.armor >= p.maxArmor) continue;
         p.armor = p.maxArmor; pu.active = false; pu.respawn = 90;
@@ -653,6 +666,9 @@ export class Game {
       } else if (pu.kind === 'money') {
         p.money += 2500; pu.active = false; pu.respawn = 120;
         this.notify('Liasse trouvée', '+2 500 $');
+      } else if (pu.kind === 'cash') {
+        p.money += pu.amount;
+        pu.active = false; pu.remove = true;
       } else continue;
       this.audio.pickup(true);
     }
@@ -1292,10 +1308,13 @@ export class Game {
     for (const pu of this.pickups) {
       if (!pu.active) continue;
       const c = pu.kind === 'armor' ? [0.35, 0.65, 1] : pu.kind === 'health' ? [1, 0.35, 0.35]
-        : pu.kind === 'money' ? [0.35, 1, 0.5] : [1, 0.85, 0.3];
+        : pu.kind === 'money' || pu.kind === 'cash' ? [0.35, 1, 0.5] : [1, 0.85, 0.3];
       if (pu.kind.startsWith('shop-')) {
         m4compose(pm, pu.x, 0.05, pu.z, 0, 4, 2.6, 4);
         R.ghost('marker', pm, c, 0.7);
+      } else if (pu.kind === 'cash') {
+        m4compose(pm, pu.x, 0.35 + Math.sin(pu.t * 3) * 0.06, pu.z, pu.t * 2.2, 0.34, 0.1, 0.2);
+        R.cube(pm, c, 0.7);
       } else {
         m4compose(pm, pu.x, 0.9 + Math.sin(pu.t * 2) * 0.14, pu.z, pu.t * 1.4, 0.5, 0.5, 0.5);
         R.cube(pm, c, 0.8);
@@ -1373,7 +1392,8 @@ export class Game {
           const hz = v.z + fz * v.hl + rz * s2 * v.hw * 0.62;
           R.glow(hx, v.geo.floor + 0.35, hz, 1.5, 1, 0.95, 0.8, 0.7 * fade);
         }
-        R.glowGround(v.x + fx * (v.hl + 7), 0.4, v.z + fz * (v.hl + 7), 11, 1, 0.93, 0.72, 0.34 * fade * n);
+        R.glowGround(v.x + fx * (v.hl + 5), 0.4, v.z + fz * (v.hl + 5), 9, 1, 0.94, 0.74, 0.4 * fade * n);
+        R.glowGround(v.x + fx * (v.hl + 12), 0.4, v.z + fz * (v.hl + 12), 13, 1, 0.93, 0.72, 0.28 * fade * n);
         R.glowGround(v.x - fx * (v.hl + 1.2), 0.4, v.z - fz * (v.hl + 1.2), 4, 1, 0.2, 0.15, 0.3 * fade * n);
       }
       if (v.siren) {
@@ -1382,6 +1402,28 @@ export class Game {
         R.glowGround(v.x, 0.4, v.z, 16, blue ? 0.3 : 1, 0.35, blue ? 1 : 0.3, 0.22 * fade);
       }
     }
+    // Feux tricolores : les trois lampes sont dessinées ici, pour que la
+    // couleur allumée suive le cycle de la ville.
+    const { green, amber } = Population.lightPhase(this.time);
+    const mm = this.markerMat || (this.markerMat = m4());
+    for (const f of this.lights) {
+      const d = dist2D(f.x, f.z, cx, cz);
+      if (d > 90) continue;
+      const axis = Math.abs(Math.sin(f.r)) < 0.5 ? 0 : 1;   // r = 0 ou PI -> axe nord-sud
+      const passe = axis === green;
+      const state = passe && !amber ? 2 : passe && amber ? 1 : 0;   // 0 rouge, 1 orange, 2 vert
+      const fade = clamp(1 - d / 90, 0, 1);
+      const ox = -Math.sin(f.r) * 0.3, oz = -Math.cos(f.r) * 0.3;
+      const lamps = [[5.3, [1, 0.16, 0.1]], [4.9, [1, 0.68, 0.08]], [4.5, [0.22, 1, 0.32]]];
+      for (let i = 0; i < 3; i++) {
+        const on = (2 - i) === state;
+        const col = lamps[i][1];
+        m4compose(mm, f.x + ox, lamps[i][0], f.z + oz, 0, 0.25, 0.25, 0.25);
+        R.sphere(mm, on ? col : [col[0] * 0.12, col[1] * 0.12, col[2] * 0.12], on ? 1 : 0);
+        if (on) R.glow(f.x + ox * 1.3, lamps[i][0], f.z + oz * 1.3, 1.7, col[0], col[1], col[2], 0.45 * fade);
+      }
+    }
+
     for (const pr of this.projectiles) {
       if (pr.kind === 'rocket') R.glow(pr.x, pr.y, pr.z, 3.5, 1, 0.7, 0.3, 0.8);
     }

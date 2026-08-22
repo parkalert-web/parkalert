@@ -86,9 +86,16 @@ piétons (avec **tirs à la tête**) et les véhicules.
 ### La ville vivante
 
 La circulation suit un vrai graphe routier : les voitures tiennent leur file,
-ralentissent derrière un obstacle, choisissent leur direction aux carrefours et
-klaxonnent quand ça bloque. Les piétons longent les îlots, paniquent aux coups
-de feu et s'enfuient. Tout apparaît et disparaît autour du joueur.
+ralentissent derrière un obstacle, **s'arrêtent aux feux tricolores**,
+choisissent leur direction aux carrefours et klaxonnent quand ça bloque. Elles
+cèdent le passage à un piéton — mais pas éternellement : au bout de trois
+secondes elles klaxonnent et avancent au pas, sinon un badaud planté sur la
+chaussée figerait toute une file.
+
+Les piétons longent les trottoirs, s'arrêtent, traversent la rue, courent pour
+certains, **sautent sur le côté quand une voiture leur fonce dessus**,
+paniquent aux coups de feu et s'enfuient. Tout apparaît et disparaît autour du
+joueur.
 
 ### La police
 
@@ -240,15 +247,19 @@ lectures dans cette table. Aucun outil externe, aucune étape d'installation.
 node --test tests/game.test.mjs
 ```
 
-29 tests couvrent les mathématiques, l'orientation des faces (un enroulement
+35 tests couvrent les mathématiques, l'orientation des faces (un enroulement
 inversé rend la géométrie invisible), la reproductibilité de la ville, la
 connexité du réseau routier, l'absence d'obstacle sur la chaussée et de
 marqueur de mission dans un mur, les collisions, la physique des véhicules
 (accélération, freinage, rayon de braquage réaliste, dérive, destruction) et
-la cohérence des armes et des missions. L'un d'eux fait tourner trente secondes
-de circulation sans navigateur et vérifie que les voitures avancent, restent sur
+la cohérence des armes et des missions. L'un d'eux fait tourner une minute de
+circulation sans navigateur et vérifie que les voitures avancent, restent sur
 la chaussée et ne s'encastrent nulle part — c'est lui qui a mis au jour un
-embouteillage permanent.
+embouteillage permanent, puis un second : un piéton immobile bloquait
+définitivement toute une file. Un autre lance une voiture à 260 km/h contre un
+immeuble pour s'assurer qu'elle ne le traverse pas, un autre encore fait vivre
+soixante piétons pendant quarante-cinq secondes et vérifie qu'aucun ne finit
+dans un mur.
 
 Un autre vérifie que `losantos.html` n'a pas pris de retard sur les sources.
 

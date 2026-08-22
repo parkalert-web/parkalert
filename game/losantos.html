@@ -2736,8 +2736,13 @@ function generateWorld(seed = 20130917) {
   for (let gz = -GRID; gz <= GRID; gz++) {
     for (let gx = -GRID; gx <= GRID; gx++) {
       const o = ROAD_W / 2 + 2.4;
-      props.push({ kind: 'trafficlight', x: gx * STREET - o, z: gz * STREET - o, r: 0 });
-      props.push({ kind: 'trafficlight', x: gx * STREET + o, z: gz * STREET + o, r: Math.PI });
+      const cx2 = gx * STREET, cz2 = gz * STREET;
+      // r donne la direction que regarde le feu : 0 et PI règlent l'axe
+      // nord-sud, ±PI/2 l'axe est-ouest.
+      props.push({ kind: 'trafficlight', x: cx2 - o, z: cz2 - o, r: 0 });
+      props.push({ kind: 'trafficlight', x: cx2 + o, z: cz2 + o, r: Math.PI });
+      props.push({ kind: 'trafficlight', x: cx2 - o, z: cz2 + o, r: Math.PI / 2 });
+      props.push({ kind: 'trafficlight', x: cx2 + o, z: cz2 - o, r: -Math.PI / 2 });
     }
   }
 
@@ -2946,6 +2951,7 @@ const C = {
   lineYellow: color('#c9a83c'),
   walk: color('#b0aca4'),
   median: color('#6f7c5a'),
+  hedge: color('#3d5c30'),
   walkEdge: color('#87847e'),
   curb: color('#c6c2b8'),
   pavement: color('#a09c94'),
@@ -3008,6 +3014,23 @@ function buildGround(ch, world) {
   }
 }
 
+/**
+ * Terre-plein central : une vraie île bordée d'un trottoir, pas une bande
+ * peinte — sinon les palmiers du boulevard semblent pousser dans le bitume.
+ * On saute les carrefours, qu'il faut laisser libres.
+ */
+function medianIsland(g, cx, cz, len, horiz) {
+  if (Math.abs(((cx % STREET) + STREET * 1.5) % STREET - STREET / 2) < 15
+    && Math.abs(((cz % STREET) + STREET * 1.5) % STREET - STREET / 2) < 15) return;
+  const w = horiz ? len : 3.6;
+  const d = horiz ? 3.6 : len;
+  g.box(cx, 0.17, cz, w, 0.34, d, C.curb, 0, { top: C.grass, side: C.curb, noBottom: true });
+  // haie basse : c'est elle qui donne du relief au terre-plein
+  const hl = Math.max(2, len - 5);
+  g.box(cx, 0.34 + 0.42, cz, horiz ? hl : 1.5, 0.84, horiz ? 1.5 : hl, C.hedge, 0,
+    { top: shade(C.hedge, 1.15), side: C.hedge });
+}
+
 function roadMarkings(g, r) {
   const y = 0.19;
   if (r.horiz) {
@@ -3016,7 +3039,7 @@ function roadMarkings(g, r) {
       // terre-plein central planté
       for (let x = x0; x < x1; x += 24) {
         const seg = Math.min(18, x1 - x);
-        g.slab(x + seg / 2, r.z, seg, 3.6, 0.2, C.median);
+        medianIsland(g, x + seg / 2, r.z, seg, true);
       }
     } else {
       for (let x = x0; x < x1; x += 8) g.slab(x + 2, r.z, 4, 0.32, y, C.lineYellow);
@@ -3034,7 +3057,7 @@ function roadMarkings(g, r) {
     if (r.boulevard) {
       for (let z = z0; z < z1; z += 24) {
         const seg = Math.min(18, z1 - z);
-        g.slab(r.x, z + seg / 2, 3.6, seg, 0.2, C.median);
+        medianIsland(g, r.x, z + seg / 2, seg, false);
       }
     } else {
       for (let z = z0; z < z1; z += 8) g.slab(r.x, z + 2, 0.32, 4, y, C.lineYellow);
@@ -3279,11 +3302,12 @@ function buildProp(g, p) {
       break;
     }
     case 'trafficlight': {
+      // le caisson regarde dans la direction p.r ; les lampes elles-mêmes sont
+      // dessinées en jeu, pour pouvoir changer de couleur.
+      const dx = -Math.sin(p.r) * 0.24, dz = -Math.cos(p.r) * 0.24;
       g.cyl(p.x, 0, p.z, 0.12, 4.4, C.metal, 5);
-      g.box(p.x, 4.9, p.z, 0.45, 1.3, 0.45, [0.15, 0.15, 0.16]);
-      g.box(p.x, 5.3, p.z - 0.24, 0.2, 0.2, 0.1, [1, 0.2, 0.15], 0, { emit: 1 });
-      g.box(p.x, 4.9, p.z - 0.24, 0.2, 0.2, 0.1, [0.9, 0.7, 0.1], 0, { emit: 0.25 });
-      g.box(p.x, 4.5, p.z - 0.24, 0.2, 0.2, 0.1, [0.2, 0.9, 0.3], 0, { emit: 0.25 });
+      g.box(p.x, 4.9, p.z, 0.45, 1.35, 0.45, [0.14, 0.14, 0.15], p.r);
+      g.box(p.x + dx * 1.15, 4.9, p.z + dz * 1.15, 0.34, 1.2, 0.06, [0.09, 0.09, 0.1], p.r);
       break;
     }
     case 'bench':
@@ -3907,10 +3931,23 @@ class Vehicle {
     this.x += this.vx * dt;
     this.z += this.vz * dt;
 
-    // collisions avec le décor : on teste les quatre coins
+    // Anti-tunnel : à pleine vitesse la voiture avance de plus d'un mètre par
+    // image et pouvait franchir un mur avant qu'on ne teste ses coins.
+    const pas = Math.hypot(this.x - px, this.z - pz);
+    if (pas > 0.9) {
+      const inv = 1 / pas;
+      const t = world.raycast(px, this.y + 0.7, pz, (this.x - px) * inv, 0, (this.z - pz) * inv, pas + this.hl);
+      if (t < pas + this.hl) {
+        const recul = Math.max(0, t - this.hl);
+        this.x = px + (this.x - px) * inv * recul;
+        this.z = pz + (this.z - pz) * inv * recul;
+      }
+    }
+
+    // collisions avec le décor : quatre coins et le milieu des flancs
     let hit = null;
     const cs = Math.sin(this.yaw), cc = Math.cos(this.yaw);
-    for (const [ox, oz] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) {
+    for (const [ox, oz] of [[-1, 1], [1, 1], [-1, -1], [1, -1], [-1, 0], [1, 0], [0, 1], [0, -1]]) {
       const cx = this.x + ox * this.hw * cc + oz * this.hl * cs;
       const cz = this.z - ox * this.hw * cs + oz * this.hl * cc;
       const p = { x: cx, z: cz };
@@ -4325,22 +4362,24 @@ function drawHuman(R, s, look = null) {
   const shoe = [0.11, 0.1, 0.1];
 
   // pièces élémentaires, exprimées dans le repère du personnage
+  // k : taille générale, w : carrure. Deux piétons ne se ressemblent jamais tout à fait.
+  const k = s.scale || 1;
+  const w = (s.build || 1) * k;
   const box = (x, y, z, sx, sy, sz, c, rx = 0, ry = 0, rz = 0) => {
-    m4compose(tmpB, x, y, z, ry, sx, sy, sz, rx, rz);
+    m4compose(tmpB, x * w, y * k, z * k, ry, sx * w, sy * k, sz * k, rx, rz);
     m4mul(tmpB, base, tmpB);
     R.cube(tmpB, c);
   };
   const ball = (x, y, z, d, c, dy = d, dz = d) => {
-    m4compose(tmpB, x, y, z, 0, d, dy, dz);
+    m4compose(tmpB, x * w, y * k, z * k, 0, d * w, dy * k, dz * k);
     m4mul(tmpB, base, tmpB);
     R.sphere(tmpB, c);
   };
   /** Segment de membre : cylindre partant du pivot, incliné de `a` (plan sagittal). */
   const limb = (px, py, pz, a, len, thick, c) => {
-    const cx = px;
     const cy = py - Math.cos(a) * len / 2;
     const cz = pz - Math.sin(a) * len / 2;
-    m4compose(tmpB, cx, cy, cz, 0, thick, len, thick, a, 0);
+    m4compose(tmpB, px * w, cy * k, cz * k, 0, thick * w, len * k, thick * w, a, 0);
     m4mul(tmpB, base, tmpB);
     R.cyl(tmpB, c);
     return [px, py - Math.cos(a) * len, pz - Math.sin(a) * len];   // extrémité
@@ -4371,7 +4410,7 @@ function drawHuman(R, s, look = null) {
   /* -------------------------------------------------------------- tronc */
   const chestY = hipY + 0.34;
   box(0, hipY + 0.08, -lean * 0.05, 0.32, 0.22, 0.23, pants, lean);      // bassin
-  m4compose(tmpB, 0, hipY + 0.2, 0, 0, 0.29, 0.24, 0.25, lean, 0);
+  m4compose(tmpB, 0, (hipY + 0.2) * k, 0, 0, 0.29 * w, 0.24 * k, 0.25 * w, lean, 0);
   m4mul(tmpB, base, tmpB); R.cyl(tmpB, shirt);                           // taille
   box(0, chestY - 0.02, 0, 0.36, 0.26, 0.25, shirt, lean);               // bas du torse
   box(0, chestY + 0.16, 0, 0.42, 0.24, 0.27, shirt, lean);               // poitrine
@@ -4379,7 +4418,7 @@ function drawHuman(R, s, look = null) {
 
   /* --------------------------------------------------------------- tête */
   const neckY = chestY + 0.32;
-  m4compose(tmpB, 0, neckY - 0.03, 0, 0, 0.12, 0.11, 0.12);
+  m4compose(tmpB, 0, (neckY - 0.03) * k, 0, 0, 0.12 * w, 0.11 * k, 0.12 * w);
   m4mul(tmpB, base, tmpB); R.cyl(tmpB, skin);
   const headTilt = look !== null ? clamp(look * 0.3, -0.35, 0.35) : 0;
   const hy = neckY + 0.16;
@@ -4437,6 +4476,8 @@ function drawHuman(R, s, look = null) {
 /** Habillage aléatoire cohérent. */
 function randomLook(rand) {
   return {
+    scale: range(rand, 0.9, 1.09),
+    build: range(rand, 0.88, 1.14),
     skin: color(pick(rand, SKIN)),
     shirt: color(pick(rand, SHIRT)),
     pants: color(pick(rand, PANTS)),
@@ -4450,6 +4491,7 @@ let pedId = 1;
 class Ped {
   constructor(x, z, rand, opts = {}) {
     this.id = pedId++;
+    this.rand = rand;          // le même tirage que la population : tout est reproductible
     this.x = x; this.y = 0; this.z = z;
     this.yaw = rand() * Math.PI * 2;
     this.vx = 0; this.vz = 0;
@@ -4460,6 +4502,13 @@ class Ped {
     this.dead = false;
     this.deadT = 0;
     this.panic = 0;
+    this.dodgeT = 0;
+    this.dodgeDir = null;
+    this.idleT = 0;
+    this.idleTurn = 0;
+    this.jogger = rand() < 0.14;
+    this.neighbour = null;
+    if (this.jogger) this.speed *= 1.9;
     this.look = randomLook(rand);
     this.state = 'walk';
     this.target = null;
@@ -4491,19 +4540,44 @@ class Ped {
     }
   }
 
-  /** Périmètre de l'îlot que le piéton longe. */
-  setBlock(b) {
+  /**
+   * Périmètre de l'îlot que le piéton longe. `neighbour(gx, gz)` lui permet,
+   * de temps en temps, de traverser la rue vers l'îlot d'en face.
+   */
+  setBlock(b, neighbour = null) {
     this.block = b;
-    this.corner = Math.floor(Math.random() * 4);
+    if (neighbour) this.neighbour = neighbour;
+    this.corner = Math.floor(this.rand() * 4);
     this.target = this.cornerPoint(this.corner);
   }
 
-  cornerPoint(i) {
-    const b = this.block;
+  cornerPoint(i, b = this.block) {
     if (!b) return null;
     const r = b.half + 2.3;
     const pts = [[b.x - r, b.z - r], [b.x + r, b.z - r], [b.x + r, b.z + r], [b.x - r, b.z + r]];
     return pts[((i % 4) + 4) % 4];
+  }
+
+  /** Traverse vers l'îlot voisin : on vise son coin le plus proche. */
+  crossStreet() {
+    const b = this.block;
+    if (!this.neighbour || !b) return false;
+    const side = Math.floor(this.rand() * 4);
+    const gx = b.gx + [0, 1, 0, -1][side];
+    const gz = b.gz + [-1, 0, 1, 0][side];
+    const nb = this.neighbour(gx, gz);
+    if (!nb) return false;
+    let best = 0, bd = Infinity;
+    for (let i = 0; i < 4; i++) {
+      const c = this.cornerPoint(i, nb);
+      const d = dist2D(this.x, this.z, c[0], c[1]);
+      if (d < bd) { bd = d; best = i; }
+    }
+    if (bd > 74) return false;                    // jamais plus loin qu'un pâté
+    this.block = nb;
+    this.corner = best;
+    this.target = this.cornerPoint(best);
+    return true;
   }
 
   damage(amount, game, byPlayer, isHead) {
@@ -4521,6 +4595,39 @@ class Ped {
     return false;
   }
 
+  /**
+   * Réflexe piéton : quand une voiture fonce droit dessus, on saute sur le
+   * côté. Sans ça un badaud planté sur la chaussée fige toute une file de
+   * voitures, et la ville s'embouteille pour de bon.
+   */
+  dodgeTraffic(dt, vehicles) {
+    this.dodgeT = Math.max(0, (this.dodgeT || 0) - dt);
+    if (!vehicles) return this.dodgeT > 0;
+    let worst = 0;
+    for (const v of vehicles) {
+      if (v.dead) continue;
+      const sp = Math.abs(v.speed);
+      if (sp < 3) continue;
+      const dx = this.x - v.x, dz = this.z - v.z;
+      if (dx * dx + dz * dz > 900) continue;
+      const dir = v.speed < 0 ? -1 : 1;
+      const fx = Math.sin(v.yaw) * dir, fz = Math.cos(v.yaw) * dir;
+      const reach = Math.max(8, sp * 1.6);
+      const along = dx * fx + dz * fz;
+      if (along < -1 || along > reach) continue;
+      const side = dx * fz - dz * fx;             // écart latéral signé
+      if (Math.abs(side) > v.hw + 1.4) continue;
+      const urgency = 1 - along / reach;
+      if (urgency > worst) {
+        worst = urgency;
+        const s = side >= 0 ? 1 : -1;             // on fuit du côté où l'on penche déjà
+        this.dodgeDir = [fz * s, -fx * s];
+        this.dodgeT = 0.85;
+      }
+    }
+    return this.dodgeT > 0;
+  }
+
   update(dt, ctx) {
     if (this.dead) {
       this.deadT += dt;
@@ -4532,6 +4639,14 @@ class Ped {
     const distPlayer = Math.hypot(dpx, dpz);
 
     if (this.panic > 0) this.panic -= dt * 0.25;
+
+    const vehicles = game && game.vehicles;
+    if (!this.hostile && !this.cop && this.dodgeTraffic(dt, vehicles)) {
+      this.yaw = dampAngle(this.yaw, Math.atan2(this.dodgeDir[0], this.dodgeDir[1]), 11, dt);
+      this.moveForward(dt, this.speed * 2.3, world, vehicles);
+      this.anim += this.move * dt * 1.9;
+      return;
+    }
 
     if (this.hostile || this.cop) {
       this.combatUpdate(dt, ctx, distPlayer, dpx, dpz);
@@ -4565,18 +4680,30 @@ class Ped {
     }
     this.weaponCooldown -= dt;
     if (canSee && d < 42 && this.weaponCooldown <= 0 && game) {
-      this.weaponCooldown = this.cop ? range(Math.random, 0.42, 0.95) : range(Math.random, 0.5, 1.2);
+      this.weaponCooldown = this.cop ? range(this.rand, 0.42, 0.95) : range(this.rand, 0.5, 1.2);
       game.npcShoot(this, target, d);
     }
   }
 
   walkUpdate(dt, world, vehicles) {
+    if (this.idleT > 0) {                       // on souffle, on regarde son écran
+      this.idleT -= dt;
+      this.yaw += this.idleTurn * dt;
+      this.move = damp(this.move, 0, 8, dt);
+      return;
+    }
     if (!this.target) { this.move = 0; return; }
     const dx = this.target[0] - this.x, dz = this.target[1] - this.z;
     const d = Math.hypot(dx, dz);
     if (d < 1.6) {
+      const r = this.rand();
+      if (r < 0.18 && this.crossStreet()) return;   // on traverse
+      if (r > 0.86 && !this.jogger) {               // on s'arrête un instant
+        this.idleT = 1.4 + this.rand() * 4;
+        this.idleTurn = (this.rand() - 0.5) * 0.9;
+      }
       this.corner += this.dir;
-      if (Math.random() < 0.12) this.dir *= -1;
+      if (this.rand() < 0.12) this.dir *= -1;
       this.target = this.cornerPoint(this.corner);
       return;
     }
@@ -5186,7 +5313,7 @@ class Camera {
     let d = this.dist;
     // ne pas traverser les murs
     const wall = game.world.raycast(targetX, targetY, targetZ, -dirX, -dirY, -dirZ, d + 0.6);
-    if (wall !== Infinity) d = Math.max(0.9, wall - 0.55);
+    if (wall !== Infinity) d = Math.max(1.7, wall - 0.5);
 
     let ex = targetX - dirX * d;
     let ey = targetY - dirY * d;
@@ -5222,7 +5349,7 @@ class Camera {
   const { Vehicle, MODELS, CIVILIAN_MODELS } = __m["entities/vehicle.js"];
   const { Ped } = __m["entities/character.js"];
   const { rng, range, pick, clamp, wrapAngle, angleDelta, dist2D } = __m["engine/math.js"];
-  const { STREET, ROAD_W } = __m["world/gen.js"];
+  const { STREET, ROAD_W, GRID } = __m["world/gen.js"];
 const LANE = 4.6;
 const SPAWN_MIN = 105;
 const SPAWN_MAX = 210;
@@ -5232,10 +5359,14 @@ class Population {
   constructor(game) {
     this.game = game;
     this.rand = rng(777);
-    this.maxTraffic = 22;
-    this.maxParked = 26;
-    this.maxPeds = 30;
+    this.maxTraffic = 26;
+    this.maxParked = 30;
+    this.maxPeds = 38;
     this.pedTimer = 0;
+    // index des îlots par case de la trame : sert aux piétons qui traversent
+    this.blocks = new Map();
+    for (const b of game.data.blocks) this.blocks.set(`${b.gx},${b.gz}`, b);
+    this.blockAt = (gx, gz) => this.blocks.get(`${gx},${gz}`) || null;
   }
 
   /** Nœud du graphe le plus proche d'un point. */
@@ -5322,9 +5453,9 @@ class Population {
     while (tries-- > 0) {
       const b = pick(this.rand, blocks);
       const d = dist2D(b.x, b.z, p.x, p.z);
-      if (d < 40 || d > 150) continue;
+      if (d < 22 || d > 130) continue;
       const ped = new Ped(b.x, b.z, this.rand);
-      ped.setBlock(b);
+      ped.setBlock(b, this.blockAt);
       const c = ped.cornerPoint(Math.floor(this.rand() * 4));
       ped.x = c[0] + range(this.rand, -6, 6);
       ped.z = c[1] + range(this.rand, -6, 6);
@@ -5334,6 +5465,32 @@ class Population {
       return ped;
     }
     return null;
+  }
+
+  /**
+   * Feux tricolores : un cycle unique pour toute la ville. 0 = nord-sud au
+   * vert, 1 = est-ouest au vert ; les deux dernières secondes sont orange.
+   */
+  static lightPhase(time) {
+    const CYCLE = 11;
+    const t = (time % (CYCLE * 2)) / CYCLE;
+    const green = Math.floor(t);
+    const remaining = CYCLE - (time % CYCLE);
+    return { green, amber: remaining < 2.2 };
+  }
+
+  /** Le véhicule doit-il s'arrêter au feu du prochain carrefour ? */
+  mustStop(v, node, axis) {
+    const g = this.game;
+    const { green, amber } = Population.lightPhase(g.time || 0);
+    if (axis === green && !amber) return false;
+    const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
+    const dx = node.x - v.x, dz = node.z - v.z;
+    const ahead = dx * fx + dz * fz;
+    const dist = Math.hypot(dx, dz);
+    if (ahead < 0 || dist > 16) return false;                 // déjà engagé, ou trop loin
+    if (amber && dist < 7 && Math.abs(v.speed) > 8) return false;   // trop tard pour freiner
+    return true;
   }
 
   update(dt) {
@@ -5428,36 +5585,56 @@ class Population {
 
     // Espace libre devant le pare-chocs. Trop prudent, et la ville s'embouteille
     // définitivement : on ne s'arrête qu'à 2,5 m et on ralentit progressivement.
-    let gap = 60;
+    let gap = 60;                       // obstacles durs : véhicules
+    let soft = 60;                      // obstacles mous : piétons, joueur à pied
     const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
     const sideX = Math.cos(v.yaw), sideZ = -Math.sin(v.yaw);
     const check = (ox, oz, len, w) => {
       const dx = ox - v.x, dz = oz - v.z;
       const along = dx * fx + dz * fz;
       const side = Math.abs(dx * sideX + dz * sideZ);
-      if (along > 0 && along < 30 && side < w) gap = Math.min(gap, along - len);
+      if (along > 0 && along < 30 && side < w) return along - len;
+      return 60;
     };
     for (const o of g.vehicles) {
       if (o === v) continue;
       if (dist2D(o.x, o.z, v.x, v.z) > 32) continue;
-      check(o.x, o.z, o.hl + v.hl + 0.6, 2.1);
+      gap = Math.min(gap, check(o.x, o.z, o.hl + v.hl + 0.6, 2.1));
     }
     const pl = g.player;
-    if (pl.onFoot && !pl.dead) check(pl.x, pl.z, v.hl + 1.2, 1.8);
+    if (pl.onFoot && !pl.dead) soft = Math.min(soft, check(pl.x, pl.z, v.hl + 1.2, 1.8));
     for (const ped of g.peds) {
       if (ped.dead || ped.inVehicle) continue;
-      if (dist2D(ped.x, ped.z, v.x, v.z) < 20) check(ped.x, ped.z, v.hl + 1.2, 1.6);
+      if (dist2D(ped.x, ped.z, v.x, v.z) < 20) soft = Math.min(soft, check(ped.x, ped.z, v.hl + 1.2, 1.6));
     }
+
+    // On cède le passage à un piéton, mais pas éternellement : au bout de
+    // trois secondes on klaxonne et on avance au pas — sinon un badaud figé
+    // sur la chaussée bloque la file jusqu'à la fin des temps.
+    ai.pedWait = soft < 5 ? (ai.pedWait || 0) + dt : 0;
+    const creep = ai.pedWait > 3;
+    if (!creep) gap = Math.min(gap, soft);
 
     const turnFactor = 1 - Math.min(Math.abs(err) / 1.2, 0.75);
     let cruise = ai.cruise * turnFactor;
+
+    // feu rouge au carrefour visé
+    if (next.links.length >= 3 && Math.abs(next.gx) <= GRID && Math.abs(next.gz) <= GRID) {
+      const seg = nodes[ai.node];
+      const axis = Math.abs(next.x - seg.x) > Math.abs(next.z - seg.z) ? 1 : 0;
+      if (this.mustStop(v, next, axis)) {
+        const brakeDist = Math.max(0, Math.hypot(next.x - v.x, next.z - v.z) - 9);
+        cruise = Math.min(cruise, brakeDist * 0.9);
+      }
+    }
     if (g.player.wanted > 0 && dist2D(v.x, v.z, pl.x, pl.z) < 70) cruise *= 0.55;
     if (gap < 2.5) cruise = 0;
     else if (gap < 18) cruise *= clamp((gap - 2.5) / 15.5, 0, 1);
+    if (creep) cruise = Math.max(cruise, Math.min(3.2, gap > 2.5 ? 3.2 : 0));
 
     v.throttle = clamp((cruise - v.speed) * 0.6, -1, 1);
     v.handbrake = cruise === 0 && v.speed < 0.4;
-    ai.impatience = gap < 6 ? ai.impatience + dt : 0;
+    ai.impatience = Math.min(gap, soft) < 6 ? ai.impatience + dt : 0;
     if (ai.impatience > 2.5 && this.rand() < dt * 1.5) { v.horn = 0.25; g.audio.hornSound(v.x, v.z); }
   }
 
@@ -6603,15 +6780,15 @@ class HUD {
 /* --------------------------------------------------- ambiances horaires */
 
 const SKY_KEYS = [
-  { h: 0, top: '#050a18', hor: '#0d1526', fog: '#141e30', sun: '#3a4a70', amb: '#2a3450', gnd: '#3a2c1c', night: 1 },
-  { h: 5, top: '#132038', hor: '#3b3350', fog: '#3a3346', sun: '#6a5a70', amb: '#2c3450', gnd: '#362a1c', night: 0.8 },
+  { h: 0, top: '#050a18', hor: '#0d1526', fog: '#141e30', sun: '#3a4a70', amb: '#38445f', gnd: '#4a3826', night: 1 },
+  { h: 5, top: '#132038', hor: '#3b3350', fog: '#3a3346', sun: '#6a5a70', amb: '#39445e', gnd: '#463526', night: 0.8 },
   { h: 6.5, top: '#2d5a8f', hor: '#e8905a', fog: '#d68f6a', sun: '#ffa564', amb: '#6a5c62', gnd: '#3a2e26', night: 0.15 },
   { h: 9, top: '#2f7ac4', hor: '#a8cbe0', fog: '#b6cddc', sun: '#fff2dc', amb: '#7d92ab', gnd: '#4a4238', night: 0 },
   { h: 13, top: '#2a76c8', hor: '#bcd8ea', fog: '#c3d9e6', sun: '#fff8e8', amb: '#8ba2ba', gnd: '#524838', night: 0 },
   { h: 17, top: '#3070b4', hor: '#dcc39a', fog: '#d3c0a4', sun: '#ffe4b4', amb: '#7c88a0', gnd: '#4a4030', night: 0 },
   { h: 19, top: '#1e3c6e', hor: '#e07840', fog: '#c07a55', sun: '#ff8a48', amb: '#54546a', gnd: '#2a2422', night: 0.35 },
-  { h: 21, top: '#0a1228', hor: '#1e2440', fog: '#1e2740', sun: '#38486c', amb: '#28324c', gnd: '#382a1a', night: 0.9 },
-  { h: 24, top: '#050a18', hor: '#0d1526', fog: '#141e30', sun: '#3a4a70', amb: '#2a3450', gnd: '#3a2c1c', night: 1 },
+  { h: 21, top: '#0a1228', hor: '#1e2440', fog: '#1e2740', sun: '#38486c', amb: '#36415c', gnd: '#483624', night: 0.9 },
+  { h: 24, top: '#050a18', hor: '#0d1526', fog: '#141e30', sun: '#3a4a70', amb: '#38445f', gnd: '#4a3826', night: 1 },
 ];
 
 function envAt(hour) {
@@ -6781,6 +6958,8 @@ class Game {
   indexLights() {
     this.lampGrid = new Map();
     const cell = 90;
+    // les feux tricolores sont repérés à part : ils changent de couleur
+    this.lights = this.data.props.filter((pr) => pr.kind === 'trafficlight');
     for (const pr of this.data.props) {
       if (pr.kind !== 'lamp' && pr.kind !== 'billboard') continue;
       const k = `${Math.floor(pr.x / cell)},${Math.floor(pr.z / cell)}`;
@@ -6974,6 +7153,11 @@ class Game {
 
   onPedKilled(ped, byPlayer) {
     this.particles.spawn(ped.x, 1.2, ped.z, 0, 0.6, 0, 0.5, 0.7, [0.5, 0.05, 0.05], { gravity: -2 });
+    // une liasse tombe, à ramasser en passant dessus
+    this.pickups.push({
+      kind: 'cash', x: ped.x + range(this.rand, -0.6, 0.6), z: ped.z + range(this.rand, -0.6, 0.6),
+      amount: Math.round(range(this.rand, 40, 260)), active: true, t: 0, expire: 45,
+    });
     if (!byPlayer) return;
     this.stats.kills++;
     if (ped.mission || ped.hostile) return;
@@ -7210,15 +7394,21 @@ class Game {
 
   checkPickups(dt) {
     const p = this.player;
-    for (const pu of this.pickups) {
+    for (let i = this.pickups.length - 1; i >= 0; i--) {
+      const pu = this.pickups[i];
       pu.t += dt;
+      if (pu.expire !== undefined) {
+        pu.expire -= dt;
+        if (pu.expire <= 0) pu.remove = true;
+      }
+      if (pu.remove) { this.pickups.splice(i, 1); continue; }
       if (!pu.active) {
         pu.respawn -= dt;
         if (pu.respawn <= 0) pu.active = true;
         continue;
       }
       const d = dist2D(p.x, p.z, pu.x, pu.z);
-      if (d > 2.4 || !p.onFoot) continue;
+      if (d > (pu.kind === 'cash' ? 1.8 : 2.4) || !p.onFoot) continue;
       if (pu.kind === 'armor') {
         if (p.armor >= p.maxArmor) continue;
         p.armor = p.maxArmor; pu.active = false; pu.respawn = 90;
@@ -7230,6 +7420,9 @@ class Game {
       } else if (pu.kind === 'money') {
         p.money += 2500; pu.active = false; pu.respawn = 120;
         this.notify('Liasse trouvée', '+2 500 $');
+      } else if (pu.kind === 'cash') {
+        p.money += pu.amount;
+        pu.active = false; pu.remove = true;
       } else continue;
       this.audio.pickup(true);
     }
@@ -7869,10 +8062,13 @@ class Game {
     for (const pu of this.pickups) {
       if (!pu.active) continue;
       const c = pu.kind === 'armor' ? [0.35, 0.65, 1] : pu.kind === 'health' ? [1, 0.35, 0.35]
-        : pu.kind === 'money' ? [0.35, 1, 0.5] : [1, 0.85, 0.3];
+        : pu.kind === 'money' || pu.kind === 'cash' ? [0.35, 1, 0.5] : [1, 0.85, 0.3];
       if (pu.kind.startsWith('shop-')) {
         m4compose(pm, pu.x, 0.05, pu.z, 0, 4, 2.6, 4);
         R.ghost('marker', pm, c, 0.7);
+      } else if (pu.kind === 'cash') {
+        m4compose(pm, pu.x, 0.35 + Math.sin(pu.t * 3) * 0.06, pu.z, pu.t * 2.2, 0.34, 0.1, 0.2);
+        R.cube(pm, c, 0.7);
       } else {
         m4compose(pm, pu.x, 0.9 + Math.sin(pu.t * 2) * 0.14, pu.z, pu.t * 1.4, 0.5, 0.5, 0.5);
         R.cube(pm, c, 0.8);
@@ -7950,7 +8146,8 @@ class Game {
           const hz = v.z + fz * v.hl + rz * s2 * v.hw * 0.62;
           R.glow(hx, v.geo.floor + 0.35, hz, 1.5, 1, 0.95, 0.8, 0.7 * fade);
         }
-        R.glowGround(v.x + fx * (v.hl + 7), 0.4, v.z + fz * (v.hl + 7), 11, 1, 0.93, 0.72, 0.34 * fade * n);
+        R.glowGround(v.x + fx * (v.hl + 5), 0.4, v.z + fz * (v.hl + 5), 9, 1, 0.94, 0.74, 0.4 * fade * n);
+        R.glowGround(v.x + fx * (v.hl + 12), 0.4, v.z + fz * (v.hl + 12), 13, 1, 0.93, 0.72, 0.28 * fade * n);
         R.glowGround(v.x - fx * (v.hl + 1.2), 0.4, v.z - fz * (v.hl + 1.2), 4, 1, 0.2, 0.15, 0.3 * fade * n);
       }
       if (v.siren) {
@@ -7959,6 +8156,28 @@ class Game {
         R.glowGround(v.x, 0.4, v.z, 16, blue ? 0.3 : 1, 0.35, blue ? 1 : 0.3, 0.22 * fade);
       }
     }
+    // Feux tricolores : les trois lampes sont dessinées ici, pour que la
+    // couleur allumée suive le cycle de la ville.
+    const { green, amber } = Population.lightPhase(this.time);
+    const mm = this.markerMat || (this.markerMat = m4());
+    for (const f of this.lights) {
+      const d = dist2D(f.x, f.z, cx, cz);
+      if (d > 90) continue;
+      const axis = Math.abs(Math.sin(f.r)) < 0.5 ? 0 : 1;   // r = 0 ou PI -> axe nord-sud
+      const passe = axis === green;
+      const state = passe && !amber ? 2 : passe && amber ? 1 : 0;   // 0 rouge, 1 orange, 2 vert
+      const fade = clamp(1 - d / 90, 0, 1);
+      const ox = -Math.sin(f.r) * 0.3, oz = -Math.cos(f.r) * 0.3;
+      const lamps = [[5.3, [1, 0.16, 0.1]], [4.9, [1, 0.68, 0.08]], [4.5, [0.22, 1, 0.32]]];
+      for (let i = 0; i < 3; i++) {
+        const on = (2 - i) === state;
+        const col = lamps[i][1];
+        m4compose(mm, f.x + ox, lamps[i][0], f.z + oz, 0, 0.25, 0.25, 0.25);
+        R.sphere(mm, on ? col : [col[0] * 0.12, col[1] * 0.12, col[2] * 0.12], on ? 1 : 0);
+        if (on) R.glow(f.x + ox * 1.3, lamps[i][0], f.z + oz * 1.3, 1.7, col[0], col[1], col[2], 0.45 * fade);
+      }
+    }
+
     for (const pr of this.projectiles) {
       if (pr.kind === 'rocket') R.glow(pr.x, pr.y, pr.z, 3.5, 1, 0.7, 0.3, 0.8);
     }

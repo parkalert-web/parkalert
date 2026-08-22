@@ -545,36 +545,136 @@ test('la circulation roule et reste sur la chaussée', async () => {
   const world = new World(data);
   // un jeu minimal : la circulation n'a besoin que de ça
   const game = {
-    data, world, vehicles: [], peds: [],
+    data, world, vehicles: [], peds: [], time: 0, threatLevel: 0,
     player: { x: 0, z: -45, wanted: 0, onFoot: true, dead: false, vehicle: null },
     audio: { stopEngine() {}, hornSound() {} },
   };
   const pop = new Population(game);
+  // Comme la boucle du jeu : les piétons vivent aussi, sinon on simule des
+  // statues plantées sur la chaussée et toute la ville s'embouteille.
+  const ctx = { player: game.player, world, game };
+  const tick = () => {
+    game.time += dt;
+    pop.update(dt);
+    for (const v of game.vehicles) v.update(dt, world, null);
+    for (const ped of game.peds) if (!ped.inVehicle) ped.update(dt, ctx);
+  };
   for (let i = 0; i < 40; i++) pop.spawnTraffic();
   const traffic = game.vehicles.filter((v) => v.ai);
   assert.ok(traffic.length > 10, 'la circulation doit apparaître');
   const start = new Map(traffic.map((v) => [v, { x: v.x, z: v.z }]));
 
   const dt = 1 / 30;
-  for (let step = 0; step < 30 * 30; step++) {          // 30 secondes simulées
-    pop.update(dt);
-    for (const v of game.vehicles) v.update(dt, world, null);
-  }
+  for (let step = 0; step < 30 * 30; step++) tick();     // 30 secondes simulées
 
-  let moved = 0; let stuck = 0; let offRoad = 0;
+  let moved = 0; let offRoad = 0;
   const live = game.vehicles.filter((v) => v.ai && !v.dead);
   const near = (c) => Math.abs(((c % STREET) + STREET * 1.5) % STREET - STREET / 2);
+  const stopped = [];
+  // On ne juge de la distance parcourue que sur les voitures du départ : les
+  // autres viennent d'apparaître et n'ont pas encore eu le temps de rouler.
+  const suivies = live.filter((v) => start.has(v));
   for (const v of live) {
     const s0 = start.get(v);
     if (s0 && dist2D(v.x, v.z, s0.x, s0.z) > 30) moved++;
-    if (Math.abs(v.speed) < 0.5) stuck++;
+    if (Math.abs(v.speed) < 0.5) stopped.push({ v, x: v.x, z: v.z });
     if (near(v.x) > 14 && near(v.z) > 14) offRoad++;
     assert.ok(!world.solidAt(v.x, 1, v.z), `voiture encastrée en (${v.x.toFixed(0)}, ${v.z.toFixed(0)})`);
   }
   assert.ok(live.length > 8, 'la circulation ne doit pas se détruire toute seule');
-  assert.ok(moved > live.length * 0.4, `les voitures doivent avancer (${moved}/${live.length})`);
-  assert.ok(stuck < live.length * 0.4, `peu de voitures à l'arrêt (${stuck}/${live.length})`);
+  assert.ok(suivies.length > 4, `il doit rester des voitures du départ (${suivies.length})`);
+  assert.ok(moved > suivies.length * 0.6, `les voitures doivent avancer (${moved}/${suivies.length})`);
   assert.ok(offRoad < live.length * 0.3, `les voitures restent sur la chaussée (${offRoad} hors route)`);
+  const vitesse = live.reduce((a, v) => a + Math.abs(v.speed), 0) / live.length;
+  assert.ok(vitesse > 4, `la circulation ne doit pas être à l'arrêt (${vitesse.toFixed(1)} m/s)`);
+
+  // Une voiture à l'arrêt attend un feu, elle n'est pas bloquée : après un
+  // cycle complet, la plupart doivent être reparties.
+  for (let step = 0; step < 30 * 26; step++) tick();
+  const encore = stopped.filter((r) => game.vehicles.includes(r.v));
+  const repartis = encore.filter((r) => dist2D(r.v.x, r.v.z, r.x, r.z) > 6).length;
+  assert.ok(encore.length === 0 || repartis > encore.length * 0.55,
+    `les voitures arrêtées doivent repartir (${repartis}/${encore.length})`);
+});
+
+test('une voiture lancée à fond ne traverse pas un immeuble', async () => {
+  const data = generateWorld(20130917);
+  const world = new World(data);
+  // un immeuble bien épais, loin du bord de carte
+  const mur = data.colliders
+    .filter((c) => c.kind === 'building' && c.hw > 9 && c.hd > 9 && Math.abs(c.x) < 300 && Math.abs(c.z) < 300)
+    .sort((a, b) => b.hw - a.hw)[0];
+  assert.ok(mur, 'il faut un immeuble pour ce test');
+
+  for (const kmh of [90, 160, 260]) {
+    const v = new Vehicle('comete', mur.x, mur.z - mur.hd - 30, 0);
+    v.speed = kmh / 3.6;
+    v.vz = v.speed;
+    const dt = 1 / 30;
+    let dedans = false;
+    for (let i = 0; i < 90; i++) {
+      v.throttle = 1;
+      v.update(dt, world, null);
+      if (world.solidAt(v.x, 1, v.z)) dedans = true;
+    }
+    assert.ok(!dedans, `à ${kmh} km/h la voiture ne doit pas entrer dans le mur`);
+    assert.ok(v.z < mur.z + mur.hd, `à ${kmh} km/h la voiture ne doit pas ressortir de l'autre côté (z=${v.z.toFixed(1)})`);
+  }
+});
+
+test('les piétons vivent leur vie sans traverser les murs', async () => {
+  const { Population } = await import('../game/src/systems/traffic.js');
+  const data = generateWorld(20130917);
+  const world = new World(data);
+  const game = {
+    data, world, vehicles: [], peds: [], time: 0, threatLevel: 0,
+    player: { x: 0, z: -45, wanted: 0, onFoot: true, dead: false, vehicle: null },
+    audio: { stopEngine() {}, hornSound() {} },
+  };
+  const pop = new Population(game);
+  for (let i = 0; i < 90; i++) pop.spawnPed();
+  const peds = [...game.peds];
+  assert.ok(peds.length > 20, `des piétons doivent apparaître (${peds.length})`);
+  const depart = peds.map((c) => ({ c, x: c.x, z: c.z, b: c.block }));
+
+  const ctx = { player: game.player, world, game };
+  const dt = 1 / 30;
+  let dansLeMur = 0;
+  const pauses = new Set();
+  for (let step = 0; step < 30 * 120; step++) {         // deux minutes de trottoir
+    game.time += dt;
+    for (const c of game.peds) c.update(dt, ctx);
+    for (const c of game.peds) if (c.idleT > 0) pauses.add(c.id);
+    if (step % 60 === 0) for (const c of game.peds) if (world.solidAt(c.x, 1, c.z)) dansLeMur++;
+  }
+  assert.equal(dansLeMur, 0, `aucun piéton ne doit finir dans un mur (${dansLeMur})`);
+
+  const bouges = depart.filter((r) => dist2D(r.c.x, r.c.z, r.x, r.z) > 8).length;
+  assert.ok(bouges > depart.length * 0.7, `les piétons doivent marcher (${bouges}/${depart.length})`);
+  const traverses = depart.filter((r) => r.c.block !== r.b).length;
+  assert.ok(traverses > 2, `certains piétons doivent traverser la rue (${traverses})`);
+  assert.ok(pauses.size > 2, `certains piétons doivent marquer une pause (${pauses.size})`);
+});
+
+test('un piéton s’écarte d’une voiture qui lui fonce dessus', async () => {
+  const { Ped } = await import('../game/src/entities/character.js');
+  const data = generateWorld(20130917);
+  const world = new World(data);
+  const rand = () => 0.5;
+  const ped = new Ped(4.6, 0, rand);
+  ped.setBlock(data.blocks[0]);
+  const car = new Vehicle('comete', 4.6, -20, 0);
+  car.speed = 16;
+  const game = { vehicles: [car], threatLevel: 0 };
+  const ctx = { player: { x: 400, z: 400 }, world, game };
+  const dt = 1 / 60;
+  let ecart = 0;
+  for (let i = 0; i < 60; i++) {
+    car.z += car.speed * dt;
+    ped.update(dt, ctx);
+    ecart = Math.max(ecart, Math.abs(ped.x - 4.6));
+  }
+  assert.ok(ecart > 1.4, `le piéton doit sauter sur le côté (${ecart.toFixed(2)} m)`);
 });
 
 test('une longue traque ne fait pas enfler le parc automobile', async () => {

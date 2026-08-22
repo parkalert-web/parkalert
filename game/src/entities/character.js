@@ -40,22 +40,24 @@ export function drawHuman(R, s, look = null) {
   const shoe = [0.11, 0.1, 0.1];
 
   // pièces élémentaires, exprimées dans le repère du personnage
+  // k : taille générale, w : carrure. Deux piétons ne se ressemblent jamais tout à fait.
+  const k = s.scale || 1;
+  const w = (s.build || 1) * k;
   const box = (x, y, z, sx, sy, sz, c, rx = 0, ry = 0, rz = 0) => {
-    m4compose(tmpB, x, y, z, ry, sx, sy, sz, rx, rz);
+    m4compose(tmpB, x * w, y * k, z * k, ry, sx * w, sy * k, sz * k, rx, rz);
     m4mul(tmpB, base, tmpB);
     R.cube(tmpB, c);
   };
   const ball = (x, y, z, d, c, dy = d, dz = d) => {
-    m4compose(tmpB, x, y, z, 0, d, dy, dz);
+    m4compose(tmpB, x * w, y * k, z * k, 0, d * w, dy * k, dz * k);
     m4mul(tmpB, base, tmpB);
     R.sphere(tmpB, c);
   };
   /** Segment de membre : cylindre partant du pivot, incliné de `a` (plan sagittal). */
   const limb = (px, py, pz, a, len, thick, c) => {
-    const cx = px;
     const cy = py - Math.cos(a) * len / 2;
     const cz = pz - Math.sin(a) * len / 2;
-    m4compose(tmpB, cx, cy, cz, 0, thick, len, thick, a, 0);
+    m4compose(tmpB, px * w, cy * k, cz * k, 0, thick * w, len * k, thick * w, a, 0);
     m4mul(tmpB, base, tmpB);
     R.cyl(tmpB, c);
     return [px, py - Math.cos(a) * len, pz - Math.sin(a) * len];   // extrémité
@@ -86,7 +88,7 @@ export function drawHuman(R, s, look = null) {
   /* -------------------------------------------------------------- tronc */
   const chestY = hipY + 0.34;
   box(0, hipY + 0.08, -lean * 0.05, 0.32, 0.22, 0.23, pants, lean);      // bassin
-  m4compose(tmpB, 0, hipY + 0.2, 0, 0, 0.29, 0.24, 0.25, lean, 0);
+  m4compose(tmpB, 0, (hipY + 0.2) * k, 0, 0, 0.29 * w, 0.24 * k, 0.25 * w, lean, 0);
   m4mul(tmpB, base, tmpB); R.cyl(tmpB, shirt);                           // taille
   box(0, chestY - 0.02, 0, 0.36, 0.26, 0.25, shirt, lean);               // bas du torse
   box(0, chestY + 0.16, 0, 0.42, 0.24, 0.27, shirt, lean);               // poitrine
@@ -94,7 +96,7 @@ export function drawHuman(R, s, look = null) {
 
   /* --------------------------------------------------------------- tête */
   const neckY = chestY + 0.32;
-  m4compose(tmpB, 0, neckY - 0.03, 0, 0, 0.12, 0.11, 0.12);
+  m4compose(tmpB, 0, (neckY - 0.03) * k, 0, 0, 0.12 * w, 0.11 * k, 0.12 * w);
   m4mul(tmpB, base, tmpB); R.cyl(tmpB, skin);
   const headTilt = look !== null ? clamp(look * 0.3, -0.35, 0.35) : 0;
   const hy = neckY + 0.16;
@@ -152,6 +154,8 @@ export function drawHuman(R, s, look = null) {
 /** Habillage aléatoire cohérent. */
 export function randomLook(rand) {
   return {
+    scale: range(rand, 0.9, 1.09),
+    build: range(rand, 0.88, 1.14),
     skin: color(pick(rand, SKIN)),
     shirt: color(pick(rand, SHIRT)),
     pants: color(pick(rand, PANTS)),
@@ -166,6 +170,7 @@ let pedId = 1;
 export class Ped {
   constructor(x, z, rand, opts = {}) {
     this.id = pedId++;
+    this.rand = rand;          // le même tirage que la population : tout est reproductible
     this.x = x; this.y = 0; this.z = z;
     this.yaw = rand() * Math.PI * 2;
     this.vx = 0; this.vz = 0;
@@ -176,6 +181,13 @@ export class Ped {
     this.dead = false;
     this.deadT = 0;
     this.panic = 0;
+    this.dodgeT = 0;
+    this.dodgeDir = null;
+    this.idleT = 0;
+    this.idleTurn = 0;
+    this.jogger = rand() < 0.14;
+    this.neighbour = null;
+    if (this.jogger) this.speed *= 1.9;
     this.look = randomLook(rand);
     this.state = 'walk';
     this.target = null;
@@ -207,19 +219,44 @@ export class Ped {
     }
   }
 
-  /** Périmètre de l'îlot que le piéton longe. */
-  setBlock(b) {
+  /**
+   * Périmètre de l'îlot que le piéton longe. `neighbour(gx, gz)` lui permet,
+   * de temps en temps, de traverser la rue vers l'îlot d'en face.
+   */
+  setBlock(b, neighbour = null) {
     this.block = b;
-    this.corner = Math.floor(Math.random() * 4);
+    if (neighbour) this.neighbour = neighbour;
+    this.corner = Math.floor(this.rand() * 4);
     this.target = this.cornerPoint(this.corner);
   }
 
-  cornerPoint(i) {
-    const b = this.block;
+  cornerPoint(i, b = this.block) {
     if (!b) return null;
     const r = b.half + 2.3;
     const pts = [[b.x - r, b.z - r], [b.x + r, b.z - r], [b.x + r, b.z + r], [b.x - r, b.z + r]];
     return pts[((i % 4) + 4) % 4];
+  }
+
+  /** Traverse vers l'îlot voisin : on vise son coin le plus proche. */
+  crossStreet() {
+    const b = this.block;
+    if (!this.neighbour || !b) return false;
+    const side = Math.floor(this.rand() * 4);
+    const gx = b.gx + [0, 1, 0, -1][side];
+    const gz = b.gz + [-1, 0, 1, 0][side];
+    const nb = this.neighbour(gx, gz);
+    if (!nb) return false;
+    let best = 0, bd = Infinity;
+    for (let i = 0; i < 4; i++) {
+      const c = this.cornerPoint(i, nb);
+      const d = dist2D(this.x, this.z, c[0], c[1]);
+      if (d < bd) { bd = d; best = i; }
+    }
+    if (bd > 74) return false;                    // jamais plus loin qu'un pâté
+    this.block = nb;
+    this.corner = best;
+    this.target = this.cornerPoint(best);
+    return true;
   }
 
   damage(amount, game, byPlayer, isHead) {
@@ -237,6 +274,39 @@ export class Ped {
     return false;
   }
 
+  /**
+   * Réflexe piéton : quand une voiture fonce droit dessus, on saute sur le
+   * côté. Sans ça un badaud planté sur la chaussée fige toute une file de
+   * voitures, et la ville s'embouteille pour de bon.
+   */
+  dodgeTraffic(dt, vehicles) {
+    this.dodgeT = Math.max(0, (this.dodgeT || 0) - dt);
+    if (!vehicles) return this.dodgeT > 0;
+    let worst = 0;
+    for (const v of vehicles) {
+      if (v.dead) continue;
+      const sp = Math.abs(v.speed);
+      if (sp < 3) continue;
+      const dx = this.x - v.x, dz = this.z - v.z;
+      if (dx * dx + dz * dz > 900) continue;
+      const dir = v.speed < 0 ? -1 : 1;
+      const fx = Math.sin(v.yaw) * dir, fz = Math.cos(v.yaw) * dir;
+      const reach = Math.max(8, sp * 1.6);
+      const along = dx * fx + dz * fz;
+      if (along < -1 || along > reach) continue;
+      const side = dx * fz - dz * fx;             // écart latéral signé
+      if (Math.abs(side) > v.hw + 1.4) continue;
+      const urgency = 1 - along / reach;
+      if (urgency > worst) {
+        worst = urgency;
+        const s = side >= 0 ? 1 : -1;             // on fuit du côté où l'on penche déjà
+        this.dodgeDir = [fz * s, -fx * s];
+        this.dodgeT = 0.85;
+      }
+    }
+    return this.dodgeT > 0;
+  }
+
   update(dt, ctx) {
     if (this.dead) {
       this.deadT += dt;
@@ -248,6 +318,14 @@ export class Ped {
     const distPlayer = Math.hypot(dpx, dpz);
 
     if (this.panic > 0) this.panic -= dt * 0.25;
+
+    const vehicles = game && game.vehicles;
+    if (!this.hostile && !this.cop && this.dodgeTraffic(dt, vehicles)) {
+      this.yaw = dampAngle(this.yaw, Math.atan2(this.dodgeDir[0], this.dodgeDir[1]), 11, dt);
+      this.moveForward(dt, this.speed * 2.3, world, vehicles);
+      this.anim += this.move * dt * 1.9;
+      return;
+    }
 
     if (this.hostile || this.cop) {
       this.combatUpdate(dt, ctx, distPlayer, dpx, dpz);
@@ -281,18 +359,30 @@ export class Ped {
     }
     this.weaponCooldown -= dt;
     if (canSee && d < 42 && this.weaponCooldown <= 0 && game) {
-      this.weaponCooldown = this.cop ? range(Math.random, 0.42, 0.95) : range(Math.random, 0.5, 1.2);
+      this.weaponCooldown = this.cop ? range(this.rand, 0.42, 0.95) : range(this.rand, 0.5, 1.2);
       game.npcShoot(this, target, d);
     }
   }
 
   walkUpdate(dt, world, vehicles) {
+    if (this.idleT > 0) {                       // on souffle, on regarde son écran
+      this.idleT -= dt;
+      this.yaw += this.idleTurn * dt;
+      this.move = damp(this.move, 0, 8, dt);
+      return;
+    }
     if (!this.target) { this.move = 0; return; }
     const dx = this.target[0] - this.x, dz = this.target[1] - this.z;
     const d = Math.hypot(dx, dz);
     if (d < 1.6) {
+      const r = this.rand();
+      if (r < 0.18 && this.crossStreet()) return;   // on traverse
+      if (r > 0.86 && !this.jogger) {               // on s'arrête un instant
+        this.idleT = 1.4 + this.rand() * 4;
+        this.idleTurn = (this.rand() - 0.5) * 0.9;
+      }
       this.corner += this.dir;
-      if (Math.random() < 0.12) this.dir *= -1;
+      if (this.rand() < 0.12) this.dir *= -1;
       this.target = this.cornerPoint(this.corner);
       return;
     }

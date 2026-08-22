@@ -287,8 +287,13 @@ export function generateWorld(seed = 20130917) {
   for (let gz = -GRID; gz <= GRID; gz++) {
     for (let gx = -GRID; gx <= GRID; gx++) {
       const o = ROAD_W / 2 + 2.4;
-      props.push({ kind: 'trafficlight', x: gx * STREET - o, z: gz * STREET - o, r: 0 });
-      props.push({ kind: 'trafficlight', x: gx * STREET + o, z: gz * STREET + o, r: Math.PI });
+      const cx2 = gx * STREET, cz2 = gz * STREET;
+      // r donne la direction que regarde le feu : 0 et PI règlent l'axe
+      // nord-sud, ±PI/2 l'axe est-ouest.
+      props.push({ kind: 'trafficlight', x: cx2 - o, z: cz2 - o, r: 0 });
+      props.push({ kind: 'trafficlight', x: cx2 + o, z: cz2 + o, r: Math.PI });
+      props.push({ kind: 'trafficlight', x: cx2 - o, z: cz2 + o, r: Math.PI / 2 });
+      props.push({ kind: 'trafficlight', x: cx2 + o, z: cz2 - o, r: -Math.PI / 2 });
     }
   }
 

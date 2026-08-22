@@ -16,6 +16,7 @@ const C = {
   lineYellow: color('#c9a83c'),
   walk: color('#b0aca4'),
   median: color('#6f7c5a'),
+  hedge: color('#3d5c30'),
   walkEdge: color('#87847e'),
   curb: color('#c6c2b8'),
   pavement: color('#a09c94'),
@@ -78,6 +79,23 @@ function buildGround(ch, world) {
   }
 }
 
+/**
+ * Terre-plein central : une vraie île bordée d'un trottoir, pas une bande
+ * peinte — sinon les palmiers du boulevard semblent pousser dans le bitume.
+ * On saute les carrefours, qu'il faut laisser libres.
+ */
+function medianIsland(g, cx, cz, len, horiz) {
+  if (Math.abs(((cx % STREET) + STREET * 1.5) % STREET - STREET / 2) < 15
+    && Math.abs(((cz % STREET) + STREET * 1.5) % STREET - STREET / 2) < 15) return;
+  const w = horiz ? len : 3.6;
+  const d = horiz ? 3.6 : len;
+  g.box(cx, 0.17, cz, w, 0.34, d, C.curb, 0, { top: C.grass, side: C.curb, noBottom: true });
+  // haie basse : c'est elle qui donne du relief au terre-plein
+  const hl = Math.max(2, len - 5);
+  g.box(cx, 0.34 + 0.42, cz, horiz ? hl : 1.5, 0.84, horiz ? 1.5 : hl, C.hedge, 0,
+    { top: shade(C.hedge, 1.15), side: C.hedge });
+}
+
 function roadMarkings(g, r) {
   const y = 0.19;
   if (r.horiz) {
@@ -86,7 +104,7 @@ function roadMarkings(g, r) {
       // terre-plein central planté
       for (let x = x0; x < x1; x += 24) {
         const seg = Math.min(18, x1 - x);
-        g.slab(x + seg / 2, r.z, seg, 3.6, 0.2, C.median);
+        medianIsland(g, x + seg / 2, r.z, seg, true);
       }
     } else {
       for (let x = x0; x < x1; x += 8) g.slab(x + 2, r.z, 4, 0.32, y, C.lineYellow);
@@ -104,7 +122,7 @@ function roadMarkings(g, r) {
     if (r.boulevard) {
       for (let z = z0; z < z1; z += 24) {
         const seg = Math.min(18, z1 - z);
-        g.slab(r.x, z + seg / 2, 3.6, seg, 0.2, C.median);
+        medianIsland(g, r.x, z + seg / 2, seg, false);
       }
     } else {
       for (let z = z0; z < z1; z += 8) g.slab(r.x, z + 2, 0.32, 4, y, C.lineYellow);
@@ -349,11 +367,12 @@ function buildProp(g, p) {
       break;
     }
     case 'trafficlight': {
+      // le caisson regarde dans la direction p.r ; les lampes elles-mêmes sont
+      // dessinées en jeu, pour pouvoir changer de couleur.
+      const dx = -Math.sin(p.r) * 0.24, dz = -Math.cos(p.r) * 0.24;
       g.cyl(p.x, 0, p.z, 0.12, 4.4, C.metal, 5);
-      g.box(p.x, 4.9, p.z, 0.45, 1.3, 0.45, [0.15, 0.15, 0.16]);
-      g.box(p.x, 5.3, p.z - 0.24, 0.2, 0.2, 0.1, [1, 0.2, 0.15], 0, { emit: 1 });
-      g.box(p.x, 4.9, p.z - 0.24, 0.2, 0.2, 0.1, [0.9, 0.7, 0.1], 0, { emit: 0.25 });
-      g.box(p.x, 4.5, p.z - 0.24, 0.2, 0.2, 0.1, [0.2, 0.9, 0.3], 0, { emit: 0.25 });
+      g.box(p.x, 4.9, p.z, 0.45, 1.35, 0.45, [0.14, 0.14, 0.15], p.r);
+      g.box(p.x + dx * 1.15, 4.9, p.z + dz * 1.15, 0.34, 1.2, 0.06, [0.09, 0.09, 0.1], p.r);
       break;
     }
     case 'bench':

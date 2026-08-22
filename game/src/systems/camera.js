@@ -105,7 +105,7 @@ export class Camera {
     let d = this.dist;
     // ne pas traverser les murs
     const wall = game.world.raycast(targetX, targetY, targetZ, -dirX, -dirY, -dirZ, d + 0.6);
-    if (wall !== Infinity) d = Math.max(0.9, wall - 0.55);
+    if (wall !== Infinity) d = Math.max(1.7, wall - 0.5);
 
     let ex = targetX - dirX * d;
     let ey = targetY - dirY * d;

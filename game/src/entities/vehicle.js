@@ -308,10 +308,23 @@ export class Vehicle {
     this.x += this.vx * dt;
     this.z += this.vz * dt;
 
-    // collisions avec le décor : on teste les quatre coins
+    // Anti-tunnel : à pleine vitesse la voiture avance de plus d'un mètre par
+    // image et pouvait franchir un mur avant qu'on ne teste ses coins.
+    const pas = Math.hypot(this.x - px, this.z - pz);
+    if (pas > 0.9) {
+      const inv = 1 / pas;
+      const t = world.raycast(px, this.y + 0.7, pz, (this.x - px) * inv, 0, (this.z - pz) * inv, pas + this.hl);
+      if (t < pas + this.hl) {
+        const recul = Math.max(0, t - this.hl);
+        this.x = px + (this.x - px) * inv * recul;
+        this.z = pz + (this.z - pz) * inv * recul;
+      }
+    }
+
+    // collisions avec le décor : quatre coins et le milieu des flancs
     let hit = null;
     const cs = Math.sin(this.yaw), cc = Math.cos(this.yaw);
-    for (const [ox, oz] of [[-1, 1], [1, 1], [-1, -1], [1, -1]]) {
+    for (const [ox, oz] of [[-1, 1], [1, 1], [-1, -1], [1, -1], [-1, 0], [1, 0], [0, 1], [0, -1]]) {
       const cx = this.x + ox * this.hw * cc + oz * this.hl * cs;
       const cz = this.z - ox * this.hw * cs + oz * this.hl * cc;
       const p = { x: cx, z: cz };

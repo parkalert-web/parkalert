@@ -5,7 +5,7 @@
 import { Vehicle, MODELS, CIVILIAN_MODELS } from '../entities/vehicle.js';
 import { Ped } from '../entities/character.js';
 import { rng, range, pick, clamp, wrapAngle, angleDelta, dist2D } from '../engine/math.js';
-import { STREET, ROAD_W } from '../world/gen.js';
+import { STREET, ROAD_W, GRID } from '../world/gen.js';
 
 const LANE = 4.6;
 const SPAWN_MIN = 105;
@@ -17,10 +17,14 @@ export class Population {
   constructor(game) {
     this.game = game;
     this.rand = rng(777);
-    this.maxTraffic = 22;
-    this.maxParked = 26;
-    this.maxPeds = 30;
+    this.maxTraffic = 26;
+    this.maxParked = 30;
+    this.maxPeds = 38;
     this.pedTimer = 0;
+    // index des îlots par case de la trame : sert aux piétons qui traversent
+    this.blocks = new Map();
+    for (const b of game.data.blocks) this.blocks.set(`${b.gx},${b.gz}`, b);
+    this.blockAt = (gx, gz) => this.blocks.get(`${gx},${gz}`) || null;
   }
 
   /** Nœud du graphe le plus proche d'un point. */
@@ -107,9 +111,9 @@ export class Population {
     while (tries-- > 0) {
       const b = pick(this.rand, blocks);
       const d = dist2D(b.x, b.z, p.x, p.z);
-      if (d < 40 || d > 150) continue;
+      if (d < 22 || d > 130) continue;
       const ped = new Ped(b.x, b.z, this.rand);
-      ped.setBlock(b);
+      ped.setBlock(b, this.blockAt);
       const c = ped.cornerPoint(Math.floor(this.rand() * 4));
       ped.x = c[0] + range(this.rand, -6, 6);
       ped.z = c[1] + range(this.rand, -6, 6);
@@ -119,6 +123,32 @@ export class Population {
       return ped;
     }
     return null;
+  }
+
+  /**
+   * Feux tricolores : un cycle unique pour toute la ville. 0 = nord-sud au
+   * vert, 1 = est-ouest au vert ; les deux dernières secondes sont orange.
+   */
+  static lightPhase(time) {
+    const CYCLE = 11;
+    const t = (time % (CYCLE * 2)) / CYCLE;
+    const green = Math.floor(t);
+    const remaining = CYCLE - (time % CYCLE);
+    return { green, amber: remaining < 2.2 };
+  }
+
+  /** Le véhicule doit-il s'arrêter au feu du prochain carrefour ? */
+  mustStop(v, node, axis) {
+    const g = this.game;
+    const { green, amber } = Population.lightPhase(g.time || 0);
+    if (axis === green && !amber) return false;
+    const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
+    const dx = node.x - v.x, dz = node.z - v.z;
+    const ahead = dx * fx + dz * fz;
+    const dist = Math.hypot(dx, dz);
+    if (ahead < 0 || dist > 16) return false;                 // déjà engagé, ou trop loin
+    if (amber && dist < 7 && Math.abs(v.speed) > 8) return false;   // trop tard pour freiner
+    return true;
   }
 
   update(dt) {
@@ -213,36 +243,56 @@ export class Population {
 
     // Espace libre devant le pare-chocs. Trop prudent, et la ville s'embouteille
     // définitivement : on ne s'arrête qu'à 2,5 m et on ralentit progressivement.
-    let gap = 60;
+    let gap = 60;                       // obstacles durs : véhicules
+    let soft = 60;                      // obstacles mous : piétons, joueur à pied
     const fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
     const sideX = Math.cos(v.yaw), sideZ = -Math.sin(v.yaw);
     const check = (ox, oz, len, w) => {
       const dx = ox - v.x, dz = oz - v.z;
       const along = dx * fx + dz * fz;
       const side = Math.abs(dx * sideX + dz * sideZ);
-      if (along > 0 && along < 30 && side < w) gap = Math.min(gap, along - len);
+      if (along > 0 && along < 30 && side < w) return along - len;
+      return 60;
     };
     for (const o of g.vehicles) {
       if (o === v) continue;
       if (dist2D(o.x, o.z, v.x, v.z) > 32) continue;
-      check(o.x, o.z, o.hl + v.hl + 0.6, 2.1);
+      gap = Math.min(gap, check(o.x, o.z, o.hl + v.hl + 0.6, 2.1));
     }
     const pl = g.player;
-    if (pl.onFoot && !pl.dead) check(pl.x, pl.z, v.hl + 1.2, 1.8);
+    if (pl.onFoot && !pl.dead) soft = Math.min(soft, check(pl.x, pl.z, v.hl + 1.2, 1.8));
     for (const ped of g.peds) {
       if (ped.dead || ped.inVehicle) continue;
-      if (dist2D(ped.x, ped.z, v.x, v.z) < 20) check(ped.x, ped.z, v.hl + 1.2, 1.6);
+      if (dist2D(ped.x, ped.z, v.x, v.z) < 20) soft = Math.min(soft, check(ped.x, ped.z, v.hl + 1.2, 1.6));
     }
+
+    // On cède le passage à un piéton, mais pas éternellement : au bout de
+    // trois secondes on klaxonne et on avance au pas — sinon un badaud figé
+    // sur la chaussée bloque la file jusqu'à la fin des temps.
+    ai.pedWait = soft < 5 ? (ai.pedWait || 0) + dt : 0;
+    const creep = ai.pedWait > 3;
+    if (!creep) gap = Math.min(gap, soft);
 
     const turnFactor = 1 - Math.min(Math.abs(err) / 1.2, 0.75);
     let cruise = ai.cruise * turnFactor;
+
+    // feu rouge au carrefour visé
+    if (next.links.length >= 3 && Math.abs(next.gx) <= GRID && Math.abs(next.gz) <= GRID) {
+      const seg = nodes[ai.node];
+      const axis = Math.abs(next.x - seg.x) > Math.abs(next.z - seg.z) ? 1 : 0;
+      if (this.mustStop(v, next, axis)) {
+        const brakeDist = Math.max(0, Math.hypot(next.x - v.x, next.z - v.z) - 9);
+        cruise = Math.min(cruise, brakeDist * 0.9);
+      }
+    }
     if (g.player.wanted > 0 && dist2D(v.x, v.z, pl.x, pl.z) < 70) cruise *= 0.55;
     if (gap < 2.5) cruise = 0;
     else if (gap < 18) cruise *= clamp((gap - 2.5) / 15.5, 0, 1);
+    if (creep) cruise = Math.max(cruise, Math.min(3.2, gap > 2.5 ? 3.2 : 0));
 
     v.throttle = clamp((cruise - v.speed) * 0.6, -1, 1);
     v.handbrake = cruise === 0 && v.speed < 0.4;
-    ai.impatience = gap < 6 ? ai.impatience + dt : 0;
+    ai.impatience = Math.min(gap, soft) < 6 ? ai.impatience + dt : 0;
     if (ai.impatience > 2.5 && this.rand() < dt * 1.5) { v.horn = 0.25; g.audio.hornSound(v.x, v.z); }
   }
 
