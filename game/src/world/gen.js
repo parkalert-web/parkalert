@@ -44,6 +44,16 @@ const PAL = {
 
 const ROOF = '#5a5f63';
 
+/** Bâtiments publics : hauteur, teinte, enseigne. */
+const CIVIC = {
+  hospital: { h: 38, color: '#e8ece9', label: 'CENTRAL LS MEDICAL', accent: '#d7443b' },
+  police: { h: 26, color: '#b9bec4', label: 'LSPD', accent: '#2a4d8f' },
+  garage: { h: 12, color: '#d9d2c4', label: 'LS CUSTOMS', accent: '#e0a33a' },
+  ammunation: { h: 14, color: '#7d6b57', label: 'AMMU-NATION', accent: '#c0392b' },
+  jewelry: { h: 16, color: '#c8b98e', label: 'VANGELICO', accent: '#3fa8c0' },
+  maze: { h: 205, color: '#2f4d63', label: '', accent: '#8fd0e8' },
+};
+
 export function zoneAt(x, z) {
   let best = 'Los Santos', bd = 1e9;
   for (const zo of ZONES) {
@@ -70,6 +80,7 @@ function specialBlock(gx, gz) {
   if (gx === -2 && gz === 0) return 'police';
   if (gx === 1 && gz === 2) return 'garage';       // Los Santos Customs
   if (gx === -3 && gz === 2) return 'ammunation';
+  if (gx === -1 && gz === -1) return 'jewelry';
   if (gx === 3 && gz === 0) return 'maze';         // tour principale
   if (gx === -4 && gz === 3) return 'parking';
   if (gx === 5 && gz === -2) return 'parking';
@@ -122,6 +133,43 @@ export function generateWorld(seed = 20130917) {
     roads.push({ x: g * STREET, z: 0, w, d: CITY_MAX * 2 + ROAD_W, horiz: false, boulevard: isBoulevard(g), g });
   }
 
+  /* --------------------------------------------------- rocade périphérique */
+  // Une ceinture routière relie les extrémités de la trame : elle donne un
+  // grand tour praticable et évite que la campagne soit un vide roulant.
+  const RING = CITY_MAX + 90;
+  const ringRows = {};
+  for (const side of [-1, 1]) {
+    const z = side * RING;
+    const row = [];
+    for (let gx = -GRID; gx <= GRID; gx++) {
+      const i = nodes.length;
+      nodes.push({ x: gx * STREET, z, gx, gz: side * (GRID + 1), links: [] });
+      row.push(i);
+      link(i, nodeIndex.get(key(gx, side * GRID)));
+      roads.push({ x: gx * STREET, z: (z + side * CITY_MAX) / 2, w: ROAD_W, d: STREET + ROAD_W, horiz: false });
+    }
+    for (let k = 0; k < row.length - 1; k++) link(row[k], row[k + 1]);
+    roads.push({ x: 0, z, w: CITY_MAX * 2 + ROAD_W, d: ROAD_W + 8, horiz: true, boulevard: true });
+    ringRows[side] = row;
+  }
+  const eastCol = [];
+  for (let gz = -GRID; gz <= GRID; gz++) {
+    const i = nodes.length;
+    nodes.push({ x: RING, z: gz * STREET, gx: GRID + 1, gz, links: [] });
+    eastCol.push(i);
+    link(i, nodeIndex.get(key(GRID, gz)));
+    roads.push({ x: (RING + CITY_MAX) / 2, z: gz * STREET, w: STREET + ROAD_W, d: ROAD_W, horiz: true });
+  }
+  for (let k = 0; k < eastCol.length - 1; k++) link(eastCol[k], eastCol[k + 1]);
+  roads.push({ x: RING, z: 0, w: ROAD_W + 8, d: CITY_MAX * 2 + ROAD_W, horiz: false, boulevard: true });
+  // raccords d'angle
+  link(ringRows[-1][ringRows[-1].length - 1], eastCol[0]);
+  link(ringRows[1][ringRows[1].length - 1], eastCol[eastCol.length - 1]);
+  roads.push({ x: (RING + CITY_MAX) / 2, z: -RING, w: STREET + ROAD_W, d: ROAD_W + 8, horiz: true });
+  roads.push({ x: (RING + CITY_MAX) / 2, z: RING, w: STREET + ROAD_W, d: ROAD_W + 8, horiz: true });
+  roads.push({ x: RING, z: -(RING + CITY_MAX) / 2, w: ROAD_W + 8, d: STREET, horiz: false });
+  roads.push({ x: RING, z: (RING + CITY_MAX) / 2, w: ROAD_W + 8, d: STREET, horiz: false });
+
   // Route côtière et accès à la plage
   roads.push({ x: SHORE_X + 40, z: 0, w: 14, d: CITY_MAX * 2 + 260, horiz: false, coast: true });
   roads.push({ x: (SHORE_X + 40 - CITY_MAX) / 2 - 40, z: -180, w: CITY_MAX - SHORE_X - 20, d: 14, horiz: true, coast: true });
@@ -170,6 +218,23 @@ export function generateWorld(seed = 20130917) {
     props.push({ kind: rand() < 0.72 ? 'palm' : 'parasol', x, z, r: rand() * 6.28, s: range(rand, 0.8, 1.35) });
   }
 
+  // Campagne : tout ce qui pousse hors de la trame urbaine
+  const outside = (x, z) => Math.abs(x) > CITY_MAX + 40 || Math.abs(z) > CITY_MAX + 40;
+  for (let i = 0; i < 900; i++) {
+    const x = range(rand, -1050, 1050);
+    const z = range(rand, -1050, 1050);
+    if (!outside(x, z) || x < SHORE_X + 30) continue;
+    if (Math.abs(z - 800) < 190 && x > -620 && x < 200) continue;      // piste d'aéroport
+    if (Math.abs(x - 790) < 180 && Math.abs(z - 700) < 180) continue;  // port
+    const nearRoad = Math.abs(Math.abs(x) - (CITY_MAX + 90)) < 16 || Math.abs(Math.abs(z) - (CITY_MAX + 90)) < 16;
+    if (nearRoad) continue;
+    const r = rand();
+    if (r < 0.42) props.push({ kind: 'bush', x, z, r: rand() * 6.28, s: range(rand, 0.7, 1.6) });
+    else if (r < 0.72) props.push({ kind: 'tree', x, z, r: rand() * 6.28, s: range(rand, 0.8, 1.6) });
+    else if (r < 0.94) props.push({ kind: 'rock', x, z, r: rand() * 6.28, s: range(rand, 0.8, 2.6) });
+    else props.push({ kind: 'windmill', x, z, r: rand() * 6.28, s: 1 });
+  }
+
   // Montagnes du nord (fond de décor) + panneau Vinewood
   const mountains = [];
   for (let i = 0; i < 26; i++) {
@@ -181,12 +246,12 @@ export function generateWorld(seed = 20130917) {
   landmarks.push({ kind: 'vinewood-sign', x: -60, z: -742, y: 96 });
 
   // Aéroport (sud-ouest)
-  const airport = { x: -230, z: 720, w: 700, d: 300 };
+  const airport = { x: -230, z: 800, w: 700, d: 300 };
   landmarks.push({ kind: 'airport', ...airport });
   colliders.push({ x: airport.x - 250, z: airport.z - 100, hw: 46, hd: 26, h: 24, kind: 'building' });
 
   // Port (sud-est) : grues et conteneurs
-  const port = { x: 560, z: 560, w: 300, d: 300 };
+  const port = { x: 790, z: 700, w: 300, d: 300 };
   landmarks.push({ kind: 'port', ...port });
   for (let i = 0; i < 90; i++) {
     const x = port.x + range(rand, -130, 130);
@@ -214,13 +279,11 @@ export function generateWorld(seed = 20130917) {
 
   /* ------------------------------------------- points d'intérêt du gameplay */
   const findLandmark = (k) => landmarks.find((l) => l.kind === k) || { x: 0, z: 0 };
-  const spots = {
-    hospital: findLandmark('hospital'),
-    police: findLandmark('police'),
-    garage: findLandmark('garage'),
-    ammunation: findLandmark('ammunation'),
-    stadium: findLandmark('stadium'),
-  };
+  const spots = {};
+  for (const k of ['hospital', 'police', 'garage', 'ammunation', 'jewelry', 'stadium']) {
+    const l = findLandmark(k);
+    spots[k] = { x: l.x, z: l.z, entrance: l.entrance || { x: l.x, z: l.z }, street: l.street || { x: l.x, z: l.z } };
+  }
 
   return {
     seed, roads, buildings, props, colliders, blocks, landmarks, mountains,
@@ -287,22 +350,25 @@ function fillBlock(block, rand, buildings, props, colliders, landmarks) {
     return;
   }
 
-  if (kind === 'hospital' || kind === 'police' || kind === 'garage' || kind === 'ammunation' || kind === 'maze') {
+  if (CIVIC[kind]) {
+    // Bâtiment repoussé vers le fond de l'îlot : le parvis reste dégagé côté
+    // rue, sinon les marqueurs de mission tombent dans les murs.
     block.ground = 'concrete';
-    const meta = {
-      hospital: { h: 38, color: '#e8ece9', label: 'CENTRAL LS MEDICAL', accent: '#d7443b' },
-      police: { h: 26, color: '#b9bec4', label: 'LSPD', accent: '#2a4d8f' },
-      garage: { h: 12, color: '#d9d2c4', label: 'LS CUSTOMS', accent: '#e0a33a' },
-      ammunation: { h: 14, color: '#7d6b57', label: 'AMMU-NATION', accent: '#c0392b' },
-      maze: { h: 205, color: '#2f4d63', label: '', accent: '#8fd0e8' },
-    }[kind];
-    const w = kind === 'maze' ? S * 0.62 : S * 0.78;
+    const meta = CIVIC[kind];
+    const w = kind === 'maze' ? S * 0.6 : S * 0.66;
+    const bz = z + (kind === 'maze' ? 0 : half * 0.28);
     addBuilding(buildings, colliders, {
-      x, z, w, d: w, h: meta.h, kind: kind === 'maze' ? 'tower' : 'civic',
+      x, z: bz, w, d: w, h: meta.h, kind: kind === 'maze' ? 'tower' : 'civic',
       color: meta.color, accent: meta.accent, label: meta.label, floors: Math.floor(meta.h / 3.6),
       landmark: kind,
     });
-    landmarks.push({ kind, x, z, w, h: meta.h });
+    // parvis (devant l'entrée) et accès depuis la chaussée
+    const forecourt = { x, z: bz - w / 2 - 5 };
+    const street = { x, z: z - half - WALK_W - 3 };
+    landmarks.push({ kind, x, z: bz, w, h: meta.h, entrance: forecourt, street });
+    for (let i = 0; i < 4; i++) {
+      props.push({ kind: 'lamp', x: x - w / 2 + (i * w) / 3, z: forecourt.z - 2, r: -Math.PI / 2 });
+    }
     return;
   }
 

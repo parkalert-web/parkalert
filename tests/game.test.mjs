@@ -19,6 +19,7 @@ import { World } from '../game/src/world/collide.js';
 import { Vehicle, MODELS } from '../game/src/entities/vehicle.js';
 import { WEAPONS, WEAPON_ORDER } from '../game/src/systems/weapons.js';
 import { MISSIONS } from '../game/src/systems/missions.js';
+import { CHARACTERS } from '../game/src/entities/player.js';
 
 /* ----------------------------------------------------------------- maths */
 
@@ -121,8 +122,16 @@ test('le monde est reproductible et cohérent', () => {
   assert.notEqual(generateWorld(7).buildings.length, 0);
 
   assert.ok(a.buildings.length > 500, 'la ville doit être dense');
-  assert.equal(a.graph.nodes.length, (GRID * 2 + 1) ** 2 + (GRID * 2 + 3));
+  assert.ok(a.graph.nodes.length >= (GRID * 2 + 1) ** 2, 'la trame routière est complète');
   for (const n of a.graph.nodes) assert.ok(n.links.length > 0, 'aucun nœud isolé');
+
+  // le réseau doit être d'un seul tenant : sinon la circulation reste bloquée
+  const seen = new Set([0]);
+  const queue = [0];
+  while (queue.length) {
+    for (const l of a.graph.nodes[queue.pop()].links) if (!seen.has(l)) { seen.add(l); queue.push(l); }
+  }
+  assert.equal(seen.size, a.graph.nodes.length, 'le réseau routier doit être connexe');
   for (const b2 of a.buildings) {
     assert.ok(b2.h > 0 && b2.w > 0 && b2.d > 0, 'dimensions positives');
     assert.ok(Number.isFinite(b2.x) && Number.isFinite(b2.z));
@@ -147,6 +156,23 @@ test('aucun immeuble ne déborde sur la chaussée', () => {
       if (Math.abs(v) > GRID * STREET) continue;
       assert.ok(Math.abs(v - nearest) - size / 2 > half - 0.5,
         `immeuble en ${b.x},${b.z} trop près de l'axe ${axis}=${nearest}`);
+    }
+  }
+});
+
+test('rien ne bloque la chaussée', () => {
+  const w = generateWorld(20130917);
+  // rectangle d'une route, légèrement rétréci : les bordures peuvent affleurer
+  for (const r of w.roads) {
+    const hw = r.w / 2 - 1.5;
+    const hd = r.d / 2 - 1.5;
+    if (hw <= 0 || hd <= 0) continue;
+    for (const c of w.colliders) {
+      if (c.h < 1.5) continue;
+      const overlap = Math.abs(c.x - r.x) < hw + c.hw && Math.abs(c.z - r.z) < hd + c.hd;
+      assert.ok(!overlap,
+        `obstacle (${Math.round(c.x)}, ${Math.round(c.z)}) sur la route ${r.horiz ? 'est-ouest' : 'nord-sud'} `
+        + `centrée en (${Math.round(r.x)}, ${Math.round(r.z)})`);
     }
   }
 });
@@ -321,6 +347,45 @@ test('le catalogue d’armes est cohérent', () => {
   }
   assert.ok(WEAPONS.sniper.dmg > WEAPONS.pistol.dmg, 'le fusil de précision frappe plus fort');
   assert.ok(WEAPONS.smg.rate < WEAPONS.pistol.rate, 'la SMG tire plus vite');
+});
+
+/** Un marqueur ne doit jamais tomber dans un mur, ni hors d'atteinte d'une voiture. */
+test('les points de mission sont posés sur un terrain valide', () => {
+  const w = generateWorld(20130917);
+  const solid = (x, z) => w.colliders.some(
+    (c) => Math.abs(x - c.x) <= c.hw + 0.8 && Math.abs(z - c.z) <= c.hd + 0.8 && c.h > 1.5);
+  const modDist = (v) => Math.abs(((v % STREET) + STREET * 1.5) % STREET - STREET / 2);
+  const openBlock = (x, z) => w.blocks.some(
+    (b) => Math.abs(x - b.x) < b.half && Math.abs(z - b.z) < b.half
+      && (b.ground === 'asphalt' || b.ground === 'grass'));
+  const drivable = (x, z) => modDist(x) < 9 || modDist(z) < 9 || openBlock(x, z);
+
+  for (const m of MISSIONS) {
+    assert.ok(!solid(m.x, m.z), `${m.id} : le marqueur de départ est dans un mur`);
+    for (const s2 of m.steps) {
+      const pts = s2.type === 'race' ? s2.points : (s2.x !== undefined ? [[s2.x, s2.z]] : []);
+      for (const [x, z] of pts) {
+        assert.ok(!solid(x, z), `${m.id}/${s2.type} : point (${x}, ${z}) dans un mur`);
+        if (s2.vehicle || s2.type === 'deliver' || s2.type === 'race' || s2.type === 'spawnVehicle') {
+          assert.ok(drivable(x, z), `${m.id}/${s2.type} : point (${x}, ${z}) inaccessible en voiture`);
+        }
+      }
+      for (const e of s2.enemies || []) {
+        assert.ok(!solid(e.x, e.z), `${m.id} : ennemi en (${e.x}, ${e.z}) dans un mur`);
+      }
+    }
+  }
+  // et les lieux de vie du jeu
+  for (const k of ['hospital', 'police', 'garage', 'ammunation', 'jewelry']) {
+    const spot = w.spots[k];
+    assert.ok(spot, `lieu ${k} introuvable`);
+    assert.ok(!solid(spot.entrance.x, spot.entrance.z), `parvis de ${k} dans un mur`);
+    assert.ok(!solid(spot.street.x, spot.street.z), `accès rue de ${k} dans un mur`);
+    assert.ok(drivable(spot.street.x, spot.street.z), `${k} inaccessible en voiture`);
+  }
+  for (const c of Object.values(CHARACTERS)) {
+    assert.ok(Number.isFinite(c.home.x) && Number.isFinite(c.home.z), 'domicile mal défini');
+  }
 });
 
 test('les missions sont bien formées', () => {

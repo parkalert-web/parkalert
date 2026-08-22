@@ -34,15 +34,17 @@ export class Camera {
     this.shakeT += dt;
     this.shake = Math.max(0, this.shake - dt * 1.8);
 
+    const mode = game.cameraMode || 0;      // 0 rapprochée, 1 large, 2 première personne
+    this.firstPerson = mode === 2 && !p.aiming;
     let tx = p.x, ty = p.y + 1.5, tz = p.z;
-    let dist = p.aiming ? 2.5 : 5.6;
+    let dist = p.aiming ? 2.5 : 5.6 * (mode === 1 ? 1.75 : 1);
     let fov = 1.12;
 
     if (veh) {
       const sp = Math.abs(veh.speed);
       tx = veh.x; ty = veh.y + veh.model.h * 0.75; tz = veh.z;
       ty = veh.y + veh.model.h * 1.15;
-      dist = 6.6 + veh.model.len * 0.5 + sp * 0.05;
+      dist = (6.6 + veh.model.len * 0.5 + sp * 0.05) * (mode === 1 ? 1.6 : 1);
       fov = 1.1 + clamp(sp / 90, 0, 1) * 0.24;
       // alignement automatique derrière le véhicule quand il avance
       if (!game.input.lookFree) {
@@ -57,6 +59,27 @@ export class Camera {
 
     if (game.cinematic) {
       fov = 0.9;
+    }
+
+    if (mode === 2) {
+      // première personne : l'œil est dans la tête, ou au poste de conduite
+      const eyeY = veh ? veh.y + veh.geo.floor + veh.geo.bodyH * 0.72 : p.y + 1.62 - (p.crouch ? 0.24 : 0);
+      const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
+      const ex = (veh ? veh.x : p.x) + fx * 0.28;
+      const ez = (veh ? veh.z : p.z) + fz * 0.28;
+      this.fov = damp(this.fov, p.aiming ? 0.8 : 1.28, 6, dt);
+      this.dist = 0;
+      this.focus = [ex, eyeY, ez];
+      this.eye = [ex, eyeY, ez];
+      const cy2 = Math.cos(this.pitch);
+      this.dir = [Math.sin(this.yaw) * cy2, Math.sin(this.pitch), Math.cos(this.yaw) * cy2];
+      this.target = [ex + this.dir[0] * 12, eyeY + this.dir[1] * 12, ez + this.dir[2] * 12];
+      if (this.shake > 0.001) {
+        const sh = this.shake * 0.22;
+        this.eye[0] += Math.sin(this.shakeT * 61) * sh;
+        this.eye[1] += Math.sin(this.shakeT * 47 + 1.3) * sh;
+      }
+      return;
     }
 
     this.fov = damp(this.fov, fov, 6, dt);

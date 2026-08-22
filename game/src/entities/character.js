@@ -27,7 +27,8 @@ export function drawHuman(R, s, look = null) {
     m4compose(bodyM, 0, 0, 0, 0, 1, 1, 1, pitch, 0);
     m4mul(base, base, bodyM);
   }
-  const swing = Math.sin(s.anim * Math.PI * 2) * (0.35 + s.move * 0.65) * (1 - fall);
+  const swimming = !!s.swimming;
+  const swing = Math.sin(s.anim * Math.PI * (swimming ? 3 : 2)) * (0.35 + s.move * 0.65) * (1 - fall);
   const swing2 = Math.sin(s.anim * Math.PI * 2 + Math.PI) * (0.35 + s.move * 0.65) * (1 - fall);
   const bob = Math.abs(Math.sin(s.anim * Math.PI)) * 0.045 * s.move * (1 - fall);
   const crouch = s.crouch ? 0.24 : 0;
@@ -61,8 +62,7 @@ export function drawHuman(R, s, look = null) {
     const a = s.aim ? aimAngle : a0 * 0.8;
     const shoulderY = hipY + 0.6;
     const cx = sx * 0.31;
-    part(cx, shoulderY - Math.cos(a) * armLen / 2, -Math.sin(a) * armLen / 2, 0.15, armLen, 0.17,
-      sx > 0 || !s.aim ? shirt : shirt, a);
+    part(cx, shoulderY - Math.cos(a) * armLen / 2, -Math.sin(a) * armLen / 2, 0.15, armLen, 0.17, shirt, a);
     part(cx, shoulderY - Math.cos(a) * armLen - 0.03, -Math.sin(a) * armLen, 0.14, 0.14, 0.16, skin, a);
   }
   // tête

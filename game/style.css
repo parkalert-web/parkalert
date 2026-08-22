@@ -231,6 +231,13 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 2px 5
   background: var(--gold); color: #14100a; border: 0; border-radius: 4px; cursor: pointer;
 }
 #btn-resume:hover, #btn-play:hover { background: #ffe680; }
+#btn-newgame.ghost {
+  font-family: var(--title); font-size: 17px; letter-spacing: 1px; padding: 9px 18px;
+  background: transparent; color: #cfd6dd; border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 4px; cursor: pointer;
+}
+#btn-newgame.ghost:hover { border-color: var(--gold); color: var(--gold); }
+.save-note { font-size: 12px; opacity: .5; margin-top: 16px; line-height: 1.5; }
 
 /* ---------------------------------------------------------- chargement */
 

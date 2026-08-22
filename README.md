@@ -9,6 +9,11 @@ part **attend** le conducteur sélectionné, et la transmission est **confirmée
 
 **En ligne :** https://parkalert-web.github.io/parkalert/
 
+> **Bonus — [Los Santos](game/README.md)** : un monde ouvert façon GTA V, jouable
+> dans le navigateur, dans le dossier [`game/`](game/). WebGL 2, aucune dépendance,
+> ville entièrement générée par le code.
+> [Jouer](https://parkalert-web.github.io/parkalert/game/)
+
 ---
 
 ## Hébergement : entièrement gratuit

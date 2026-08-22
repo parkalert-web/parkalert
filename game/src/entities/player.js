@@ -187,7 +187,7 @@ export class Player {
     const wx = mx * cc + mz * cs;
     const wz = -mx * cs + mz * cc;
 
-    let speed = this.crouch ? 1.5 : this.aiming ? 2.1 : sprinting ? 6.4 : 4.1;
+    let speed = this.swimming ? (sprinting ? 3.4 : 2.2) : this.crouch ? 1.5 : this.aiming ? 2.1 : sprinting ? 6.4 : 4.1;
     if (len < 0.02) speed = 0;
     this.stamina = clamp(this.stamina + (sprinting ? -dt * 0.16 : dt * 0.28), 0, 1);
 
@@ -199,7 +199,7 @@ export class Player {
     this.z += this.vz * dt;
 
     // saut et gravité
-    if (inp.jumpPressed && this.onGround) {
+    if (inp.jumpPressed && this.onGround && !this.swimming) {
       this.vy = 6.2;
       this.onGround = false;
       inp.jumpPressed = false;
@@ -208,6 +208,20 @@ export class Player {
       this.vy -= 21 * dt;
       this.y += this.vy * dt;
       if (this.y <= 0) { this.y = 0; this.vy = 0; this.onGround = true; }
+    }
+
+    // nage : au-delà du trait de côte, on flotte
+    const wasSwimming = this.swimming;
+    this.swimming = this.x < -738;
+    if (this.swimming) {
+      this.y = damp(this.y, -0.55, 6, dt);
+      this.vy = 0;
+      this.onGround = true;
+      this.breath = clamp((this.breath ?? 1) - dt * 0.03, 0, 1);
+      if (!wasSwimming) game.audio.impact(6, this.x, this.z);
+    } else {
+      this.breath = clamp((this.breath ?? 1) + dt * 0.3, 0, 1);
+      if (this.y < 0 && this.onGround) this.y = Math.min(0, this.y + dt * 3);
     }
 
     const p = { x: this.x, z: this.z };
@@ -267,11 +281,11 @@ export class Player {
   }
 
   draw(R, game) {
-    if (this.vehicle) return;
+    if (this.vehicle || game.camera.firstPerson) return;
     drawHuman(R, {
       x: this.x, y: this.y, z: this.z, yaw: this.yaw,
-      anim: this.anim, move: this.move, aim: this.aiming,
-      crouch: this.crouch, deadT: this.dead ? this.deadT : 0,
+      anim: this.anim, move: this.move, aim: this.aiming && !this.swimming,
+      crouch: this.crouch, swimming: this.swimming, deadT: this.dead ? this.deadT : 0,
       ...this.look,
     }, game.camera.pitch);
     const w = this.weaponDef;

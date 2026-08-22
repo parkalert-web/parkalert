@@ -79,7 +79,7 @@ export class Input {
   }
 
   /** À appeler une fois par image, avant la logique. */
-  begin(inVehicle) {
+  begin() {
     const pad = this.pollPad();
     const t = this.touch;
     const k = (c) => this.keys.has(c);
@@ -94,7 +94,7 @@ export class Input {
     this.throttle = this.moveY;
     this.steer = this.moveX;
     if (pad) {
-      this.throttle = clamp(pad.rt - pad.lt + (t.active ? 0 : 0), -1, 1) || this.moveY;
+      this.throttle = clamp(pad.rt - pad.lt, -1, 1) || this.moveY;
       this.steer = clamp(pad.lx || this.moveX, -1, 1);
     }
     this.handbrake = k('Space') || (pad ? pad.a : false) || !!t.buttons.brake;

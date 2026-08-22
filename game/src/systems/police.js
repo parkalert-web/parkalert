@@ -100,6 +100,7 @@ export class PoliceSystem {
     this.helis = [];
     this.spawnTimer = 0;
     this.flash = 0;
+    this.lastSeen = null;
   }
 
   get wanted() { return this.game.player.wanted; }
@@ -119,9 +120,20 @@ export class PoliceSystem {
   clear() {
     this.game.player.wanted = 0;
     this.escapeTimer = 0;
-    for (const v of this.game.vehicles) if (v.ai && v.ai.chase) { v.siren = false; v.ai.chase = false; v.ai.leave = true; }
+    for (const v of this.game.vehicles) this.standDown(v);
     for (const p of this.game.peds) if (p.cop) p.remove = true;
     this.helis.length = 0;
+  }
+
+  /** Fin de poursuite : la patrouille reprend sa route et peut disparaître. */
+  standDown(v) {
+    if (!v.ai || !v.ai.chase) return;
+    v.siren = false;
+    v.ai.chase = false;
+    v.ai.dropped = false;
+    v.ai.cruise = 14;
+    v.persistent = false;
+    this.game.audio.updateSiren(v);
   }
 
   copCount() {
@@ -152,6 +164,7 @@ export class PoliceSystem {
     }
     if (!seen && this.helis.some((h) => dist2D(h.x, h.z, px, pz) < 90)) seen = true;
     this.seen = seen;
+    if (seen) this.lastSeen = { x: px, z: pz };
     this.escapeTimer = seen ? 0 : this.escapeTimer + dt;
     this.flash = seen ? 0 : this.escapeTimer / STAR_ESCAPE[p.wanted];
     if (this.escapeTimer > STAR_ESCAPE[p.wanted]) {
@@ -159,7 +172,8 @@ export class PoliceSystem {
       this.escapeTimer = 0;
       g.notify('Vous avez semé la police', '');
       g.audio.ui(720, 0.2, 0.16);
-      for (const v of g.vehicles) if (v.ai && v.ai.chase) { v.siren = false; v.ai.chase = false; v.ai.leave = true; }
+      for (const v of g.vehicles) this.standDown(v);
+      for (const c of g.peds) if (c.cop) c.remove = true;
       this.helis.length = 0;
       return;
     }

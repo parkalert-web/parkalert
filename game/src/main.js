@@ -71,11 +71,15 @@ function applyUrlSettings() {
 
 function launch() {
   clearInterval(tipTimer);
+  const resumed = game.load();
   loading.classList.add('done');
   game.audio.init();
   game.audio.resume();
   game.audio.setStation(1);
   game.start();
+  if (resumed) {
+    game.notify('Partie reprise', `${game.missions.done.size} mission(s) déjà réussie(s)`);
+  }
   game.input.requestLock();
 }
 playBtn.addEventListener('click', launch);
@@ -86,6 +90,9 @@ addEventListener('keydown', (e) => {
 /* ------------------------------------------------------------- réglages */
 
 document.getElementById('btn-resume').addEventListener('click', () => game.togglePause());
+document.getElementById('btn-newgame').addEventListener('click', () => {
+  if (confirm('Effacer la progression et recommencer une partie ?')) game.newGame();
+});
 document.getElementById('opt-shadows').addEventListener('change', (e) => {
   game.renderer.shadowsOn = e.target.checked;
   game.userShadows = e.target.checked;

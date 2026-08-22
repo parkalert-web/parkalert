@@ -78,12 +78,10 @@ export function raycastScene(game, ox, oy, oz, dx, dy, dz, maxDist, ignore) {
     const h = hitPed(p, ox, oy, oz, dx, dy, dz, best.t);
     if (h) best = { type: 'ped', t: h.t, ent: p, head: h.head };
   }
-  if (game.player.onFoot || ignore !== game.player) {
-    const pl = game.player;
-    if (ignore !== pl && pl.onFoot && !pl.dead) {
-      const h = hitPed(pl, ox, oy, oz, dx, dy, dz, best.t);
-      if (h) best = { type: 'player', t: h.t, ent: pl, head: h.head };
-    }
+  const pl = game.player;
+  if (ignore !== pl && pl.onFoot && !pl.dead) {
+    const h = hitPed(pl, ox, oy, oz, dx, dy, dz, best.t);
+    if (h) best = { type: 'player', t: h.t, ent: pl, head: h.head };
   }
   for (const v of game.vehicles) {
     if (v === ignore) continue;

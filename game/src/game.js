@@ -70,6 +70,16 @@ function envAt(hour) {
   };
 }
 
+/* ---------------------------------------------------------------- météo */
+
+const WEATHERS = [
+  { kind: 'clear', weight: 5, rain: 0, cloud: 0.25 },
+  { kind: 'cloudy', weight: 3, rain: 0, cloud: 0.85 },
+  { kind: 'overcast', weight: 2, rain: 0.12, cloud: 1 },
+  { kind: 'rain', weight: 2, rain: 1, cloud: 1 },
+  { kind: 'storm', weight: 1, rain: 1.4, cloud: 1, thunder: true },
+];
+
 /* ------------------------------------------------------------- particules */
 
 class Particles {
@@ -122,6 +132,8 @@ export class Game {
     this.cameraMode = 0;
     this.stats = { kills: 0, deaths: 0, distance: 0, crashes: 0, stolen: 0, missions: 0, spent: 0 };
     this.cheatBuffer = '';
+    this.weather = { kind: 'clear', rain: 0, wet: 0, wind: 0.4, timer: 150, flash: 0, nextFlash: 6 };
+    this.raindrops = null;
     this.shopOpen = null;
     this.frameCount = 0;
     this.fps = 60;
@@ -219,9 +231,10 @@ export class Game {
     ];
     for (const s of spots) this.pickups.push({ ...s, active: true, t: 0 });
     for (const l of this.data.landmarks) {
-      if (l.kind === 'ammunation') this.pickups.push({ kind: 'shop-guns', x: l.x, z: l.z + 22, active: true, t: 0 });
-      if (l.kind === 'hospital') this.pickups.push({ kind: 'shop-health', x: l.x, z: l.z + 24, active: true, t: 0 });
-      if (l.kind === 'garage') this.garage = { x: l.x, z: l.z };
+      if (!l.entrance) continue;
+      if (l.kind === 'ammunation') this.pickups.push({ kind: 'shop-guns', ...l.entrance, active: true, t: 0 });
+      if (l.kind === 'hospital') this.pickups.push({ kind: 'shop-health', ...l.entrance, active: true, t: 0 });
+      if (l.kind === 'garage') this.garage = { ...l.street };
     }
   }
 
@@ -254,6 +267,8 @@ export class Game {
         CHEATS[k]();
         this.audio.ui(900, 0.1, 0.15);
         this.cheatBuffer = '';
+    this.weather = { kind: 'clear', rain: 0, wet: 0, wind: 0.4, timer: 150, flash: 0, nextFlash: 6 };
+    this.raindrops = null;
         return;
       }
     }
@@ -280,6 +295,17 @@ export class Game {
 
   notify(title, sub) { this.hud.notify(title, sub); }
   showBanner(t, s, c) { this.hud.banner(t, s, c); }
+
+  /** Fait apparaître un piéton à un endroit précis (missions, scripts, tests). */
+  spawnPedAt(x, z, opts = {}) {
+    const ped = new Ped(x, z, this.rand, opts);
+    const p = { x, z };
+    this.world.pushCircle(p, 0.45, 2);
+    ped.x = p.x; ped.z = p.z;
+    if (opts.hostile || opts.cop) ped.combatTarget = this.player;
+    this.peds.push(ped);
+    return ped;
+  }
 
   nearestVehicle(x, z, maxD = 5.5) {
     let best = null, bd = maxD;
@@ -386,9 +412,8 @@ export class Game {
 
   respawn(atPolice) {
     const p = this.player;
-    const spot = atPolice
-      ? this.data.landmarks.find((l) => l.kind === 'police')
-      : this.data.landmarks.find((l) => l.kind === 'hospital');
+    const lm = this.data.landmarks.find((l) => l.kind === (atPolice ? 'police' : 'hospital'));
+    const spot = lm && lm.entrance ? lm.entrance : lm;
     p.dead = false;
     p.deadT = 0;
     p.health = p.maxHealth * 0.6;
@@ -397,8 +422,8 @@ export class Game {
     p.wanted = 0;
     this.police.clear();
     if (p.vehicle) p.exitVehicle(this.world);
-    p.x = (spot ? spot.x : 0) + 26;
-    p.z = (spot ? spot.z : 0) + 40;
+    p.x = (spot ? spot.x : 0) + 6;
+    p.z = (spot ? spot.z : 0) - 3;
     p.vx = 0; p.vz = 0;
     if (atPolice) {
       for (const k of ['rifle', 'sniper', 'rpg', 'shotgun', 'smg']) p.owned[k] = false;
@@ -712,18 +737,87 @@ export class Game {
     this.frameCount++;
     this.autoQuality(raw);
 
-    const inVeh = !!(this.player && this.player.vehicle);
-    this.input.begin(inVeh);
+    this.input.begin();
     this.handleGlobalKeys();
 
     let scale = this.timeScale;
     if (this.paused || this.hud.mapOpen || this.shopOpen) scale = 0;
     const sdt = dt * scale;
 
-    if (scale > 0) this.update(sdt, dt);
-    this.render(dt);
-    this.input.end();
+    // Une image en erreur ne doit jamais figer les entrées : sans ce filet,
+    // les touches restent « enfoncées » et le jeu devient incontrôlable.
+    try {
+      if (scale > 0) this.update(sdt, dt);
+      this.render(dt);
+    } catch (err) {
+      this.errorCount = (this.errorCount || 0) + 1;
+      if (this.errorCount < 6) console.error('Erreur pendant l’image :', err);
+    } finally {
+      this.input.end();
+    }
   };
+
+  /* ------------------------------------------------------------ sauvegarde */
+
+  /**
+   * La progression tient dans le navigateur : argent, armes, missions faites,
+   * personnage courant, position et heure. Aucun serveur, aucun compte.
+   */
+  save() {
+    const p = this.player;
+    try {
+      localStorage.setItem('losSantos.save', JSON.stringify({
+        v: 1, at: Date.now(),
+        money: Math.round(p.money), character: p.character,
+        x: Math.round(p.x), z: Math.round(p.z),
+        health: Math.round(p.health), armor: Math.round(p.armor),
+        owned: p.owned, ammo: p.ammo, weapon: p.weapon,
+        missions: [...this.missions.done],
+        hour: +this.hour.toFixed(2),
+        stats: this.stats,
+        station: this.audio.station,
+      }));
+      this.lastSave = this.time;
+      return true;
+    } catch (e) {
+      this.lastSave = this.time;        // navigation privée, quota plein…
+      return false;
+    }
+  }
+
+  load() {
+    let raw = null;
+    try { raw = localStorage.getItem('losSantos.save'); } catch (e) { return false; }
+    if (!raw) return false;
+    let d = null;
+    try { d = JSON.parse(raw); } catch (e) { return false; }
+    if (!d || d.v !== 1) return false;
+    const p = this.player;
+    if (d.character && CHARACTERS[d.character]) p.setCharacter(d.character);
+    if (Number.isFinite(d.money)) p.money = d.money;
+    if (Number.isFinite(d.x) && Number.isFinite(d.z)) { p.x = d.x; p.z = d.z; }
+    p.health = clamp(Number(d.health) || p.maxHealth, 1, p.maxHealth);
+    p.armor = clamp(Number(d.armor) || 0, 0, p.maxArmor);
+    if (d.owned) Object.assign(p.owned, d.owned);
+    if (d.ammo) Object.assign(p.ammo, d.ammo);
+    if (d.weapon && p.owned[d.weapon]) p.weapon = d.weapon;
+    for (const id of d.missions || []) this.missions.done.add(id);
+    if (Number.isFinite(d.hour)) this.hour = d.hour;
+    if (d.stats) Object.assign(this.stats, d.stats);
+    if (Number.isFinite(d.station)) this.audio.setStation(d.station);
+    // on ne réapparaît jamais coincé dans un mur
+    const q = { x: p.x, z: p.z };
+    this.world.pushCircle(q, 0.5, 2);
+    p.x = q.x; p.z = q.z;
+    this.loaded = true;
+    return true;
+  }
+
+  /** Efface la sauvegarde et repart de zéro. */
+  newGame() {
+    try { localStorage.removeItem('losSantos.save'); } catch (e) { /* rien à faire */ }
+    location.reload();
+  }
 
   /**
    * Qualité adaptative : sous 30 images/s on baisse la résolution de rendu puis
@@ -769,7 +863,10 @@ export class Game {
     const p = this.player;
     if (i.hit('KeyF')) this.tryEnterVehicle();
     if (i.hit('KeyR')) p.startReload();
-    if (i.hit('KeyV')) { this.cameraMode = (this.cameraMode + 1) % 3; }
+    if (i.hit('KeyV')) {
+      this.cameraMode = (this.cameraMode + 1) % 3;
+      this.notify('Caméra', ['Vue rapprochée', 'Vue large', 'Première personne'][this.cameraMode]);
+    }
     if (i.hit('KeyE')) this.tryInteract();
     if (i.hit('Comma')) this.notify('Radio', this.audio.setStation(this.audio.station - 1));
     if (i.hit('Period')) this.notify('Radio', this.audio.setStation(this.audio.station + 1));
@@ -808,6 +905,7 @@ export class Game {
     if (this.paused) {
       this.input.releaseLock();
       this.fillPauseStats();
+      this.save();
     } else this.input.requestLock();
   }
 
@@ -850,9 +948,69 @@ export class Game {
 
   /* --------------------------------------------------------------- update */
 
+  /** Météo : dérive lente entre grand beau temps et orage. */
+  updateWeather(dt) {
+    const w = this.weather;
+    w.timer -= dt;
+    if (w.timer <= 0) {
+      const total = WEATHERS.reduce((a, b) => a + b.weight, 0);
+      let r = this.rand() * total;
+      let next = WEATHERS[0];
+      for (const c of WEATHERS) { r -= c.weight; if (r <= 0) { next = c; break; } }
+      w.kind = next.kind;
+      w.target = next;
+      w.timer = range(this.rand, 110, 280);
+      if (next.rain > 0.5) this.notify('Météo', 'La pluie arrive sur Los Santos');
+    }
+    const t = w.target || WEATHERS[0];
+    w.rain = damp(w.rain, t.rain, 0.25, dt);
+    w.cloud = damp(w.cloud === undefined ? 0.25 : w.cloud, t.cloud, 0.25, dt);
+    w.wet = clamp(w.wet + (w.rain > 0.25 ? dt * 0.06 : -dt * 0.03), 0, 1);
+    w.wind = damp(w.wind, 0.3 + w.rain * 0.8, 0.5, dt);
+    // éclairs
+    w.flash = Math.max(0, w.flash - dt * 4.5);
+    if (t.thunder && w.rain > 0.6) {
+      w.nextFlash -= dt;
+      if (w.nextFlash <= 0) {
+        w.nextFlash = range(this.rand, 4, 16);
+        w.flash = 1;
+        this.audio.explosion(this.player.x + range(this.rand, -200, 200), this.player.z + range(this.rand, -200, 200));
+      }
+    }
+  }
+
+  /** Gouttes de pluie autour de la caméra, recyclées en continu. */
+  updateRain(dt) {
+    const w = this.weather;
+    if (w.rain < 0.02) { this.raindrops = null; return; }
+    const n = Math.floor(520 * clamp(w.rain, 0, 1.4));
+    if (!this.raindrops) this.raindrops = [];
+    const cam = this.camera.eye;
+    while (this.raindrops.length < n) {
+      this.raindrops.push({
+        x: cam[0] + range(this.rand, -26, 26),
+        y: cam[1] + range(this.rand, 2, 22),
+        z: cam[2] + range(this.rand, -26, 26),
+      });
+    }
+    if (this.raindrops.length > n) this.raindrops.length = n;
+    const fall = 26 + w.rain * 12;
+    const wind = w.wind * 6;
+    for (const d of this.raindrops) {
+      d.y -= fall * dt;
+      d.x += wind * dt;
+      if (d.y < 0 || Math.abs(d.x - cam[0]) > 30 || Math.abs(d.z - cam[2]) > 30) {
+        d.x = cam[0] + range(this.rand, -26, 26);
+        d.y = cam[1] + range(this.rand, 10, 24);
+        d.z = cam[2] + range(this.rand, -26, 26);
+      }
+    }
+  }
+
   update(dt, realDt) {
     const p = this.player;
     this.time += dt;
+    this.updateWeather(dt);
     this.hour = (this.hour + dt / 60) % 24;      // une journée = 24 minutes réelles
     this.threatLevel = Math.max(0, this.threatLevel - dt);
     this.fade = Math.max(0, this.fade - realDt * 1.4);
@@ -879,8 +1037,7 @@ export class Game {
 
     if (this.state === 'play' && !p.dead) {
       p.update(dt, this);
-      if (this.input.fire && (p.aiming || p.vehicle || WEAPONS[p.weapon].melee || !p.onFoot)) this.playerFire();
-      else if (this.input.fire && p.onFoot) this.playerFire();
+      if (this.input.fire) this.playerFire();
     } else if (p.dead) {
       p.deadT += realDt;
       if (p.deadT > 2.6) this.respawn(false);
@@ -970,11 +1127,13 @@ export class Game {
     }
 
     this.particles.update(dt);
+    this.updateRain(dt);
     this.population.update(dt);
     this.police.update(dt);
     this.missions.update(dt);
     this.checkPickups(dt);
     this.checkBusted(dt);
+    if (this.time - (this.lastSave || 0) > 25) this.save();
 
     // audio
     this.audio.setListener(this.camera.eye[0], this.camera.eye[1], this.camera.eye[2], this.camera.yaw);
@@ -1049,6 +1208,7 @@ export class Game {
     const R = this.renderer;
     const env = envAt(this.hour);
     env.time = this.time;
+    this.applyWeather(env);
     const p = this.player;
 
     R.begin({
@@ -1092,6 +1252,14 @@ export class Game {
 
     this.drawLights(R, env);
     this.particles.draw(R);
+    if (this.raindrops) {
+      const w = this.weather;
+      const len = 0.9 + w.rain * 0.7;
+      const wind = w.wind * 0.22;
+      for (const d of this.raindrops) {
+        R.line(d.x, d.y, d.z, d.x + wind * len, d.y - len, d.z, 0.62, 0.72, 0.85, 0.5);
+      }
+    }
     for (const t of this.tracers) {
       const c = t.enemy ? [1, 0.5, 0.2] : [1, 0.92, 0.6];
       R.line(t.x1, t.y1, t.z1, t.x2, t.y2, t.z2, c[0], c[1], c[2], clamp(t.life * 18, 0, 1));
@@ -1099,6 +1267,28 @@ export class Game {
 
     R.end();
     this.drawOverlay(dt);
+  }
+
+  /** Assombrit et embrume l'ambiance selon la météo, ajoute les éclairs. */
+  applyWeather(env) {
+    const w = this.weather;
+    const cloud = clamp(w.cloud === undefined ? 0.25 : w.cloud, 0, 1);
+    const dim = 1 - cloud * 0.62;
+    env.sunColor = env.sunColor.map((c) => c * dim);
+    env.skyTop = env.skyTop.map((c) => c * (1 - cloud * 0.4));
+    env.skyHorizon = env.skyHorizon.map((c, i) => lerp(c, (0.42 + i * 0.02) * (1 - w.rain * 0.3), cloud * 0.75));
+    env.fogColor = env.fogColor.map((c, i) => lerp(c, (0.38 + i * 0.02) * (1 - w.rain * 0.35), cloud * 0.8));
+    env.ambSky = env.ambSky.map((c) => c * (1 - cloud * 0.2) + cloud * 0.03);
+    env.fogDensity *= 1 + w.rain * 1.5 + cloud * 0.35;
+    env.emitBoost = Math.max(env.emitBoost, cloud * 0.45 + w.rain * 0.3);
+    env.wet = w.wet;
+    env.cloudiness = cloud;
+    if (w.flash > 0.01) {
+      const f = w.flash * w.flash * 2.6;
+      env.sunColor = env.sunColor.map((c) => c + f);
+      env.ambSky = env.ambSky.map((c) => c + f * 0.5);
+      env.skyTop = env.skyTop.map((c) => c + f * 0.8);
+    }
   }
 
   /** Éclairage nocturne : lampadaires, enseignes, phares, gyrophares. */

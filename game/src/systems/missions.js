@@ -6,74 +6,80 @@ import { Vehicle } from '../entities/vehicle.js';
 import { Ped } from '../entities/character.js';
 import { dist2D, clamp, rng, range, pick } from '../engine/math.js';
 
+/**
+ * Les coordonnées sont posées sur la trame : les points accessibles en voiture
+ * tombent sur un carrefour (multiple de 90) et les points à pied sur un
+ * trottoir ou un parvis dégagé. Le fichier de tests le vérifie.
+ */
 export const MISSIONS = [
   {
     id: 'repo', char: 'franklin', name: 'Reprise de véhicule', letter: 'F',
-    x: 205, z: 372, reward: 9000,
+    x: 196, z: 371, reward: 9000,
     brief: "Simeon veut cette Comète. Récupère-la et ramène-la au garage sans la démolir.",
     steps: [
-      { type: 'spawnVehicle', key: 'comete', x: -318, z: -230, yaw: 1.57, id: 'target', locked: true },
-      { type: 'goto', x: -318, z: -230, r: 9, text: 'Trouve la Comète dans Del Perro' },
+      { type: 'spawnVehicle', key: 'comete', x: -264, z: -225, yaw: 0, id: 'target' },
+      { type: 'goto', x: -264, z: -225, r: 9, text: 'Trouve la Comète dans Del Perro' },
       { type: 'steal', vehicleId: 'target', text: 'Monte dans la Comète', wanted: 2 },
-      { type: 'deliver', x: 130, z: 220, r: 12, vehicleId: 'target', text: 'Livre la voiture au garage de Los Santos Customs', clearWanted: true },
+      { type: 'deliver', x: 135, z: 186, r: 13, vehicleId: 'target', clearWanted: true,
+        text: 'Livre la voiture à Los Santos Customs' },
     ],
   },
   {
     id: 'jewel', char: 'michael', name: 'Le casse de la bijouterie', letter: 'M',
-    x: -145, z: -415, reward: 240000,
+    x: -135, z: -440, reward: 240000,
     brief: "Lester a tout préparé. On entre, on prend les pierres, on ressort avant les flics.",
     steps: [
-      { type: 'goto', x: -55, z: -60, r: 10, text: 'Rejoins la bijouterie de Pillbox Hill' },
+      { type: 'goto', x: -45, z: -62, r: 9, text: 'Rejoins la bijouterie Vangelico' },
       {
-        type: 'killAll', text: 'Neutralise les vigiles', wanted: 0,
+        type: 'killAll', text: 'Neutralise les vigiles',
         enemies: [
-          { x: -62, z: -68, shirt: [0.15, 0.16, 0.2] }, { x: -46, z: -70, shirt: [0.15, 0.16, 0.2] },
-          { x: -66, z: -50, shirt: [0.15, 0.16, 0.2] }, { x: -42, z: -52, shirt: [0.15, 0.16, 0.2] },
+          { x: -58, z: -66 }, { x: -32, z: -66 }, { x: -64, z: -74 }, { x: -26, z: -74 },
         ],
       },
-      { type: 'wait', time: 7, x: -55, z: -60, r: 9, text: 'Rafle les vitrines' },
-      { type: 'goto', x: 130, z: 220, r: 13, text: 'Sème la police et rejoins le point de chute', wanted: 3 },
+      { type: 'wait', time: 7, x: -45, z: -62, r: 9, text: 'Rafle les vitrines' },
+      { type: 'goto', x: -315, z: 315, r: 14, wanted: 3, vehicle: true,
+        text: 'Sème la police et rejoins le point de chute' },
     ],
   },
   {
-    id: 'rampage', char: 'trevor', name: 'Carnage au port', letter: 'T',
-    x: -478, z: 118, reward: 45000,
-    brief: "Les gars du port ont parlé de travers. Trevor n'a pas apprécié.",
+    id: 'rampage', char: 'trevor', name: 'Carnage à l’aéroport', letter: 'T',
+    x: -495, z: 99, reward: 45000,
+    brief: "Les gars de la piste ont parlé de travers. Trevor n'a pas apprécié.",
     steps: [
-      { type: 'goto', x: 520, z: 470, r: 14, text: 'Rejoins le port de Los Santos' },
+      { type: 'goto', x: -230, z: 800, r: 18, text: 'Rejoins la piste de LS International' },
       {
-        type: 'killAll', timer: 180, text: 'Élimine les hommes de main', wanted: 0, arm: true,
-        count: 14, area: { x: 540, z: 520, r: 90 },
+        type: 'killAll', timer: 180, text: 'Élimine les hommes de main',
+        count: 14, area: { x: -230, z: 800, r: 90 },
       },
     ],
   },
   {
     id: 'race', char: null, name: 'Course de rue', letter: 'C',
-    x: -470, z: -40, reward: 18000,
+    x: -450, z: -86, reward: 18000,
     brief: 'Un tour du bord de mer. Premier arrivé, premier payé.',
     steps: [
       { type: 'needVehicle', text: 'Monte dans une voiture' },
       {
-        type: 'race', timer: 115, text: 'Franchis tous les points de passage',
+        type: 'race', timer: 130, text: 'Franchis tous les points de passage',
         points: [
-          [-540, -180], [-540, -400], [-330, -450], [-140, -450], [-140, -180],
-          [-330, -90], [-330, 180], [-540, 180], [-540, 40], [-470, -40],
+          [-450, -180], [-450, -360], [-270, -450], [-90, -450], [-90, -270],
+          [-270, -180], [-270, 90], [-450, 180], [-540, 90], [-450, -90],
         ],
       },
     ],
   },
   {
     id: 'taxi', char: null, name: 'Courses de taxi', letter: 'D',
-    x: 380, z: 152, reward: 12000,
+    x: 356, z: 141, reward: 12000,
     brief: 'Trois clients, trois destinations. Le compteur tourne.',
     steps: [
       { type: 'needVehicle', text: 'Prends le volant' },
-      { type: 'goto', x: -100, z: 330, r: 12, text: 'Récupère le premier client', vehicle: true },
-      { type: 'goto', x: 425, z: -300, r: 12, text: 'Dépose-le à Mirror Park', vehicle: true, timer: 90 },
-      { type: 'goto', x: 200, z: 380, r: 12, text: 'Récupère le client suivant', vehicle: true },
-      { type: 'goto', x: -455, z: 105, r: 12, text: 'Direction Vespucci', vehicle: true, timer: 95 },
-      { type: 'goto', x: 40, z: -140, r: 12, text: 'Dernier client', vehicle: true },
-      { type: 'goto', x: -250, z: 660, r: 16, text: "Dépose-le à l'aéroport", vehicle: true, timer: 120 },
+      { type: 'goto', x: -90, z: 270, r: 12, vehicle: true, text: 'Récupère le premier client' },
+      { type: 'goto', x: 450, z: -270, r: 12, vehicle: true, timer: 100, text: 'Dépose-le à Mirror Park' },
+      { type: 'goto', x: 180, z: 360, r: 12, vehicle: true, text: 'Récupère le client suivant' },
+      { type: 'goto', x: -450, z: 90, r: 12, vehicle: true, timer: 105, text: 'Direction Vespucci' },
+      { type: 'goto', x: 0, z: -90, r: 12, vehicle: true, text: 'Dernier client' },
+      { type: 'goto', x: -270, z: 630, r: 16, vehicle: true, timer: 130, text: "Dépose-le à l'aéroport" },
     ],
   },
 ];
@@ -142,7 +148,7 @@ export class MissionSystem {
         const list = [];
         if (s.enemies) {
           for (const e of s.enemies) {
-            const p = new Ped(e.x, e.z, this.rand, { hostile: true, shirt: e.shirt, mission: true });
+            const p = new Ped(e.x, e.z, this.rand, { hostile: true, shirt: e.shirt || [0.16, 0.17, 0.2], mission: true });
             p.combatTarget = g.player;
             g.peds.push(p); list.push(p); this.entities.push(p);
           }

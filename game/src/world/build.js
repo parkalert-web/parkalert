@@ -127,14 +127,11 @@ function buildRoads(ch, world) {
       for (let z = z0; z < r.z + r.d / 2; z += 60) {
         const seg = Math.min(60, r.z + r.d / 2 - z);
         const cz = z + seg / 2;
-        // trou aux carrefours (déjà couverts par la rue horizontale)
-        const near = Math.abs(((cz + 100000 * STREET) % STREET) - 0) ;
         ch.at(r.x, cz).slab(r.x, cz, r.w, seg + 0.05, 0.12, C.asphalt);
       }
     }
   }
   for (const r of world.roads) {
-    const g = ch.at(r.horiz ? r.x : r.x, r.horiz ? r.z : r.z);
     // marquages : découpés eux aussi par tuile
     if (r.horiz) {
       for (let x = r.x - r.w / 2; x < r.x + r.w / 2; x += CHUNK) {
@@ -390,6 +387,28 @@ function buildProp(g, p) {
       g.slab(p.x, p.z, 8.6, 8.6, 0.85, C.poolWater);
       g.cyl(p.x, 0.8, p.z, 0.8, 2.4, C.concrete, 8, 0.4);
       break;
+    case 'bush':
+      g.sphere(p.x, 0.35 * s, p.z, 0.9 * s, shade(C.leaf, 0.85), 6, 4);
+      g.sphere(p.x + 0.7 * s, 0.25 * s, p.z + 0.4 * s, 0.6 * s, shade(C.leaf, 0.7), 5, 3);
+      break;
+    case 'rock': {
+      const c = [0.42, 0.4, 0.37];
+      g.cone(p.x, -0.4 * s, p.z, 1.5 * s, 2.1 * s, c, 5);
+      g.sphere(p.x + 0.8 * s, 0.2 * s, p.z - 0.5 * s, 0.7 * s, shade(c, 0.85), 5, 3);
+      break;
+    }
+    case 'windmill': {
+      const h = 34 * s;
+      g.cyl(p.x, 0, p.z, 1.1, h, [0.88, 0.88, 0.86], 8, 0.6);
+      const dx = Math.cos(p.r), dz = Math.sin(p.r);
+      g.box(p.x + dx * 1.2, h + 1, p.z + dz * 1.2, 2.4, 1.8, 1.8, [0.85, 0.85, 0.83], -p.r);
+      for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * Math.PI * 2 + p.r;
+        g.box(p.x + dx * 2, h + 1 + Math.sin(a) * 9, p.z + dz * 2 + Math.cos(a) * 0, 0.5, 18, 1.2,
+          [0.92, 0.92, 0.9], -p.r, {});
+      }
+      break;
+    }
     case 'parasol':
       g.cyl(p.x, 0, p.z, 0.07, 2.2, C.wood, 5);
       g.cone(p.x, 2.0, p.z, 1.7 * s, 0.7, pick(rng(Math.floor(p.x * 13 + p.z)), [[0.9, 0.35, 0.3], [0.95, 0.8, 0.3], [0.35, 0.6, 0.9]]), 8);

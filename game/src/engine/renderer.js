@@ -352,7 +352,6 @@ export class Renderer {
       marker: upload(gl, ring, true),
     };
     this.instData = {};
-    this.instBufs = {};
     for (const k of Object.keys(this.prims)) {
       this.instData[k] = { opaque: new Float32Array(MAX_INSTANCES * 20), n: 0, alpha: new Float32Array(1200 * 20), na: 0 };
     }
@@ -703,7 +702,7 @@ export class Renderer {
 
     // Monde statique
     this.scene.use();
-    this.setSceneUniforms(this.scene, 0.06, e.emitBoost);
+    this.setSceneUniforms(this.scene, 0.06 + (e.wet || 0) * 0.55, e.emitBoost);
     this.identityAttribs();
     const p = this.planes;
     for (const ch of this.chunks) {
@@ -715,7 +714,7 @@ export class Renderer {
     }
 
     // Objets dynamiques (véhicules, piétons, accessoires)
-    gl.uniform1f(this.scene.u.uSpec, 0.5);
+    gl.uniform1f(this.scene.u.uSpec, 0.5 + (e.wet || 0) * 0.3);
     this.drawInstanced(this.scene, false);
 
     // Océan

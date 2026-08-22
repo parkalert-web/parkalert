@@ -287,6 +287,19 @@ export class HUD {
       c.stroke();
     }
 
+    // zone de recherche : cercle clignotant quand la police vous a perdu
+    if (g.player.wanted > 0 && g.police.flash > 0 && g.police.lastSeen) {
+      const r = 55 + g.player.wanted * 45;
+      c.save();
+      c.strokeStyle = Math.floor(g.time * 3) % 2 ? 'rgba(90,140,240,0.95)' : 'rgba(240,80,80,0.95)';
+      c.fillStyle = 'rgba(60,100,200,0.16)';
+      c.lineWidth = 3 / scale;
+      c.beginPath();
+      c.arc(g.police.lastSeen.x, g.police.lastSeen.z, r, 0, 6.29);
+      c.fill(); c.stroke();
+      c.restore();
+    }
+
     // blips
     for (const b of this.blips()) {
       const dx = b.x - p.x, dz = b.z - p.z;
@@ -381,10 +394,6 @@ export class HUD {
     // aéroport et port
     c.fillStyle = '#333c44';
     c.fillRect(g.data.airport.x - 360, g.data.airport.z - 40, 720, 80);
-    c.fillStyle = 'rgba(255,255,255,0.06)';
-    for (const zo of ZONES) {
-      c.font = `${Math.max(11, 15 / z)}px "Arial Narrow", Arial`;
-    }
     c.restore();
 
     // noms de quartiers (non déformés)
@@ -398,6 +407,19 @@ export class HUD {
       c.font = `600 ${clamp(13 * Math.sqrt(z / 0.24), 9, 20)}px "Arial Narrow", Arial, sans-serif`;
       c.fillText(zo.name.toUpperCase(), sx, sy);
     }
+    // zone de recherche : cercle clignotant quand la police vous a perdu
+    if (g.player.wanted > 0 && g.police.flash > 0 && g.police.lastSeen) {
+      const r = 55 + g.player.wanted * 45;
+      c.save();
+      c.strokeStyle = Math.floor(g.time * 3) % 2 ? 'rgba(90,140,240,0.95)' : 'rgba(240,80,80,0.95)';
+      c.fillStyle = 'rgba(60,100,200,0.16)';
+      c.lineWidth = 3 / scale;
+      c.beginPath();
+      c.arc(g.police.lastSeen.x, g.police.lastSeen.z, r, 0, 6.29);
+      c.fill(); c.stroke();
+      c.restore();
+    }
+
     // blips
     for (const b of this.blips()) {
       const sx = (b.x - this.mapCenter.x) * z + w / 2;

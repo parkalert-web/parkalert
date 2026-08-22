@@ -218,7 +218,8 @@ export class Vehicle {
 
     // adhérence latérale : la dérive naît de l'écart entre cap et vitesse
     const gripBase = this.handbrake ? 1.5 : m.grip;
-    const wet = 1;
+    // chaussée mouillée : jusqu'à 22 % d'adhérence en moins
+    const wet = game && game.weather ? 1 - game.weather.wet * 0.22 : 1;
     const grip = gripBase * wet * (this.dead ? 0.6 : 1);
     const slip = Math.abs(vr);
     vr *= Math.exp(-grip * dt);
@@ -270,6 +271,19 @@ export class Vehicle {
         }
         this.vx *= 0.75; this.vz *= 0.75;
       }
+    }
+
+    // à l'eau : le moteur noie et l'épave s'enfonce
+    if (this.x < -740) {
+      this.inWater = true;
+      this.y = damp(this.y, -1.6, 0.7, dt);
+      this.vx *= Math.exp(-2.2 * dt);
+      this.vz *= Math.exp(-2.2 * dt);
+      this.throttle = 0;
+      if (!this.drowned) { this.drowned = true; this.damage(260); }
+      if (this.y < -1.2 && !this.dead) this.damage(400 * dt);
+    } else if (this.y < 0) {
+      this.y = Math.min(0, this.y + dt * 2);
     }
 
     // limites du monde
@@ -354,15 +368,33 @@ export class Vehicle {
       R.cube(this.out, c, emit);
     }
 
+    // occupants : buste et tête visibles derrière le pare-brise
+    for (let i = 0; i < this.occupants.length; i++) {
+      const o = this.occupants[i];
+      const look = o.look || o;
+      const seatX = (i % 2 === 0 ? -1 : 1) * this.model.wid * 0.24;
+      const seatZ = i < 2 ? this.model.len * 0.04 : -this.model.len * 0.2;
+      const baseY = g.floor + g.bodyH * 0.52;
+      m4compose(this.tmp, seatX, baseY + 0.18, seatZ, 0, 0.4, 0.42, 0.24);
+      m4mul(this.out, this.mat, this.tmp);
+      R.cube(this.out, look.shirt || [0.5, 0.5, 0.55]);
+      m4compose(this.tmp, seatX, baseY + 0.54, seatZ, 0, 0.23, 0.26, 0.24);
+      m4mul(this.out, this.mat, this.tmp);
+      R.cube(this.out, look.skin || [0.85, 0.7, 0.55]);
+      m4compose(this.tmp, seatX, baseY + 0.66, seatZ - 0.01, 0, 0.25, 0.09, 0.26);
+      m4mul(this.out, this.mat, this.tmp);
+      R.cube(this.out, look.hair || [0.15, 0.11, 0.08]);
+    }
+
     // roues
     for (const w of g.wheels) {
       const st = w.front ? this.steer : 0;
       m4compose(this.tmp, w.x, w.y, w.z, st, w.r * 2, w.w, w.r * 2, this.wheelSpin, Math.PI / 2);
       m4mul(this.out, this.mat, this.tmp);
       R.cyl(this.out, [0.06, 0.06, 0.07]);
-      m4compose(this.tmp, w.x * 1.02, w.y, w.z, st, w.r * 1.1, w.w * 1.05, w.r * 1.1, this.wheelSpin, Math.PI / 2);
+      m4compose(this.tmp, w.x * 1.02, w.y, w.z, st, w.r * 0.92, w.w * 1.06, w.r * 0.92, this.wheelSpin, Math.PI / 2);
       m4mul(this.out, this.mat, this.tmp);
-      R.cyl(this.out, [0.62, 0.63, 0.66]);
+      R.cyl(this.out, [0.42, 0.44, 0.47]);
     }
   }
 }
