@@ -10,17 +10,17 @@ export const CHARACTERS = {
   michael: {
     name: 'Michael', full: 'Michael De Santa', color: '#5b8fd6', ability: 'Temps mort',
     hint: 'Ralentit le temps à pied', look: { skin: '#e0b088', shirt: '#2b3a4a', pants: '#26303c', hair: '#2a2118' },
-    home: { x: -140, z: -420 },
+    home: { x: -115, z: -440 },
   },
   franklin: {
     name: 'Franklin', full: 'Franklin Clinton', color: '#7cc36b', ability: 'Sang-froid',
     hint: 'Ralentit le temps au volant', look: { skin: '#7a4c2e', shirt: '#3f7a4f', pants: '#2f3947', hair: '#1a1410' },
-    home: { x: 200, z: 380 },
+    home: { x: 228, z: 370 },
   },
   trevor: {
     name: 'Trevor', full: 'Trevor Philips', color: '#d99a3c', ability: 'Fureur',
     hint: 'Dégâts doublés, dégâts subis divisés', look: { skin: '#d9a077', shirt: '#e0e0d8', pants: '#4a4a3f', hair: '#3a2a1a' },
-    home: { x: -480, z: 120 },
+    home: { x: -466, z: 99 },
   },
 };
 

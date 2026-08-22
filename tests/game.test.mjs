@@ -499,8 +499,16 @@ test('les points de mission sont posés sur un terrain valide', () => {
     assert.ok(!solid(spot.street.x, spot.street.z), `accès rue de ${k} dans un mur`);
     assert.ok(drivable(spot.street.x, spot.street.z), `${k} inaccessible en voiture`);
   }
-  for (const c of Object.values(CHARACTERS)) {
+  const collide = new World(w);
+  for (const [key, c] of Object.entries(CHARACTERS)) {
     assert.ok(Number.isFinite(c.home.x) && Number.isFinite(c.home.z), 'domicile mal défini');
+    const q = { x: c.home.x, z: c.home.z };
+    assert.equal(collide.pushCircle(q, 0.5, 2), null,
+      `${key} apparaît dans un mur en (${c.home.x}, ${c.home.z})`);
+    // et pas pile sur un marqueur de mission, sinon elle se lance toute seule
+    for (const m of MISSIONS) {
+      assert.ok(dist2D(c.home.x, c.home.z, m.x, m.z) > 4, `${key} apparaît sur la mission ${m.id}`);
+    }
   }
 });
 

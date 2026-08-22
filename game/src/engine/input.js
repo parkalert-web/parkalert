@@ -52,8 +52,22 @@ export class Input {
     addEventListener('gamepaddisconnected', () => { this.gamepadIndex = null; });
   }
 
-  requestLock() { if (this.enabled) this.canvas.requestPointerLock(); }
-  releaseLock() { if (document.pointerLockElement) document.exitPointerLock(); }
+  /**
+   * La capture du pointeur peut être refusée (appel trop rapproché, onglet sans
+   * le focus). Le navigateur rejette alors une promesse : on l'absorbe, sinon
+   * elle remonte en erreur non gérée.
+   */
+  requestLock() {
+    if (!this.enabled || this.locked) return;
+    try {
+      const r = this.canvas.requestPointerLock();
+      if (r && typeof r.catch === 'function') r.catch(() => {});
+    } catch (e) { /* refus du navigateur : on continue à la souris libre */ }
+  }
+
+  releaseLock() {
+    if (document.pointerLockElement) document.exitPointerLock();
+  }
 
   down(code) { return this.keys.has(code); }
   hit(code) { return this.pressed.has(code); }

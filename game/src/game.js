@@ -173,12 +173,15 @@ export class Game {
     this.hud = new HUD(this, this.root);
     this.rand = rng(999);
 
-    this.player.x = 196;
-    this.player.z = 371;
-    this.camera.yaw = -Math.PI / 2;
+    // On démarre devant chez Franklin, à quelques pas du marqueur de mission
+    // (sinon elle se déclencherait avant même que le joueur ait bougé).
+    const home = CHARACTERS.franklin.home;
+    this.player.x = home.x;
+    this.player.z = home.z;
+    this.camera.yaw = Math.PI;
 
     // véhicule personnel garé le long du trottoir
-    const v = new Vehicle('dominator', 184.5, 378, 0, { parked: true });
+    const v = new Vehicle('dominator', home.x - 6, 364, Math.PI / 2, { parked: true });
     v.persistent = true;
     this.vehicles.push(v);
 
@@ -755,8 +758,12 @@ export class Game {
     if (p.vehicle) p.exitVehicle(this.world);
     p.setCharacter(key);
     const home = CHARACTERS[key].home;
-    p.x = home.x + range(this.rand, -8, 8);
-    p.z = home.z + 42;
+    p.x = home.x + range(this.rand, -4, 4);
+    p.z = home.z;
+    p.vx = 0; p.vz = 0; p.y = 0;
+    const q = { x: p.x, z: p.z };
+    this.world.pushCircle(q, 0.5, 2);
+    p.x = q.x; p.z = q.z;
     p.health = p.maxHealth;
     p.wanted = 0;
     this.police.clear();

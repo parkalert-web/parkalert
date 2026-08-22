@@ -32,6 +32,12 @@ html, body {
 }
 #overlay { pointer-events: none; }
 
+/* Léger assombrissement des bords, comme dans le jeu d'origine. */
+#vignette {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 78% 78% at 50% 50%, transparent 55%, rgba(0, 0, 0, .38) 100%);
+}
+
 #damage-flash {
   position: absolute; inset: 0; pointer-events: none; opacity: 0;
   background: radial-gradient(ellipse at center, transparent 42%, rgba(170, 12, 12, 0.62) 100%);
