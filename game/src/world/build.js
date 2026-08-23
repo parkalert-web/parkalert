@@ -555,6 +555,58 @@ function buildLandmarks(ch, world) {
 }
 
 /** Construit toute la géométrie statique. */
+/**
+ * Une pièce : sol, murs, plafond, plafonniers et mobilier selon l'usage.
+ * Les murs sont bâtis « vers l'intérieur » — on ne les voit que de dedans.
+ */
+function buildInterior(ch, it) {
+  const g = ch.at(it.x, it.z);
+  const hw = it.w / 2, hd = it.d / 2, H = 3.4, EP = 0.6;
+  const sol = it.kind === 'entrepot' ? C.asphaltDark : it.kind === 'appartement' ? C.wood : C.pavement;
+  const mur = it.kind === 'entrepot' ? shade(C.metal, 0.7)
+    : it.kind === 'appartement' ? color('#c8b9a4') : color('#dfe3e6');
+
+  g.box(it.x, 0.06, it.z, it.w, 0.12, it.d, sol, 0, { top: sol });
+  g.box(it.x, H + 0.2, it.z, it.w + EP * 2, 0.4, it.d + EP * 2, shade(mur, 0.72));
+  g.box(it.x, H / 2, it.z - hd - EP / 2, it.w + EP * 2, H, EP, mur);
+  for (const sx of [-1, 1]) g.box(it.x + sx * (hw + EP / 2), H / 2, it.z, EP, H, it.d, mur);
+  // façade percée d'une porte
+  const trou = 2.6;
+  const pan = (it.w - trou) / 2;
+  for (const sx of [-1, 1]) {
+    g.box(it.x + sx * (trou / 2 + pan / 2), H / 2, it.z + hd + EP / 2, pan, H, EP, mur);
+  }
+  g.box(it.x, H - 0.35, it.z + hd + EP / 2, trou, 0.7, EP, mur);
+
+  // plafonniers
+  for (let i = -1; i <= 1; i++) {
+    g.box(it.x + i * (it.w / 3.4), H - 0.14, it.z, 1.5, 0.12, 0.5, C.window, 0, { emit: 1, emitTop: 1 });
+  }
+
+  // comptoir
+  g.box(it.counter.x, 0.55, it.counter.z, it.w * 0.6, 1.1, 1.0, shade(C.wood, 1.1), 0, { top: shade(C.wood, 1.3) });
+
+  if (it.kind === 'boutique') {
+    for (let i = -2; i <= 2; i++) {
+      g.box(it.x + i * 3.6, 1.1, it.z - hd + 1.1, 2.6, 2.2, 0.5, shade(mur, 0.82));
+      g.box(it.x + i * 3.6, 1.5, it.z - hd + 0.78, 2.2, 0.12, 0.12, C.metal);
+    }
+  } else if (it.kind === 'appartement') {
+    g.box(it.x - hw + 2.6, 0.32, it.z - 1, 2.2, 0.64, 3.4, color('#5b6b7d'), 0, { top: color('#8c99a8') });
+    g.box(it.x + hw - 3, 0.42, it.z + 1, 3.2, 0.84, 1.6, shade(C.wood, 0.9));
+    g.box(it.x + hw - 3, 1.35, it.z + 1, 2.4, 1.3, 0.14, C.glassDark, 0, { emit: 0.5 });
+  } else if (it.kind === 'entrepot') {
+    for (const sx of [-1, 1]) {
+      g.box(it.x + sx * (hw - 2), 1.2, it.z + 2, 2.4, 2.4, 5, shade(C.metal, 0.85));
+    }
+    g.box(it.x, 0.4, it.z - 2, 5, 0.8, 2.4, color('#b4462f'));
+  } else {
+    for (const sx of [-1, 1]) {
+      g.box(it.x + sx * (hw - 2.4), 0.45, it.z + 1.5, 3.4, 0.9, 1.4, shade(mur, 0.86));
+    }
+  }
+}
+
 export function buildWorldGeometry(world) {
   const ch = new Chunks();
   buildGround(ch, world);
@@ -563,5 +615,6 @@ export function buildWorldGeometry(world) {
   for (const b of world.buildings) buildBuilding(ch.at(b.x, b.z), b);
   for (const p of world.props) buildProp(ch.at(p.x, p.z), p);
   buildLandmarks(ch, world);
+  for (const it of world.interiors || []) buildInterior(ch, it);
   return ch.list();
 }

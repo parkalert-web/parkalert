@@ -9,6 +9,32 @@ import { pushOutOfVehicles } from '../systems/physics.js';
 const SKIN = ['#e8b48c', '#c98d63', '#8d5a3b', '#f0c9a6', '#6b4229', '#d9a077'];
 const SHIRT = ['#d8453c', '#2f6fb4', '#e6e6e6', '#3f9a5c', '#e0a33a', '#7a4f9a', '#2b2f36', '#d97ea8', '#4fb0c0', '#f0f0f0'];
 const PANTS = ['#2f3947', '#3a3a3a', '#5c4a34', '#22304a', '#6b6b6b', '#1f1f24'];
+/**
+ * Ce que racontent les passants. Rien de scénarisé : de la brève de comptoir,
+ * mais la ville cesse d'être un décor dès qu'on peut lui adresser la parole.
+ */
+export const PED_LINES = [
+  'Tu sais où je peux trouver un taxi ? Ça fait vingt minutes que j’attends.',
+  'Fais gaffe en bas de Vinewood, il y a eu des coups de feu ce matin.',
+  'J’ai vu passer une Comète orange. Magnifique. Volée, sûrement.',
+  'La circulation est infernale depuis qu’ils ont refait les feux.',
+  'Tu veux un conseil ? Ne traîne pas ici après minuit.',
+  'On m’a dit qu’un type rachetait des voitures au port. Sans poser de questions.',
+  'Belle journée, non ? Enfin, tant qu’il ne pleut pas.',
+  'Mon cousin bosse chez Los Santos Customs. Il refait une caisse en dix minutes.',
+  'Les flics patrouillent plus que d’habitude. Quelque chose se prépare.',
+  'J’économise pour partir à Blaine County. L’air y est meilleur.',
+  'Tu as l’air pressé. Tout le monde est pressé dans cette ville.',
+  'Il paraît qu’il y a un braquage prévu à la bijouterie. Enfin, c’est ce qu’on dit.',
+];
+
+export const PED_LINES_PANIC = [
+  'Ne me tirez pas dessus ! Je n’ai rien vu !',
+  'Laissez-moi tranquille !',
+  'Au secours ! Quelqu’un !',
+  'Je vous en prie, prenez ce que vous voulez.',
+];
+
 const HAIR = ['#241a12', '#4a3620', '#7a5a32', '#1a1a1a', '#a08050', '#5a5a5a'];
 
 const tmpA = m4(), tmpB = m4();
@@ -215,6 +241,8 @@ export class Ped {
     this.inVehicle = null;
     this.seat = 0;
     this.talkT = 0;
+    this.line = null;             // réplique en cours
+    this.spoken = 0;              // combien de fois on lui a parlé
     this.driverOf = null;
     this.mission = opts.mission || null;
     if (this.cop) {
@@ -330,10 +358,27 @@ export class Ped {
     return this.dodgeT > 0;
   }
 
+  /**
+   * On lui adresse la parole. Il se tourne vers nous et répond ; s'il est
+   * paniqué ou hostile, il envoie balader.
+   */
+  talk(x, z) {
+    if (this.dead) return null;
+    this.yaw = Math.atan2(x - this.x, z - this.z);
+    this.idleT = 3.2;
+    this.talkT = 3.2;
+    this.spoken++;
+    const source = (this.panic > 0 || this.state === 'flee') ? PED_LINES_PANIC : PED_LINES;
+    this.line = source[Math.floor(this.rand() * source.length) % source.length];
+    return this.line;
+  }
+
   update(dt, ctx) {
+    if (this.talkT > 0) this.talkT = Math.max(0, this.talkT - dt);
     if (this.dead) {
       this.deadT += dt;
       this.move = 0;
+      this.line = null;
       return;
     }
     const { player, world, game } = ctx;

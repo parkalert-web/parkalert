@@ -87,7 +87,13 @@ function launch() {
   }
   game.input.requestLock();
 }
-playBtn.addEventListener('click', launch);
+playBtn.addEventListener('click', () => {
+  // Le même bouton sert au lancement et au retour depuis le menu principal.
+  if (game.state === 'menu') game.resumeFromMenu(); else launch();
+});
+document.getElementById('btn-restart').addEventListener('click', () => {
+  if (confirm('Effacer la progression et recommencer une partie ?')) game.newGame();
+});
 addEventListener('keydown', (e) => {
   if (!playBtn.hidden && !loading.classList.contains('done') && (e.code === 'Enter' || e.code === 'Space')) launch();
 });
@@ -107,6 +113,12 @@ document.getElementById('opt-scale').addEventListener('input', (e) => {
 });
 document.getElementById('opt-sens').addEventListener('input', (e) => {
   game.input.sensitivity = e.target.value / 10000;
+});
+document.getElementById('opt-lock').addEventListener('change', (e) => {
+  // Souris capturée : la vue suit la souris sans rien tenir, mais les boutons
+  // d'écran ne sont plus cliquables — le curseur appartient au canevas.
+  game.input.pointerLockWanted = e.target.checked;
+  if (e.target.checked) game.input.requestLock(); else game.input.releaseLock();
 });
 document.getElementById('opt-vol').addEventListener('input', (e) => {
   game.audio.setVolume(e.target.value / 100);

@@ -13,6 +13,11 @@ export class Input {
     this.mouse = { left: false, right: false };
     this.wheel = 0;
     this.locked = false;
+    // Curseur libre par défaut : sous capture de pointeur, plus aucun bouton
+    // de l'écran n'est cliquable — la souris appartient au canevas. On tourne
+    // donc la tête en gardant le bouton enfoncé, et les menus restent à portée
+    // de clic. Ceux qui préfèrent la souris capturée l'activent dans le menu.
+    this.pointerLockWanted = false;
     this.lockDenied = false;       // capture refusée (page embarquée) : on vise à la souris tenue
     this.dragging = false;
     this.dragX = 0; this.dragY = 0;
@@ -35,7 +40,10 @@ export class Input {
       this.dragX = e.clientX; this.dragY = e.clientY;
       this.dragging = true;
       // Premier clic : on tente la capture du pointeur, et ce clic-là ne tire pas.
-      if (!this.locked && this.enabled && !this.lockDenied) { this.requestLock(); return; }
+      if (this.pointerLockWanted && !this.locked && this.enabled && !this.lockDenied) {
+        this.requestLock();
+        return;
+      }
       if (e.button === 0) this.mouse.left = true;
       if (e.button === 2) this.mouse.right = true;
     });
@@ -51,8 +59,7 @@ export class Input {
         this.mouseDY += e.movementY * (this.invertY ? -1 : 1);
         return;
       }
-      // Sans capture (page embarquée, permission refusée) : on tourne la tête
-      // en gardant le bouton enfoncé. Sinon la caméra serait bloquée.
+      // Sans capture : on tourne la tête en gardant le bouton enfoncé.
       if (!this.dragging || !this.enabled) return;
       const dx = e.clientX - this.dragX, dy = e.clientY - this.dragY;
       this.dragX = e.clientX; this.dragY = e.clientY;
@@ -75,7 +82,7 @@ export class Input {
    * elle remonte en erreur non gérée.
    */
   requestLock() {
-    if (!this.enabled || this.locked) return;
+    if (!this.pointerLockWanted || !this.enabled || this.locked) return;
     const refuse = () => { this.lockDenied = true; };
     try {
       const r = this.canvas.requestPointerLock();

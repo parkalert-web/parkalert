@@ -340,11 +340,13 @@ export class MissionSystem {
     const g = this.game;
     this.cooldown = Math.max(0, this.cooldown - dt);
     if (!this.active) {
-      // déclencheurs sur la carte
+      // Sur un marqueur, on propose — on n'impose plus. Le joueur appuie sur E,
+      // ou lance la mission depuis la carte.
+      this.atMarker = null;
       if (this.cooldown === 0 && g.player.onFoot && !g.player.dead) {
         for (const m of MISSIONS) {
           if (!this.available(m)) continue;
-          if (dist2D(g.player.x, g.player.z, m.x, m.z) < 3.2) { this.start(m); break; }
+          if (dist2D(g.player.x, g.player.z, m.x, m.z) < 4.5) { this.atMarker = m; break; }
         }
       }
       return;

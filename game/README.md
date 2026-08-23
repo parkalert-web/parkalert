@@ -158,6 +158,51 @@ ses éoliennes, la chaîne de montagnes du nord, l'aéroport au sud et le port �
 l'est. À l'ouest, on peut entrer dans l'eau : le joueur **nage**, et les
 véhicules calent puis coulent.
 
+### À l'écran, sans rien connaître
+
+Quatre boutons cliquables en haut à droite — **Vue**, **Armes**, **Carte**,
+**Menu** — parce qu'une commande qui n'existe qu'au clavier n'est jamais
+trouvée. Le viseur est **toujours affiché** dès qu'on a une arme en main, et une
+**visée assistée** accroche la cible la plus proche de l'axe : un cadre s'affiche
+autour d'elle, rouge pour une menace, avec sa distance. Tirer envoie la balle
+sur la personne encadrée, pas sur le mur derrière.
+
+La souris est **libre par défaut** : on tourne la tête en gardant un bouton
+enfoncé, ce qui laisse tous les boutons cliquables. Ceux qui préfèrent la vue à
+la souris nue activent « Capturer la souris » dans le menu — mais les boutons
+d'écran deviennent alors inaccessibles, le curseur appartenant au canevas.
+
+### Entrer quelque part
+
+Quatre intérieurs se visitent : **Ammu-Nation**, l'**hôpital**, l'**atelier
+Los Santos Customs** et **votre appartement**, où le lit enregistre la partie.
+On entre par le parvis avec **E**, on ressort par le seuil. Les pièces sont
+bâties à l'écart de la ville — le procédé des GTA de l'époque — et franchir la
+porte téléporte le joueur : de l'intérieur on ne voit que la pièce, et depuis la
+rue on ne les aperçoit jamais.
+
+### Parler aux gens
+
+**E** devant un passant engage la conversation : il se tourne, s'arrête et
+répond, avec une bulle au-dessus de la tête. Douze répliques de comptoir, et
+d'autres, moins aimables, quand il est paniqué.
+
+### Choisir sa mission
+
+Elles ne se déclenchent plus toutes seules quand on marche sur un marqueur : on
+appuie sur **E**, ou on la choisit sur la carte. La carte plein écran liste les
+dix missions avec leur genre, leur distance et leur prime ; cliquer un point
+ouvre sa fiche — ce que c'est, ce qu'on y trouve, à quelle distance — avec deux
+boutons : *lancer* si on est à moins de soixante mètres, *marquer la
+destination* sinon.
+
+### Être ruiné
+
+C'est la seule vraie défaite du jeu : plus un dollar en poche et la partie
+s'arrête sur un écran **RUINÉ**, puis retour au menu principal, qui affiche
+votre argent, vos missions réussies et votre personnage. On reprend là où on
+était — un ami vous dépanne de 500 $ — ou on repart de zéro.
+
 ### Le reste
 
 Cinq stations de radio composées en direct par le synthétiseur du navigateur,
@@ -262,7 +307,7 @@ lectures dans cette table. Aucun outil externe, aucune étape d'installation.
 node --test tests/game.test.mjs
 ```
 
-44 tests couvrent les mathématiques, l'orientation des faces (un enroulement
+49 tests couvrent les mathématiques, l'orientation des faces (un enroulement
 inversé rend la géométrie invisible), la reproductibilité de la ville, la
 connexité du réseau routier, l'absence d'obstacle sur la chaussée et de
 marqueur de mission dans un mur, les collisions, la physique des véhicules
@@ -282,6 +327,16 @@ camion de pompiers, Benson, bus) n'avaient pas de valeur de braquage. Un
 `undefined` dans la physique, et leur position devenait NaN dès la première
 image. Un garde-fou fait désormais rouler chaque modèle du catalogue à l'arrêt,
 à fond et en virage serré, en exigeant que tout reste fini.
+
+D'autres couvrent la visée assistée (la bonne cible, jamais dans le dos, jamais
+un mort), la projection à l'écran, les dialogues des passants, l'aller-retour
+dans chaque intérieur, et la ruine.
+
+À côté, une campagne dans Chromium joue vraiment : 28 vérifications sur la
+conduite, le tir, la police, les missions, la sauvegarde ; et 20 de plus sur les
+boutons d'écran, l'inventaire, la carte, les intérieurs et le menu. C'est cette
+seconde campagne qui a montré qu'aucun bouton n'était cliquable tant que la
+souris était capturée par le canevas.
 
 Un autre vérifie que `losantos.html` n'a pas pris de retard sur les sources.
 

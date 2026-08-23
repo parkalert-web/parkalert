@@ -50,6 +50,15 @@
       </div>
     </div>
 
+    <!-- Boutons d'écran : tout ce qui n'est accessible qu'au clavier finit par
+         ne jamais être trouvé. -->
+    <div id="screen-buttons">
+      <button id="btn-view" title="Changer de vue (V)"><b>◱</b><span>Vue</span></button>
+      <button id="btn-inv" title="Inventaire (I)"><b>▤</b><span>Armes</span></button>
+      <button id="btn-map" title="Carte (M)"><b>🗺</b><span>Carte</span></button>
+      <button id="btn-menu" title="Menu (Échap)"><b>☰</b><span>Menu</span></button>
+    </div>
+
     <div id="speedo">
       <div id="vehicle-name">—</div>
       <div id="speed-row"><span id="speed-value">0</span><span id="speed-unit">km/h</span><span id="gear">1</span></div>
@@ -68,10 +77,33 @@
   <div id="map-screen">
     <canvas id="map-canvas"></canvas>
     <div id="map-key"></div>
+    <div id="map-missions">
+      <h4>Missions</h4>
+      <div class="mission-list"></div>
+    </div>
+    <div id="map-info" hidden>
+      <button id="map-info-close" aria-label="Fermer">×</button>
+      <b></b>
+      <span class="map-info-sub"></span>
+      <p></p>
+      <div class="map-info-actions"></div>
+    </div>
     <div class="map-legend">
       <b>CARTE DE LOS SANTOS</b>
       <span>Clic : placer un point de destination · Molette : zoom · Glisser : déplacer</span>
       <span>M ou Échap pour fermer</span>
+    </div>
+  </div>
+
+  <!-- ----------------------------------------------------------- inventaire -->
+  <div id="inventory">
+    <div class="inv-panel">
+      <div class="inv-head">
+        <b>INVENTAIRE</b>
+        <span id="inv-money">$0</span>
+      </div>
+      <div class="inv-grid"></div>
+      <div class="inv-foot">Clic ou touche 1-9 pour équiper · I ou Échap pour fermer</div>
     </div>
   </div>
 
@@ -94,13 +126,14 @@
           <h2>Commandes</h2>
           <div class="keys">
             <div><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd><span>Se déplacer / conduire</span></div>
-            <div><kbd>Souris</kbd><span>Regarder</span></div>
+            <div><kbd>Souris</kbd><span>Regarder (bouton maintenu)</span></div>
             <div><kbd>Clic droit</kbd><span>Viser</span></div>
             <div><kbd>Clic gauche</kbd><span>Tirer / frapper</span></div>
             <div><kbd>Maj</kbd><span>Courir</span></div>
             <div><kbd>Espace</kbd><span>Sauter / frein à main</span></div>
             <div><kbd>F</kbd><span>Monter / descendre d'un véhicule</span></div>
-            <div><kbd>E</kbd><span>Interagir (boutiques)</span></div>
+            <div><kbd>E</kbd><span>Entrer, parler, acheter, lancer une mission</span></div>
+            <div><kbd>I</kbd><span>Inventaire des armes</span></div>
             <div><kbd>R</kbd><span>Recharger</span></div>
             <div><kbd>Tab</kbd><span>Roue des armes (maintenir)</span></div>
             <div><kbd>G</kbd><span>Changer de personnage (maintenir)</span></div>
@@ -122,10 +155,12 @@
         missions réussies, personnage et heure du jour.</p>
       <div class="pause-foot">
         <button id="btn-resume">Reprendre</button>
+        <button id="btn-quit" class="ghost">Menu principal</button>
         <button id="btn-newgame" class="ghost">Nouvelle partie</button>
         <label>Ombres <input type="checkbox" id="opt-shadows" checked></label>
         <label>Qualité <input type="range" id="opt-scale" min="50" max="100" value="100"></label>
         <label>Sensibilité <input type="range" id="opt-sens" min="5" max="60" value="22"></label>
+        <label>Capturer la souris <input type="checkbox" id="opt-lock"></label>
         <label>Volume <input type="range" id="opt-vol" min="0" max="100" value="85"></label>
         <label>Musique <input type="range" id="opt-music" min="0" max="100" value="50"></label>
       </div>
@@ -153,7 +188,11 @@
       <div class="load-bar"><i id="load-fill"></i></div>
       <div class="load-step" id="load-step">Initialisation…</div>
       <div class="load-tip" id="load-tip"></div>
-      <button id="btn-play" hidden>ENTRER DANS LOS SANTOS</button>
+      <div class="load-actions">
+        <button id="btn-play" hidden>ENTRER DANS LOS SANTOS</button>
+        <button id="btn-restart" hidden>NOUVELLE PARTIE</button>
+      </div>
+      <div class="load-stats" id="load-stats" hidden></div>
     </div>
   </div>
 </div>

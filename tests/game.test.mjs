@@ -843,6 +843,241 @@ test('rouler à contresens finit par se voir', async () => {
   assert.equal(g2.player.wanted, 0, 'du bon côté de la chaussée, rien à signaler');
 });
 
+test('être à sec renvoie au menu principal', async () => {
+  const { Game } = await import('../game/src/game.js');
+
+  const faireJeu = (argent) => {
+    const g = Object.create(Game.prototype);
+    g.state = 'play';
+    g.player = { money: argent, character: 'franklin' };
+    g.missions = { active: null, done: new Set() };
+    g.audio = { ui() {} };
+    g.bannieres = [];
+    g.showBanner = (t, sub) => g.bannieres.push(t);
+    g.menu = null;
+    g.showMainMenu = (t, sub) => { g.menu = { t, sub }; g.state = 'menu'; };
+    g.notify = () => {};
+    return g;
+  };
+
+  // avec de l'argent, il ne se passe rien
+  {
+    const g = faireJeu(1200);
+    for (let i = 0; i < 200; i++) g.checkRuin(1 / 30);
+    assert.equal(g.ruined, undefined, 'on ne ruine pas un joueur solvable');
+  }
+
+  // à zéro, la bannière tombe puis le menu s'ouvre
+  {
+    const g = faireJeu(0);
+    for (let i = 0; i < 20; i++) g.checkRuin(1 / 30);          // 0,66 s
+    assert.equal(g.ruined, true, 'plus un sou : la partie s’arrête');
+    assert.ok(g.bannieres.includes('RUINÉ'), 'le joueur doit être prévenu');
+    assert.ok(g.ruinDelay > 0, 'on laisse voir la bannière avant le menu');
+    // la bannière ne doit pas se répéter
+    const avant = g.bannieres.length;
+    for (let i = 0; i < 60; i++) g.checkRuin(1 / 30);
+    assert.equal(g.bannieres.length, avant, 'une seule bannière');
+  }
+
+  // un solde nul fugace (achat puis paie) ne déclenche rien
+  {
+    const g = faireJeu(0);
+    g.checkRuin(1 / 30);
+    g.player.money = 9000;
+    g.checkRuin(1 / 30);
+    assert.equal(g.ruined, undefined, 'un passage à zéro d’une image ne compte pas');
+  }
+});
+
+test('on entre et on ressort de chaque intérieur', async () => {
+  const { Game } = await import('../game/src/game.js');
+  const data = generateWorld(20130917);
+  const world = new World(data);
+
+  assert.ok(data.interiors.length >= 4, 'il faut plusieurs intérieurs');
+  for (const it of data.interiors) {
+    assert.ok(it.name && it.hint, `${it.id} : présentation incomplète`);
+    // La pièce est bâtie au large de la ville, mais sur la terre ferme : posée
+    // au-delà du trait de côte elle passerait sous le plan d'eau.
+    assert.ok(Math.max(Math.abs(it.x), Math.abs(it.z)) > STREET * GRID + 250,
+      `${it.id} : la pièce empiète sur la ville`);
+    assert.ok(it.x > -640 + 120, `${it.id} : la pièce est dans l'océan (x=${it.x})`);
+    assert.ok(Math.abs(it.x) < 1080 && Math.abs(it.z) < 1080,
+      `${it.id} : la pièce déborde de la dalle de sol`);
+    // la porte, elle, est bien en ville et pas dans un mur
+    assert.ok(Math.hypot(it.door.x, it.door.z) < 1400, `${it.id} : porte hors de la ville`);
+    assert.ok(!world.solidAt(it.door.x, 1, it.door.z), `${it.id} : la porte est dans un mur`);
+    // on peut se tenir au point d'apparition, au comptoir et à la sortie
+    for (const [nom, q] of [['apparition', it.spawn], ['sortie', it.exit], ['comptoir', it.counter]]) {
+      const t = { x: q.x, z: q.z };
+      world.pushCircle(t, 0.42, 2);
+      assert.ok(Math.hypot(t.x - q.x, t.z - q.z) < 1.4,
+        `${it.id} : le point « ${nom} » est encastré dans le décor`);
+    }
+    // les murs tiennent : on ne sort pas de la pièce en marchant
+    const dehors = { x: it.x, z: it.z - it.d / 2 - 0.3 };
+    assert.ok(world.solidAt(dehors.x, 1, dehors.z), `${it.id} : le mur du fond ne bloque pas`);
+  }
+
+  // deux intérieurs ne doivent pas se chevaucher
+  for (let i = 0; i < data.interiors.length; i++) {
+    for (let j = i + 1; j < data.interiors.length; j++) {
+      const a = data.interiors[i], b = data.interiors[j];
+      assert.ok(Math.abs(a.x - b.x) > (a.w + b.w) / 2 + 4 || Math.abs(a.z - b.z) > (a.d + b.d) / 2 + 4,
+        `${a.id} et ${b.id} se chevauchent`);
+    }
+  }
+
+  /* ------------------------ aller-retour depuis un faux jeu ------------------------ */
+  const g = Object.create(Game.prototype);
+  const it = data.interiors[0];
+  g.data = data;
+  g.inside = null;
+  g.player = { x: it.door.x, z: it.door.z, y: 0, yaw: 1.1, vx: 0, vz: 0, onFoot: true, dead: false };
+  g.camera = { yaw: 1.1 };
+  g.population = {};
+  g.audio = { ui() {} };
+  g.notify = () => {};
+
+  assert.equal(g.nearDoor(), it, 'la porte doit être détectée depuis le parvis');
+  assert.ok(g.enterInterior(it), 'on doit pouvoir entrer');
+  assert.equal(g.inside, it);
+  assert.ok(dist2D(g.player.x, g.player.z, it.spawn.x, it.spawn.z) < 0.01, 'on arrive au point d’apparition');
+  assert.equal(g.population.indoors, true, 'la circulation est suspendue à l’intérieur');
+  assert.equal(g.nearDoor(), null, 'à l’intérieur, plus de porte à franchir');
+  assert.equal(g.enterInterior(data.interiors[1]), false, 'on n’entre pas dans un intérieur depuis un autre');
+
+  assert.ok(g.exitInterior(), 'on doit pouvoir ressortir');
+  assert.equal(g.inside, null);
+  assert.ok(dist2D(g.player.x, g.player.z, it.door.x, it.door.z) < 0.01, 'on ressort là où on est entré');
+  assert.ok(Math.abs(g.player.yaw - 1.1) < 1e-9, 'et on retrouve son orientation');
+  assert.equal(g.population.indoors, false, 'la ville repart');
+  assert.equal(g.exitInterior(), false, 'sortir deux fois ne fait rien');
+});
+
+test('on peut adresser la parole à un passant', async () => {
+  const { Ped, PED_LINES, PED_LINES_PANIC } = await import('../game/src/entities/character.js');
+  assert.ok(PED_LINES.length >= 8, 'il faut de quoi varier les répliques');
+  assert.equal(PED_LINES.length, new Set(PED_LINES).size, 'pas de réplique en double');
+
+  const q = new Ped(10, 10, () => 0.5);
+  assert.equal(q.line, null, 'au départ, il ne dit rien');
+  const dit = q.talk(10, 4);
+  assert.ok(PED_LINES.includes(dit), `la réplique doit venir du répertoire (${dit})`);
+  assert.equal(q.line, dit);
+  assert.ok(q.talkT > 2, 'la bulle reste affichée quelques secondes');
+  assert.ok(q.idleT > 2, 'il s’arrête pour répondre');
+  assert.ok(Math.abs(q.yaw - Math.atan2(0, -6)) < 1e-6, 'il se tourne vers nous');
+
+  // la bulle s'efface toute seule
+  for (let i = 0; i < 300; i++) q.talkT = Math.max(0, q.talkT - 1 / 30);
+  assert.equal(q.talkT, 0, 'la bulle finit par disparaître');
+
+  // paniqué, il ne fait pas la conversation
+  const effraye = new Ped(0, 0, () => 0.5);
+  effraye.panic = 1;
+  assert.ok(PED_LINES_PANIC.includes(effraye.talk(0, -3)), 'sous la panique, le ton change');
+
+  // un mort ne répond pas
+  const mort = new Ped(0, 0, () => 0.5);
+  mort.dead = true;
+  assert.equal(mort.talk(0, -3), null, 'un mort ne parle pas');
+});
+
+test('la visée assistée accroche la bonne cible', async () => {
+  const { Game } = await import('../game/src/game.js');
+  const { Ped } = await import('../game/src/entities/character.js');
+  const data = generateWorld(20130917);
+  const world = new World(data);
+
+  const faireJeu = () => {
+    const g = Object.create(Game.prototype);
+    g.world = world;
+    g.state = 'play';
+    g.peds = [];
+    g.player = {
+      x: 0, z: -300, dead: false, aiming: false,
+      weaponDef: { melee: false },
+    };
+    // caméra derrière le joueur, regardant plein +z
+    g.camera = { eye: [0, 1.6, -304], yaw: 0, pitch: 0, aimRay: () => [0, 0, 1] };
+    return g;
+  };
+
+  // une cible pile dans l'axe, une autre nettement sur le côté
+  {
+    const g = faireJeu();
+    const dansLAxe = new Ped(0.4, -280, Math.random);
+    const surLeCote = new Ped(14, -280, Math.random);
+    g.peds.push(surLeCote, dansLAxe);
+    g.updateAimAssist();
+    assert.equal(g.lockTarget, dansLAxe, 'c’est la cible la plus centrée qui est accrochée');
+  }
+
+  // rien derrière soi
+  {
+    const g = faireJeu();
+    const derriere = new Ped(0, -330, Math.random);
+    g.peds.push(derriere);
+    g.updateAimAssist();
+    assert.equal(g.lockTarget, null, 'on n’accroche pas ce qui est dans le dos');
+  }
+
+  // un mort n'est plus une cible
+  {
+    const g = faireJeu();
+    const mort = new Ped(0.3, -280, Math.random);
+    mort.dead = true;
+    g.peds.push(mort);
+    g.updateAimAssist();
+    assert.equal(g.lockTarget, null, 'un piéton mort n’est plus accroché');
+  }
+
+  // à l'arme blanche, pas d'accroche
+  {
+    const g = faireJeu();
+    g.player.weaponDef = { melee: true };
+    g.peds.push(new Ped(0.3, -280, Math.random));
+    g.updateAimAssist();
+    assert.equal(g.lockTarget, null, 'pas de visée assistée à la batte');
+  }
+
+  // un ennemi passe devant un passant à égalité de centrage
+  {
+    const g = faireJeu();
+    const passant = new Ped(0.5, -278, Math.random);
+    const ennemi = new Ped(-0.5, -281, Math.random, { hostile: true });
+    g.peds.push(passant, ennemi);
+    g.updateAimAssist();
+    assert.equal(g.lockTarget, ennemi, 'la menace passe avant le badaud');
+  }
+
+  // hors de portée
+  {
+    const g = faireJeu();
+    g.peds.push(new Ped(0, -180, Math.random));    // 120 m
+    g.updateAimAssist();
+    assert.equal(g.lockTarget, null, 'trop loin pour être accroché');
+  }
+});
+
+test('la projection à l’écran place la cible au bon endroit', async () => {
+  const { projectPoint } = await import('../game/src/game.js');
+  const proj = m4perspective(m4(), 1.1, 16 / 9, 0.5, 500);
+  // caméra à l'origine regardant -Z : la vue est l'identité
+  const vp = proj;
+  const centre = projectPoint(vp, 0, 0, -20, 800, 450);
+  assert.ok(centre, 'un point devant la caméra doit se projeter');
+  assert.ok(Math.abs(centre[0] - 400) < 0.5 && Math.abs(centre[1] - 225) < 0.5,
+    `droit devant = centre de l’écran (${centre[0].toFixed(1)}, ${centre[1].toFixed(1)})`);
+  assert.ok(projectPoint(vp, 0, 0, 20, 800, 450) === null, 'derrière la caméra : rien');
+  const droite = projectPoint(vp, 5, 0, -20, 800, 450);
+  assert.ok(droite[0] > 400, 'un point à droite se projette à droite');
+  const haut = projectPoint(vp, 0, 5, -20, 800, 450);
+  assert.ok(haut[1] < 225, 'un point en hauteur se projette vers le haut de l’écran');
+});
+
 test('tirer anime le personnage', async () => {
   const { Player } = await import('../game/src/entities/player.js');
   const p = new Player();

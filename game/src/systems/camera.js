@@ -87,8 +87,13 @@ export class Camera {
       return;
     }
 
+    // Dans une pièce, on n'a pas six mètres de recul : la caméra se colle au
+    // personnage, sinon elle se retrouve derrière le mur et on filme du dehors.
+    const dedans = !!game.inside;
+    if (dedans) dist = Math.min(dist, 2.5);
+
     this.fov = damp(this.fov, fov, 6, dt);
-    this.dist = damp(this.dist, dist, 8, dt);
+    this.dist = damp(this.dist, dist, dedans ? 14 : 8, dt);
     this.focus = [tx, ty, tz];
 
     // décalage épaule en visée
@@ -105,7 +110,7 @@ export class Camera {
     let d = this.dist;
     // ne pas traverser les murs
     const wall = game.world.raycast(targetX, targetY, targetZ, -dirX, -dirY, -dirZ, d + 0.6);
-    if (wall !== Infinity) d = Math.max(1.7, wall - 0.5);
+    if (wall !== Infinity) d = Math.max(dedans ? 0.8 : 1.7, wall - 0.5);
 
     let ex = targetX - dirX * d;
     let ey = targetY - dirY * d;

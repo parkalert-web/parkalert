@@ -24,6 +24,16 @@ const BLIP_COLORS = {
  *   anneau   cercle vide — la destination choisie
  *   croix    rond barré — les hélicoptères
  */
+/** Ce qu'on trouve à chaque type de lieu, écrit noir sur blanc. */
+export const MAP_DESCRIPTIONS = {
+  'Los Santos Customs': 'Réparation complète et nouvelle peinture pour 500 $. Efface aussi l’indice de recherche : la police ne reconnaît plus la voiture.',
+  'Ammu-Nation': 'Armes, munitions et gilets pare-balles. Entrez à pied et appuyez sur E.',
+  'Hôpital': 'C’est ici que vous vous réveillez après un mauvais quart d’heure. On y récupère de la santé.',
+  Commissariat: 'À éviter quand les étoiles clignotent.',
+  Objectif: 'L’étape en cours de votre mission.',
+  Destination: 'Le point que vous avez posé sur la carte.',
+};
+
 export const BLIP_LEGEND = [
   { kind: 'mission', shape: 'pin', color: '#f5d442', glyph: 'F', label: 'Mission à lancer' },
   { kind: 'garage', shape: 'disque', color: '#4fb0e8', glyph: '⚒', label: 'Los Santos Customs — réparation' },
@@ -132,6 +142,8 @@ export class HUD {
 
   setupMapInteraction() {
     const c = this.mapCanvas;
+    const fermer = this.el('#map-info-close');
+    if (fermer) fermer.addEventListener('click', () => this.hideMapInfo());
     let drag = null;
     c.addEventListener('mousedown', (e) => {
       drag = { x: e.clientX, y: e.clientY, moved: false, cx: this.mapCenter.x, cz: this.mapCenter.z };
@@ -161,12 +173,92 @@ export class HUD {
   }
 
   setWaypoint(x, z) {
+    // Un clic près d'un repère ouvre sa fiche : c'est la question « c'est quoi,
+    // ce point ? » qui revenait sans arrêt. Ailleurs, il pose une destination.
+    const repere = this.blipAt(x, z);
+    if (repere) { this.showMapInfo(repere); return; }
+    this.hideMapInfo();
     if (this.waypoint && dist2D(this.waypoint.x, this.waypoint.z, x, z) < 30 / this.mapZoom) {
       this.waypoint = null;
     } else {
       this.waypoint = { x, z };
     }
     this.game.audio.ui(620, 0.05, 0.1);
+  }
+
+  /** Repère fixe sous le curseur, s'il y en a un. */
+  blipAt(x, z) {
+    const rayon = 22 / this.mapZoom;
+    let best = null; let bd = rayon;
+    for (const b of this.blips()) {
+      if (b.vivant || !b.name) continue;
+      const d = dist2D(b.x, b.z, x, z);
+      if (d < bd) { bd = d; best = b; }
+    }
+    return best;
+  }
+
+  hideMapInfo() {
+    const el = this.el('#map-info');
+    if (el) el.hidden = true;
+  }
+
+  /** Fiche d'un point de la carte, avec ce qu'on peut en faire. */
+  showMapInfo(b) {
+    const g = this.game;
+    const el = this.el('#map-info');
+    if (!el) return;
+    const p = g.player;
+    const d = Math.round(dist2D(b.x, b.z, p.x, p.z));
+    const mission = MISSIONS.find((m) => m.x === b.x && m.z === b.z);
+    el.querySelector('b').textContent = mission ? mission.name : b.name;
+    el.querySelector('.map-info-sub').textContent = mission
+      ? `${mission.kind} · ${d} m · ${mission.reward.toLocaleString('fr-FR')} $`
+      : `${d} m`;
+    el.querySelector('p').textContent = mission ? mission.brief : MAP_DESCRIPTIONS[b.name] || '';
+    const actions = el.querySelector('.map-info-actions');
+    actions.innerHTML = '';
+    if (mission) {
+      const lancer = document.createElement('button');
+      lancer.className = 'primaire';
+      lancer.textContent = d < 60 ? 'Lancer la mission' : 'S’y rendre';
+      lancer.addEventListener('click', () => { g.chooseMission(mission); this.hideMapInfo(); });
+      actions.append(lancer);
+    }
+    const dest = document.createElement('button');
+    dest.textContent = 'Marquer la destination';
+    dest.addEventListener('click', () => {
+      this.waypoint = { x: b.x, z: b.z };
+      g.audio.ui(620, 0.05, 0.1);
+      this.hideMapInfo();
+    });
+    actions.append(dest);
+    el.hidden = false;
+    g.audio.ui(700, 0.04, 0.09);
+  }
+
+  /**
+   * Liste des missions : on choisit la sienne au lieu de la déclencher par
+   * hasard en marchant sur un marqueur.
+   */
+  buildMissionList() {
+    const g = this.game;
+    const liste = this.el('.mission-list');
+    if (!liste) return;
+    liste.innerHTML = '';
+    for (const m of MISSIONS) {
+      const faite = g.missions.done.has(m.id);
+      const bonPerso = !m.char || g.player.character === m.char;
+      const b = document.createElement('button');
+      b.className = faite ? 'faite' : '';
+      b.disabled = faite || !!g.missions.active;
+      const etat = faite ? '<em>Réussie</em>'
+        : !bonPerso ? `<em>Avec ${CHARACTERS[m.char].name}</em>`
+          : `<em>${m.reward.toLocaleString('fr-FR')} $</em>`;
+      b.innerHTML = `<b>${m.name}</b><small>${m.kind} · ${Math.round(dist2D(m.x, m.z, g.player.x, g.player.z))} m</small>${etat}`;
+      b.addEventListener('click', () => { g.chooseMission(m); this.hideMapInfo(); });
+      liste.append(b);
+    }
   }
 
   /** Petite invite contextuelle : « F — Monter dans la Comète ». */
@@ -397,6 +489,30 @@ export class HUD {
     c.fillStyle = '#222d38';
     c.fillRect(0, 0, W, H);
 
+    // À l'intérieur d'un bâtiment, le plan de la ville n'a plus de sens : on
+    // affiche le nom du lieu plutôt qu'une carte vide au milieu de nulle part.
+    if (g.inside) {
+      c.fillStyle = '#1a222c';
+      c.fillRect(0, 0, W, H);
+      c.fillStyle = 'rgba(245,212,66,.9)';
+      c.font = '600 13px "Arial Narrow", Arial, sans-serif';
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('INTÉRIEUR', W / 2, H / 2 - 11);
+      c.fillStyle = 'rgba(236,240,244,.85)';
+      c.font = '500 12px Arial, sans-serif';
+      c.fillText(g.inside.name, W / 2, H / 2 + 8, W - 16);
+      c.restore();
+      c.save();
+      c.strokeStyle = 'rgba(0,0,0,0.85)';
+      c.lineWidth = 3;
+      c.beginPath();
+      if (c.roundRect) c.roundRect(1.5, 1.5, W - 3, H - 3, 10); else c.rect(1.5, 1.5, W - 3, H - 3);
+      c.stroke();
+      c.restore();
+      this._blips = [];
+      return;
+    }
+
     c.translate(W / 2, H / 2);
     c.transform(-cy * scale, -sy * scale, sy * scale, -cy * scale, 0, 0);
     c.translate(-p.x, -p.z);
@@ -582,6 +698,8 @@ export class HUD {
     if (this.mapOpen) {
       this.mapCenter = { x: this.game.player.x, z: this.game.player.z };
       this.buildMapKey();
+      this.buildMissionList();
+      this.hideMapInfo();
       this.drawMap();
     }
     return this.mapOpen;
@@ -607,6 +725,45 @@ export class HUD {
       ligne.append(cv, txt);
       el.append(ligne);
     }
+  }
+
+  /* ------------------------------------------------------------- inventaire */
+
+  /**
+   * Inventaire : la roue des armes suppose de maintenir Tab, ce que personne
+   * ne devine. Ici on voit tout d'un coup et on clique.
+   */
+  toggleInventory(on) {
+    this.invOpen = on !== undefined ? on : !this.invOpen;
+    this.el('#inventory').classList.toggle('show', this.invOpen);
+    if (this.invOpen) this.buildInventory();
+    return this.invOpen;
+  }
+
+  buildInventory() {
+    const g = this.game;
+    const p = g.player;
+    this.el('#inv-money').textContent = `$${p.money.toLocaleString('fr-FR')}`;
+    const grille = this.el('.inv-grid');
+    grille.innerHTML = '';
+    WEAPON_ORDER.forEach((cle, i) => {
+      const w = WEAPONS[cle];
+      const possede = !!p.owned[cle];
+      const b = document.createElement('button');
+      b.className = 'inv-item' + (p.weapon === cle ? ' on' : '');
+      b.disabled = !possede;
+      const munitions = w.melee ? 'à la main'
+        : possede ? `${p.mags[cle] || 0} / ${p.ammo[cle] || 0}`
+          : 'non possédée';
+      b.innerHTML = `<i>${w.icon}</i><u>${w.name}<small>${munitions}</small></u><kbd>${i + 1}</kbd>`;
+      b.addEventListener('click', () => {
+        if (!possede) return;
+        p.switchWeapon(cle);
+        g.audio.ui(520, 0.04, 0.08);
+        this.buildInventory();
+      });
+      grille.append(b);
+    });
   }
 
   /* --------------------------------------------------------- roues de sélection */

@@ -6,6 +6,7 @@
  * Repère : X vers l'est, Z vers le sud, Y vers le haut. 1 unité = 1 mètre.
  */
 import { rng, range, irange, pick, clamp } from '../engine/math.js';
+import { buildInteriors, interiorColliders } from './interiors.js';
 
 export const STREET = 90;      // pas de la trame urbaine
 export const ROAD_W = 17;      // largeur de chaussée
@@ -305,7 +306,13 @@ export function generateWorld(seed = 20130917) {
     spots[k] = { x: l.x, z: l.z, entrance: l.entrance || { x: l.x, z: l.z }, street: l.street || { x: l.x, z: l.z } };
   }
 
+  // Intérieurs : bâtis à l'écart, atteints par téléportation depuis leur porte.
+  spots.safehouse = { x: STREET * 2, z: -STREET * 2, entrance: { x: STREET * 2 + 12, z: -STREET * 2 - 34 }, street: { x: STREET * 2, z: -STREET * 2 } };
+  const interiors = buildInteriors(spots);
+  colliders.push(...interiorColliders(interiors));
+
   return {
+    interiors,
     seed, roads, buildings, props, colliders, blocks, landmarks, mountains,
     beach, pier, airport, port, spots,
     graph: { nodes },

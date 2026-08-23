@@ -155,6 +155,15 @@ export class Population {
     const g = this.game;
     const p = g.player;
     const px = p.x, pz = p.z;
+    // À l'intérieur d'un bâtiment, la ville continue de tourner dehors mais on
+    // n'y fait apparaître ni voiture ni passant.
+    if (this.indoors) {
+      for (const v of g.vehicles) {
+        if (!v.ai || v.dead || v === p.vehicle) continue;
+        this.driveAI(v, dt);
+      }
+      return;
+    }
 
     // disparition au loin
     for (let i = g.vehicles.length - 1; i >= 0; i--) {

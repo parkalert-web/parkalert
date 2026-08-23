@@ -117,6 +117,18 @@ class Particles {
 
 /* -------------------------------------------------------------------- jeu */
 
+/**
+ * Projette un point du monde vers l'écran. Renvoie null derrière la caméra.
+ * Sert à encadrer la cible accrochée par la visée assistée.
+ */
+export function projectPoint(vp, x, y, z, w, h) {
+  const cx = vp[0] * x + vp[4] * y + vp[8] * z + vp[12];
+  const cy = vp[1] * x + vp[5] * y + vp[9] * z + vp[13];
+  const cw = vp[3] * x + vp[7] * y + vp[11] * z + vp[15];
+  if (cw <= 0.001) return null;
+  return [(cx / cw * 0.5 + 0.5) * w, (0.5 - cy / cw * 0.5) * h, cw];
+}
+
 export class Game {
   constructor(canvas, root, onProgress) {
     this.canvas = canvas;
@@ -300,6 +312,7 @@ export class Game {
   start() {
     this.state = 'play';
     this.last = performance.now();
+    this.bindScreenButtons();
     this.hud.setObjective('');
     this.notify('Bienvenue à Los Santos', 'F pour monter dans un véhicule · Échap pour le menu');
     requestAnimationFrame(this.frame);
@@ -309,6 +322,109 @@ export class Game {
 
   notify(title, sub) { this.hud.notify(title, sub); }
   showBanner(t, s, c) { this.hud.banner(t, s, c); }
+
+  /* ------------------------------------------------------------ menu et ruine */
+
+  /**
+   * Retour au menu principal. Le rendu continue derrière, mais plus rien ne
+   * bouge : c'est le même écran que celui du lancement.
+   */
+  showMainMenu(titre, sous) {
+    this.state = 'menu';
+    this.paused = false;
+    this.hud.toggleMap(false);
+    this.hud.toggleInventory(false);
+    this.closeShop();
+    this.input.releaseLock();
+    this.root.querySelector('#pause').classList.remove('show');
+    const l = this.root.querySelector('#loading');
+    if (!l) return;
+    l.classList.remove('done');
+    const etape = this.root.querySelector('#load-step');
+    const astuce = this.root.querySelector('#load-tip');
+    if (etape) etape.textContent = titre || 'Menu principal';
+    if (astuce) astuce.textContent = sous || '';
+    const rejouer = this.root.querySelector('#btn-play');
+    if (rejouer) { rejouer.hidden = false; rejouer.textContent = 'REPRENDRE'; }
+    const neuf = this.root.querySelector('#btn-restart');
+    if (neuf) neuf.hidden = false;
+    const stats = this.root.querySelector('#load-stats');
+    if (stats) {
+      const p = this.player;
+      stats.hidden = false;
+      stats.innerHTML = `Argent : $${p.money.toLocaleString('fr-FR')}`
+        + ` · Missions réussies : ${this.missions.done.size}/${MISSIONS.length}`
+        + ` · Personnage : ${CHARACTERS[p.character].full}`;
+    }
+  }
+
+  /** On quitte le menu et on reprend la partie en cours. */
+  resumeFromMenu() {
+    const l = this.root.querySelector('#loading');
+    if (l) l.classList.add('done');
+    // Reprendre avec zéro dollar renverrait au menu dans la seconde : on
+    // remet de quoi jouer.
+    if (this.player.money <= 0) {
+      this.player.money = 500;
+      this.notify('Un ami vous dépanne', '+500 $ — ne les claquez pas tout de suite');
+    }
+    this.ruined = false;
+    this.ruinT = 0;
+    this.ruinDelay = undefined;
+    this.state = 'play';
+    this.last = performance.now();
+    this.input.requestLock();
+  }
+
+  /**
+   * Ruine : plus un sou en poche. La partie s'arrête et on revient au menu —
+   * c'est la seule vraie condition de défaite du jeu.
+   */
+  checkRuin(dt) {
+    if (this.state !== 'play' || this.ruined) return;
+    if (this.player.money > 0) { this.ruinT = 0; return; }
+    this.ruinT = (this.ruinT || 0) + dt;
+    if (this.ruinT < 0.4) return;                 // on laisse passer un solde nul fugace
+    this.ruined = true;
+    this.showBanner('RUINÉ', 'Plus un dollar en poche', '#c0392b');
+    this.audio.ui(110, 0.9, 0.2);
+    if (this.missions.active) this.missions.fail('Vous êtes ruiné');
+    this.ruinDelay = 3.2;
+  }
+
+  /** Change de caméra — depuis la touche V comme depuis le bouton d'écran. */
+  cycleCamera() {
+    this.cameraMode = (this.cameraMode + 1) % 3;
+    const noms = ['Vue rapprochée', 'Vue large', 'Première personne'];
+    this.notify('Caméra', noms[this.cameraMode]);
+    this.audio.ui(440, 0.05, 0.08);
+    return noms[this.cameraMode];
+  }
+
+  toggleInventory(on) {
+    if (this.shopOpen || this.state !== 'play') return false;
+    const open = this.hud.toggleInventory(on);
+    this.paused = false;
+    if (open) this.input.releaseLock(); else this.input.requestLock();
+    return open;
+  }
+
+  /** Boutons d'écran : mêmes actions que les touches, à portée de clic. */
+  bindScreenButtons() {
+    const brancher = (id, action) => {
+      const b = this.root.querySelector(id);
+      if (b) b.addEventListener('click', (e) => { e.preventDefault(); action(); b.blur(); });
+    };
+    brancher('#btn-view', () => this.cycleCamera());
+    brancher('#btn-inv', () => this.toggleInventory());
+    brancher('#btn-map', () => {
+      if (this.shopOpen) return;
+      const open = this.hud.toggleMap();
+      if (open) this.input.releaseLock(); else this.input.requestLock();
+    });
+    brancher('#btn-menu', () => this.togglePause());
+    brancher('#btn-quit', () => this.showMainMenu('Menu principal', 'La partie vous attend.'));
+  }
 
   /** Fait apparaître un piéton à un endroit précis (missions, scripts, tests). */
   spawnPedAt(x, z, opts = {}) {
@@ -556,6 +672,36 @@ export class Game {
     return [hit.x, hit.y, hit.z, hit];
   }
 
+  /**
+   * Visée assistée : on accroche la cible la plus proche de l'axe du réticule.
+   * Sans elle, viser un piéton à la souris relevait du concours d'adresse —
+   * c'est la première chose qu'on reproche au jeu.
+   */
+  updateAimAssist() {
+    const p = this.player;
+    if (p.dead || this.state !== 'play' || p.weaponDef.melee) { this.lockTarget = null; return; }
+    const c = this.camera;
+    const [dx, dy, dz] = c.aimRay();
+    const ox = c.eye[0], oy = c.eye[1], oz = c.eye[2];
+    // Cône plus large au jugé qu'en visée précise : on aide surtout quand on
+    // tire à la volée.
+    const cosMax = Math.cos(p.aiming ? 0.10 : 0.20);
+    let best = null; let bestScore = -1;
+    for (const e of this.peds) {
+      if (e.dead || e.inVehicle) continue;
+      const ex = e.x - ox, ey = 1.25 - oy, ez = e.z - oz;
+      const d = Math.hypot(ex, ey, ez);
+      if (d < 1.5 || d > 70) continue;
+      const cos = (ex * dx + ey * dy + ez * dz) / d;
+      if (cos < cosMax) continue;
+      if (!this.world.visible(ox, oy, oz, e.x, 1.25, e.z)) continue;
+      // le plus centré l'emporte, à distance comparable
+      const score = cos * 100 - d * 0.02 + (e.hostile || e.cop ? 6 : 0);
+      if (score > bestScore) { bestScore = score; best = e; }
+    }
+    this.lockTarget = best;
+  }
+
   playerFire() {
     const p = this.player;
     const w = p.weaponDef;
@@ -567,6 +713,10 @@ export class Game {
       return;
     }
     p.consumeAmmo();
+    // on se tourne vers ce qu'on vise : tirer de dos n'avait aucun sens
+    if (!p.vehicle) p.yaw = this.lockTarget && !this.lockTarget.dead
+      ? Math.atan2(this.lockTarget.x - p.x, this.lockTarget.z - p.z)
+      : this.camera.yaw;
 
     const originY = p.vehicle ? p.vehicle.y + 1.1 : 1.32;
     const yaw = p.vehicle ? this.camera.yaw : p.yaw;
@@ -602,7 +752,15 @@ export class Game {
       return;
     }
 
-    const [tx, ty, tz] = this.aimTarget();
+    let [tx, ty, tz] = this.aimTarget();
+    // La cible accrochée l'emporte sur le point du décor sous le réticule :
+    // on tire sur la personne qu'on voit encadrée, pas sur le mur derrière.
+    const lock = this.lockTarget;
+    if (lock && !lock.dead) {
+      const dLock = dist2D(lock.x, lock.z, p.x, p.z);
+      const dMur = dist2D(tx, tz, p.x, p.z);
+      if (dLock < dMur + 3) { tx = lock.x; ty = 1.25; tz = lock.z; }
+    }
     const pellets = w.pellets || 1;
     const dmgMul = (p.character === 'trevor' && p.abilityActive > 0) ? 2 : 1;
     for (let i = 0; i < pellets; i++) {
@@ -802,16 +960,37 @@ export class Game {
       }
       return;
     }
+    if (this.inside) {
+      const it = this.inside;
+      if (dist2D(p.x, p.z, it.exit.x, it.exit.z) < 3.4) { this.hud.setHint('<b>E</b> — sortir'); return; }
+      if (it.shop && dist2D(p.x, p.z, it.counter.x, it.counter.z) < 4.5) {
+        this.hud.setHint(it.shop === 'guns' ? '<b>E</b> — acheter des armes' : '<b>E</b> — se faire soigner');
+        return;
+      }
+      if (it.save && dist2D(p.x, p.z, it.counter.x, it.counter.z) < 6) {
+        this.hud.setHint('<b>E</b> — dormir et enregistrer la partie');
+        return;
+      }
+      this.hud.setHint('');
+      return;
+    }
+    const porte = this.nearDoor();
+    if (porte) { this.hud.setHint(`<b>E</b> — entrer : ${porte.name}`); return; }
     for (const pu of this.pickups) {
       if (!pu.kind.startsWith('shop-') || dist2D(p.x, p.z, pu.x, pu.z) > 4) continue;
       this.hud.setHint(pu.kind === 'shop-guns' ? '<b>E</b> — Ammu-Nation' : '<b>E</b> — Hôpital : soins et gilet');
       return;
     }
     if (!this.missions.active) {
+      const dessus = this.missions.atMarker;
+      if (dessus) {
+        this.hud.setHint(`<b>E</b> — lancer « ${dessus.name} » (${dessus.kind})`);
+        return;
+      }
       for (const m of MISSIONS) {
         if (!this.missions.available(m)) continue;
-        if (dist2D(p.x, p.z, m.x, m.z) < 12) {
-          this.hud.setHint(`<b>${m.letter}</b> — ${m.name} : entrez dans le marqueur`);
+        if (dist2D(p.x, p.z, m.x, m.z) < 14) {
+          this.hud.setHint(`<b>${m.letter}</b> — ${m.name} : approchez du marqueur`);
           return;
         }
       }
@@ -819,6 +998,10 @@ export class Game {
     const v = this.nearestVehicle(p.x, p.z, 6);
     if (v) {
       this.hud.setHint(`<b>F</b> — ${v.driverPed && !v.driverPed.dead ? 'Éjecter le conducteur de' : 'Monter dans'} ${v.model.name}`);
+      return;
+    }
+    if (this.nearestPed(p.x, p.z, 3.2)) {
+      this.hud.setHint('<b>E</b> — parler à ce passant');
       return;
     }
     this.hud.setHint('');
@@ -925,7 +1108,7 @@ export class Game {
     }
 
     let scale = this.timeScale;
-    if (this.paused || this.hud.mapOpen || this.shopOpen) scale = 0;
+    if (this.paused || this.hud.mapOpen || this.shopOpen || this.hud.invOpen || this.state === 'menu') scale = 0;
     const sdt = dt * scale;
 
     // Une image en erreur ne doit jamais figer les entrées : sans ce filet,
@@ -1026,8 +1209,10 @@ export class Game {
 
   handleGlobalKeys() {
     const i = this.input;
+    if (this.state === 'menu') return;            // le menu se pilote à la souris
     if (i.hit('Escape')) {
       if (this.shopOpen) this.closeShop();
+      else if (this.hud.invOpen) this.toggleInventory(false);
       else if (this.hud.mapOpen) this.hud.toggleMap(false);
       else this.togglePause();
     }
@@ -1042,16 +1227,24 @@ export class Game {
       if (i.hit('KeyE')) this.closeShop();
       return;
     }
+    if (this.hud.invOpen) {
+      const pj = this.player;
+      for (let n = 1; n <= 9; n++) {
+        if (!i.hit(`Digit${n}`)) continue;
+        const k = WEAPON_ORDER[n - 1];
+        if (k && pj.switchWeapon(k)) { this.audio.ui(520, 0.04, 0.08); this.hud.buildInventory(); }
+      }
+      if (i.hit('KeyI')) this.toggleInventory(false);
+      return;
+    }
     if (this.hud.mapOpen) return;
     if (this.state !== 'play') return;
 
     const p = this.player;
     if (i.hit('KeyF')) this.tryEnterVehicle();
     if (i.hit('KeyR')) p.startReload();
-    if (i.hit('KeyV')) {
-      this.cameraMode = (this.cameraMode + 1) % 3;
-      this.notify('Caméra', ['Vue rapprochée', 'Vue large', 'Première personne'][this.cameraMode]);
-    }
+    if (i.hit('KeyV')) this.cycleCamera();
+    if (i.hit('KeyI')) this.toggleInventory();
     if (i.hit('KeyE')) this.tryInteract();
     if (i.hit('Comma')) this.notify('Radio', this.audio.setStation(this.audio.station - 1));
     if (i.hit('Period')) this.notify('Radio', this.audio.setStation(this.audio.station + 1));
@@ -1121,6 +1314,118 @@ export class Game {
         return;
       }
     }
+    // intérieurs : entrer par la porte, ressortir par le seuil
+    if (this.inside) {
+      if (dist2D(p.x, p.z, this.inside.exit.x, this.inside.exit.z) < 3.4) { this.exitInterior(); return; }
+      if (this.inside.shop && dist2D(p.x, p.z, this.inside.counter.x, this.inside.counter.z) < 4.5) {
+        this.openShop(this.inside.shop === 'guns' ? 'guns' : 'health');
+        return;
+      }
+      if (this.inside.save && dist2D(p.x, p.z, this.inside.counter.x, this.inside.counter.z) < 6) {
+        this.save();
+        this.notify('Partie enregistrée', 'Vous pouvez fermer l’onglet tranquille');
+        return;
+      }
+    }
+    const porte = this.nearDoor();
+    if (porte) { this.enterInterior(porte); return; }
+
+    // sur un marqueur de mission : on la lance, mais seulement si on le demande
+    const m = this.missions.atMarker;
+    if (m && !this.missions.active) { this.missions.start(m); return; }
+    // sinon, on adresse la parole au passant le plus proche
+    const q = this.nearestPed(p.x, p.z, 3.2);
+    if (q) {
+      const ligne = q.talk(p.x, p.z);
+      if (ligne) {
+        this.notify('Passant', ligne);
+        this.audio.ui(430, 0.05, 0.06);
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------- intérieurs */
+
+  /** Porte d'intérieur à portée, s'il y en a une. */
+  nearDoor() {
+    const p = this.player;
+    if (!p.onFoot || this.inside) return null;
+    for (const it of this.data.interiors || []) {
+      if (dist2D(p.x, p.z, it.door.x, it.door.z) < 4) return it;
+    }
+    return null;
+  }
+
+  /**
+   * On entre : le joueur est téléporté dans la pièce, bâtie à l'écart de la
+   * ville. On coupe la circulation, qui n'a rien à faire là.
+   */
+  enterInterior(it) {
+    const p = this.player;
+    if (this.inside || !p.onFoot) return false;
+    this.outsideReturn = { x: p.x, z: p.z, yaw: p.yaw };
+    this.inside = it;
+    p.x = it.spawn.x; p.z = it.spawn.z; p.y = 0;
+    p.vx = 0; p.vz = 0; p.yaw = Math.PI;            // face au comptoir
+    this.camera.yaw = Math.PI;
+    this.population.indoors = true;
+    this.fade = 1;
+    this.notify(it.name, it.hint);
+    this.audio.ui(520, 0.08, 0.1);
+    return true;
+  }
+
+  /** On ressort par où on est entré. */
+  exitInterior() {
+    const it = this.inside;
+    if (!it) return false;
+    const p = this.player;
+    const r = this.outsideReturn || it.door;
+    p.x = r.x; p.z = r.z; p.y = 0;
+    p.vx = 0; p.vz = 0;
+    if (r.yaw !== undefined) { p.yaw = r.yaw; this.camera.yaw = r.yaw; }
+    this.inside = null;
+    this.population.indoors = false;
+    this.fade = 1;
+    this.audio.ui(420, 0.08, 0.1);
+    return true;
+  }
+
+  /** Piéton le plus proche à qui on peut parler. */
+  nearestPed(x, z, rayon) {
+    let best = null; let bd = rayon;
+    for (const q of this.peds) {
+      if (q.dead || q.inVehicle || q.cop || q.hostile) continue;
+      const d = dist2D(q.x, q.z, x, z);
+      if (d < bd) { bd = d; best = q; }
+    }
+    return best;
+  }
+
+  /**
+   * Mission choisie depuis la carte. Sur place on la lance ; sinon on marque
+   * la destination — on ne téléporte pas le joueur.
+   */
+  chooseMission(m) {
+    if (this.missions.active) { this.notify('Mission en cours', 'Terminez-la ou abandonnez-la d’abord'); return false; }
+    if (this.missions.done.has(m.id)) { this.notify(m.name, 'Déjà réussie'); return false; }
+    const p = this.player;
+    if (m.char && p.character !== m.char) {
+      p.setCharacter(m.char);
+      this.notify('Changement de personnage', `${CHARACTERS[m.char].full} prend le relais`);
+    }
+    if (dist2D(p.x, p.z, m.x, m.z) < 60 && p.onFoot && !p.dead) {
+      this.hud.toggleMap(false);
+      this.input.requestLock();
+      this.missions.start(m);
+      return true;
+    }
+    this.hud.waypoint = { x: m.x, z: m.z };
+    this.hud.toggleMap(false);
+    this.input.requestLock();
+    this.notify(m.name, 'Destination marquée — rejoignez le point sur la carte');
+    this.audio.ui(620, 0.06, 0.11);
+    return false;
   }
 
   useAbility() {
@@ -1328,6 +1633,16 @@ export class Game {
     this.population.update(dt);
     this.police.update(dt);
     this.checkTrafficOffences(dt);
+    this.updateAimAssist();
+    this.checkRuin(dt);
+    if (this.ruined && this.ruinDelay !== undefined) {
+      this.ruinDelay -= dt;
+      if (this.ruinDelay <= 0) {
+        this.ruinDelay = undefined;
+        this.ruined = false;
+        this.showMainMenu('Ruiné', 'Vous n’avez plus un dollar. Reprenez, ou repartez de zéro.');
+      }
+    }
     this.missions.update(dt);
     this.checkPickups(dt);
     this.checkBusted(dt);
@@ -1571,7 +1886,80 @@ export class Game {
     c.clearRect(0, 0, w, h);
     const p = this.player;
 
-    // réticule
+    // Réticule : toujours visible arme au poing. Avant il n'apparaissait qu'en
+    // maintenant le clic droit — on tirait donc à l'aveugle la plupart du temps.
+    const armed = !p.weaponDef.melee && !p.dead && this.state === 'play' && !this.paused;
+    if (armed && !p.aiming) {
+      const cx = w / 2, cy = h / 2;
+      const spread = 7 + (WEAPONS[p.weapon].spread || 0) * 700;
+      c.strokeStyle = 'rgba(255,255,255,0.55)';
+      c.lineWidth = 1.6;
+      for (const a of [0, 90, 180, 270]) {
+        const r = (a * Math.PI) / 180;
+        c.beginPath();
+        c.moveTo(cx + Math.cos(r) * spread, cy + Math.sin(r) * spread);
+        c.lineTo(cx + Math.cos(r) * (spread + 5), cy + Math.sin(r) * (spread + 5));
+        c.stroke();
+      }
+      c.fillStyle = 'rgba(255,255,255,0.75)';
+      c.fillRect(cx - 1.5, cy - 1.5, 3, 3);
+    }
+
+    // Cible accrochée : un cadre autour d'elle, pour savoir sur qui on tire.
+    if (armed && this.lockTarget && !this.lockTarget.dead && this.renderer && this.renderer.vp) {
+      const t = this.lockTarget;
+      const pt = projectPoint(this.renderer.vp, t.x, 1.45, t.z, w, h);
+      if (pt) {
+        const [sx, sy, dist] = pt;
+        const r = clamp(340 / Math.max(4, dist), 12, 60);
+        const ennemi = t.hostile || t.cop;
+        c.strokeStyle = ennemi ? 'rgba(255,90,70,0.95)' : 'rgba(255,255,255,0.8)';
+        c.lineWidth = 2.4;
+        for (const [ax, ay] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+          c.beginPath();
+          c.moveTo(sx + ax * r, sy + ay * r - ay * r * 0.55);
+          c.lineTo(sx + ax * r, sy + ay * r);
+          c.lineTo(sx + ax * r - ax * r * 0.55, sy + ay * r);
+          c.stroke();
+        }
+        if (ennemi) {
+          c.fillStyle = 'rgba(255,90,70,0.9)';
+          c.font = '600 11px "Arial Narrow", Arial, sans-serif';
+          c.textAlign = 'center';
+          c.fillText(`${Math.round(dist)} m`, sx, sy + r + 14);
+        }
+      }
+    }
+
+    // Bulles de dialogue au-dessus des passants à qui on vient de parler.
+    if (this.state === 'play' && this.renderer && this.renderer.vp) {
+      for (const q of this.peds) {
+        if (!q.line || q.talkT <= 0 || q.dead) continue;
+        const pt = projectPoint(this.renderer.vp, q.x, 2.15, q.z, w, h);
+        if (!pt) continue;
+        const [sx, sy, dist] = pt;
+        if (dist > 26) continue;
+        const alpha = clamp(q.talkT, 0, 1) * clamp(1 - dist / 26, 0, 1);
+        c.font = '500 13px "Arial Narrow", Arial, sans-serif';
+        c.textAlign = 'center'; c.textBaseline = 'bottom';
+        const texte = q.line;
+        const lw = Math.min(320, c.measureText(texte).width + 20);
+        c.fillStyle = `rgba(10,14,20,${0.86 * alpha})`;
+        c.strokeStyle = `rgba(255,255,255,${0.22 * alpha})`;
+        c.lineWidth = 1;
+        c.beginPath();
+        if (c.roundRect) c.roundRect(sx - lw / 2, sy - 24, lw, 24, 6);
+        else c.rect(sx - lw / 2, sy - 24, lw, 24);
+        c.fill(); c.stroke();
+        c.beginPath();
+        c.moveTo(sx - 5, sy); c.lineTo(sx + 5, sy); c.lineTo(sx, sy + 7);
+        c.closePath(); c.fill();
+        c.fillStyle = `rgba(236,240,244,${alpha})`;
+        c.fillText(texte, sx, sy - 7, lw - 14);
+      }
+    }
+
+    // réticule de visée précise
     if (p.aiming && !p.dead && this.state === 'play') {
       const cx = w / 2, cy = h / 2;
       if (p.scoped) {
