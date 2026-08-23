@@ -148,6 +148,8 @@ Le MVP décrit au §37 du cahier des charges est intégralement implémenté.
 | 18-19 | Géolocalisation temporaire réciproque, position approximative avant le départ | `session.js` |
 | 20-22 | « Je suis prêt », ne pas bloquer la rue, détection de proximité | `give.js`, `seek.js` |
 | 23-24 | Tolérance de 2 minutes, prolongation, réattribution urgente | `give.js` |
+| — | Rappel « continuer d'attendre ou partir ? » toutes les minutes | `give.js` |
+| — | Correction de l'heure d'arrivée par celui qui roule | `seek.js` |
 | 25-27 | Annulations graduées, « je ne peux pas me garer », reproposition ciblée | `seek.js`, `give.js` |
 | 28-30 | Double confirmation, attribution des points, anti-triche | `give.js`, `core.js` |
 | — | Une seule récompense par binôme, définitivement | `core.js`, `give.js` |
@@ -170,6 +172,8 @@ Elles sont toutes regroupées dans [`src/config.js`](src/config.js) :
 | Points par transmission validée | +10 | §29 |
 | Anti-triche | 30 min entre deux récompenses · une seule par binôme | §30 |
 | Délai de décision du donneur | 120 s, puis 2 tentatives | — |
+| Rappel au conducteur qui attend | 60 s | — |
+| Reports d'arrivée autorisés | 2 | — |
 | Estimation de trajet | 20 km/h, détour ×1,35, +1 min de manœuvre | §38 |
 
 ### Deux écarts assumés par rapport au cahier des charges
@@ -216,6 +220,18 @@ mode urgent, après le temps d'arrivée et les points.
 tout en capitales et les renvois « (§29) » ont été retirés des écrans : ils restent dans les
 commentaires du code, où ils servent à retrouver la règle d'origine.
 
+### Deux garde-fous de temps, côté conducteurs
+
+**Celui qui attend n'attend jamais en aveugle.** Une fois le moment du départ venu — départ
+« Maintenant », ou délai annoncé écoulé — l'application redonne la main toutes les minutes :
+*continuer d'attendre, ou partir*. Tant que le délai annoncé court, elle ne dérange pas : le
+conducteur vaque encore à ses occupations, il n'attend pas dans sa voiture.
+
+**Celui qui roule peut corriger son heure.** Un embouteillage, un feu, ou au contraire une route
+dégagée : le temps d'arrivée annoncé se rectifie en deux appuis, et celui qui attend est prévenu
+tout de suite — y compris application fermée. Repousser son arrivée reste limité à deux fois :
+sans cela, on pourrait faire attendre quelqu'un indéfiniment en décalant l'heure à chaque fois.
+
 ### Parti pris d'interface
 
 - police du système, pour un rendu natif sur chaque téléphone ;
@@ -254,7 +270,7 @@ petite voiture ne peut jamais réclamer la place d'une grande, ni la lui prendre
 
 ```bash
 npm install --no-save playwright undici
-npm run test:e2e  # deux scénarios sur plusieurs « téléphones » simulés
+npm run test:e2e  # trois scénarios sur plusieurs « téléphones » simulés
 ```
 
 Les scénarios bout en bout pilotent la vraie application contre le vrai Firebase :
@@ -264,7 +280,9 @@ Les scénarios bout en bout pilotent la vraie application contre le vrai Firebas
   tant que le GPS ne confirme pas l'arrivée ;
 - `priority.e2e.mjs` vérifie sur trois téléphones que « Maintenant » privilégie le plus
   rapide même face à un conducteur bien mieux doté en points, et qu'un refus fait passer
-  la proposition au candidat suivant.
+  la proposition au candidat suivant ;
+- `wait-eta.e2e.mjs` vérifie que le conducteur qui attend reprend la main tout seul, et que
+  la correction d'heure d'arrivée remonte bien jusqu'à celui qui attend.
 
 Les comptes de test sont supprimés à la fin de chaque scénario.
 

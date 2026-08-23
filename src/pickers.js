@@ -122,6 +122,37 @@ export async function askNoFitReason() {
   return { reason: picker.value, degree: picker.value === 'short' ? degree.value : null };
 }
 
+/**
+ * Nouvelle estimation d'arrivée, quand celui qui roule voit qu'il sera plus
+ * tôt ou plus tard que prévu.
+ * @returns {Promise<number|null>} minutes à partir de maintenant
+ */
+export async function askNewEta(currentMin) {
+  const options = [
+    { id: '1', label: 'J’arrive' , hint: 'moins d’une minute' },
+    { id: '3', label: '3 min' }, { id: '5', label: '5 min' },
+    { id: '10', label: '10 min' }, { id: '15', label: '15 min' },
+    { id: 'custom', label: 'Autre durée' },
+  ];
+  const picker = chooser(options, { value: '5', columns: 2 });
+  const custom = el('div', { class: 'custom-row', style: { display: 'none' } },
+    el('label', { text: 'J’arrive dans' }),
+    el('input', { type: 'number', id: 'new-eta', min: '1', max: '60', value: String(currentMin || 10) }),
+    el('span', { text: 'min' }));
+  picker.addEventListener('choose', (e) => { custom.style.display = e.detail === 'custom' ? 'flex' : 'none'; });
+
+  const res = await openModal({
+    title: 'Dans combien de temps arrivez-vous ?',
+    subtitle: 'Le conducteur qui vous attend sera prévenu tout de suite.',
+    body: el('div', {}, picker, custom),
+    actions: [{ label: 'Valider', value: 'ok', variant: 'btn-primary' }],
+  });
+  if (res !== 'ok') return null;
+  return picker.value === 'custom'
+    ? Math.max(1, Number(custom.querySelector('#new-eta').value) || currentMin || 5)
+    : Number(picker.value);
+}
+
 /** Confirmation générique avec deux gros boutons. */
 export function confirmSheet(title, subtitle, yes = 'Oui', no = 'Non', variant = 'btn-primary', html = null) {
   return openModal({

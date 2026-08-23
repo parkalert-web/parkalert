@@ -12,7 +12,7 @@ import {
   every, clearTimer, unsubscribe, emit, requirePosition,
 } from './state.js';
 import { toast, notify, openModal, closeModal, el, esc, chooser, $ } from './ui.js';
-import { askNoFitReason, confirmSheet, infoSheet, fitBadge } from './pickers.js';
+import { askNoFitReason, confirmSheet, infoSheet, fitBadge, askNewEta } from './pickers.js';
 import { geocode, reverseGeocode } from './mapview.js';
 import * as sess from './session.js';
 
@@ -352,6 +352,52 @@ async function seekerMonitor() {
 }
 
 /** §26 — « Je ne peux pas me garer », avec contrôle GPS obligatoire. */
+/**
+ * Celui qui roule corrige son heure d'arrivée : il voit qu'il sera plus tôt,
+ * ou qu'il sera en retard. Le conducteur qui attend est prévenu aussitôt.
+ *
+ * Repousser son arrivée est limité : sans cela, on pourrait faire attendre
+ * indéfiniment quelqu'un en décalant l'heure à chaque fois.
+ */
+export async function updateEta() {
+  const session = S.session;
+  if (!session) return;
+
+  const restant = Math.max(0, Math.round(sess.remainingS(session) / 60));
+  const pushbacks = Number(session.etaPushbacks) || 0;
+
+  const minutes = await askNewEta(restant);
+  if (!minutes) return;
+
+  const nouveauDue = db.now() + minutes * 60_000;
+  const repousse = nouveauDue > (Number(session.dueAt) || 0) + 30_000;
+
+  if (repousse && pushbacks >= TUNING.etaPushbacksMax) {
+    await infoSheet('Vous ne pouvez plus repousser',
+      'Vous avez déjà retardé votre arrivée deux fois. Le conducteur qui vous attend a besoin '
+      + 'd’une heure fiable.<br>Si vous ne pouvez vraiment pas venir, utilisez « Annuler ma réservation ».');
+    return;
+  }
+
+  await db.patch(sess.SESSION_PATH(session.id), {
+    etaMin: minutes,
+    dueAt: nouveauDue,
+    etaPushbacks: repousse ? pushbacks + 1 : pushbacks,
+    etaUpdatedAt: db.now(),
+    // Le sens de LA DERNIÈRE correction : le compteur cumulé ne le dit pas,
+    // et le conducteur qui attend a besoin de savoir si c'est plus tôt ou plus tard.
+    etaDirection: repousse ? 'later' : 'earlier',
+  });
+
+  // Nouvelle échéance, donc nouvelle alerte de retard à armer : sans cela, un
+  // conducteur prévenu une fois ne le serait plus jamais.
+  S.flags = { ...S.flags, lateWarned: false };
+
+  toast(repousse ? 'Arrivée repoussée' : 'Arrivée avancée',
+    `Le conducteur sait maintenant que vous arrivez dans ${minutes} min.`,
+    repousse ? '#9a5b00' : '#0f7a45');
+}
+
 export async function cannotPark() {
   const session = S.session;
   if (!session) return;

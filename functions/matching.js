@@ -273,6 +273,17 @@ export async function sessionNotifications(db, before, after, push = NO_PUSH) {
     sent.push('donor-ready');
   }
 
+  // Correction d'horaire : celui qui attend doit l'apprendre tout de suite,
+  // c'est précisément l'information qui lui évite de descendre pour rien.
+  if ((Number(after.etaUpdatedAt) || 0) > (Number(before?.etaUpdatedAt) || 0)) {
+    await push.toUser(after.donorUid, {
+      title: after.etaDirection === 'later' ? 'Arrivée repoussée' : 'Arrivée avancée',
+      body: `${after.seekerPseudo || 'Le conducteur'} arrive maintenant dans ${after.etaMin} min.`,
+      tag: 'parkalert-eta',
+    });
+    sent.push('eta-updated');
+  }
+
   if (before?.seekerState !== 'nearby' && after.seekerState === 'nearby') {
     await push.toUser(after.donorUid, {
       title: 'Votre conducteur est arrivé',

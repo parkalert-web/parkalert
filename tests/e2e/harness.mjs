@@ -68,7 +68,7 @@ export async function launch() {
 }
 
 /** Ouvre un « téléphone » : contexte isolé, position GPS propre, site servi depuis le disque. */
-export async function openPhone({ browser, relay }, { tag, geo }) {
+export async function openPhone({ browser, relay }, { tag, geo, query = '' }) {
   const ctx = await browser.newContext({
     permissions: ['geolocation', 'notifications'],
     geolocation: geo,
@@ -89,7 +89,7 @@ export async function openPhone({ browser, relay }, { tag, geo }) {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => { errors.push(String(e)); log(tag, 'PAGE ERROR:', String(e)); });
-  await page.goto(BASE, { waitUntil: 'domcontentloaded' });
+  await page.goto(query ? `${BASE}&${query}` : BASE, { waitUntil: 'domcontentloaded' });
   return { tag, ctx, page, errors, geo };
 }
 
@@ -166,7 +166,7 @@ export async function announceDeparture(phone, when = '10 min') {
   }
   await page.click(`#modal-body .choice:has-text("${when}")`);
   await clickAction(page, 'CONTINUER');
-  if (when === 'MAINTENANT') {
+  if (/^maintenant$/i.test(when)) {
     await waitModal(page, /Vous partez maintenant/i);
     await clickAction(page, 'J’ATTENDS UN CONDUCTEUR');
   }

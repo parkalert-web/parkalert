@@ -12,7 +12,7 @@ import * as db from './backend.js';
 import {
   S, setPhase, currentVehicle, vehicleCard, every, after, clearTimer, unsubscribe, emit, requirePosition,
 } from './state.js';
-import { toast, notify, openModal, el, esc } from './ui.js';
+import { toast, notify, openModal, isModalOpen, vibrate, el, esc } from './ui.js';
 import { askComfort, askDeparture, askExtraWait, confirmSheet, infoSheet } from './pickers.js';
 import * as sess from './session.js';
 
@@ -159,6 +159,50 @@ export function stopOfferLoop() {
   }
   S.offerLoop = null;
   clearTimer('offerTick');
+  clearTimer('waitPrompt');
+}
+
+/**
+ * Attendre dans sa voiture qu'un conducteur veuille la place peut durer.
+ * Toutes les minutes sans candidat, on rend la main : continuer, ou partir.
+ *
+ * On ne pose la question que si rien n'est en cours — pas pendant qu'un
+ * conducteur réfléchit à la proposition, ni pendant qu'une autre question est
+ * déjà à l'écran.
+ */
+function startWaitPrompt(token) {
+  let asking = false;
+  every('waitPrompt', TUNING.waitPromptS * 1000, async () => {
+    if (token.cancelled || asking || S.phase !== 'giving') return;
+    if (isModalOpen()) return;
+    // Un candidat est déjà sollicité ou en attente de votre décision :
+    // ce n'est pas le moment d'interrompre.
+    if (S.spot?.status === 'offering' || S.spot?.status === 'pending-confirm') return;
+    // Tant que le délai annoncé court, le conducteur n'attend pas encore : il a
+    // dit « je pars dans 15 min ». On ne le sollicite qu'une fois ce moment venu.
+    if (S.spot?.mode === 'timed' && Number(S.spot.readyAt) > Date.now()) return;
+
+    asking = true;
+    vibrate();
+    const waited = S.spot?.createdAt ? Math.round((Date.now() - S.spot.createdAt) / 60_000) : 0;
+    const choice = await openModal({
+      title: 'Personne pour l’instant',
+      subtitle: waited >= 1
+        ? `Vous attendez depuis ${waited} min. Aucun conducteur compatible n’a encore répondu.`
+        : 'Aucun conducteur compatible n’a encore répondu.',
+      body: el('div', { class: 'note', html:
+        'Vous pouvez continuer d’attendre, ou partir tout de suite. '
+        + 'Si vous partez, votre place devient un simple signalement : <b>elle ne rapporte pas de points</b>, '
+        + 'mais elle prévient quand même les conducteurs du quartier.' }),
+      actions: [
+        { label: 'Je continue d’attendre', value: 'wait', variant: 'btn-primary' },
+        { label: 'Je pars maintenant', value: 'leave', variant: 'btn-orange' },
+      ],
+    });
+    asking = false;
+    if (token.cancelled) return;
+    if (choice === 'leave') await leaveWithoutWaiting();
+  });
 }
 
 export function startOfferLoop() {
@@ -171,8 +215,10 @@ export function startOfferLoop() {
   // conducteurs — y compris application fermée. Le téléphone du donneur n'a
   // plus qu'à attendre qu'on lui présente un candidat.
   // Sans serveur déployé, on garde l'ancien fonctionnement, piloté ici.
+  startWaitPrompt(token);
+
   if (S.serverMatching) {
-    token.status = 'Recherche en cours — vous pouvez fermer l’application.';
+    token.status = 'Recherche en cours — vous serez prévenu même application fermée.';
     watchServerMatching(token);
     return;
   }
@@ -209,7 +255,7 @@ function watchServerMatching(token) {
       token.status = 'Un conducteur a été sollicité…';
       token.offerExpiresAt = Number(spot.offerExpiresAt) || null;
     } else if (spot.status === 'open') {
-      token.status = 'Recherche en cours — vous pouvez fermer l’application.';
+      token.status = 'Recherche en cours — vous serez prévenu même application fermée.';
       token.offerExpiresAt = null;
     }
     emit();

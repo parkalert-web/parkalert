@@ -47,6 +47,16 @@ export const TUNING = {
   /** Au bout de N décisions non prises, l'annonce est abandonnée. */
   donorConfirmMisses: 2,
 
+  /**
+   * Attendre dans sa voiture que quelqu'un veuille la place peut être long.
+   * Toutes les N secondes sans candidat, on redonne la main au conducteur :
+   * continuer d'attendre, ou partir.
+   */
+  waitPromptS: 60,
+
+  /** Nombre de fois où celui qui arrive peut repousser son heure d'arrivée. */
+  etaPushbacksMax: 2,
+
   /** §22 — rayon de confirmation d'arrivée par GPS (30 à 50 m dans le cahier des charges). */
   proximityM: 40,
 
@@ -100,6 +110,25 @@ export const TUNING = {
 };
 
 /** §6 — comment le donneur décrit l'espace réellement libre autour de sa voiture. */
+/**
+ * Raccourci de développement : sur une machine locale ou sur le banc d'essai,
+ * « ?waitPromptS=3 » permet de rejouer en quelques secondes un scénario qui
+ * prend une minute en usage réel.
+ *
+ * Volontairement inopérant en production : sans ce garde-fou, n'importe qui
+ * pourrait allonger un délai depuis la barre d'adresse et bloquer un
+ * conducteur — par exemple en lui envoyant une proposition qui n'expire jamais.
+ */
+const HOTES_DE_TEST = /^(localhost|127\.0\.0\.1|\[::1\])$|\.test$/;
+
+if (typeof location !== 'undefined' && location.search && HOTES_DE_TEST.test(location.hostname)) {
+  const params = new URLSearchParams(location.search);
+  for (const cle of ['waitPromptS', 'offerTimeoutS', 'donorConfirmS']) {
+    const valeur = Number(params.get(cle));
+    if (Number.isFinite(valeur) && valeur > 0) TUNING[cle] = valeur;
+  }
+}
+
 export const COMFORT = [
   { id: 'serre', label: 'Serré', hint: 'Presque pare-chocs contre pare-chocs' },
   { id: 'normal', label: 'Normal', hint: 'Un espace normal devant et derrière' },

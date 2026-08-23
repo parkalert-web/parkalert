@@ -259,6 +259,18 @@ test('les deux moments clés de la réservation déclenchent une notification', 
   await sessionNotifications(db, session, { ...session, seekerState: 'nearby' }, p2);
   assert.deepEqual(p2.sent.map((s) => s.uid), ['paul'], 'celui qui part est prévenu');
 
+  // Une correction d'horaire prévient celui qui attend, avec le bon sens.
+  const p4 = fakePush();
+  await sessionNotifications(db, session,
+    { ...session, etaUpdatedAt: Date.now(), etaDirection: 'later', etaMin: 15, seekerPseudo: 'Léa' }, p4);
+  assert.deepEqual(p4.sent.map((s2) => s2.uid), ['paul']);
+  assert.match(p4.sent[0].title, /repoussée/i);
+
+  const p5 = fakePush();
+  await sessionNotifications(db, { ...session, etaUpdatedAt: 100 },
+    { ...session, etaUpdatedAt: 100, etaDirection: 'later' }, p5);
+  assert.equal(p5.sent.length, 0, 'pas de rappel si l’horaire n’a pas rebougé');
+
   // Pas de notification en double si l'état n'a pas changé.
   const p3 = fakePush();
   const pret = { ...session, donorState: 'ready' };

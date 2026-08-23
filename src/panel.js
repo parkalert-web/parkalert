@@ -163,6 +163,12 @@ function panelSessionDonor() {
     + (late > 0 ? '' : kv('Il vous reste', fmtDuration(left))),
   late > 0 ? 'info-orange' : ''));
 
+  if (s.etaUpdatedAt) {
+    wrap.append(el('p', { class: 'form-note', text: s.etaDirection === 'later'
+      ? 'Le conducteur a corrigé son heure d’arrivée — il sera un peu plus tard que prévu.'
+      : 'Le conducteur a corrigé son heure d’arrivée — il sera plus tôt que prévu.' }));
+  }
+
   if (s.confirmDonor) {
     wrap.append(info('C’est confirmé de votre côté. Nous attendons que l’autre conducteur confirme qu’il est garé.', 'info-green'));
   } else if (s.donorState !== sess.DONOR_STATE.READY) {
@@ -208,6 +214,10 @@ function panelSessionSeeker() {
     wrap.append(info('C’est confirmé de votre côté. Nous attendons que l’autre conducteur confirme son départ.', 'info-green'));
   } else {
     wrap.append(big('Je suis garé', 'btn-success', () => seek.confirmParked()));
+    if (!near) {
+      wrap.append(el('button', { class: 'btn btn-secondary small', onclick: () => seek.updateEta() },
+        'Je serai plus tôt ou plus tard'));
+    }
     wrap.append(el('button', { class: 'btn btn-warning small', onclick: () => seek.cannotPark() }, 'Je ne peux pas me garer'));
   }
   wrap.append(el('button', { class: 'btn btn-quiet small', onclick: () => seek.cancelReservation() }, 'Annuler ma réservation'));
