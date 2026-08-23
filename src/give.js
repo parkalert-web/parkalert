@@ -190,7 +190,19 @@ export function startOfferLoop() {
 function watchServerMatching(token) {
   let asking = false;
   token.unwatch = db.subscribe(SPOT(S.uid), async (spot) => {
-    if (token.cancelled || !spot) return;
+    if (token.cancelled) return;
+
+    // La place a disparu : le serveur a abandonné l'annonce faute de réponse.
+    // Sans ce cas, l'écran resterait bloqué sur « recherche en cours ».
+    if (!spot) {
+      stopOfferLoop();
+      S.spot = null;
+      setPhase(S.parking ? 'parked' : 'idle');
+      toast('Annonce expirée', 'Personne n’a pu reprendre votre place. Vous pouvez la réannoncer.', '#9a5b00');
+      emit();
+      return;
+    }
+
     S.spot = spot;
 
     if (spot.status === 'offering') {
@@ -207,9 +219,24 @@ function watchServerMatching(token) {
     asking = true;
     token.offerExpiresAt = null;
     const candidate = { ...spot.pendingSeeker };
-    const accepted = await confirmCandidate(spot, candidate, { outOfRadius: spot.pendingSeeker.outOfRadius });
+    let stale = false;
+
+    // Le candidat n'attend pas indéfiniment : si le serveur l'a déjà libéré
+    // pendant que la question était à l'écran, accepter créerait une
+    // réservation à laquelle personne ne répondrait en face.
+    const stillWaiting = async () => {
+      const fresh = await db.readOnce(SPOT(S.uid));
+      if (fresh?.status === 'pending-confirm' && fresh.pendingSeeker?.uid === candidate.uid) return true;
+      stale = true;
+      toast('Trop tard', 'Ce conducteur ne vous attend plus. La recherche continue.', '#9a5b00');
+      return false;
+    };
+
+    const accepted = await confirmCandidate(
+      spot, candidate, { outOfRadius: spot.pendingSeeker.outOfRadius }, stillWaiting,
+    );
     asking = false;
-    if (token.cancelled) return;
+    if (token.cancelled || stale) return;
 
     if (!accepted) {
       // Refus : on écarte ce conducteur et la place repart en recherche côté serveur.
@@ -353,7 +380,7 @@ async function excludeCandidate(uid) {
 }
 
 /** §16 — le donneur voit le véhicule candidat et décide. */
-async function confirmCandidate(spot, candidate, offer) {
+async function confirmCandidate(spot, candidate, offer, guard = null) {
   const v = candidate.vehicle || {};
   const label = [v.label, v.color].filter(Boolean).join(' ') || 'Un véhicule';
   const decision = await openModal({
@@ -372,6 +399,9 @@ async function confirmCandidate(spot, candidate, offer) {
   });
 
   if (decision !== 'yes') return false;
+  // Dernière vérification juste avant de s'engager : la situation a pu changer
+  // pendant que la question restait à l'écran.
+  if (guard && !(await guard())) return false;
 
   // Verrou : la place ne doit pas être réservée deux fois (§16).
   const res = await db.transaction(`${SPOT(S.uid)}/status`, (cur) => (cur === 'reserved' ? undefined : 'reserved'));
@@ -542,7 +572,11 @@ async function tryComplete(sessionId) {
     awarded = elig.points;
     await db.addPoints(S.uid, awarded);
     await db.patch(`users/${S.uid}`, { lastRewardAt: db.now() });
-    await db.patch(`users/${S.uid}/pairCooldowns`, { [session.seekerUid]: db.now() });
+    // Mémorisé des deux côtés : le binôme ne rapportera plus jamais de points,
+    // quel que soit celui des deux qui donne sa place la prochaine fois.
+    await db.patch(`users/${S.uid}/rewardedPartners`, { [session.seekerUid]: db.now() });
+    await db.patch(`users/${session.seekerUid}/rewardedPartners`, { [S.uid]: db.now() })
+      .catch((err) => console.warn('[parkalert] mémorisation du binôme côté partenaire', err));
   }
   await db.bumpStat(S.uid, 'given');
   await db.bumpStat(session.seekerUid, 'taken');
@@ -550,7 +584,9 @@ async function tryComplete(sessionId) {
   await db.del(SPOT(S.uid));
   await db.del(`users/${S.uid}/parking`);
   await db.addHistory(S.uid, 'Place transmise avec succès', awarded,
-    awarded ? '' : (elig.reason === 'cooldown' ? 'Sans points : moins de 30 min depuis la dernière récompense' : 'Sans points : déjà récompensé avec ce conducteur aujourd’hui'));
+    awarded ? '' : (elig.reason === 'cooldown'
+      ? 'Sans points : moins de 30 min depuis votre dernière récompense'
+      : 'Sans points : vous avez déjà été récompensé avec ce conducteur'));
 }
 
 function finishDonor(session) {
@@ -563,7 +599,8 @@ function finishDonor(session) {
   } else {
     infoSheet('Transmission réussie',
       'Merci pour votre entraide !<br>Aucun point cette fois : une récompense n’est possible '
-      + 'qu’une fois toutes les 30 minutes, et une fois par jour avec le même conducteur, pour éviter les fausses transmissions.');
+      + 'qu’une fois toutes les 30 minutes, et une seule fois avec un même conducteur. '
+      + 'C’est ce qui empêche de gagner des points en se passant la même place entre amis.');
   }
 }
 
@@ -769,7 +806,21 @@ export async function resumeDonor() {
     return false;
   }
   S.spot = spot;
-  await db.patch(SPOT(S.uid), { status: 'open' });
+
+  // Appuyer sur la notification « un conducteur veut votre place » recharge la
+  // page : la décision en cours doit donc survivre, sinon on effacerait
+  // exactement ce que la notification venait annoncer. On ne nettoie que les
+  // candidats périmés, qui bloqueraient la recherche côté serveur.
+  const pending = spot.pendingSeeker;
+  const encoreValable = pending?.uid
+    && (Number(pending.askedAt) || 0) + TUNING.donorConfirmS * 1000 > db.now();
+
+  if (!encoreValable) {
+    if (pending?.uid) await db.del(`offers/${pending.uid}`).catch(() => {});
+    await db.patch(SPOT(S.uid), {
+      status: 'open', pendingSeeker: null, offeredTo: null, offerExpiresAt: null,
+    });
+  }
   db.updateOnDisconnect(SPOT(S.uid), { status: 'gone' });
   setPhase('giving', 'donor');
   startOfferLoop();

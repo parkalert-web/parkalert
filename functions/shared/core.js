@@ -204,9 +204,17 @@ export function buildQueue(p, mode, tuning = TUNING) {
 /* ─────────────────── Points, fiabilité, anti-triche (§29 §30 §31) ─────────────────── */
 
 /**
- * §30 — un donneur ne peut pas être récompensé deux fois en moins de 30 minutes,
- * ni deux fois avec le même partenaire en moins de 24 h.
- * Il peut continuer à aider, simplement sans nouvelle récompense.
+ * §30 — deux garde-fous contre les points gagnés trop facilement :
+ *   1. pas deux récompenses en moins de 30 minutes, quel que soit le partenaire ;
+ *   2. une seule récompense par partenaire, définitivement.
+ *
+ * Le second point ferme la porte au scénario le plus simple : deux amis qui se
+ * passent la même place en boucle. La première transmission rapporte, les
+ * suivantes non — ils peuvent continuer à s'entraider, mais sans nouveau gain.
+ *
+ * `rewardedPartners` est l'ensemble des partenaires déjà récompensés, écrit des
+ * DEUX côtés à chaque transmission : le binôme ne rapporte qu'une fois, quel que
+ * soit celui des deux qui donne la place.
  */
 export function rewardEligibility(profile, partnerUid, now = Date.now(), tuning = TUNING) {
   const last = Number(profile?.lastRewardAt) || 0;
@@ -214,10 +222,8 @@ export function rewardEligibility(profile, partnerUid, now = Date.now(), tuning 
     const waitS = Math.ceil((tuning.antiFraud.donorCooldownS * 1000 - (now - last)) / 1000);
     return { eligible: false, reason: 'cooldown', waitS };
   }
-  const pair = Number(profile?.pairCooldowns?.[partnerUid]) || 0;
-  if (now - pair < tuning.antiFraud.pairCooldownS * 1000) {
-    const waitS = Math.ceil((tuning.antiFraud.pairCooldownS * 1000 - (now - pair)) / 1000);
-    return { eligible: false, reason: 'pair', waitS };
+  if (tuning.antiFraud.rewardOncePerPartner && profile?.rewardedPartners?.[partnerUid]) {
+    return { eligible: false, reason: 'pair' };
   }
   return { eligible: true, points: tuning.points.transfer };
 }

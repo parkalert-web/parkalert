@@ -167,15 +167,21 @@ test('§27 après un échec, on ne repropose pas à un véhicule au moins aussi 
   assert.deepEqual(q.map((r) => r.uid), ['plusPetit']);
 });
 
-test('§30 anti-triche : 30 min entre deux récompenses, 24 h avec le même partenaire', () => {
+test('§30 anti-triche : 30 min entre deux récompenses, et une seule fois par binôme', () => {
   const now = Date.now();
   assert.equal(rewardEligibility({}, 'bob', now).eligible, true);
   assert.equal(rewardEligibility({ lastRewardAt: now - 60_000 }, 'bob', now).reason, 'cooldown');
   assert.equal(rewardEligibility({ lastRewardAt: now - 31 * 60_000 }, 'bob', now).eligible, true);
-  assert.equal(
-    rewardEligibility({ lastRewardAt: now - 31 * 60_000, pairCooldowns: { bob: now - 3600_000 } }, 'bob', now).reason,
-    'pair',
-  );
+
+  // Une seule récompense par partenaire, définitivement : deux amis qui se
+  // passent la même place en boucle ne gagnent rien après la première fois.
+  const dejaVu = { lastRewardAt: now - 31 * 60_000, rewardedPartners: { bob: now - 3600_000 } };
+  assert.equal(rewardEligibility(dejaVu, 'bob', now).reason, 'pair');
+  assert.equal(rewardEligibility(dejaVu, 'bob', now + 365 * 86400_000).reason, 'pair',
+    'même un an plus tard, le binôme ne rapporte plus');
+
+  // Mais aider quelqu'un d'autre rapporte toujours.
+  assert.equal(rewardEligibility(dejaVu, 'chloe', now).eligible, true);
 });
 
 test('§28 transmission : double confirmation + cohérence GPS', () => {

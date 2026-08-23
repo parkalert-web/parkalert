@@ -195,6 +195,39 @@ test('une place bloquée sans proposition vivante repart en recherche', async ()
   assert.equal((await db.ref('spots/paul/status').get()).val(), 'open');
 });
 
+test('une place n’attend pas éternellement la décision du conducteur qui part', async () => {
+  await db.ref('seekers/lea').set(seeker('lea', 467, 0));
+  await db.ref('spots/paul').set(grandePlace());
+  await dispatchSpot(db, 'paul', (await db.ref('spots/paul').get()).val(), fakePush());
+  await db.ref('offers/lea/response').set('accepted');
+  await handleOfferResponse(db, 'lea', 'accepted', fakePush());
+
+  // Le conducteur qui part laisse son téléphone dans sa poche.
+  await db.ref('spots/paul/pendingSeeker/askedAt').set(Date.now() - 5 * 60_000);
+
+  const res = await sweepOffers(db);
+  assert.deepEqual(res.unblocked, ['paul']);
+
+  const spot = (await db.ref('spots/paul').get()).val();
+  assert.equal(spot.status, 'open', 'la place repart en recherche');
+  assert.equal(spot.pendingSeeker ?? null, null);
+  assert.equal(spot.confirmMisses, 1);
+  assert.equal((await db.ref('offers/lea').get()).val(), null,
+    'le candidat ne doit pas rester bloqué à attendre');
+});
+
+test('une annonce dont personne ne s’occupe finit par être abandonnée', async () => {
+  await db.ref('spots/paul').set(grandePlace('paul', {
+    status: 'pending-confirm',
+    confirmMisses: 1,
+    pendingSeeker: { uid: 'lea', pseudo: 'Léa', askedAt: Date.now() - 5 * 60_000 },
+  }));
+
+  const res = await sweepOffers(db);
+  assert.deepEqual(res.abandoned, ['paul']);
+  assert.equal((await db.ref('spots/paul').get()).val(), null);
+});
+
 test('une recherche trop ancienne est ignorée', async () => {
   const vieux = { ...seeker('vieux', 411, 0), ts: Date.now() - 3 * 3600_000 };
   await db.ref('seekers/vieux').set(vieux);

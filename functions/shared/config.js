@@ -37,6 +37,16 @@ export const TUNING = {
   /** §15 — délai de réponse à une proposition avant passage au candidat suivant. */
   offerTimeoutS: 45,
 
+  /**
+   * Délai laissé au conducteur qui part pour accepter le candidat qu'on lui
+   * présente. Passé ce délai, le candidat est libéré et la place repart en
+   * recherche : elle ne doit jamais rester bloquée parce qu'un téléphone est
+   * resté au fond d'une poche.
+   */
+  donorConfirmS: 120,
+  /** Au bout de N décisions non prises, l'annonce est abandonnée. */
+  donorConfirmMisses: 2,
+
   /** §22 — rayon de confirmation d'arrivée par GPS (30 à 50 m dans le cahier des charges). */
   proximityM: 40,
 
@@ -66,8 +76,14 @@ export const TUNING = {
   /** §29 — points gagnés par le donneur pour une transmission validée des deux côtés. */
   points: { transfer: 10 },
 
-  /** §30 — anti-triche. */
-  antiFraud: { donorCooldownS: 1800, pairCooldownS: 86400 },
+  /**
+   * §30 — anti-triche.
+   * `donorCooldownS` : délai minimal entre deux récompenses, quel que soit le partenaire.
+   * `rewardOncePerPartner` : une transmission avec une personne donnée ne rapporte
+   *   des points QUE la première fois. Deux amis qui se passeraient la même place en
+   *   boucle ne gagnent donc rien au-delà de la première fois.
+   */
+  antiFraud: { donorCooldownS: 1800, rewardOncePerPartner: true },
 
   /** §11 — rappel d'annonce de départ pour un utilisateur stationné (désactivable). */
   parkedReminderS: 2700,

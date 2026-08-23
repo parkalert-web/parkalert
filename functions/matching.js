@@ -187,20 +187,74 @@ export async function sweepOffers(db) {
     expired.push(seekerUid);
   }
 
-  // Filet de sécurité : une place restée « offering » sans proposition vivante
-  // doit repartir en recherche, sinon elle resterait bloquée indéfiniment.
+  // Filets de sécurité : une place ne doit jamais rester bloquée, ni parce que
+  // la proposition s'est évaporée, ni parce que le conducteur qui part n'a pas
+  // ouvert son téléphone.
   const spots = (await db.ref('spots').get()).val() || {};
   const unblocked = [];
+  const abandoned = [];
+
   for (const [donorUid, spot] of Object.entries(spots)) {
-    if (!spot || spot.status !== 'offering') continue;
-    if (Number(spot.offerExpiresAt) > t) continue;
-    const live = offers[spot.offeredTo];
-    if (live && live.response === 'pending' && Number(live.expiresAt) > t) continue;
-    await db.ref(`spots/${donorUid}`).update({ status: 'open', offeredTo: null, offerExpiresAt: null });
-    unblocked.push(donorUid);
+    if (!spot) continue;
+
+    // a) « offering » sans proposition vivante : on relance la recherche.
+    if (spot.status === 'offering' && !(Number(spot.offerExpiresAt) > t)) {
+      const live = offers[spot.offeredTo];
+      if (live && live.response === 'pending' && Number(live.expiresAt) > t) continue;
+      await db.ref(`spots/${donorUid}`).update({ status: 'open', offeredTo: null, offerExpiresAt: null });
+      unblocked.push(donorUid);
+      continue;
+    }
+
+    // b) « pending-confirm » depuis trop longtemps : le conducteur qui part n'a
+    //    pas répondu. On rend sa liberté au candidat, qui attend pour rien, et
+    //    on relance. Au bout de quelques tentatives, l'annonce est abandonnée.
+    //
+    //    L'instantané lu plus haut peut avoir vieilli : entre-temps le donneur
+    //    a très bien pu accepter. Une transaction garantit qu'on ne défait pas
+    //    une réservation qui vient d'aboutir.
+    if (spot.status === 'pending-confirm' && spot.pendingSeeker) {
+      const asked = Number(spot.pendingSeeker.askedAt) || 0;
+      if (asked + TUNING.donorConfirmS * 1000 > t) continue;
+      const seekerUid = spot.pendingSeeker.uid;
+      const ref = db.ref(`spots/${donorUid}`);
+
+      let issue = null;
+      const res = await ref.transaction((cur) => {
+        // Realtime Database appelle d'abord la fonction avec la valeur en cache,
+        // qui peut être vide. Renvoyer « ne rien faire » à cet instant annulerait
+        // tout avant même d'avoir vu la valeur du serveur ; renvoyer une valeur
+        // fait relancer la fonction avec la vraie donnée. Sur un nœud réellement
+        // absent, cette suppression ne fait rien.
+        if (cur === null) return null;
+
+        // La situation a changé depuis la lecture : on ne touche à rien.
+        if (cur.status !== 'pending-confirm') return undefined;
+        if ((Number(cur.pendingSeeker?.askedAt) || 0) !== asked) return undefined;
+
+        const misses = (Number(cur.confirmMisses) || 0) + 1;
+        if (misses >= TUNING.donorConfirmMisses) { issue = 'abandoned'; return null; }
+
+        issue = 'reopened';
+        // On n'écarte PAS ce conducteur : il n'a rien fait de mal, et l'écarter
+        // priverait une place de son seul candidat possible.
+        return {
+          ...cur,
+          status: 'open',
+          pendingSeeker: null,
+          offeredTo: null,
+          offerExpiresAt: null,
+          confirmMisses: misses,
+        };
+      });
+
+      if (!res.committed || !issue) continue;
+      await db.ref(`offers/${seekerUid}`).remove();
+      (issue === 'abandoned' ? abandoned : unblocked).push(donorUid);
+    }
   }
 
-  return { expired, unblocked };
+  return { expired, unblocked, abandoned };
 }
 
 /* ─────────────────── 4. Prévenir pendant la réservation ─────────────────── */

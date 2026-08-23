@@ -48,6 +48,12 @@
               ".validate": "newData.isString() && newData.val().length < 1024"
             }
           }
+        },
+        "rewardedPartners": {
+          "$partner": {
+            ".write": "auth != null && ((auth.uid === $partner && !data.exists() && newData.exists()) || auth.uid === $uid)",
+            ".validate": "newData.isNumber()"
+          }
         }
       }
     },

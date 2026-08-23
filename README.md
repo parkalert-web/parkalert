@@ -150,6 +150,7 @@ Le MVP décrit au §37 du cahier des charges est intégralement implémenté.
 | 23-24 | Tolérance de 2 minutes, prolongation, réattribution urgente | `give.js` |
 | 25-27 | Annulations graduées, « je ne peux pas me garer », reproposition ciblée | `seek.js`, `give.js` |
 | 28-30 | Double confirmation, attribution des points, anti-triche | `give.js`, `core.js` |
+| — | Une seule récompense par binôme, définitivement | `core.js`, `give.js` |
 | 31 | Fiabilité : seule la répétition est sanctionnée | `core.js` |
 | 32-33 | Signalement de place libre, départ sans attendre | `give.js` |
 | 34 | Gros boutons, très peu de saisie, une décision par écran | `styles.css`, `panel.js` |
@@ -167,7 +168,8 @@ Elles sont toutes regroupées dans [`src/config.js`](src/config.js) :
 | Rayon de confirmation d'arrivée | 40 m | §22 |
 | Tolérance de retard | 2 min | §23 |
 | Points par transmission validée | +10 | §29 |
-| Anti-triche | 30 min / 24 h | §30 |
+| Anti-triche | 30 min entre deux récompenses · une seule par binôme | §30 |
+| Délai de décision du donneur | 120 s, puis 2 tentatives | — |
 | Estimation de trajet | 20 km/h, détour ×1,35, +1 min de manœuvre | §38 |
 
 ### Deux écarts assumés par rapport au cahier des charges
@@ -194,6 +196,15 @@ En revanche, **celui qui donne décrit toujours sa place** (§6) : là il ne s'a
 préférence mais d'une observation — l'espace réellement libre autour de sa voiture — et elle
 reste indispensable pour estimer la longueur du créneau.
 
+**Une seule récompense par binôme, pour toujours (durcissement du §30).** Le cahier des charges
+prévoyait 24 heures entre deux récompenses avec le même partenaire. C'était trop faible : deux
+amis pouvaient se passer la même place tous les jours. Désormais **la première transmission avec
+une personne donnée est la seule qui rapporte des points**, définitivement. La marque est écrite
+des deux côtés, donc le binôme ne rapporte qu'une fois quel que soit celui qui donne sa place.
+
+Contrepartie assumée : deux voisins qui s'entraident réellement toutes les semaines ne seront
+récompensés qu'une fois. Le réglage vit dans `TUNING.antiFraud.rewardOncePerPartner`.
+
 **À points égaux, la grande voiture passe devant (ajout au §13).** Une grande voiture trouve
 beaucoup plus rarement un créneau à sa taille ; une petite se contentera d'une place où la
 grande n'entrerait pas. Envoyer une petite voiture sur une grande place gâche donc la seule
@@ -217,8 +228,10 @@ commentaires du code, où ils servent à retrouver la règle d'origine.
 ### Ce qui reste côté conformité
 
 - la politique de confidentialité attend l'identité réelle de l'éditeur ;
-- les points et la fiabilité sont encore calculés côté client — les déplacer sur le serveur
-  demande de refermer leur écriture dans les règles, ce qui suppose le serveur déjà en service.
+- les points et la fiabilité sont encore calculés côté client. Les règles empêchent un tiers
+  d'effacer la marque « déjà récompensé avec cette personne », mais **le propriétaire du compte
+  peut encore effacer la sienne** : seule une écriture réservée au serveur ferme définitivement
+  la porte. C'est le chantier qui suit la mise en service du serveur.
 
 ### Reste à faire (§38)
 
@@ -256,9 +269,10 @@ Les scénarios bout en bout pilotent la vraie application contre le vrai Firebas
 Les comptes de test sont supprimés à la fin de chaque scénario.
 
 `npm run test:server` lance l'émulateur Firebase en local — aucun compte, aucune facturation,
-aucun accès réseau — et rejoue 9 scénarios de mise en relation contre une vraie base de
+aucun accès réseau — et rejoue 11 scénarios de mise en relation contre une vraie base de
 données : choix du conducteur, unicité de la sollicitation, passage au suivant après un refus,
-et le fait que le serveur ne réserve jamais à la place du conducteur qui part.
+le fait que le serveur ne réserve jamais à la place du conducteur qui part, et le déblocage
+d'une place dont le donneur ne répond plus.
 
 ---
 

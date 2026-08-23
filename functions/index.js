@@ -82,7 +82,7 @@ export const sweep = onSchedule(
   { schedule: 'every 1 minutes', region: REGION },
   async () => {
     const res = await sweepOffers(db());
-    if (res.expired.length || res.unblocked.length) logger.info('nettoyage', res);
+    if (res.expired.length || res.unblocked.length || res.abandoned.length) logger.info('nettoyage', res);
   },
 );
 
