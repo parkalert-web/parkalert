@@ -100,7 +100,14 @@ joueur.
 ### La police
 
 Cinq étoiles, comme il se doit. Un homicide, un vol de voiture sous les yeux
-d'un témoin ou une explosion font monter l'indice. Des voitures de patrouille
+d'un témoin ou une explosion font monter l'indice — et depuis peu le **code de
+la route** aussi : feu rouge grillé, contresens, excès de vitesse, accident et
+délit de fuite. Comme dans la vraie vie, il faut qu'une patrouille le voie :
+griller un feu sur un carrefour désert ne coûte rien.
+
+Une patrouille ne fonce plus sur un suspect à pied : elle **freine à une
+vingtaine de mètres et les agents descendent**, arme au poing. Et dès deux
+étoiles, le passager **tire par la vitre** pendant la poursuite. Des voitures de patrouille
 convergent, les policiers descendent de voiture quand vous êtes à pied, un
 hélicoptère décolle à trois étoiles. Rester hors de vue assez longtemps fait
 clignoter les étoiles puis les efface — ou passez chez Los Santos Customs.
@@ -111,11 +118,19 @@ réveil à l'hôpital.
 
 Cinq missions scénarisées, déclenchées par les lettres au sol :
 
-- **F — Reprise de véhicule** *(Franklin)* : voler une Comète et la livrer au garage, deux étoiles aux trousses ;
-- **M — Le casse de la bijouterie** *(Michael)* : neutraliser les vigiles, rafler les vitrines, s'échapper avec trois étoiles — 240 000 $ ;
-- **T — Carnage au port** *(Trevor)* : quatorze hommes de main, trois minutes ;
-- **C — Course de rue** : dix points de passage le long du bord de mer, chrono serré ;
-- **D — Courses de taxi** : trois clients, trois destinations.
+Dix missions, et surtout dix **genres différents** — pas dix fois « va chercher,
+va déposer ». Le genre est annoncé au lancement et sur la carte.
+
+- **F — Reprise de véhicule** *(Vol, Franklin)* : voler une Comète et la livrer au garage, deux étoiles aux trousses ;
+- **F — Rattrape-le** *(Poursuite, Franklin)* : un fuyard file à pleine vitesse et grille les feux ; il faut le percuter jusqu'à ce que sa voiture rende l'âme ;
+- **M — Le casse de la bijouterie** *(Braquage, Michael)* : neutraliser les vigiles, rafler les vitrines, s'échapper avec trois étoiles — 240 000 $ ;
+- **M — Le témoin** *(Escorte, Michael)* : conduire un témoin au palais de justice ; sa vie tient à l'état de votre voiture, et deux embuscades vous attendent en route ;
+- **T — Carnage à l'aéroport** *(Assaut, Trevor)* : quatorze hommes de main, trois minutes ;
+- **T — Casse au port** *(Sabotage, Trevor)* : détruire cinq camions, puis semer la police ;
+- **C — Course de rue** *(Course)* : dix points de passage le long du bord de mer, chrono serré ;
+- **S — La planque éventrée** *(Récupération)* : quatre sacs éparpillés sur la corniche, puis retour à la planque ;
+- **G — Guet-apens à Grove** *(Survie)* : tenir la position près de deux minutes pendant que les vagues d'assaillants arrivent ;
+- **D — Courses de taxi** *(Livraison)* : trois clients, trois destinations.
 
 ### Les trois personnages
 
@@ -247,7 +262,7 @@ lectures dans cette table. Aucun outil externe, aucune étape d'installation.
 node --test tests/game.test.mjs
 ```
 
-35 tests couvrent les mathématiques, l'orientation des faces (un enroulement
+44 tests couvrent les mathématiques, l'orientation des faces (un enroulement
 inversé rend la géométrie invisible), la reproductibilité de la ville, la
 connexité du réseau routier, l'absence d'obstacle sur la chaussée et de
 marqueur de mission dans un mur, les collisions, la physique des véhicules
@@ -260,6 +275,13 @@ définitivement toute une file. Un autre lance une voiture à 260 km/h contre un
 immeuble pour s'assurer qu'elle ne le traverse pas, un autre encore fait vivre
 soixante piétons pendant quarante-cinq secondes et vérifie qu'aucun ne finit
 dans un mur.
+
+Un test **joue chaque nouvelle quête jusqu'au bout** sans navigateur : c'est
+lui qui a fait tomber un bug bien plus vieux — quatre véhicules (ambulance,
+camion de pompiers, Benson, bus) n'avaient pas de valeur de braquage. Un
+`undefined` dans la physique, et leur position devenait NaN dès la première
+image. Un garde-fou fait désormais rouler chaque modèle du catalogue à l'arrêt,
+à fond et en virage serré, en exigeant que tout reste fini.
 
 Un autre vérifie que `losantos.html` n'a pas pris de retard sur les sources.
 

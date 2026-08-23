@@ -118,6 +118,7 @@ export class PoliceSystem {
   }
 
   clear() {
+    this.announced = false;
     this.game.player.wanted = 0;
     this.escapeTimer = 0;
     for (const v of this.game.vehicles) this.standDown(v);
@@ -175,6 +176,7 @@ export class PoliceSystem {
     if (this.escapeTimer > STAR_ESCAPE[p.wanted]) {
       p.wanted = 0;
       this.escapeTimer = 0;
+      this.announced = false;
       g.notify('Vous avez semé la police', '');
       g.audio.ui(720, 0.2, 0.16);
       for (const v of g.vehicles) this.standDown(v);
@@ -199,20 +201,43 @@ export class PoliceSystem {
       if (h.remove) this.helis.splice(i, 1);
     }
 
-    // policiers à pied quand le joueur est à pied
+    // Les agents descendent de voiture dès que le suspect est à pied. La
+    // patrouille freine à une vingtaine de mètres (driveChase) : c'est ce
+    // palier de vitesse qu'on attend ici.
     for (const v of g.vehicles) {
       if (!v.ai || !v.ai.chase || v.dead) continue;
       const d = dist2D(v.x, v.z, px, pz);
-      if (!p.vehicle && d < 26 && Math.abs(v.speed) < 4 && !v.ai.dropped) {
+      if (!p.vehicle && !p.dead && d < 34 && Math.abs(v.speed) < 6 && !v.ai.dropped) {
         v.ai.dropped = true;
         const n = p.wanted >= 3 ? 2 : 1;
         for (let i = 0; i < n; i++) {
           const cop = new Ped(v.x + range(this.rand, -2.5, 2.5), v.z + range(this.rand, -2.5, 2.5), this.rand, { cop: true });
           cop.combatTarget = p;
+          cop.aim = true;
           g.peds.push(cop);
+        }
+        g.audio.ui(300, 0.05, 0.05);
+        if (!this.announced) {
+          this.announced = true;
+          g.notify('Police', 'Ils descendent de voiture — ils tirent à vue');
         }
       }
       if (p.vehicle) v.ai.dropped = false;
+    }
+
+    // Tir depuis la voiture pendant la poursuite : à deux étoiles le passager
+    // sort son arme par la vitre. Avant, une patrouille ne faisait que foncer.
+    const seuil = p.wanted >= 4 ? 0.55 : p.wanted >= 3 ? 0.85 : 1.35;
+    for (const v of g.vehicles) {
+      if (!v.ai || !v.ai.chase || v.dead) continue;
+      v.fireTimer = (v.fireTimer || 0) - dt;
+      if (p.wanted < 2 || v.fireTimer > 0) continue;
+      const d = dist2D(v.x, v.z, px, pz);
+      if (d > 55 || d < 3) continue;
+      if (!g.world.visible(v.x, 1.3, v.z, px, 1.3, pz)) continue;
+      v.fireTimer = range(this.rand, seuil, seuil * 2.1);
+      const ox = Math.cos(v.yaw) * (v.hw + 0.25), oz = -Math.sin(v.yaw) * (v.hw + 0.25);
+      g.npcShootFrom(v.x + ox, v.model.h * 0.72, v.z + oz, p, d, 'pistol', v);
     }
     for (const c of g.peds) {
       if (c.cop && !c.dead) c.combatTarget = p;

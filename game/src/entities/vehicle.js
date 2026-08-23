@@ -20,14 +20,14 @@ export const MODELS = {
   taxi: { name: 'Taxi', cls: 'sedan', len: 4.7, wid: 1.92, h: 1.5, mass: 1550, power: 11, top: 45, grip: 7.2, brake: 22, steer: 0.60, seats: 4, fixed: '#e2b307', taxi: true },
   police: { name: 'Police Cruiser', cls: 'police', len: 5.0, wid: 2.0, h: 1.5, mass: 1750, power: 16.5, top: 62, grip: 8.4, brake: 30, steer: 0.62, seats: 4, fixed: '#1a1d21', police: true },
   police2: { name: 'Police Buffalo', cls: 'police', len: 4.9, wid: 2.0, h: 1.42, mass: 1700, power: 19, top: 72, grip: 8.8, brake: 32, steer: 0.60, seats: 4, fixed: '#20242a', police: true },
-  ambulance: { name: 'Ambulance', cls: 'van', len: 5.6, wid: 2.15, h: 2.4, mass: 2800, power: 11, top: 42, grip: 6.6, brake: 22, seats: 2, fixed: '#eef1f3', emergency: 'med' },
-  firetruck: { name: 'Camion de pompiers', cls: 'truck', len: 7.6, wid: 2.4, h: 2.9, mass: 6500, power: 9.5, top: 36, grip: 6.2, brake: 20, seats: 2, fixed: '#b4231d', emergency: 'fire' },
-  benson: { name: 'Benson', cls: 'truck', len: 7.4, wid: 2.35, h: 2.9, mass: 5200, power: 8.5, top: 34, grip: 5.9, brake: 18, seats: 2 },
+  ambulance: { name: 'Ambulance', cls: 'van', len: 5.6, wid: 2.15, h: 2.4, mass: 2800, power: 11, top: 42, grip: 6.6, brake: 22, steer: 0.50, seats: 2, fixed: '#eef1f3', emergency: 'med' },
+  firetruck: { name: 'Camion de pompiers', cls: 'truck', len: 7.6, wid: 2.4, h: 2.9, mass: 6500, power: 9.5, top: 36, grip: 6.2, brake: 20, steer: 0.42, seats: 2, fixed: '#b4231d', emergency: 'fire' },
+  benson: { name: 'Benson', cls: 'truck', len: 7.4, wid: 2.35, h: 2.9, mass: 5200, power: 8.5, top: 34, grip: 5.9, brake: 18, steer: 0.44, seats: 2 },
   maverick: {
     name: 'Maverick', cls: 'heli', len: 12, wid: 3.2, h: 3.4, mass: 2600, power: 26, top: 62,
     grip: 4, brake: 10, steer: 0.5, seats: 4, fixed: '#1d2733', fly: true,
   },
-  bus: { name: 'Bus', cls: 'bus', len: 10.5, wid: 2.5, h: 3.1, mass: 9000, power: 7.5, top: 32, grip: 5.6, brake: 17, seats: 8, fixed: '#d8b23a' },
+  bus: { name: 'Bus', cls: 'bus', len: 10.5, wid: 2.5, h: 3.1, mass: 9000, power: 7.5, top: 32, grip: 5.6, brake: 17, steer: 0.40, seats: 8, fixed: '#d8b23a' },
 };
 
 export const CIVILIAN_MODELS = ['asterope', 'ingot', 'comete', 'dominator', 'granger', 'bison', 'burrito', 'taxi', 'asterope', 'ingot'];

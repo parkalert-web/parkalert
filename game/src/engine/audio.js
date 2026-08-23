@@ -29,8 +29,11 @@ export class AudioEngine {
     this.master = c.createGain();
     this.master.gain.value = this.volume;
     this.comp = c.createDynamicsCompressor();
-    this.comp.threshold.value = -12;
-    this.comp.ratio.value = 8;
+    this.comp.threshold.value = -10;
+    this.comp.ratio.value = 4;
+    this.comp.knee.value = 22;
+    this.comp.attack.value = 0.012;
+    this.comp.release.value = 0.28;
     this.master.connect(this.comp);
     this.comp.connect(c.destination);
 
@@ -57,6 +60,12 @@ export class AudioEngine {
 
     this.ready = true;
     this.nextBeat = c.currentTime + 0.1;
+
+    // La radio se planifie sur son propre minuteur. Accrochée à la boucle de
+    // rendu, elle hoquetait : une image longue et le séquenceur passait
+    // derrière la tête de lecture, ce qui s'entend comme un décrochage.
+    clearInterval(this.musicTimer);
+    this.musicTimer = setInterval(() => { try { this.tickMusic(); } catch (e) { /* onglet fermé */ } }, 40);
   }
 
   resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
@@ -272,28 +281,44 @@ export class AudioEngine {
       if (!activeIds.has(id)) this.stopEngine(id);
     }
     for (const id of [...this.sirens.keys()]) {
-      if (!activeIds.has(id)) {
-        const s2 = this.sirens.get(id);
-        try { s2.o.stop(); } catch (e) { /* déjà arrêté */ }
-        this.sirens.delete(id);
-      }
+      if (!activeIds.has(id)) this.stopSiren(id);
     }
   }
 
+  /**
+   * On ne coupe jamais un oscillateur en pleine sonorité : ça claque. On
+   * referme le gain en 80 ms, puis on l'arrête.
+   */
   stopEngine(id) {
     const e = this.engines.get(id);
     if (!e) return;
-    try { e.o1.stop(); e.o2.stop(); } catch (err) { /* déjà arrêté */ }
     this.engines.delete(id);
+    const t = this.ctx.currentTime;
+    try {
+      e.g.gain.cancelScheduledValues(t);
+      e.g.gain.setValueAtTime(e.g.gain.value, t);
+      e.g.gain.linearRampToValueAtTime(0, t + 0.08);
+      e.o1.stop(t + 0.1); e.o2.stop(t + 0.1);
+    } catch (err) { /* déjà arrêté */ }
+  }
+
+  stopSiren(id) {
+    const s = this.sirens.get(id);
+    if (!s) return;
+    this.sirens.delete(id);
+    const t = this.ctx.currentTime;
+    try {
+      s.g.gain.cancelScheduledValues(t);
+      s.g.gain.setValueAtTime(s.g.gain.value, t);
+      s.g.gain.linearRampToValueAtTime(0, t + 0.1);
+      s.o.stop(t + 0.12);
+    } catch (e) { /* déjà arrêté */ }
   }
 
   updateSiren(v) {
     if (!this.ready) return;
     let s = this.sirens.get(v.id);
-    if (!v.siren || v.dead) {
-      if (s) { try { s.o.stop(); } catch (e) {} this.sirens.delete(v.id); }
-      return;
-    }
+    if (!v.siren || v.dead) { this.stopSiren(v.id); return; }
     if (!s) {
       const c = this.ctx;
       const o = c.createOscillator(); o.type = 'triangle';
@@ -376,7 +401,7 @@ export class AudioEngine {
     const S = STATIONS[this.station - 1];
     const spb = 60 / S.bpm / 4;              // durée d'un seizième
     let guard = 48;                          // onglet en arrière-plan : on ne rattrape pas tout
-    while (this.nextBeat < c.currentTime + 0.25 && guard-- > 0) {
+    while (this.nextBeat < c.currentTime + 0.38 && guard-- > 0) {
       const t = Math.max(this.nextBeat, c.currentTime + 0.01);
       const b = this.beat;
       S.play(this, t, b, spb);

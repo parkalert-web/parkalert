@@ -52,6 +52,7 @@ export class Player {
     this.mags = {};
     this.owned = { fist: true, pistol: true };
     this.fireCooldown = 0;
+    this.fireAnim = 0;          // recul visible à l'écran
     this.reloadT = 0;
     this.ability = 0.5;
     this.abilityActive = 0;
@@ -154,6 +155,7 @@ export class Player {
       this.updateOnFoot(dt, game);
     }
     this.fireCooldown -= dt;
+    this.fireAnim = Math.max(0, this.fireAnim - dt * 7);
     if (this.reloadT > 0) {
       this.reloadT -= dt;
       if (this.reloadT <= 0) this.finishReload();
@@ -298,6 +300,7 @@ export class Player {
       if (this.mags[this.weapon] <= 0 && this.ammo[this.weapon] > 0) this.startReload();
     }
     this.fireCooldown = w.rate;
+    this.fireAnim = 1;
   }
 
   switchWeapon(key) {
@@ -313,6 +316,7 @@ export class Player {
     drawHuman(R, {
       x: this.x, y: this.y, z: this.z, yaw: this.yaw,
       anim: this.anim, move: this.move, aim: this.aiming && !this.swimming,
+      fire: this.fireAnim,
       crouch: this.crouch, swimming: this.swimming, deadT: this.dead ? this.deadT : 0,
       weapon: w.melee || this.dead ? null : {
         len: w.slot >= 5 ? 0.78 : w.slot >= 4 ? 0.66 : w.slot >= 2 ? 0.5 : 0.32,

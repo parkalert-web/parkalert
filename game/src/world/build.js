@@ -16,7 +16,7 @@ const C = {
   lineYellow: color('#c9a83c'),
   walk: color('#b0aca4'),
   median: color('#6f7c5a'),
-  hedge: color('#3d5c30'),
+  hedge: color('#35502a'),
   walkEdge: color('#87847e'),
   curb: color('#c6c2b8'),
   pavement: color('#a09c94'),
@@ -89,11 +89,11 @@ function medianIsland(g, cx, cz, len, horiz) {
     && Math.abs(((cz % STREET) + STREET * 1.5) % STREET - STREET / 2) < 15) return;
   const w = horiz ? len : 3.6;
   const d = horiz ? 3.6 : len;
-  g.box(cx, 0.17, cz, w, 0.34, d, C.curb, 0, { top: C.grass, side: C.curb, noBottom: true });
+  g.box(cx, 0.17, cz, w, 0.34, d, C.curb, 0, { top: C.median, side: C.curb, noBottom: true });
   // haie basse : c'est elle qui donne du relief au terre-plein
   const hl = Math.max(2, len - 5);
   g.box(cx, 0.34 + 0.42, cz, horiz ? hl : 1.5, 0.84, horiz ? 1.5 : hl, C.hedge, 0,
-    { top: shade(C.hedge, 1.15), side: C.hedge });
+    { top: shade(C.hedge, 1.08), side: C.hedge });
 }
 
 function roadMarkings(g, r) {

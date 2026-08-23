@@ -48,10 +48,10 @@ export function drawHuman(R, s, look = null) {
     m4mul(tmpB, base, tmpB);
     R.cube(tmpB, c);
   };
-  const ball = (x, y, z, d, c, dy = d, dz = d) => {
+  const ball = (x, y, z, d, c, dy = d, dz = d, emit = 0) => {
     m4compose(tmpB, x * w, y * k, z * k, 0, d * w, dy * k, dz * k);
     m4mul(tmpB, base, tmpB);
-    R.sphere(tmpB, c);
+    R.sphere(tmpB, c, emit);
   };
   /** Segment de membre : cylindre partant du pivot, incliné de `a` (plan sagittal). */
   const limb = (px, py, pz, a, len, thick, c) => {
@@ -69,7 +69,12 @@ export function drawHuman(R, s, look = null) {
   const crouch = s.crouch ? 0.22 : 0;
   const bob = Math.abs(Math.sin(phase)) * 0.04 * s.move * (1 - fall);
   const hipY = 0.90 - crouch + bob;
-  const lean = fall ? 0 : (s.aim ? 0.06 : s.move * 0.14);
+  // Le tir : l'arme se lève même sans viser, et le recul secoue le buste.
+  // Sans ça, tirer ne se voyait pas du tout.
+  const fire = clamp(s.fire || 0, 0, 1) * (1 - fall);
+  const aiming = (s.aim || fire > 0.04) && !swimming;
+  const kick = fire * fire;                       // sec au départ, mou à la fin
+  const lean = fall ? 0 : (aiming ? 0.06 - kick * 0.16 : s.move * 0.14);
 
   /* ------------------------------------------------------------- jambes */
   for (const side of [-1, 1]) {
@@ -119,9 +124,9 @@ export function drawHuman(R, s, look = null) {
     const sx = side * 0.225;
     let a1;
     let a2;
-    if (s.aim) {                                   // les deux mains sur l'arme
-      a1 = -Math.PI / 2 + (look !== null ? clamp(-look, -0.5, 0.5) : 0);
-      a2 = side > 0 ? 0.12 : 0.55;
+    if (aiming) {                                  // les deux mains sur l'arme
+      a1 = -Math.PI / 2 + (look !== null ? clamp(-look, -0.5, 0.5) : 0) + kick * 0.42;
+      a2 = (side > 0 ? 0.12 : 0.55) + kick * 0.3;
     } else if (swimming) {
       a1 = Math.sin(phase + (side > 0 ? 0 : Math.PI)) * 1.5 - 0.8;
       a2 = 0.5;
@@ -140,14 +145,21 @@ export function drawHuman(R, s, look = null) {
   /* --------------------------------------------------------------- arme */
   if (s.weapon && !fall && hand) {
     const w = s.weapon;
-    const pitch = s.aim && look !== null ? clamp(-look, -0.5, 0.5) : 0;
-    const fwd = s.aim ? 1 : 0.35;
+    const pitch = (aiming && look !== null ? clamp(-look, -0.5, 0.5) : 0) - kick * 0.55;
+    const fwd = aiming ? 1 : 0.35;
     const gx = hand[0];
-    const gy = hand[1] + (s.aim ? 0.04 : -0.02);
-    const gz = hand[2] + w.len * 0.35 * fwd;
+    const gy = hand[1] + (aiming ? 0.04 : -0.02);
+    const gz = hand[2] + w.len * 0.35 * fwd - kick * 0.1;
     box(gx, gy, gz, w.wide || 0.075, 0.11, w.len, w.color || [0.13, 0.13, 0.15], pitch);
     if (w.len > 0.45) box(gx, gy - 0.09, gz - w.len * 0.2, 0.06, 0.14, 0.1, [0.3, 0.22, 0.15], pitch);
-    if (!s.aim) box(gx, gy - 0.08, gz - w.len * 0.3, 0.07, 0.13, 0.09, w.color || [0.13, 0.13, 0.15], pitch);
+    if (!aiming) box(gx, gy - 0.08, gz - w.len * 0.3, 0.07, 0.13, 0.09, w.color || [0.13, 0.13, 0.15], pitch);
+    // éclair au bout du canon
+    if (fire > 0.45) {
+      const f = (fire - 0.45) / 0.55;
+      const md = 0.1 + f * 0.16;
+      ball(gx, gy + w.len * 0.5 * Math.sin(pitch), gz + w.len * 0.55 * Math.cos(pitch),
+        md, [1, 0.9, 0.5], md, md, 1);
+    }
   }
 }
 
@@ -198,6 +210,7 @@ export class Ped {
     this.cop = !!opts.cop;
     this.armed = !!opts.armed;
     this.weaponCooldown = 0;
+    this.fireAnim = 0;
     this.aim = false;
     this.inVehicle = null;
     this.seat = 0;
@@ -324,6 +337,7 @@ export class Ped {
       return;
     }
     const { player, world, game } = ctx;
+    this.fireAnim = Math.max(0, this.fireAnim - dt * 7);
     const dpx = player.x - this.x, dpz = player.z - this.z;
     const distPlayer = Math.hypot(dpx, dpz);
 
@@ -370,6 +384,7 @@ export class Ped {
     this.weaponCooldown -= dt;
     if (canSee && d < 42 && this.weaponCooldown <= 0 && game) {
       this.weaponCooldown = this.cop ? range(this.rand, 0.42, 0.95) : range(this.rand, 0.5, 1.2);
+      this.fireAnim = 1;
       game.npcShoot(this, target, d);
     }
   }
@@ -415,7 +430,7 @@ export class Ped {
     if (this.inVehicle) return;
     drawHuman(R, {
       x: this.x, y: this.y, z: this.z, yaw: this.yaw,
-      anim: this.anim, move: this.move, aim: this.aim, deadT: this.deadT,
+      anim: this.anim, move: this.move, aim: this.aim, deadT: this.deadT, fire: this.fireAnim,
       weapon: this.armed && !this.dead ? { len: this.cop ? 0.3 : 0.44 } : null,
       ...this.look,
     }, this.aim ? 0 : null);

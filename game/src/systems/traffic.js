@@ -276,8 +276,8 @@ export class Population {
     const turnFactor = 1 - Math.min(Math.abs(err) / 1.2, 0.75);
     let cruise = ai.cruise * turnFactor;
 
-    // feu rouge au carrefour visé
-    if (next.links.length >= 3 && Math.abs(next.gx) <= GRID && Math.abs(next.gz) <= GRID) {
+    // feu rouge au carrefour visé — un fuyard, lui, ne s'arrête pas
+    if (!ai.fugitif && next.links.length >= 3 && Math.abs(next.gx) <= GRID && Math.abs(next.gz) <= GRID) {
       const seg = nodes[ai.node];
       const axis = Math.abs(next.x - seg.x) > Math.abs(next.z - seg.z) ? 1 : 0;
       if (this.mustStop(v, next, axis)) {
@@ -285,7 +285,7 @@ export class Population {
         cruise = Math.min(cruise, brakeDist * 0.9);
       }
     }
-    if (g.player.wanted > 0 && dist2D(v.x, v.z, pl.x, pl.z) < 70) cruise *= 0.55;
+    if (!ai.fugitif && g.player.wanted > 0 && dist2D(v.x, v.z, pl.x, pl.z) < 70) cruise *= 0.55;
     if (gap < 2.5) cruise = 0;
     else if (gap < 18) cruise *= clamp((gap - 2.5) / 15.5, 0, 1);
     if (creep) cruise = Math.max(cruise, Math.min(3.2, gap > 2.5 ? 3.2 : 0));
@@ -315,9 +315,22 @@ export class Population {
     if (c0 < 16) err += (cl > cr ? -1 : 1) * 0.9;
 
     v.steerInput = clamp(err * 2.1, -1, 1);
+    v.siren = true;
+
+    // Un suspect à pied, on ne l'écrase pas : on se range à une dizaine de
+    // mètres et on descend. C'est cet arrêt qui déclenche le déploiement.
+    const aPied = !p.vehicle && !p.dead;
+    if (aPied) {
+      const cible = d > 45 ? v.model.top * 0.75 : d > 20 ? 15 : 0;
+      v.throttle = clamp((cible - v.speed) * 0.7, -1, 1);
+      if (d < 20 && v.speed > 1.5) v.throttle = -1;          // freinage franc
+      v.handbrake = d < 17 && v.speed < 1.5;
+      if (Math.abs(err) > 2.2 && v.speed > 4) v.throttle = -0.6;
+      return;
+    }
+
     const target = d > 26 ? v.model.top * 0.9 : d > 10 ? 22 : 12;
     v.throttle = clamp((target - v.speed) * 0.6, -1, 1);
-    v.siren = true;
     if (d < 14 && p.vehicle) v.throttle = 1;                 // tentative d'interception
     if (Math.abs(err) > 2.2 && v.speed > 4) v.throttle = -0.6;
     v.handbrake = false;

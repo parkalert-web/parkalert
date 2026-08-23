@@ -296,8 +296,8 @@ function drive(v, seconds, controls, world) {
 
 test('chaque modèle du catalogue est complet', () => {
   for (const [key, m] of Object.entries(MODELS)) {
-    for (const f of ['name', 'cls', 'len', 'wid', 'h', 'mass', 'power', 'top', 'grip', 'brake']) {
-      assert.ok(m[f] !== undefined, `${key} : champ ${f} manquant`);
+    for (const f of ['name', 'cls', 'len', 'wid', 'h', 'mass', 'power', 'top', 'grip', 'brake', 'steer']) {
+      assert.ok(Number.isFinite(m[f]) || typeof m[f] === 'string', `${key} : champ ${f} manquant`);
     }
     const v = new Vehicle(key, 0, 0, 0);
     assert.ok(v.geo.parts.length > 4, `${key} : carrosserie trop pauvre`);
@@ -306,6 +306,32 @@ test('chaque modèle du catalogue est complet', () => {
     // les roues touchent le sol et la caisse ne flotte pas
     for (const wl of v.geo.wheels) assert.ok(Math.abs(wl.y - wl.r) < 1e-9, `${key} : roue mal posée`);
     assert.ok(v.geo.floor < v.geo.wheels[0].r * 1.05, `${key} : caisse trop haute sur roues`);
+  }
+});
+
+/**
+ * Garde-fou né d'un vrai bug : quatre modèles (ambulance, camion de pompiers,
+ * Benson, bus) n'avaient pas de valeur de braquage. Un `undefined` dans la
+ * physique, et la position devenait NaN dès la première image — le véhicule
+ * disparaissait de la carte sans un mot.
+ */
+test('aucun modèle ne part en NaN, à l’arrêt comme à fond', () => {
+  const data = generateWorld(20130917);
+  const world = new World(data);
+  for (const key of Object.keys(MODELS)) {
+    for (const scenario of ['arrêt', 'plein gaz', 'virage serré']) {
+      const v = new Vehicle(key, 0, 1.5, -45, 0);
+      v.x = 4.6; v.y = MODELS[key].fly ? 30 : 0; v.z = -300;
+      for (let i = 0; i < 150; i++) {
+        if (scenario === 'plein gaz') v.throttle = 1;
+        if (scenario === 'virage serré') { v.throttle = 1; v.steerInput = 1; }
+        v.update(1 / 30, world, null);
+        assert.ok(Number.isFinite(v.x) && Number.isFinite(v.z) && Number.isFinite(v.y),
+          `${key} (${scenario}) : position non finie à l'image ${i}`);
+        assert.ok(Number.isFinite(v.speed) && Number.isFinite(v.yaw),
+          `${key} (${scenario}) : vitesse ou cap non fini à l'image ${i}`);
+      }
+    }
   }
 });
 
@@ -677,6 +703,255 @@ test('un piéton s’écarte d’une voiture qui lui fonce dessus', async () => 
   assert.ok(ecart > 1.4, `le piéton doit sauter sur le côté (${ecart.toFixed(2)} m)`);
 });
 
+test('chaque type de repère a sa propre forme sur la carte', async () => {
+  const { BLIP_LEGEND, drawBlip } = await import('../game/src/systems/hud.js');
+
+  /** Faux contexte 2D : on enregistre la suite des ordres de dessin. */
+  const faux = () => {
+    const ops = [];
+    const c = {
+      ops, lineJoin: '', strokeStyle: '', lineWidth: 0, fillStyle: '', font: '',
+      textAlign: '', textBaseline: '',
+      save() {}, restore() {}, translate() {}, rotate() {},
+      beginPath() { ops.push('début'); },
+      moveTo(x, y) { ops.push(`m${x.toFixed(1)},${y.toFixed(1)}`); },
+      lineTo(x, y) { ops.push(`l${x.toFixed(1)},${y.toFixed(1)}`); },
+      arc(x, y, r) { ops.push(`a${r.toFixed(1)}`); },
+      closePath() { ops.push('fermer'); },
+      fill() { ops.push('remplir'); }, stroke() { ops.push('tracer'); },
+      fillText(t) { ops.push(`texte:${t}`); },
+    };
+    return c;
+  };
+
+  const empreintes = new Map();
+  for (const e of BLIP_LEGEND) {
+    const c = faux();
+    drawBlip(c, 0, 0, e, 10);
+    assert.ok(c.ops.length > 2, `${e.kind} doit dessiner quelque chose`);
+    const forme = c.ops.filter((o) => !o.startsWith('texte:')).join('|');
+    if (!empreintes.has(e.shape)) empreintes.set(e.shape, forme);
+    else assert.equal(empreintes.get(e.shape), forme, `deux ${e.shape} doivent se dessiner pareil`);
+  }
+  assert.equal(empreintes.size, new Set([...empreintes.values()]).size,
+    'deux formes différentes ne doivent pas se dessiner de la même façon');
+  assert.ok(empreintes.size >= 6, `il faut au moins six formes distinctes (${empreintes.size})`);
+
+  // les commerces se distinguent par leur symbole
+  const symboles = BLIP_LEGEND.filter((e) => e.glyph).map((e) => e.glyph);
+  assert.equal(symboles.length, new Set(symboles).size, 'chaque symbole doit être unique');
+
+  // et chaque entrée de légende est expliquée en français
+  for (const e of BLIP_LEGEND) {
+    assert.ok(e.label && e.label.length > 4, `${e.kind} doit avoir un libellé lisible`);
+  }
+});
+
+test('griller un feu devant une patrouille coûte une étoile', async () => {
+  const { Game } = await import('../game/src/game.js');
+  const { Population } = await import('../game/src/systems/traffic.js');
+  const data = generateWorld(20130917);
+  const world = new World(data);
+
+  /** Un jeu réduit à ce que checkTrafficOffences a besoin de lire. */
+  const faireJeu = (avecPatrouille) => {
+    const g = Object.create(Game.prototype);
+    const v = new Vehicle('comete', 0, -30, 0);
+    v.speed = 14; v.vz = 14;
+    const patrouille = new Vehicle('police', 14, -6, 0);
+    g.world = world;
+    g.time = 0;
+    g.vehicles = avecPatrouille ? [v, patrouille] : [v];
+    g.peds = [];
+    g.player = { x: v.x, z: v.z, wanted: 0, dead: false, vehicle: v };
+    g.audio = { ui() {} };
+    g.motifs = [];
+    g.notify = (t, sub) => g.motifs.push(sub);
+    g.police = { addWanted: (n) => { g.player.wanted += n; } };
+    return { g, v };
+  };
+
+  // on choisit un instant où l'axe est-ouest est rouge, puis on traverse en X
+  let t = 0;
+  while (Population.lightPhase(t).green === 1 || Population.lightPhase(t).amber) t += 0.2;
+
+  const traverser = (avecPatrouille) => {
+    const { g, v } = faireJeu(avecPatrouille);
+    g.time = t;
+    v.x = -20; v.z = 0; v.yaw = Math.PI / 2; v.speed = 14;   // plein est
+    g.player.x = v.x; g.player.z = v.z;
+    for (let i = 0; i < 120; i++) {
+      v.x += 14 / 30;
+      g.player.x = v.x;
+      g.time += 1 / 30;
+      g.checkTrafficOffences(1 / 30);
+    }
+    return { etoiles: g.player.wanted, motifs: g.motifs };
+  };
+
+  const vu = traverser(true);
+  assert.equal(vu.etoiles, 1, 'une patrouille voit le feu grillé');
+  assert.ok(vu.motifs.some((m) => /feu rouge/.test(m)), `le motif doit être le feu (${vu.motifs})`);
+
+  const pasVu = traverser(false);
+  assert.equal(pasVu.etoiles, 0, 'un carrefour désert ne coûte rien');
+});
+
+test('rouler à contresens finit par se voir', async () => {
+  const { Game } = await import('../game/src/game.js');
+  const data = generateWorld(20130917);
+  const world = new World(data);
+  const g = Object.create(Game.prototype);
+  const v = new Vehicle('comete', -4.6, -30, 0);
+  const patrouille = new Vehicle('police', 4.6, -25, Math.PI);   // en face, sur l'autre file
+  g.world = world; g.time = 40;
+  g.vehicles = [v, patrouille];
+  g.peds = [];
+  g.player = { x: v.x, z: v.z, wanted: 0, dead: false, vehicle: v };
+  g.audio = { ui() {} };
+  g.motifs = [];
+  g.notify = (titre, sub) => g.motifs.push(sub);
+  g.police = { addWanted: (n) => { g.player.wanted += n; } };
+
+  // rue nord-sud (x ≈ 0) : en allant vers +z il faut rouler côté +x.
+  // On roule côté -x : c'est le contresens.
+  v.yaw = 0; v.speed = 12;
+  for (let i = 0; i < 30 * 6; i++) {
+    v.z += 12 / 30;
+    if (v.z > -12) v.z = -40;                    // on reste entre deux carrefours
+    g.player.x = v.x; g.player.z = v.z;
+    g.time += 1 / 30;
+    g.checkTrafficOffences(1 / 30);
+  }
+  assert.equal(g.player.wanted, 1, 'le contresens doit finir par coûter une étoile');
+  assert.ok(g.motifs.some((m) => /contresens/.test(m)), `motif attendu (${g.motifs})`);
+
+  // et du bon côté, rien
+  const g2 = Object.create(Game.prototype);
+  Object.assign(g2, g, { player: { ...g.player, wanted: 0 }, motifs: [], offenceCooldown: 0, wrongWayT: 0 });
+  g2.notify = (titre, sub) => g2.motifs.push(sub);
+  g2.police = { addWanted: (n) => { g2.player.wanted += n; } };
+  const v2 = g2.player.vehicle;
+  v2.x = 4.6; v2.yaw = 0; v2.speed = 12;
+  for (let i = 0; i < 30 * 6; i++) {
+    v2.z += 12 / 30;
+    if (v2.z > -12) v2.z = -40;
+    g2.player.x = v2.x; g2.player.z = v2.z;
+    g2.time += 1 / 30;
+    g2.checkTrafficOffences(1 / 30);
+  }
+  assert.equal(g2.player.wanted, 0, 'du bon côté de la chaussée, rien à signaler');
+});
+
+test('tirer anime le personnage', async () => {
+  const { Player } = await import('../game/src/entities/player.js');
+  const p = new Player();
+  p.giveWeapon('pistol', 60);
+  p.switchWeapon('pistol');
+  assert.equal(p.fireAnim, 0, 'au repos, aucune animation de tir');
+  p.consumeAmmo();
+  assert.equal(p.fireAnim, 1, 'le coup part : le recul démarre au maximum');
+
+  // et il retombe en une fraction de seconde, pas instantanément
+  const dt = 1 / 60;
+  let images = 0;
+  while (p.fireAnim > 0 && images < 200) { p.fireCooldown -= dt; p.fireAnim = Math.max(0, p.fireAnim - dt * 7); images++; }
+  const duree = images * dt;
+  assert.ok(duree > 0.08 && duree < 0.4, `le recul dure une fraction de seconde (${duree.toFixed(2)} s)`);
+});
+
+test('la pose de tir lève l’arme même sans viser', async () => {
+  const { drawHuman } = await import('../game/src/entities/character.js');
+  // faux moteur de rendu : on enregistre la position des pièces dessinées
+  const capture = () => {
+    const pieces = [];
+    const lire = (m, c, emit = 0) => pieces.push({ x: m[12], y: m[13], z: m[14], emit });
+    return { pieces, cube: lire, cyl: lire, sphere: lire };
+  };
+  const etat = (fire) => ({
+    x: 0, y: 0, z: 0, yaw: 0, anim: 0, move: 0, aim: false, deadT: 0, fire,
+    weapon: { len: 0.32, wide: 0.075 },
+  });
+  const repos = capture(); drawHuman(repos, etat(0), 0);
+  const tir = capture(); drawHuman(tir, etat(1), 0);
+
+  const plusHaut = (r) => Math.max(...r.pieces.filter((q) => q.z > 0.2).map((q) => q.y));
+  const eclair = (r) => r.pieces.some((q) => q.emit >= 1);
+  assert.ok(!eclair(repos), 'au repos, pas d’éclair de bouche');
+  assert.ok(eclair(tir), 'en tirant, un éclair s’allume au bout du canon');
+  assert.ok(plusHaut(tir) > plusHaut(repos) + 0.2,
+    `l’arme doit se lever en tirant (${plusHaut(repos).toFixed(2)} → ${plusHaut(tir).toFixed(2)})`);
+});
+
+test('la police descend de voiture et ouvre le feu', async () => {
+  const { Population } = await import('../game/src/systems/traffic.js');
+  const { PoliceSystem } = await import('../game/src/systems/police.js');
+  const data = generateWorld(20130917);
+  const world = new World(data);
+  let tirs = 0;
+  const game = {
+    data, world, vehicles: [], peds: [], time: 0, threatLevel: 0,
+    player: { x: 0, z: -45, wanted: 4, onFoot: true, dead: false, vehicle: null, damage() {} },
+    audio: { stopEngine() {}, hornSound() {}, ui() {}, updateSiren() {}, gunshot() {} },
+    particles: { spawn() {} },
+    notify() {}, explode() {}, onPedKilled() {},
+    npcShoot() { tirs++; }, npcShootFrom() { tirs++; },
+  };
+  const pop = new Population(game);
+  const police = new PoliceSystem(game);
+  game.police = police;
+
+  const ctx = { player: game.player, world, game };
+  const dt = 1 / 30;
+  let auRalenti = 0;
+  for (let step = 0; step < 30 * 45; step++) {
+    game.time += dt;
+    game.player.wanted = 4;                       // on ne se laisse pas semer
+    police.update(dt);
+    pop.update(dt);
+    for (const v of game.vehicles) v.update(dt, world, null);
+    for (const ped of game.peds) if (!ped.inVehicle) ped.update(dt, ctx);
+    for (const v of game.vehicles) {
+      if (v.ai && v.ai.chase && !v.dead && Math.abs(v.speed) < 3
+        && dist2D(v.x, v.z, 0, -45) < 40) auRalenti++;
+    }
+  }
+
+  const aPied = game.peds.filter((c) => c.cop && !c.dead && !c.inVehicle).length;
+  assert.ok(auRalenti > 0, 'une patrouille doit se ranger au lieu de foncer sur un piéton');
+  assert.ok(aPied >= 2, `des agents doivent descendre de voiture (${aPied})`);
+  assert.ok(tirs > 5, `la police doit ouvrir le feu (${tirs} tirs)`);
+});
+
+test('une patrouille ne fonce plus sur un suspect à pied', async () => {
+  const { Population } = await import('../game/src/systems/traffic.js');
+  const data = generateWorld(20130917);
+  const world = new World(data);
+  const game = {
+    data, world, vehicles: [], peds: [], time: 0,
+    player: { x: 0, z: -45, wanted: 3, onFoot: true, dead: false, vehicle: null },
+    audio: { stopEngine() {}, hornSound() {} },
+  };
+  const pop = new Population(game);
+  const v = new Vehicle('police', 0, -110, 0);
+  v.ai = { chase: true, node: 0, next: 0, cruise: 26 };
+  v.speed = 24; v.vz = 24;
+  game.vehicles.push(v);
+
+  const dt = 1 / 30;
+  let mini = 1e9; let vitesseAuPlusPres = 0;
+  for (let step = 0; step < 30 * 20; step++) {
+    game.time += dt;
+    pop.driveAI(v, dt);
+    v.update(dt, world, null);
+    const d = dist2D(v.x, v.z, 0, -45);
+    if (d < mini) { mini = d; vitesseAuPlusPres = Math.abs(v.speed); }
+  }
+  assert.ok(mini < 30, `la patrouille doit s'approcher (au plus près : ${mini.toFixed(0)} m)`);
+  assert.ok(vitesseAuPlusPres < 6,
+    `et arriver au pas, pas à pleine vitesse (${(vitesseAuPlusPres * 3.6).toFixed(0)} km/h)`);
+});
+
 test('une longue traque ne fait pas enfler le parc automobile', async () => {
   const { Population } = await import('../game/src/systems/traffic.js');
   const { PoliceSystem } = await import('../game/src/systems/police.js');
@@ -739,15 +1014,25 @@ test('les points de mission sont posés sur un terrain valide', () => {
   for (const m of MISSIONS) {
     assert.ok(!solid(m.x, m.z), `${m.id} : le marqueur de départ est dans un mur`);
     for (const s2 of m.steps) {
-      const pts = s2.type === 'race' ? s2.points : (s2.x !== undefined ? [[s2.x, s2.z]] : []);
+      // race et collect portent une liste de points ; les autres un seul
+      const pts = (s2.type === 'race' || s2.type === 'collect') ? s2.points
+        : (s2.x !== undefined ? [[s2.x, s2.z]] : []);
       for (const [x, z] of pts) {
         assert.ok(!solid(x, z), `${m.id}/${s2.type} : point (${x}, ${z}) dans un mur`);
-        if (s2.vehicle || s2.type === 'deliver' || s2.type === 'race' || s2.type === 'spawnVehicle') {
+        if (s2.vehicle || ['deliver', 'race', 'spawnVehicle', 'chase', 'protect'].includes(s2.type)) {
           assert.ok(drivable(x, z), `${m.id}/${s2.type} : point (${x}, ${z}) inaccessible en voiture`);
         }
       }
       for (const e of s2.enemies || []) {
         assert.ok(!solid(e.x, e.z), `${m.id} : ennemi en (${e.x}, ${e.z}) dans un mur`);
+      }
+      for (const [x, z] of s2.ambush || []) {
+        assert.ok(!solid(x, z), `${m.id} : embuscade en (${x}, ${z}) dans un mur`);
+        assert.ok(drivable(x, z), `${m.id} : embuscade en (${x}, ${z}) hors de la route`);
+      }
+      if (s2.area) {
+        assert.ok(!solid(s2.area.x, s2.area.z),
+          `${m.id}/${s2.type} : centre de zone (${s2.area.x}, ${s2.area.z}) dans un mur`);
       }
     }
   }
@@ -756,7 +1041,8 @@ test('les points de mission sont posés sur un terrain valide', () => {
   for (const m of MISSIONS) {
     let prev = [m.x, m.z];
     for (const s2 of m.steps) {
-      const pts = s2.type === 'race' ? s2.points : (s2.x !== undefined ? [[s2.x, s2.z]] : []);
+      const pts = (s2.type === 'race' || s2.type === 'collect') ? s2.points
+        : (s2.x !== undefined ? [[s2.x, s2.z]] : []);
       for (const [x, z] of pts) {
         const d = dist2D(prev[0], prev[1], x, z);
         assert.ok(d < 1000, `${m.id}/${s2.type} : étape de ${Math.round(d)} m, trop loin`);
@@ -786,7 +1072,141 @@ test('les points de mission sont posés sur un terrain valide', () => {
   }
 });
 
+test('chaque nouvelle quête se joue jusqu’au bout', async () => {
+  const { MissionSystem } = await import('../game/src/systems/missions.js');
+  const { Population } = await import('../game/src/systems/traffic.js');
+  const { Ped } = await import('../game/src/entities/character.js');
+  const data = generateWorld(20130917);
+  const world = new World(data);
+
+  /** Le strict nécessaire pour qu'une mission tourne sans navigateur. */
+  const faireJeu = () => {
+    const g = {
+      data, world, vehicles: [], peds: [], time: 0, threatLevel: 0, objectif: '', banniere: null,
+      player: {
+        x: 0, z: 0, wanted: 0, dead: false, vehicle: null, money: 0,
+        onFoot: true, character: 'franklin', health: 200, maxHealth: 200,
+      },
+      audio: { ui() {}, stopEngine() {}, hornSound() {}, updateSiren() {}, gunshot() {} },
+      particles: { spawn() {} },
+      hud: { setObjective(t) { g.objectif = t; } },
+      notify() {}, explode() {}, onPedKilled() {}, npcShoot() {}, npcShootFrom() {},
+      showBanner(t, sub) { g.banniere = { t, sub }; },
+      police: { addWanted(n) { g.player.wanted += n; }, clear() { g.player.wanted = 0; } },
+      spawnPedAt(x, z, opts) { const q = new Ped(x, z, Math.random, opts); g.peds.push(q); return q; },
+    };
+    g.population = new Population(g);
+    g.missions = new MissionSystem(g);
+    return g;
+  };
+
+  /** Fait avancer le jeu, en plaçant le joueur là où on lui demande d'aller. */
+  const jouer = (g, secondes, aChaqueImage) => {
+    const dt = 1 / 30;
+    for (let i = 0; i < secondes * 30; i++) {
+      g.time += dt;
+      if (aChaqueImage) aChaqueImage(g, i);
+      const wp = g.missions.waypoint;
+      if (wp) {                                   // on « conduit » droit au but
+        g.player.x += Math.max(-16 * dt, Math.min(16 * dt, wp.x - g.player.x));
+        g.player.z += Math.max(-16 * dt, Math.min(16 * dt, wp.z - g.player.z));
+        if (g.player.vehicle) { g.player.vehicle.x = g.player.x; g.player.vehicle.z = g.player.z; }
+      }
+      g.population.update(dt);
+      for (const v of g.vehicles) v.update(dt, world, null);
+      g.missions.update(dt);
+      if (!g.missions.active) return true;        // terminée (ou échouée)
+    }
+    return false;
+  };
+
+  const missionPar = (id) => MISSIONS.find((m) => m.id === id);
+  const monterEnVoiture = (g) => {
+    const v = new Vehicle('comete', g.player.x, g.player.z, 0);
+    g.vehicles.push(v);
+    g.player.vehicle = v;
+    g.player.onFoot = false;
+    return v;
+  };
+
+  /* ---------------------------------------------------------- poursuite */
+  {
+    const g = faireJeu();
+    g.player.x = -85; g.player.z = 268;
+    g.missions.start(missionPar('pursuit'));
+    monterEnVoiture(g);
+    const fini = jouer(g, 60, (jeu) => {
+      const f = jeu.missions.refs.fugitif;
+      if (f && dist2D(jeu.player.x, jeu.player.z, f.x, f.z) < 14) f.damage(9);
+    });
+    assert.ok(fini, 'la poursuite doit se conclure');
+    assert.ok(g.missions.done.has('pursuit'), `la poursuite doit être réussie (${g.banniere && g.banniere.sub})`);
+  }
+
+  /* -------------------------------------------------------- récupération */
+  {
+    const g = faireJeu();
+    g.player.x = -536; g.player.z = -266;
+    g.missions.start(missionPar('stash'));
+    const fini = jouer(g, 120);
+    assert.ok(fini && g.missions.done.has('stash'),
+      `les sacs doivent pouvoir être ramassés (objectif : ${g.objectif})`);
+  }
+
+  /* ------------------------------------------------------------ survie */
+  {
+    const g = faireJeu();
+    g.player.x = 176; g.player.z = 626;
+    g.missions.start(missionPar('siege'));
+    const fini = jouer(g, 200, (jeu) => {
+      for (const q of jeu.peds) if (q.hostile) q.dead = true;   // on tient la position
+    });
+    assert.ok(fini && g.missions.done.has('siege'),
+      `la survie doit s’achever (objectif : ${g.objectif})`);
+    assert.ok(/\d+ s$/.test(g.objectif) === false, 'et l’objectif ne doit pas rester figé');
+  }
+
+  /* --------------------------------------------------------- sabotage */
+  {
+    const g = faireJeu();
+    g.player.x = 448; g.player.z = 448;
+    g.missions.start(missionPar('wreck'));
+    const fini = jouer(g, 180, (jeu) => {
+      const cible = jeu.missions.targets && jeu.missions.targets.find((v) => !v.dead);
+      if (cible && dist2D(jeu.player.x, jeu.player.z, cible.x, cible.z) < 14) cible.damage(400);
+      // une fois les camions détruits, on sème la police
+      if (jeu.missions.stepData && jeu.missions.stepData.type === 'losePolice') jeu.player.wanted = 0;
+    });
+    assert.ok(fini && g.missions.done.has('wreck'),
+      `le sabotage doit s’achever (objectif : ${g.objectif})`);
+  }
+
+  /* ---------------------------------------------------------- escorte */
+  {
+    const g = faireJeu();
+    g.player.x = 268; g.player.z = -85;
+    g.player.character = 'michael';
+    g.missions.start(missionPar('escort'));
+    monterEnVoiture(g);
+    const fini = jouer(g, 200);
+    assert.ok(fini && g.missions.done.has('escort'),
+      `l’escorte doit arriver à bon port (objectif : ${g.objectif})`);
+  }
+});
+
 test('les missions sont bien formées', () => {
+  // On lit les types d'étapes réellement traités dans missions.js : ainsi une
+  // mission ne peut pas référencer une mécanique qui n'existe pas.
+  const src = fs.readFileSync(path.join(GAME_DIR, 'systems/missions.js'), 'utf8');
+  const entre = (debut, fin) => src.split(debut)[1].split(fin)[0];
+  const miseEnPlace = entre('\n  nextStep() {', '\n  fail(');
+  const suivi = entre('\n  update(dt) {', '\n  /** Cible actuelle');
+  const casDe = (txt) => new Set([...txt.matchAll(/case '([a-zA-Z]+)':/g)].map((m) => m[1]));
+  const gerees = casDe(miseEnPlace);
+  const suivies = casDe(suivi);
+  const instantanees = new Set(['spawnVehicle']);   // enchaînent tout de suite
+  assert.ok(gerees.size >= 8, `nextStep doit préparer plusieurs mécaniques (${gerees.size})`);
+
   const ids = new Set();
   for (const m of MISSIONS) {
     assert.ok(!ids.has(m.id), `identifiant de mission en double : ${m.id}`);
@@ -795,11 +1215,14 @@ test('les missions sont bien formées', () => {
     assert.ok(m.reward > 0, `${m.id} : récompense manquante`);
     assert.ok(Number.isFinite(m.x) && Number.isFinite(m.z), `${m.id} : marqueur sans position`);
     assert.ok(m.steps.length > 0, `${m.id} : aucune étape`);
+    assert.ok(m.kind, `${m.id} : genre de mission non annoncé`);
     for (const s of m.steps) {
-      assert.ok(['spawnVehicle', 'goto', 'steal', 'deliver', 'wait', 'killAll', 'needVehicle', 'race'].includes(s.type),
-        `${m.id} : type d'étape inconnu « ${s.type} »`);
+      // toute étape doit être suivie dans update(), sinon la mission se bloque
+      assert.ok(suivies.has(s.type) || instantanees.has(s.type),
+        `${m.id} : type d'étape « ${s.type} » jamais suivi — la mission resterait bloquée`);
       if (s.type === 'race') assert.ok(s.points.length >= 3);
-      if (s.type === 'goto' || s.type === 'deliver') {
+      if (s.type === 'collect') assert.ok(s.points.length >= 2, `${m.id} : trop peu de points à ramasser`);
+      if (s.type === 'goto' || s.type === 'deliver' || s.type === 'protect' || s.type === 'survive') {
         assert.ok(Number.isFinite(s.x) && Number.isFinite(s.z), `${m.id} : étape sans destination`);
       }
     }
@@ -808,4 +1231,12 @@ test('les missions sont bien formées', () => {
   for (const c of ['michael', 'franklin', 'trevor']) {
     assert.ok(MISSIONS.some((m) => m.char === c), `aucune mission pour ${c}`);
   }
+
+  // et surtout : les missions ne doivent pas toutes se ressembler
+  const genres = new Set(MISSIONS.map((m) => m.kind));
+  assert.ok(genres.size >= 7, `il faut des genres variés (${[...genres].join(', ')})`);
+  const types = new Set(MISSIONS.flatMap((m) => m.steps.map((s) => s.type)));
+  assert.ok(types.size >= 10, `il faut des mécaniques variées (${types.size} types d'étapes)`);
+  const sansPersonnage = MISSIONS.filter((m) => !m.char).length;
+  assert.ok(sansPersonnage >= 3, 'plusieurs missions doivent être jouables avec n’importe qui');
 });

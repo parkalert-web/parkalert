@@ -5,7 +5,7 @@
 import { Renderer } from './engine/renderer.js';
 import { Input, setupTouchControls } from './engine/input.js';
 import { AudioEngine } from './engine/audio.js';
-import { generateWorld, zoneAt, densityAt } from './world/gen.js';
+import { generateWorld, zoneAt, densityAt, STREET } from './world/gen.js';
 import { buildWorldGeometry } from './world/build.js';
 import { World } from './world/collide.js';
 import { Vehicle, MODELS } from './entities/vehicle.js';
@@ -384,6 +384,91 @@ export class Game {
     this.threatLevel = 2.5;
   }
 
+  /**
+   * Infraction au code de la route. Ce n'est pas un délit : les passants ne
+   * s'enfuient pas. Mais il faut qu'une patrouille la voie — comme dans la
+   * vraie vie, griller un feu désert ne coûte rien.
+   */
+  trafficOffence(reason, x, z) {
+    if (this.offenceCooldown > 0) return false;
+    const p = this.player;
+    let vu = p.wanted > 0;
+    if (!vu) {
+      for (const v of this.vehicles) {
+        if (!v.model.police || v.dead || v === p.vehicle) continue;
+        if (dist2D(v.x, v.z, x, z) < 75 && this.world.visible(v.x, 1.4, v.z, x, 1.3, z)) { vu = true; break; }
+      }
+    }
+    if (!vu) {
+      for (const c of this.peds) {
+        if (!c.cop || c.dead || c.inVehicle) continue;
+        if (dist2D(c.x, c.z, x, z) < 55 && this.world.visible(c.x, 1.6, c.z, x, 1.3, z)) { vu = true; break; }
+      }
+    }
+    if (!vu) return false;
+    this.offenceCooldown = 7;
+    this.police.addWanted(p.wanted === 0 ? 1 : 0, reason);
+    this.notify('Infraction', reason);
+    this.audio.ui(280, 0.09, 0.09);
+    return true;
+  }
+
+  /** Distance signée à l'axe de rue le plus proche. */
+  static roadOffset(c) {
+    return ((c % STREET) + STREET * 1.5) % STREET - STREET / 2;
+  }
+
+  /**
+   * Feux grillés, contresens, excès de vitesse : ce qu'une patrouille
+   * remarque quand on conduit n'importe comment.
+   */
+  checkTrafficOffences(dt) {
+    this.offenceCooldown = Math.max(0, (this.offenceCooldown || 0) - dt);
+    const p = this.player;
+    const v = p.vehicle;
+    if (!v || v.model.fly || p.dead) { this.wrongWayT = 0; this.inJunction = false; return; }
+    const sp = Math.abs(v.speed);
+    const ox = Game.roadOffset(v.x), oz = Game.roadOffset(v.z);
+    const surX = Math.abs(ox) < 9;                 // sur une rue nord-sud
+    const surZ = Math.abs(oz) < 9;                 // sur une rue est-ouest
+    const fx = Math.sin(v.yaw) * Math.sign(v.speed || 1);
+    const fz = Math.cos(v.yaw) * Math.sign(v.speed || 1);
+
+    // ------------------------------------------------------------ feu rouge
+    const dansCarrefour = surX && surZ;
+    if (dansCarrefour && !this.inJunction) {
+      this.inJunction = true;
+      if (sp > 6) {
+        const axe = Math.abs(fx) > Math.abs(fz) ? 1 : 0;
+        const { green, amber } = Population.lightPhase(this.time);
+        if (axe !== green && !amber) this.trafficOffence('feu rouge grillé', v.x, v.z);
+      }
+    } else if (!dansCarrefour) {
+      this.inJunction = false;
+    }
+
+    // ----------------------------------------------------------- contresens
+    // Convention du trafic : en allant vers +z on roule côté +x, en allant
+    // vers +x on roule côté -z.
+    let bonCote = true;
+    if (surX && !surZ) bonCote = fz > 0 ? ox > -1 : ox < 1;
+    else if (surZ && !surX) bonCote = fx > 0 ? oz < 1 : oz > -1;
+    if (!bonCote && sp > 7) {
+      this.wrongWayT = (this.wrongWayT || 0) + dt;
+      if (this.wrongWayT > 2.6) { this.wrongWayT = 0; this.trafficOffence('circulation à contresens', v.x, v.z); }
+    } else {
+      this.wrongWayT = Math.max(0, (this.wrongWayT || 0) - dt * 2);
+    }
+
+    // -------------------------------------------------------- excès de vitesse
+    if (sp > 33 && (surX || surZ)) {               // ~120 km/h en pleine ville
+      this.speedT = (this.speedT || 0) + dt;
+      if (this.speedT > 3) { this.speedT = 0; this.trafficOffence('excès de vitesse', v.x, v.z); }
+    } else {
+      this.speedT = 0;
+    }
+  }
+
   onCrash(v, impact, x, y, z) {
     this.audio.impact(impact, x, z);
     if (v === this.player.vehicle) {
@@ -488,6 +573,14 @@ export class Game {
     const ox = p.x + Math.sin(yaw) * 0.5 + Math.cos(yaw) * 0.3;
     const oz = p.z + Math.cos(yaw) * 0.5 - Math.sin(yaw) * 0.3;
 
+    if (!w.melee) {
+      // lueur de bouche du joueur : le tir se voit aussi de l'extérieur
+      const my = p.vehicle ? originY : 1.36;
+      this.particles.spawn(ox + Math.sin(yaw) * 0.35, my, oz + Math.cos(yaw) * 0.35,
+        Math.sin(yaw) * 5, 0.5, Math.cos(yaw) * 5, 0.26, 0.07, [1, 0.9, 0.5],
+        { glow: 1.6, drag: 7, gravity: 0 });
+    }
+
     if (w.melee) {
       let hitSomething = false;
       for (const ped of this.peds) {
@@ -579,6 +672,9 @@ export class Game {
     dx /= l; dy /= l; dz /= l;
     const hit = raycastScene(this, ox, oy, oz, dx, dy, dz, 120, shooter);
     this.tracers.push({ x1: ox, y1: oy, z1: oz, x2: hit.x, y2: hit.y, z2: hit.z, life: 0.05, enemy: true });
+    // lueur de bouche : on voit d'où on nous tire dessus
+    this.particles.spawn(ox + dx * 0.5, oy + dy * 0.5, oz + dz * 0.5,
+      dx * 5, 0.5, dz * 5, 0.28, 0.08, [1, 0.85, 0.4], { glow: 1.5, drag: 7, gravity: 0 });
     this.audio.gunshot(weapon, ox, oz);
     this.impactEffect(hit, dx, dy, dz);
     const accuracy = clamp(1 - dist / 60, 0.15, 0.8);
@@ -1174,6 +1270,9 @@ export class Game {
       const chase = (v) => v.ai && v.ai.chase;
       if ((a === p.vehicle && chase(b)) || (b === p.vehicle && chase(a))) {
         this.crime('refus d’obtempérer', p.wanted === 0 ? 2 : 0, x, z);
+      } else if ((a === p.vehicle || b === p.vehicle) && force > 9) {
+        // un accroc, ça passe ; emboutir quelqu'un devant une patrouille, non
+        this.trafficOffence('accident et délit de fuite', x, z);
       }
     });
 
@@ -1228,6 +1327,7 @@ export class Game {
     this.updateRain(dt);
     this.population.update(dt);
     this.police.update(dt);
+    this.checkTrafficOffences(dt);
     this.missions.update(dt);
     this.checkPickups(dt);
     this.checkBusted(dt);
@@ -1240,7 +1340,7 @@ export class Game {
     const audible = new Set();
     for (const v of this.vehicles) {
       const d = dist2D(v.x, v.z, p.x, p.z);
-      if (v === p.vehicle || (d < 55 && engines < 6 && Math.abs(v.speed) > 0.5)) {
+      if (v === p.vehicle || (d < 48 && engines < 6 && !v.dead)) {   // un moteur au ralenti tourne aussi
         this.audio.updateEngine(v, v === p.vehicle, dt);
         audible.add(v.id);
         engines++;
@@ -1254,7 +1354,6 @@ export class Game {
       clamp(densityAt(p.x, p.z) * 0.7 + 0.35, 0, 1) * (p.vehicle ? 0.5 : 1),
       clamp(1 - seaDist / 420, 0, 1) * (p.vehicle ? 0.4 : 1));
     this.audio.setMuffled(!p.vehicle);
-    this.audio.tickMusic();
     if (p.onFoot && p.move > 0.4 && !p.dead) {
       this.stepT = (this.stepT || 0) + dt * p.move;
       if (this.stepT > 0.42) { this.stepT = 0; this.audio.footstep(p.x, p.z); }

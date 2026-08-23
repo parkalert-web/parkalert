@@ -14,6 +14,96 @@ const BLIP_COLORS = {
   police: '#4f7fe8', waypoint: '#e055c8', cop: '#3f6fe0', player: '#ffffff', enemy: '#e04030',
 };
 
+/**
+ * Chaque type de repère a sa forme, pas seulement sa couleur : sur un radar
+ * de 230 pixels, une pastille ronde de plus ne dit rien à personne.
+ *   pin      losange sur pointe, comme une punaise — les missions
+ *   disque   rond plein — les commerces
+ *   ecusson  pentagone — les postes de police
+ *   fleche   triangle — les ennemis
+ *   anneau   cercle vide — la destination choisie
+ *   croix    rond barré — les hélicoptères
+ */
+export const BLIP_LEGEND = [
+  { kind: 'mission', shape: 'pin', color: '#f5d442', glyph: 'F', label: 'Mission à lancer' },
+  { kind: 'garage', shape: 'disque', color: '#4fb0e8', glyph: '⚒', label: 'Los Santos Customs — réparation' },
+  { kind: 'ammunation', shape: 'disque', color: '#e08a2a', glyph: '⌖', label: 'Ammu-Nation — armes' },
+  { kind: 'hospital', shape: 'disque', color: '#e05a5a', glyph: '✚', label: 'Hôpital' },
+  { kind: 'station', shape: 'ecusson', color: '#4f7fe8', glyph: '', label: 'Commissariat' },
+  { kind: 'waypoint', shape: 'anneau', color: '#e055c8', glyph: '', label: 'Votre destination' },
+  { kind: 'objectif', shape: 'anneau', color: '#f5d442', glyph: '', label: 'Objectif de mission' },
+  { kind: 'cop', shape: 'losange', color: '#3f6fe0', glyph: '', label: 'Police à vos trousses' },
+  { kind: 'heli', shape: 'croix', color: '#3f6fe0', glyph: '', label: 'Hélicoptère de police' },
+  { kind: 'enemy', shape: 'fleche', color: '#e04030', glyph: '', label: 'Ennemi' },
+];
+
+/** Dessine un repère de rayon `r` centré en (x, y). */
+export function drawBlip(c, x, y, b, r) {
+  const shape = b.shape || 'disque';
+  c.save();
+  c.translate(x, y);
+  c.lineJoin = 'round';
+  c.strokeStyle = 'rgba(8,11,15,.85)';
+  c.lineWidth = Math.max(1.4, r * 0.34);
+  c.fillStyle = b.color;
+  c.beginPath();
+  if (shape === 'pin') {
+    c.moveTo(0, r * 1.25); c.lineTo(-r, 0); c.lineTo(0, -r * 1.05); c.lineTo(r, 0);
+    c.closePath();
+  } else if (shape === 'losange') {
+    c.moveTo(0, -r); c.lineTo(r * 0.8, 0); c.lineTo(0, r); c.lineTo(-r * 0.8, 0);
+    c.closePath();
+  } else if (shape === 'ecusson') {
+    c.moveTo(0, -r * 1.1); c.lineTo(r, -r * 0.4); c.lineTo(r * 0.62, r * 1.05);
+    c.lineTo(-r * 0.62, r * 1.05); c.lineTo(-r, -r * 0.4);
+    c.closePath();
+  } else if (shape === 'fleche') {
+    c.moveTo(0, -r * 1.1); c.lineTo(r * 0.95, r * 0.85); c.lineTo(-r * 0.95, r * 0.85);
+    c.closePath();
+  } else {
+    c.arc(0, 0, r, 0, 6.29);
+  }
+  if (shape === 'anneau') {
+    c.stroke();
+    c.lineWidth = Math.max(1.6, r * 0.42);
+    c.strokeStyle = b.color;
+    c.stroke();
+    c.beginPath(); c.arc(0, 0, r * 0.3, 0, 6.29); c.fill();
+    c.restore();
+    return;
+  }
+  c.stroke(); c.fill();
+  if (shape === 'croix') {
+    c.strokeStyle = 'rgba(8,11,15,.9)';
+    c.lineWidth = Math.max(1.2, r * 0.3);
+    c.beginPath();
+    c.moveTo(-r, -r); c.lineTo(r, r); c.moveTo(r, -r); c.lineTo(-r, r);
+    c.stroke();
+  }
+  if (b.glyph) {
+    c.fillStyle = '#0d1116';
+    c.font = `bold ${Math.round(r * 1.45)}px "Arial Narrow", Arial, sans-serif`;
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(b.glyph, 0, r * 0.06);
+  }
+  c.restore();
+}
+
+/** Petite flèche au bord du radar pour ce qui est hors de portée. */
+export function drawEdgeArrow(c, x, y, angle, color, r) {
+  c.save();
+  c.translate(x, y);
+  c.rotate(angle);
+  c.fillStyle = color;
+  c.strokeStyle = 'rgba(8,11,15,.85)';
+  c.lineWidth = 1.5;
+  c.beginPath();
+  c.moveTo(0, -r); c.lineTo(r * 0.78, r * 0.7); c.lineTo(-r * 0.78, r * 0.7);
+  c.closePath();
+  c.stroke(); c.fill();
+  c.restore();
+}
+
 export class HUD {
   constructor(game, root) {
     this.game = game;
@@ -214,6 +304,18 @@ export class HUD {
     }
 
     this.drawRadar();
+
+    // Le point d'intérêt le plus proche, écrit en toutes lettres : c'est ce
+    // qui manquait pour comprendre les pastilles du radar.
+    const proche = this.nearestBlip(this._blips || []);
+    const near = this.el('#radar-near');
+    if (proche) {
+      near.innerHTML = `<i style="background:${proche.color}"></i>${proche.name} · ${Math.round(proche.dist)} m`;
+      near.style.opacity = '1';
+    } else {
+      near.style.opacity = '0';
+    }
+
     if (this.mapOpen) this.drawMap();
   }
 
@@ -225,28 +327,47 @@ export class HUD {
     for (const m of MISSIONS) {
       if (!g.missions.available(m)) continue;
       list.push({
-        x: m.x, z: m.z, letter: m.letter, size: 7,
+        x: m.x, z: m.z, glyph: m.letter, size: 7, shape: 'pin', name: `${m.kind} · ${m.name}`,
         color: m.char ? CHARACTERS[m.char].color : BLIP_COLORS.mission,
       });
     }
+    const boutiques = {
+      garage: { glyph: '⚒', name: 'Los Santos Customs' },
+      ammunation: { glyph: '⌖', name: 'Ammu-Nation' },
+      hospital: { glyph: '✚', name: 'Hôpital' },
+    };
     for (const l of g.data.landmarks) {
-      if (l.kind === 'garage') list.push({ x: l.x, z: l.z, color: BLIP_COLORS.garage, letter: '🔧', size: 6 });
-      if (l.kind === 'ammunation') list.push({ x: l.x, z: l.z, color: BLIP_COLORS.ammunation, letter: '🔫', size: 6 });
-      if (l.kind === 'hospital') list.push({ x: l.x, z: l.z, color: BLIP_COLORS.hospital, letter: '✚', size: 6 });
-      if (l.kind === 'police') list.push({ x: l.x, z: l.z, color: BLIP_COLORS.police, letter: '★', size: 6 });
+      const b = boutiques[l.kind];
+      if (b) list.push({ x: l.x, z: l.z, color: BLIP_COLORS[l.kind], glyph: b.glyph, size: 6, shape: 'disque', name: b.name });
+      if (l.kind === 'police') list.push({ x: l.x, z: l.z, color: BLIP_COLORS.police, size: 6, shape: 'ecusson', name: 'Commissariat' });
     }
     const wp = g.missions.waypoint;
-    if (wp) list.push({ x: wp.x, z: wp.z, color: '#f5d442', letter: '', size: 8, ring: true });
-    if (this.waypoint) list.push({ x: this.waypoint.x, z: this.waypoint.z, color: BLIP_COLORS.waypoint, letter: '', size: 8, ring: true });
+    if (wp) list.push({ x: wp.x, z: wp.z, color: '#f5d442', size: 9, shape: 'anneau', name: 'Objectif' });
+    if (this.waypoint) list.push({ x: this.waypoint.x, z: this.waypoint.z, color: BLIP_COLORS.waypoint, size: 9, shape: 'anneau', name: 'Destination' });
     for (const v of g.vehicles) {
-      if (v.ai && v.ai.chase && !v.dead) list.push({ x: v.x, z: v.z, color: BLIP_COLORS.cop, size: 5 });
+      if (v.ai && v.ai.chase && !v.dead) list.push({ x: v.x, z: v.z, color: BLIP_COLORS.cop, size: 5, shape: 'losange', vivant: true });
     }
     for (const p of g.peds) {
-      if (p.cop && !p.dead) list.push({ x: p.x, z: p.z, color: BLIP_COLORS.cop, size: 4 });
-      if (p.hostile && !p.dead) list.push({ x: p.x, z: p.z, color: BLIP_COLORS.enemy, size: 4 });
+      if (p.cop && !p.dead) list.push({ x: p.x, z: p.z, color: BLIP_COLORS.cop, size: 4, shape: 'losange', vivant: true });
+      if (p.hostile && !p.dead) list.push({ x: p.x, z: p.z, color: BLIP_COLORS.enemy, size: 4, shape: 'fleche', vivant: true });
     }
-    for (const h of g.police.helis) list.push({ x: h.x, z: h.z, color: BLIP_COLORS.cop, size: 6, heli: true });
+    for (const h of g.police.helis) list.push({ x: h.x, z: h.z, color: BLIP_COLORS.cop, size: 6, shape: 'croix', vivant: true });
     return list;
+  }
+
+  /**
+   * Le repère fixe le plus proche, pour l'afficher en toutes lettres sous le
+   * radar : une pastille de couleur ne dit à personne ce qu'elle désigne.
+   */
+  nearestBlip(liste) {
+    const p = this.game.player;
+    let best = null; let bd = 260;
+    for (const b of liste) {
+      if (b.vivant || !b.name) continue;
+      const d = Math.hypot(b.x - p.x, b.z - p.z);
+      if (d < bd) { bd = d; best = { name: b.name, dist: d, color: b.color }; }
+    }
+    return best;
   }
 
   drawRadar() {
@@ -318,26 +439,20 @@ export class HUD {
       c.beginPath(); c.arc(sx, sz, r, 0, 6.29); c.fill(); c.stroke();
     }
 
-    const limit = Math.min(W, H) / 2 - 9;
-    for (const b of this.blips()) {
-      let [sx, sz] = toRadar(b.x, b.z);
+    const limit = Math.min(W, H) / 2 - 10;
+    const liste = this.blips();
+    this._blips = liste;
+    for (const b of liste) {
+      const [sx, sz] = toRadar(b.x, b.z);
       const dx = sx - W / 2, dz = sz - H / 2;
       const d = Math.hypot(dx, dz);
-      if (d > limit) { sx = W / 2 + (dx / d) * limit; sz = H / 2 + (dz / d) * limit; }
-      const r = (b.size || 5) * 0.85;
-      c.fillStyle = b.color;
-      if (b.ring) {
-        c.strokeStyle = b.color; c.lineWidth = 2.2;
-        c.beginPath(); c.arc(sx, sz, r, 0, 6.29); c.stroke();
-        c.beginPath(); c.arc(sx, sz, r * 0.38, 0, 6.29); c.fill();
+      const r = (b.size || 5) * 0.95;
+      if (d > limit) {
+        // hors de portée : une flèche au bord, qui montre la direction
+        drawEdgeArrow(c, W / 2 + (dx / d) * limit, H / 2 + (dz / d) * limit,
+          Math.atan2(dx, -dz), b.color, r * 0.8);
       } else {
-        c.beginPath(); c.arc(sx, sz, r, 0, 6.29); c.fill();
-        if (b.letter && b.letter.length === 1) {
-          c.fillStyle = '#101418';
-          c.font = `bold ${Math.round(r * 1.4)}px Arial`;
-          c.textAlign = 'center'; c.textBaseline = 'middle';
-          c.fillText(b.letter, sx, sz + 0.5);
-        }
+        drawBlip(c, sx, sz, b, r);
       }
     }
 
@@ -430,17 +545,21 @@ export class HUD {
       c.restore();
     }
 
-    // blips
-    for (const b of this.blips()) {
+    // repères, avec leur nom en clair dès qu'on est un peu zoomé
+    const blips = this.blips();
+    for (const b of blips) {
       const sx = (b.x - this.mapCenter.x) * z + w / 2;
       const sy = (b.z - this.mapCenter.z) * z + h / 2;
-      c.fillStyle = b.color;
-      c.beginPath(); c.arc(sx, sy, (b.size || 5) * 1.15, 0, 6.29); c.fill();
-      if (b.letter && b.letter.length === 1) {
-        c.fillStyle = '#101418';
-        c.font = 'bold 10px Arial';
-        c.textAlign = 'center'; c.textBaseline = 'middle';
-        c.fillText(b.letter, sx, sy + 0.5);
+      if (sx < -30 || sx > w + 30 || sy < -30 || sy > h + 30) continue;
+      const r = (b.size || 5) * 1.25;
+      drawBlip(c, sx, sy, b, r);
+      if (b.name && z > 0.3) {
+        c.font = '600 11px "Arial Narrow", Arial, sans-serif';
+        c.textAlign = 'center'; c.textBaseline = 'top';
+        c.lineWidth = 3; c.strokeStyle = 'rgba(6,9,13,.9)';
+        c.strokeText(b.name, sx, sy + r + 3);
+        c.fillStyle = 'rgba(236,240,244,.92)';
+        c.fillText(b.name, sx, sy + r + 3);
       }
     }
     // joueur
@@ -462,9 +581,32 @@ export class HUD {
     this.el('#map-screen').classList.toggle('show', this.mapOpen);
     if (this.mapOpen) {
       this.mapCenter = { x: this.game.player.x, z: this.game.player.z };
+      this.buildMapKey();
       this.drawMap();
     }
     return this.mapOpen;
+  }
+
+  /**
+   * Légende de la carte : chaque forme est redessinée en vrai sur un petit
+   * canevas, pour qu'on reconnaisse exactement ce qu'on voit sur le radar.
+   */
+  buildMapKey() {
+    const el = this.el('#map-key');
+    if (!el || el.dataset.pret) return;
+    el.dataset.pret = '1';
+    el.innerHTML = '<h4>Légende</h4>';
+    for (const e of BLIP_LEGEND) {
+      const ligne = document.createElement('div');
+      const cv = document.createElement('canvas');
+      cv.width = 44; cv.height = 44;               // dessiné en double, affiché en 22
+      const cx = cv.getContext('2d');
+      drawBlip(cx, 22, 22, e, 13);
+      const txt = document.createElement('span');
+      txt.textContent = e.label;
+      ligne.append(cv, txt);
+      el.append(ligne);
+    }
   }
 
   /* --------------------------------------------------------- roues de sélection */

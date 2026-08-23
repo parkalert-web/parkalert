@@ -119,8 +119,18 @@ html, body {
 .bar.armor i { background: var(--armor); }
 .bar.ability { border: 0; }
 .bar.ability i { background: var(--gold); }
+#radar-near {
+  position: absolute; left: 3px; bottom: 156px; width: 230px;
+  font-size: 11px; letter-spacing: .03em; color: rgba(236, 240, 244, .82);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, .95); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; pointer-events: none;
+}
+#radar-near i {
+  display: inline-block; width: 8px; height: 8px; border-radius: 2px;
+  margin-right: 5px; vertical-align: middle;
+}
 #zone {
-  position: absolute; left: 4px; bottom: 158px; font-family: var(--title);
+  position: absolute; left: 4px; bottom: 178px; font-family: var(--title);
   font-size: 21px; letter-spacing: .5px; color: #fff; opacity: 0;
   text-shadow: 0 2px 6px rgba(0, 0, 0, .95); white-space: nowrap;
 }
@@ -218,6 +228,19 @@ html, body {
 }
 .map-legend b { font-family: var(--title); font-size: 20px; letter-spacing: 1px; }
 .map-legend span { font-size: 12px; opacity: .6; }
+
+/* légende des repères, en haut à droite de la carte */
+#map-key {
+  position: absolute; top: 16px; right: 16px; width: 244px;
+  background: rgba(6, 9, 13, .93); border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 8px; padding: 11px 13px;
+}
+#map-key h4 {
+  margin: 0 0 8px; font-family: var(--title); font-size: 13px; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--gold); font-weight: 400;
+}
+#map-key div { display: flex; align-items: center; gap: 9px; font-size: 11.5px; margin: 4px 0; opacity: .9; }
+#map-key canvas { flex: 0 0 22px; width: 22px; height: 22px; }
 
 /* ------------------------------------------------------------ boutique */
 
@@ -351,6 +374,7 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 2px 5
         </div>
         <div id="zone"></div>
         <div id="radio"></div>
+        <div id="radar-near"></div>
       </div>
     </div>
 
@@ -371,6 +395,7 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 2px 5
   <!-- --------------------------------------------------------------- carte -->
   <div id="map-screen">
     <canvas id="map-canvas"></canvas>
+    <div id="map-key"></div>
     <div class="map-legend">
       <b>CARTE DE LOS SANTOS</b>
       <span>Clic : placer un point de destination · Molette : zoom · Glisser : déplacer</span>
@@ -2027,8 +2052,11 @@ class AudioEngine {
     this.master = c.createGain();
     this.master.gain.value = this.volume;
     this.comp = c.createDynamicsCompressor();
-    this.comp.threshold.value = -12;
-    this.comp.ratio.value = 8;
+    this.comp.threshold.value = -10;
+    this.comp.ratio.value = 4;
+    this.comp.knee.value = 22;
+    this.comp.attack.value = 0.012;
+    this.comp.release.value = 0.28;
     this.master.connect(this.comp);
     this.comp.connect(c.destination);
 
@@ -2055,6 +2083,12 @@ class AudioEngine {
 
     this.ready = true;
     this.nextBeat = c.currentTime + 0.1;
+
+    // La radio se planifie sur son propre minuteur. Accrochée à la boucle de
+    // rendu, elle hoquetait : une image longue et le séquenceur passait
+    // derrière la tête de lecture, ce qui s'entend comme un décrochage.
+    clearInterval(this.musicTimer);
+    this.musicTimer = setInterval(() => { try { this.tickMusic(); } catch (e) { /* onglet fermé */ } }, 40);
   }
 
   resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
@@ -2270,28 +2304,44 @@ class AudioEngine {
       if (!activeIds.has(id)) this.stopEngine(id);
     }
     for (const id of [...this.sirens.keys()]) {
-      if (!activeIds.has(id)) {
-        const s2 = this.sirens.get(id);
-        try { s2.o.stop(); } catch (e) { /* déjà arrêté */ }
-        this.sirens.delete(id);
-      }
+      if (!activeIds.has(id)) this.stopSiren(id);
     }
   }
 
+  /**
+   * On ne coupe jamais un oscillateur en pleine sonorité : ça claque. On
+   * referme le gain en 80 ms, puis on l'arrête.
+   */
   stopEngine(id) {
     const e = this.engines.get(id);
     if (!e) return;
-    try { e.o1.stop(); e.o2.stop(); } catch (err) { /* déjà arrêté */ }
     this.engines.delete(id);
+    const t = this.ctx.currentTime;
+    try {
+      e.g.gain.cancelScheduledValues(t);
+      e.g.gain.setValueAtTime(e.g.gain.value, t);
+      e.g.gain.linearRampToValueAtTime(0, t + 0.08);
+      e.o1.stop(t + 0.1); e.o2.stop(t + 0.1);
+    } catch (err) { /* déjà arrêté */ }
+  }
+
+  stopSiren(id) {
+    const s = this.sirens.get(id);
+    if (!s) return;
+    this.sirens.delete(id);
+    const t = this.ctx.currentTime;
+    try {
+      s.g.gain.cancelScheduledValues(t);
+      s.g.gain.setValueAtTime(s.g.gain.value, t);
+      s.g.gain.linearRampToValueAtTime(0, t + 0.1);
+      s.o.stop(t + 0.12);
+    } catch (e) { /* déjà arrêté */ }
   }
 
   updateSiren(v) {
     if (!this.ready) return;
     let s = this.sirens.get(v.id);
-    if (!v.siren || v.dead) {
-      if (s) { try { s.o.stop(); } catch (e) {} this.sirens.delete(v.id); }
-      return;
-    }
+    if (!v.siren || v.dead) { this.stopSiren(v.id); return; }
     if (!s) {
       const c = this.ctx;
       const o = c.createOscillator(); o.type = 'triangle';
@@ -2374,7 +2424,7 @@ class AudioEngine {
     const S = STATIONS[this.station - 1];
     const spb = 60 / S.bpm / 4;              // durée d'un seizième
     let guard = 48;                          // onglet en arrière-plan : on ne rattrape pas tout
-    while (this.nextBeat < c.currentTime + 0.25 && guard-- > 0) {
+    while (this.nextBeat < c.currentTime + 0.38 && guard-- > 0) {
       const t = Math.max(this.nextBeat, c.currentTime + 0.01);
       const b = this.beat;
       S.play(this, t, b, spb);
@@ -2972,7 +3022,7 @@ const C = {
   lineYellow: color('#c9a83c'),
   walk: color('#b0aca4'),
   median: color('#6f7c5a'),
-  hedge: color('#3d5c30'),
+  hedge: color('#35502a'),
   walkEdge: color('#87847e'),
   curb: color('#c6c2b8'),
   pavement: color('#a09c94'),
@@ -3045,11 +3095,11 @@ function medianIsland(g, cx, cz, len, horiz) {
     && Math.abs(((cz % STREET) + STREET * 1.5) % STREET - STREET / 2) < 15) return;
   const w = horiz ? len : 3.6;
   const d = horiz ? 3.6 : len;
-  g.box(cx, 0.17, cz, w, 0.34, d, C.curb, 0, { top: C.grass, side: C.curb, noBottom: true });
+  g.box(cx, 0.17, cz, w, 0.34, d, C.curb, 0, { top: C.median, side: C.curb, noBottom: true });
   // haie basse : c'est elle qui donne du relief au terre-plein
   const hl = Math.max(2, len - 5);
   g.box(cx, 0.34 + 0.42, cz, horiz ? hl : 1.5, 0.84, horiz ? 1.5 : hl, C.hedge, 0,
-    { top: shade(C.hedge, 1.15), side: C.hedge });
+    { top: shade(C.hedge, 1.08), side: C.hedge });
 }
 
 function roadMarkings(g, r) {
@@ -3666,14 +3716,14 @@ const MODELS = {
   taxi: { name: 'Taxi', cls: 'sedan', len: 4.7, wid: 1.92, h: 1.5, mass: 1550, power: 11, top: 45, grip: 7.2, brake: 22, steer: 0.60, seats: 4, fixed: '#e2b307', taxi: true },
   police: { name: 'Police Cruiser', cls: 'police', len: 5.0, wid: 2.0, h: 1.5, mass: 1750, power: 16.5, top: 62, grip: 8.4, brake: 30, steer: 0.62, seats: 4, fixed: '#1a1d21', police: true },
   police2: { name: 'Police Buffalo', cls: 'police', len: 4.9, wid: 2.0, h: 1.42, mass: 1700, power: 19, top: 72, grip: 8.8, brake: 32, steer: 0.60, seats: 4, fixed: '#20242a', police: true },
-  ambulance: { name: 'Ambulance', cls: 'van', len: 5.6, wid: 2.15, h: 2.4, mass: 2800, power: 11, top: 42, grip: 6.6, brake: 22, seats: 2, fixed: '#eef1f3', emergency: 'med' },
-  firetruck: { name: 'Camion de pompiers', cls: 'truck', len: 7.6, wid: 2.4, h: 2.9, mass: 6500, power: 9.5, top: 36, grip: 6.2, brake: 20, seats: 2, fixed: '#b4231d', emergency: 'fire' },
-  benson: { name: 'Benson', cls: 'truck', len: 7.4, wid: 2.35, h: 2.9, mass: 5200, power: 8.5, top: 34, grip: 5.9, brake: 18, seats: 2 },
+  ambulance: { name: 'Ambulance', cls: 'van', len: 5.6, wid: 2.15, h: 2.4, mass: 2800, power: 11, top: 42, grip: 6.6, brake: 22, steer: 0.50, seats: 2, fixed: '#eef1f3', emergency: 'med' },
+  firetruck: { name: 'Camion de pompiers', cls: 'truck', len: 7.6, wid: 2.4, h: 2.9, mass: 6500, power: 9.5, top: 36, grip: 6.2, brake: 20, steer: 0.42, seats: 2, fixed: '#b4231d', emergency: 'fire' },
+  benson: { name: 'Benson', cls: 'truck', len: 7.4, wid: 2.35, h: 2.9, mass: 5200, power: 8.5, top: 34, grip: 5.9, brake: 18, steer: 0.44, seats: 2 },
   maverick: {
     name: 'Maverick', cls: 'heli', len: 12, wid: 3.2, h: 3.4, mass: 2600, power: 26, top: 62,
     grip: 4, brake: 10, steer: 0.5, seats: 4, fixed: '#1d2733', fly: true,
   },
-  bus: { name: 'Bus', cls: 'bus', len: 10.5, wid: 2.5, h: 3.1, mass: 9000, power: 7.5, top: 32, grip: 5.6, brake: 17, seats: 8, fixed: '#d8b23a' },
+  bus: { name: 'Bus', cls: 'bus', len: 10.5, wid: 2.5, h: 3.1, mass: 9000, power: 7.5, top: 32, grip: 5.6, brake: 17, steer: 0.40, seats: 8, fixed: '#d8b23a' },
 };
 const CIVILIAN_MODELS = ['asterope', 'ingot', 'comete', 'dominator', 'granger', 'bison', 'burrito', 'taxi', 'asterope', 'ingot'];
 
@@ -4395,10 +4445,10 @@ function drawHuman(R, s, look = null) {
     m4mul(tmpB, base, tmpB);
     R.cube(tmpB, c);
   };
-  const ball = (x, y, z, d, c, dy = d, dz = d) => {
+  const ball = (x, y, z, d, c, dy = d, dz = d, emit = 0) => {
     m4compose(tmpB, x * w, y * k, z * k, 0, d * w, dy * k, dz * k);
     m4mul(tmpB, base, tmpB);
-    R.sphere(tmpB, c);
+    R.sphere(tmpB, c, emit);
   };
   /** Segment de membre : cylindre partant du pivot, incliné de `a` (plan sagittal). */
   const limb = (px, py, pz, a, len, thick, c) => {
@@ -4416,7 +4466,12 @@ function drawHuman(R, s, look = null) {
   const crouch = s.crouch ? 0.22 : 0;
   const bob = Math.abs(Math.sin(phase)) * 0.04 * s.move * (1 - fall);
   const hipY = 0.90 - crouch + bob;
-  const lean = fall ? 0 : (s.aim ? 0.06 : s.move * 0.14);
+  // Le tir : l'arme se lève même sans viser, et le recul secoue le buste.
+  // Sans ça, tirer ne se voyait pas du tout.
+  const fire = clamp(s.fire || 0, 0, 1) * (1 - fall);
+  const aiming = (s.aim || fire > 0.04) && !swimming;
+  const kick = fire * fire;                       // sec au départ, mou à la fin
+  const lean = fall ? 0 : (aiming ? 0.06 - kick * 0.16 : s.move * 0.14);
 
   /* ------------------------------------------------------------- jambes */
   for (const side of [-1, 1]) {
@@ -4466,9 +4521,9 @@ function drawHuman(R, s, look = null) {
     const sx = side * 0.225;
     let a1;
     let a2;
-    if (s.aim) {                                   // les deux mains sur l'arme
-      a1 = -Math.PI / 2 + (look !== null ? clamp(-look, -0.5, 0.5) : 0);
-      a2 = side > 0 ? 0.12 : 0.55;
+    if (aiming) {                                  // les deux mains sur l'arme
+      a1 = -Math.PI / 2 + (look !== null ? clamp(-look, -0.5, 0.5) : 0) + kick * 0.42;
+      a2 = (side > 0 ? 0.12 : 0.55) + kick * 0.3;
     } else if (swimming) {
       a1 = Math.sin(phase + (side > 0 ? 0 : Math.PI)) * 1.5 - 0.8;
       a2 = 0.5;
@@ -4487,14 +4542,21 @@ function drawHuman(R, s, look = null) {
   /* --------------------------------------------------------------- arme */
   if (s.weapon && !fall && hand) {
     const w = s.weapon;
-    const pitch = s.aim && look !== null ? clamp(-look, -0.5, 0.5) : 0;
-    const fwd = s.aim ? 1 : 0.35;
+    const pitch = (aiming && look !== null ? clamp(-look, -0.5, 0.5) : 0) - kick * 0.55;
+    const fwd = aiming ? 1 : 0.35;
     const gx = hand[0];
-    const gy = hand[1] + (s.aim ? 0.04 : -0.02);
-    const gz = hand[2] + w.len * 0.35 * fwd;
+    const gy = hand[1] + (aiming ? 0.04 : -0.02);
+    const gz = hand[2] + w.len * 0.35 * fwd - kick * 0.1;
     box(gx, gy, gz, w.wide || 0.075, 0.11, w.len, w.color || [0.13, 0.13, 0.15], pitch);
     if (w.len > 0.45) box(gx, gy - 0.09, gz - w.len * 0.2, 0.06, 0.14, 0.1, [0.3, 0.22, 0.15], pitch);
-    if (!s.aim) box(gx, gy - 0.08, gz - w.len * 0.3, 0.07, 0.13, 0.09, w.color || [0.13, 0.13, 0.15], pitch);
+    if (!aiming) box(gx, gy - 0.08, gz - w.len * 0.3, 0.07, 0.13, 0.09, w.color || [0.13, 0.13, 0.15], pitch);
+    // éclair au bout du canon
+    if (fire > 0.45) {
+      const f = (fire - 0.45) / 0.55;
+      const md = 0.1 + f * 0.16;
+      ball(gx, gy + w.len * 0.5 * Math.sin(pitch), gz + w.len * 0.55 * Math.cos(pitch),
+        md, [1, 0.9, 0.5], md, md, 1);
+    }
   }
 }
 
@@ -4544,6 +4606,7 @@ class Ped {
     this.cop = !!opts.cop;
     this.armed = !!opts.armed;
     this.weaponCooldown = 0;
+    this.fireAnim = 0;
     this.aim = false;
     this.inVehicle = null;
     this.seat = 0;
@@ -4670,6 +4733,7 @@ class Ped {
       return;
     }
     const { player, world, game } = ctx;
+    this.fireAnim = Math.max(0, this.fireAnim - dt * 7);
     const dpx = player.x - this.x, dpz = player.z - this.z;
     const distPlayer = Math.hypot(dpx, dpz);
 
@@ -4716,6 +4780,7 @@ class Ped {
     this.weaponCooldown -= dt;
     if (canSee && d < 42 && this.weaponCooldown <= 0 && game) {
       this.weaponCooldown = this.cop ? range(this.rand, 0.42, 0.95) : range(this.rand, 0.5, 1.2);
+      this.fireAnim = 1;
       game.npcShoot(this, target, d);
     }
   }
@@ -4761,7 +4826,7 @@ class Ped {
     if (this.inVehicle) return;
     drawHuman(R, {
       x: this.x, y: this.y, z: this.z, yaw: this.yaw,
-      anim: this.anim, move: this.move, aim: this.aim, deadT: this.deadT,
+      anim: this.anim, move: this.move, aim: this.aim, deadT: this.deadT, fire: this.fireAnim,
       weapon: this.armed && !this.dead ? { len: this.cop ? 0.3 : 0.44 } : null,
       ...this.look,
     }, this.aim ? 0 : null);
@@ -4968,6 +5033,7 @@ class Player {
     this.mags = {};
     this.owned = { fist: true, pistol: true };
     this.fireCooldown = 0;
+    this.fireAnim = 0;          // recul visible à l'écran
     this.reloadT = 0;
     this.ability = 0.5;
     this.abilityActive = 0;
@@ -5070,6 +5136,7 @@ class Player {
       this.updateOnFoot(dt, game);
     }
     this.fireCooldown -= dt;
+    this.fireAnim = Math.max(0, this.fireAnim - dt * 7);
     if (this.reloadT > 0) {
       this.reloadT -= dt;
       if (this.reloadT <= 0) this.finishReload();
@@ -5214,6 +5281,7 @@ class Player {
       if (this.mags[this.weapon] <= 0 && this.ammo[this.weapon] > 0) this.startReload();
     }
     this.fireCooldown = w.rate;
+    this.fireAnim = 1;
   }
 
   switchWeapon(key) {
@@ -5229,6 +5297,7 @@ class Player {
     drawHuman(R, {
       x: this.x, y: this.y, z: this.z, yaw: this.yaw,
       anim: this.anim, move: this.move, aim: this.aiming && !this.swimming,
+      fire: this.fireAnim,
       crouch: this.crouch, swimming: this.swimming, deadT: this.dead ? this.deadT : 0,
       weapon: w.melee || this.dead ? null : {
         len: w.slot >= 5 ? 0.78 : w.slot >= 4 ? 0.66 : w.slot >= 2 ? 0.5 : 0.32,
@@ -5653,8 +5722,8 @@ class Population {
     const turnFactor = 1 - Math.min(Math.abs(err) / 1.2, 0.75);
     let cruise = ai.cruise * turnFactor;
 
-    // feu rouge au carrefour visé
-    if (next.links.length >= 3 && Math.abs(next.gx) <= GRID && Math.abs(next.gz) <= GRID) {
+    // feu rouge au carrefour visé — un fuyard, lui, ne s'arrête pas
+    if (!ai.fugitif && next.links.length >= 3 && Math.abs(next.gx) <= GRID && Math.abs(next.gz) <= GRID) {
       const seg = nodes[ai.node];
       const axis = Math.abs(next.x - seg.x) > Math.abs(next.z - seg.z) ? 1 : 0;
       if (this.mustStop(v, next, axis)) {
@@ -5662,7 +5731,7 @@ class Population {
         cruise = Math.min(cruise, brakeDist * 0.9);
       }
     }
-    if (g.player.wanted > 0 && dist2D(v.x, v.z, pl.x, pl.z) < 70) cruise *= 0.55;
+    if (!ai.fugitif && g.player.wanted > 0 && dist2D(v.x, v.z, pl.x, pl.z) < 70) cruise *= 0.55;
     if (gap < 2.5) cruise = 0;
     else if (gap < 18) cruise *= clamp((gap - 2.5) / 15.5, 0, 1);
     if (creep) cruise = Math.max(cruise, Math.min(3.2, gap > 2.5 ? 3.2 : 0));
@@ -5692,9 +5761,22 @@ class Population {
     if (c0 < 16) err += (cl > cr ? -1 : 1) * 0.9;
 
     v.steerInput = clamp(err * 2.1, -1, 1);
+    v.siren = true;
+
+    // Un suspect à pied, on ne l'écrase pas : on se range à une dizaine de
+    // mètres et on descend. C'est cet arrêt qui déclenche le déploiement.
+    const aPied = !p.vehicle && !p.dead;
+    if (aPied) {
+      const cible = d > 45 ? v.model.top * 0.75 : d > 20 ? 15 : 0;
+      v.throttle = clamp((cible - v.speed) * 0.7, -1, 1);
+      if (d < 20 && v.speed > 1.5) v.throttle = -1;          // freinage franc
+      v.handbrake = d < 17 && v.speed < 1.5;
+      if (Math.abs(err) > 2.2 && v.speed > 4) v.throttle = -0.6;
+      return;
+    }
+
     const target = d > 26 ? v.model.top * 0.9 : d > 10 ? 22 : 12;
     v.throttle = clamp((target - v.speed) * 0.6, -1, 1);
-    v.siren = true;
     if (d < 14 && p.vehicle) v.throttle = 1;                 // tentative d'interception
     if (Math.abs(err) > 2.2 && v.speed > 4) v.throttle = -0.6;
     v.handbrake = false;
@@ -5821,6 +5903,7 @@ class PoliceSystem {
   }
 
   clear() {
+    this.announced = false;
     this.game.player.wanted = 0;
     this.escapeTimer = 0;
     for (const v of this.game.vehicles) this.standDown(v);
@@ -5878,6 +5961,7 @@ class PoliceSystem {
     if (this.escapeTimer > STAR_ESCAPE[p.wanted]) {
       p.wanted = 0;
       this.escapeTimer = 0;
+      this.announced = false;
       g.notify('Vous avez semé la police', '');
       g.audio.ui(720, 0.2, 0.16);
       for (const v of g.vehicles) this.standDown(v);
@@ -5902,20 +5986,43 @@ class PoliceSystem {
       if (h.remove) this.helis.splice(i, 1);
     }
 
-    // policiers à pied quand le joueur est à pied
+    // Les agents descendent de voiture dès que le suspect est à pied. La
+    // patrouille freine à une vingtaine de mètres (driveChase) : c'est ce
+    // palier de vitesse qu'on attend ici.
     for (const v of g.vehicles) {
       if (!v.ai || !v.ai.chase || v.dead) continue;
       const d = dist2D(v.x, v.z, px, pz);
-      if (!p.vehicle && d < 26 && Math.abs(v.speed) < 4 && !v.ai.dropped) {
+      if (!p.vehicle && !p.dead && d < 34 && Math.abs(v.speed) < 6 && !v.ai.dropped) {
         v.ai.dropped = true;
         const n = p.wanted >= 3 ? 2 : 1;
         for (let i = 0; i < n; i++) {
           const cop = new Ped(v.x + range(this.rand, -2.5, 2.5), v.z + range(this.rand, -2.5, 2.5), this.rand, { cop: true });
           cop.combatTarget = p;
+          cop.aim = true;
           g.peds.push(cop);
+        }
+        g.audio.ui(300, 0.05, 0.05);
+        if (!this.announced) {
+          this.announced = true;
+          g.notify('Police', 'Ils descendent de voiture — ils tirent à vue');
         }
       }
       if (p.vehicle) v.ai.dropped = false;
+    }
+
+    // Tir depuis la voiture pendant la poursuite : à deux étoiles le passager
+    // sort son arme par la vitre. Avant, une patrouille ne faisait que foncer.
+    const seuil = p.wanted >= 4 ? 0.55 : p.wanted >= 3 ? 0.85 : 1.35;
+    for (const v of g.vehicles) {
+      if (!v.ai || !v.ai.chase || v.dead) continue;
+      v.fireTimer = (v.fireTimer || 0) - dt;
+      if (p.wanted < 2 || v.fireTimer > 0) continue;
+      const d = dist2D(v.x, v.z, px, pz);
+      if (d > 55 || d < 3) continue;
+      if (!g.world.visible(v.x, 1.3, v.z, px, 1.3, pz)) continue;
+      v.fireTimer = range(this.rand, seuil, seuil * 2.1);
+      const ox = Math.cos(v.yaw) * (v.hw + 0.25), oz = -Math.sin(v.yaw) * (v.hw + 0.25);
+      g.npcShootFrom(v.x + ox, v.model.h * 0.72, v.z + oz, p, d, 'pistol', v);
     }
     for (const c of g.peds) {
       if (c.cop && !c.dead) c.combatTarget = p;
@@ -5972,7 +6079,7 @@ class PoliceSystem {
  */
 const MISSIONS = [
   {
-    id: 'repo', char: 'franklin', name: 'Reprise de véhicule', letter: 'F',
+    id: 'repo', char: 'franklin', name: 'Reprise de véhicule', letter: 'F', kind: 'Vol',
     x: 196, z: 371, reward: 9000,
     brief: "Simeon veut cette Comète. Récupère-la et ramène-la au garage sans la démolir.",
     steps: [
@@ -5984,7 +6091,7 @@ const MISSIONS = [
     ],
   },
   {
-    id: 'jewel', char: 'michael', name: 'Le casse de la bijouterie', letter: 'M',
+    id: 'jewel', char: 'michael', name: 'Le casse de la bijouterie', letter: 'M', kind: 'Braquage',
     x: -135, z: -440, reward: 240000,
     brief: "Lester a tout préparé. On entre, on prend les pierres, on ressort avant les flics.",
     steps: [
@@ -6001,7 +6108,7 @@ const MISSIONS = [
     ],
   },
   {
-    id: 'rampage', char: 'trevor', name: 'Carnage à l’aéroport', letter: 'T',
+    id: 'rampage', char: 'trevor', name: 'Carnage à l’aéroport', letter: 'T', kind: 'Assaut',
     x: -495, z: 99, reward: 45000,
     brief: "Les gars de la piste ont parlé de travers. Trevor n'a pas apprécié.",
     steps: [
@@ -6013,7 +6120,7 @@ const MISSIONS = [
     ],
   },
   {
-    id: 'race', char: null, name: 'Course de rue', letter: 'C',
+    id: 'race', char: null, name: 'Course de rue', letter: 'C', kind: 'Course',
     x: -450, z: -86, reward: 18000,
     brief: 'Un tour du bord de mer. Premier arrivé, premier payé.',
     steps: [
@@ -6028,7 +6135,70 @@ const MISSIONS = [
     ],
   },
   {
-    id: 'taxi', char: null, name: 'Courses de taxi', letter: 'D',
+    id: 'pursuit', char: 'franklin', name: 'Rattrape-le', letter: 'F', kind: 'Poursuite',
+    x: -85, z: 268, reward: 26000,
+    brief: "Un type est parti avec la caisse de Simeon. Colle-le au pare-chocs jusqu'à ce qu'il s'arrête.",
+    steps: [
+      { type: 'needVehicle', text: 'Prends une voiture — à pied, tu ne le rattraperas jamais' },
+      {
+        type: 'chase', key: 'dominator', x: -90, z: 90, timer: 150, damage: 130,
+        text: 'Rentre-lui dedans jusqu’à ce que sa voiture rende l’âme',
+      },
+    ],
+  },
+  {
+    id: 'escort', char: 'michael', name: 'Le témoin', letter: 'M', kind: 'Escorte',
+    x: 268, z: -85, reward: 62000,
+    brief: "Ce témoin doit arriver entier au palais de justice. Deux voitures le cherchent déjà.",
+    steps: [
+      { type: 'needVehicle', text: 'Prends le volant' },
+      { type: 'goto', x: 270, z: -270, r: 14, vehicle: true, text: 'Récupère le témoin à Rockford Hills' },
+      {
+        type: 'protect', x: -180, z: 0, r: 16, timer: 210, health: 100,
+        ambush: [[90, -180], [0, -90]],
+        text: 'Conduis-le au palais — protège-le des tueurs',
+      },
+    ],
+  },
+  {
+    id: 'wreck', char: 'trevor', name: 'Casse au port', letter: 'T', kind: 'Sabotage',
+    x: 448, z: 448, reward: 38000,
+    brief: "Les camions d'en face livrent pour la concurrence. Qu'il n'en reste rien.",
+    steps: [
+      {
+        type: 'destroyVehicles', count: 5, timer: 200, key: 'benson',
+        area: { x: 450, z: 360, r: 60 },
+        text: 'Détruis les camions du dépôt',
+      },
+      { type: 'losePolice', text: 'Sème la police', wanted: 3 },
+    ],
+  },
+  {
+    id: 'stash', char: null, name: 'La planque éventrée', letter: 'S', kind: 'Récupération',
+    x: -536, z: -266, reward: 21000,
+    brief: 'Quatre sacs sont tombés d’un fourgon sur la corniche. Ramasse-les avant les autres.',
+    steps: [
+      {
+        type: 'collect', r: 7, text: 'Ramasse les sacs',
+        points: [[-540, -360], [-450, -450], [-360, -360], [-450, -180]],
+      },
+      { type: 'goto', x: -536, z: -266, r: 13, text: 'Rapporte le tout à la planque' },
+    ],
+  },
+  {
+    id: 'siege', char: null, name: 'Guet-apens à Grove', letter: 'G', kind: 'Survie',
+    x: 176, z: 626, reward: 44000,
+    brief: 'Ils savent que tu es là. Tiens deux minutes, les renforts arrivent après.',
+    steps: [
+      { type: 'goto', x: 180, z: 630, r: 12, text: 'Rejoins la maison' },
+      {
+        type: 'survive', time: 115, x: 180, z: 630, r: 40, wave: 4, waveDelay: 13,
+        text: 'Tiens la position',
+      },
+    ],
+  },
+  {
+    id: 'taxi', char: null, name: 'Courses de taxi', letter: 'D', kind: 'Livraison',
     x: 356, z: 141, reward: 12000,
     brief: 'Trois clients, trois destinations. Le compteur tourne.',
     steps: [
@@ -6071,7 +6241,7 @@ class MissionSystem {
     this.entities = [];
     this.refs = {};
     this.raceIndex = 0;
-    this.game.notify(m.name, m.brief);
+    this.game.notify(`${m.kind} — ${m.name}`, m.brief);
     this.game.audio.ui(660, 0.12, 0.14);
     this.nextStep();
   }
@@ -6129,6 +6299,63 @@ class MissionSystem {
       case 'steal':
         this.marker = null;
         break;
+
+      case 'chase': {
+        // une voiture qui prend la fuite : elle roule vite et ne s'arrête pas
+        const v = new Vehicle(s.key || 'dominator', s.x, s.z, 0, { mission: true });
+        v.mission = true; v.persistent = true;
+        v.ai = { chase: false, node: g.population.nearestNode(s.x, s.z), next: 0, cruise: v.model.top * 0.95, fugitif: true };
+        v.ai.next = g.data.graph.nodes[v.ai.node].links[0] ?? v.ai.node;
+        v.health = s.damage || 130;
+        v.maxHealth = v.health;
+        g.vehicles.push(v);
+        this.refs.fugitif = v;
+        this.entities.push(v);
+        break;
+      }
+
+      case 'protect': {
+        // le protégé monte dans la voiture du joueur ; deux tueurs l'attendent
+        this.escortHealth = s.health || 100;
+        this.marker = { x: s.x, z: s.z, r: s.r || 14, color: [0.35, 0.85, 1] };
+        this.ambushDone = new Set();
+        break;
+      }
+
+      case 'destroyVehicles': {
+        const list = [];
+        for (let i = 0; i < (s.count || 4); i++) {
+          const a = (i / (s.count || 4)) * 6.28 + this.rand();
+          const r = range(this.rand, 14, s.area.r);
+          const pos = { x: s.area.x + Math.cos(a) * r, z: s.area.z + Math.sin(a) * r };
+          g.world.pushCircle(pos, 2.6, 2);        // jamais encastré dans un hangar
+          const { x, z } = pos;
+          const v = new Vehicle(s.key || 'benson', x, z, this.rand() * 6.28, { mission: true });
+          v.mission = true; v.persistent = true; v.parked = true;
+          g.vehicles.push(v); list.push(v); this.entities.push(v);
+        }
+        this.targets = list;
+        break;
+      }
+
+      case 'collect': {
+        this.collected = 0;
+        this.points = s.points.map(([x, z]) => ({ x, z, pris: false }));
+        this.marker = { x: this.points[0].x, z: this.points[0].z, r: s.r || 7, color: [1, 0.75, 0.15] };
+        break;
+      }
+
+      case 'survive': {
+        this.surviveT = 0;
+        this.waveT = 0;
+        this.marker = { x: s.x, z: s.z, r: s.r || 30, color: [1, 0.45, 0.25] };
+        break;
+      }
+
+      case 'losePolice':
+        this.marker = null;
+        break;
+
       default: break;
     }
     if (s.wanted) this.game.police.addWanted(s.wanted, 'Mission');
@@ -6256,6 +6483,115 @@ class MissionSystem {
         g.hud.setObjective(`${s.text} — ${this.raceIndex}/${pts.length}`);
         break;
       }
+
+      /* ------------------------------------------------------- poursuite */
+      case 'chase': {
+        const v = this.refs.fugitif;
+        if (!v) { this.nextStep(); return; }
+        this.marker = { x: v.x, z: v.z, r: 6, color: [1, 0.4, 0.3] };
+        if (v.dead || v.health <= 0) { g.player.money += 1200; this.nextStep(); return; }
+        const d = dist2D(p.x, p.z, v.x, v.z);
+        if (d > 420) return this.fail('Vous l’avez laissé filer');
+        const pv = Math.max(0, Math.round((v.health / v.maxHealth) * 100));
+        g.hud.setObjective(`${s.text} — sa voiture : ${pv} %`);
+        break;
+      }
+
+      /* --------------------------------------------------------- escorte */
+      case 'protect': {
+        if (!p.vehicle) {
+          g.hud.setObjective(`${s.text} — remonte en voiture !`);
+          this.escortOutT = (this.escortOutT || 0) + dt;
+          if (this.escortOutT > 25) return this.fail('Vous avez abandonné le témoin');
+          break;
+        }
+        this.escortOutT = 0;
+        // embuscades : elles se déclenchent en passant à proximité
+        for (let i = 0; i < (s.ambush || []).length; i++) {
+          if (this.ambushDone.has(i)) continue;
+          const [ax, az] = s.ambush[i];
+          if (dist2D(p.x, p.z, ax, az) > 90) continue;
+          this.ambushDone.add(i);
+          g.notify('Embuscade', 'Ils vous ont trouvés');
+          for (let k = 0; k < 3; k++) {
+            const e = g.spawnPedAt(ax + range(this.rand, -8, 8), az + range(this.rand, -8, 8),
+              { hostile: true, mission: true });
+            this.entities.push(e);
+          }
+        }
+        // Le témoin est dans la voiture : ce qu'elle prend, il le prend.
+        const voiture = p.vehicle;
+        if (voiture.dead) return this.fail('Le témoin n’a pas survécu');
+        this.escortHealth = Math.min(this.escortHealth,
+          Math.round((voiture.health / voiture.maxHealth) * 100));
+        if (this.escortHealth <= 0) return this.fail('Le témoin n’a pas survécu');
+        g.hud.setObjective(`${s.text} — témoin : ${Math.max(0, Math.round(this.escortHealth))} %`);
+        if (dist2D(p.x, p.z, s.x, s.z) < (s.r || 14)) { this.nextStep(); return; }
+        break;
+      }
+
+      /* -------------------------------------------------------- sabotage */
+      case 'destroyVehicles': {
+        const reste = this.targets.filter((v) => !v.dead).length;
+        const proche = this.targets.find((v) => !v.dead);
+        this.marker = proche ? { x: proche.x, z: proche.z, r: 8, color: [1, 0.5, 0.2] } : null;
+        g.hud.setObjective(`${s.text} — ${this.targets.length - reste}/${this.targets.length}`);
+        if (reste === 0) { this.nextStep(); return; }
+        break;
+      }
+
+      /* ----------------------------------------------------- récupération */
+      case 'collect': {
+        const reste = this.points.filter((q) => !q.pris);
+        for (const q of reste) {
+          if (dist2D(p.x, p.z, q.x, q.z) < (s.r || 7)) {
+            q.pris = true;
+            this.collected++;
+            g.audio.ui(820, 0.1, 0.15);
+            g.notify('Sac récupéré', `${this.collected}/${this.points.length}`);
+          }
+        }
+        const suivant = this.points.find((q) => !q.pris);
+        this.marker = suivant ? { x: suivant.x, z: suivant.z, r: s.r || 7, color: [1, 0.75, 0.15] } : null;
+        g.hud.setObjective(`${s.text} — ${this.collected}/${this.points.length}`);
+        if (!suivant) { this.nextStep(); return; }
+        break;
+      }
+
+      /* ---------------------------------------------------------- survie */
+      case 'survive': {
+        if (dist2D(p.x, p.z, s.x, s.z) > (s.r || 30) + 15) {
+          g.hud.setObjective(`${s.text} — reviens sur la position !`);
+          this.strayT = (this.strayT || 0) + dt;
+          if (this.strayT > 12) return this.fail('Vous avez fui la position');
+          break;
+        }
+        this.strayT = 0;
+        this.surviveT += dt;
+        this.waveT -= dt;
+        if (this.waveT <= 0) {
+          this.waveT = s.waveDelay || 13;
+          for (let i = 0; i < (s.wave || 3); i++) {
+            const a = this.rand() * 6.28;
+            const r = range(this.rand, 30, s.r || 40);
+            const e = g.spawnPedAt(s.x + Math.cos(a) * r, s.z + Math.sin(a) * r,
+              { hostile: true, mission: true });
+            this.entities.push(e);
+          }
+        }
+        const reste = Math.max(0, s.time - this.surviveT);
+        g.hud.setObjective(`${s.text} — ${reste.toFixed(0)} s`);
+        if (reste <= 0) { this.nextStep(); return; }
+        break;
+      }
+
+      /* --------------------------------------------------- semer la police */
+      case 'losePolice': {
+        if (p.wanted === 0) { this.nextStep(); return; }
+        g.hud.setObjective(`${s.text} — ${'★'.repeat(p.wanted)}`);
+        break;
+      }
+
       default: break;
     }
   }
@@ -6288,6 +6624,96 @@ const BLIP_COLORS = {
   mission: '#f5d442', garage: '#4fb0e8', ammunation: '#e08a2a', hospital: '#e05a5a',
   police: '#4f7fe8', waypoint: '#e055c8', cop: '#3f6fe0', player: '#ffffff', enemy: '#e04030',
 };
+
+/**
+ * Chaque type de repère a sa forme, pas seulement sa couleur : sur un radar
+ * de 230 pixels, une pastille ronde de plus ne dit rien à personne.
+ *   pin      losange sur pointe, comme une punaise — les missions
+ *   disque   rond plein — les commerces
+ *   ecusson  pentagone — les postes de police
+ *   fleche   triangle — les ennemis
+ *   anneau   cercle vide — la destination choisie
+ *   croix    rond barré — les hélicoptères
+ */
+const BLIP_LEGEND = [
+  { kind: 'mission', shape: 'pin', color: '#f5d442', glyph: 'F', label: 'Mission à lancer' },
+  { kind: 'garage', shape: 'disque', color: '#4fb0e8', glyph: '⚒', label: 'Los Santos Customs — réparation' },
+  { kind: 'ammunation', shape: 'disque', color: '#e08a2a', glyph: '⌖', label: 'Ammu-Nation — armes' },
+  { kind: 'hospital', shape: 'disque', color: '#e05a5a', glyph: '✚', label: 'Hôpital' },
+  { kind: 'station', shape: 'ecusson', color: '#4f7fe8', glyph: '', label: 'Commissariat' },
+  { kind: 'waypoint', shape: 'anneau', color: '#e055c8', glyph: '', label: 'Votre destination' },
+  { kind: 'objectif', shape: 'anneau', color: '#f5d442', glyph: '', label: 'Objectif de mission' },
+  { kind: 'cop', shape: 'losange', color: '#3f6fe0', glyph: '', label: 'Police à vos trousses' },
+  { kind: 'heli', shape: 'croix', color: '#3f6fe0', glyph: '', label: 'Hélicoptère de police' },
+  { kind: 'enemy', shape: 'fleche', color: '#e04030', glyph: '', label: 'Ennemi' },
+];
+
+/** Dessine un repère de rayon `r` centré en (x, y). */
+function drawBlip(c, x, y, b, r) {
+  const shape = b.shape || 'disque';
+  c.save();
+  c.translate(x, y);
+  c.lineJoin = 'round';
+  c.strokeStyle = 'rgba(8,11,15,.85)';
+  c.lineWidth = Math.max(1.4, r * 0.34);
+  c.fillStyle = b.color;
+  c.beginPath();
+  if (shape === 'pin') {
+    c.moveTo(0, r * 1.25); c.lineTo(-r, 0); c.lineTo(0, -r * 1.05); c.lineTo(r, 0);
+    c.closePath();
+  } else if (shape === 'losange') {
+    c.moveTo(0, -r); c.lineTo(r * 0.8, 0); c.lineTo(0, r); c.lineTo(-r * 0.8, 0);
+    c.closePath();
+  } else if (shape === 'ecusson') {
+    c.moveTo(0, -r * 1.1); c.lineTo(r, -r * 0.4); c.lineTo(r * 0.62, r * 1.05);
+    c.lineTo(-r * 0.62, r * 1.05); c.lineTo(-r, -r * 0.4);
+    c.closePath();
+  } else if (shape === 'fleche') {
+    c.moveTo(0, -r * 1.1); c.lineTo(r * 0.95, r * 0.85); c.lineTo(-r * 0.95, r * 0.85);
+    c.closePath();
+  } else {
+    c.arc(0, 0, r, 0, 6.29);
+  }
+  if (shape === 'anneau') {
+    c.stroke();
+    c.lineWidth = Math.max(1.6, r * 0.42);
+    c.strokeStyle = b.color;
+    c.stroke();
+    c.beginPath(); c.arc(0, 0, r * 0.3, 0, 6.29); c.fill();
+    c.restore();
+    return;
+  }
+  c.stroke(); c.fill();
+  if (shape === 'croix') {
+    c.strokeStyle = 'rgba(8,11,15,.9)';
+    c.lineWidth = Math.max(1.2, r * 0.3);
+    c.beginPath();
+    c.moveTo(-r, -r); c.lineTo(r, r); c.moveTo(r, -r); c.lineTo(-r, r);
+    c.stroke();
+  }
+  if (b.glyph) {
+    c.fillStyle = '#0d1116';
+    c.font = `bold ${Math.round(r * 1.45)}px "Arial Narrow", Arial, sans-serif`;
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(b.glyph, 0, r * 0.06);
+  }
+  c.restore();
+}
+
+/** Petite flèche au bord du radar pour ce qui est hors de portée. */
+function drawEdgeArrow(c, x, y, angle, color, r) {
+  c.save();
+  c.translate(x, y);
+  c.rotate(angle);
+  c.fillStyle = color;
+  c.strokeStyle = 'rgba(8,11,15,.85)';
+  c.lineWidth = 1.5;
+  c.beginPath();
+  c.moveTo(0, -r); c.lineTo(r * 0.78, r * 0.7); c.lineTo(-r * 0.78, r * 0.7);
+  c.closePath();
+  c.stroke(); c.fill();
+  c.restore();
+}
 class HUD {
   constructor(game, root) {
     this.game = game;
@@ -6488,6 +6914,18 @@ class HUD {
     }
 
     this.drawRadar();
+
+    // Le point d'intérêt le plus proche, écrit en toutes lettres : c'est ce
+    // qui manquait pour comprendre les pastilles du radar.
+    const proche = this.nearestBlip(this._blips || []);
+    const near = this.el('#radar-near');
+    if (proche) {
+      near.innerHTML = `<i style="background:${proche.color}"></i>${proche.name} · ${Math.round(proche.dist)} m`;
+      near.style.opacity = '1';
+    } else {
+      near.style.opacity = '0';
+    }
+
     if (this.mapOpen) this.drawMap();
   }
 
@@ -6499,28 +6937,47 @@ class HUD {
     for (const m of MISSIONS) {
       if (!g.missions.available(m)) continue;
       list.push({
-        x: m.x, z: m.z, letter: m.letter, size: 7,
+        x: m.x, z: m.z, glyph: m.letter, size: 7, shape: 'pin', name: `${m.kind} · ${m.name}`,
         color: m.char ? CHARACTERS[m.char].color : BLIP_COLORS.mission,
       });
     }
+    const boutiques = {
+      garage: { glyph: '⚒', name: 'Los Santos Customs' },
+      ammunation: { glyph: '⌖', name: 'Ammu-Nation' },
+      hospital: { glyph: '✚', name: 'Hôpital' },
+    };
     for (const l of g.data.landmarks) {
-      if (l.kind === 'garage') list.push({ x: l.x, z: l.z, color: BLIP_COLORS.garage, letter: '🔧', size: 6 });
-      if (l.kind === 'ammunation') list.push({ x: l.x, z: l.z, color: BLIP_COLORS.ammunation, letter: '🔫', size: 6 });
-      if (l.kind === 'hospital') list.push({ x: l.x, z: l.z, color: BLIP_COLORS.hospital, letter: '✚', size: 6 });
-      if (l.kind === 'police') list.push({ x: l.x, z: l.z, color: BLIP_COLORS.police, letter: '★', size: 6 });
+      const b = boutiques[l.kind];
+      if (b) list.push({ x: l.x, z: l.z, color: BLIP_COLORS[l.kind], glyph: b.glyph, size: 6, shape: 'disque', name: b.name });
+      if (l.kind === 'police') list.push({ x: l.x, z: l.z, color: BLIP_COLORS.police, size: 6, shape: 'ecusson', name: 'Commissariat' });
     }
     const wp = g.missions.waypoint;
-    if (wp) list.push({ x: wp.x, z: wp.z, color: '#f5d442', letter: '', size: 8, ring: true });
-    if (this.waypoint) list.push({ x: this.waypoint.x, z: this.waypoint.z, color: BLIP_COLORS.waypoint, letter: '', size: 8, ring: true });
+    if (wp) list.push({ x: wp.x, z: wp.z, color: '#f5d442', size: 9, shape: 'anneau', name: 'Objectif' });
+    if (this.waypoint) list.push({ x: this.waypoint.x, z: this.waypoint.z, color: BLIP_COLORS.waypoint, size: 9, shape: 'anneau', name: 'Destination' });
     for (const v of g.vehicles) {
-      if (v.ai && v.ai.chase && !v.dead) list.push({ x: v.x, z: v.z, color: BLIP_COLORS.cop, size: 5 });
+      if (v.ai && v.ai.chase && !v.dead) list.push({ x: v.x, z: v.z, color: BLIP_COLORS.cop, size: 5, shape: 'losange', vivant: true });
     }
     for (const p of g.peds) {
-      if (p.cop && !p.dead) list.push({ x: p.x, z: p.z, color: BLIP_COLORS.cop, size: 4 });
-      if (p.hostile && !p.dead) list.push({ x: p.x, z: p.z, color: BLIP_COLORS.enemy, size: 4 });
+      if (p.cop && !p.dead) list.push({ x: p.x, z: p.z, color: BLIP_COLORS.cop, size: 4, shape: 'losange', vivant: true });
+      if (p.hostile && !p.dead) list.push({ x: p.x, z: p.z, color: BLIP_COLORS.enemy, size: 4, shape: 'fleche', vivant: true });
     }
-    for (const h of g.police.helis) list.push({ x: h.x, z: h.z, color: BLIP_COLORS.cop, size: 6, heli: true });
+    for (const h of g.police.helis) list.push({ x: h.x, z: h.z, color: BLIP_COLORS.cop, size: 6, shape: 'croix', vivant: true });
     return list;
+  }
+
+  /**
+   * Le repère fixe le plus proche, pour l'afficher en toutes lettres sous le
+   * radar : une pastille de couleur ne dit à personne ce qu'elle désigne.
+   */
+  nearestBlip(liste) {
+    const p = this.game.player;
+    let best = null; let bd = 260;
+    for (const b of liste) {
+      if (b.vivant || !b.name) continue;
+      const d = Math.hypot(b.x - p.x, b.z - p.z);
+      if (d < bd) { bd = d; best = { name: b.name, dist: d, color: b.color }; }
+    }
+    return best;
   }
 
   drawRadar() {
@@ -6592,26 +7049,20 @@ class HUD {
       c.beginPath(); c.arc(sx, sz, r, 0, 6.29); c.fill(); c.stroke();
     }
 
-    const limit = Math.min(W, H) / 2 - 9;
-    for (const b of this.blips()) {
-      let [sx, sz] = toRadar(b.x, b.z);
+    const limit = Math.min(W, H) / 2 - 10;
+    const liste = this.blips();
+    this._blips = liste;
+    for (const b of liste) {
+      const [sx, sz] = toRadar(b.x, b.z);
       const dx = sx - W / 2, dz = sz - H / 2;
       const d = Math.hypot(dx, dz);
-      if (d > limit) { sx = W / 2 + (dx / d) * limit; sz = H / 2 + (dz / d) * limit; }
-      const r = (b.size || 5) * 0.85;
-      c.fillStyle = b.color;
-      if (b.ring) {
-        c.strokeStyle = b.color; c.lineWidth = 2.2;
-        c.beginPath(); c.arc(sx, sz, r, 0, 6.29); c.stroke();
-        c.beginPath(); c.arc(sx, sz, r * 0.38, 0, 6.29); c.fill();
+      const r = (b.size || 5) * 0.95;
+      if (d > limit) {
+        // hors de portée : une flèche au bord, qui montre la direction
+        drawEdgeArrow(c, W / 2 + (dx / d) * limit, H / 2 + (dz / d) * limit,
+          Math.atan2(dx, -dz), b.color, r * 0.8);
       } else {
-        c.beginPath(); c.arc(sx, sz, r, 0, 6.29); c.fill();
-        if (b.letter && b.letter.length === 1) {
-          c.fillStyle = '#101418';
-          c.font = `bold ${Math.round(r * 1.4)}px Arial`;
-          c.textAlign = 'center'; c.textBaseline = 'middle';
-          c.fillText(b.letter, sx, sz + 0.5);
-        }
+        drawBlip(c, sx, sz, b, r);
       }
     }
 
@@ -6704,17 +7155,21 @@ class HUD {
       c.restore();
     }
 
-    // blips
-    for (const b of this.blips()) {
+    // repères, avec leur nom en clair dès qu'on est un peu zoomé
+    const blips = this.blips();
+    for (const b of blips) {
       const sx = (b.x - this.mapCenter.x) * z + w / 2;
       const sy = (b.z - this.mapCenter.z) * z + h / 2;
-      c.fillStyle = b.color;
-      c.beginPath(); c.arc(sx, sy, (b.size || 5) * 1.15, 0, 6.29); c.fill();
-      if (b.letter && b.letter.length === 1) {
-        c.fillStyle = '#101418';
-        c.font = 'bold 10px Arial';
-        c.textAlign = 'center'; c.textBaseline = 'middle';
-        c.fillText(b.letter, sx, sy + 0.5);
+      if (sx < -30 || sx > w + 30 || sy < -30 || sy > h + 30) continue;
+      const r = (b.size || 5) * 1.25;
+      drawBlip(c, sx, sy, b, r);
+      if (b.name && z > 0.3) {
+        c.font = '600 11px "Arial Narrow", Arial, sans-serif';
+        c.textAlign = 'center'; c.textBaseline = 'top';
+        c.lineWidth = 3; c.strokeStyle = 'rgba(6,9,13,.9)';
+        c.strokeText(b.name, sx, sy + r + 3);
+        c.fillStyle = 'rgba(236,240,244,.92)';
+        c.fillText(b.name, sx, sy + r + 3);
       }
     }
     // joueur
@@ -6736,9 +7191,32 @@ class HUD {
     this.el('#map-screen').classList.toggle('show', this.mapOpen);
     if (this.mapOpen) {
       this.mapCenter = { x: this.game.player.x, z: this.game.player.z };
+      this.buildMapKey();
       this.drawMap();
     }
     return this.mapOpen;
+  }
+
+  /**
+   * Légende de la carte : chaque forme est redessinée en vrai sur un petit
+   * canevas, pour qu'on reconnaisse exactement ce qu'on voit sur le radar.
+   */
+  buildMapKey() {
+    const el = this.el('#map-key');
+    if (!el || el.dataset.pret) return;
+    el.dataset.pret = '1';
+    el.innerHTML = '<h4>Légende</h4>';
+    for (const e of BLIP_LEGEND) {
+      const ligne = document.createElement('div');
+      const cv = document.createElement('canvas');
+      cv.width = 44; cv.height = 44;               // dessiné en double, affiché en 22
+      const cx = cv.getContext('2d');
+      drawBlip(cx, 22, 22, e, 13);
+      const txt = document.createElement('span');
+      txt.textContent = e.label;
+      ligne.append(cv, txt);
+      el.append(ligne);
+    }
   }
 
   /* --------------------------------------------------------- roues de sélection */
@@ -6787,7 +7265,7 @@ class HUD {
     });
   }
 }
-    return { HUD };
+    return { BLIP_LEGEND, drawBlip, drawEdgeArrow, HUD };
   })();
   /* ---------------------------------------------- game.js */
   __m["game.js"] = (() => {
@@ -6798,7 +7276,7 @@ class HUD {
   const { Renderer } = __m["engine/renderer.js"];
   const { Input, setupTouchControls } = __m["engine/input.js"];
   const { AudioEngine } = __m["engine/audio.js"];
-  const { generateWorld, zoneAt, densityAt } = __m["world/gen.js"];
+  const { generateWorld, zoneAt, densityAt, STREET } = __m["world/gen.js"];
   const { buildWorldGeometry } = __m["world/build.js"];
   const { World } = __m["world/collide.js"];
   const { Vehicle, MODELS } = __m["entities/vehicle.js"];
@@ -7173,6 +7651,91 @@ class Game {
     this.threatLevel = 2.5;
   }
 
+  /**
+   * Infraction au code de la route. Ce n'est pas un délit : les passants ne
+   * s'enfuient pas. Mais il faut qu'une patrouille la voie — comme dans la
+   * vraie vie, griller un feu désert ne coûte rien.
+   */
+  trafficOffence(reason, x, z) {
+    if (this.offenceCooldown > 0) return false;
+    const p = this.player;
+    let vu = p.wanted > 0;
+    if (!vu) {
+      for (const v of this.vehicles) {
+        if (!v.model.police || v.dead || v === p.vehicle) continue;
+        if (dist2D(v.x, v.z, x, z) < 75 && this.world.visible(v.x, 1.4, v.z, x, 1.3, z)) { vu = true; break; }
+      }
+    }
+    if (!vu) {
+      for (const c of this.peds) {
+        if (!c.cop || c.dead || c.inVehicle) continue;
+        if (dist2D(c.x, c.z, x, z) < 55 && this.world.visible(c.x, 1.6, c.z, x, 1.3, z)) { vu = true; break; }
+      }
+    }
+    if (!vu) return false;
+    this.offenceCooldown = 7;
+    this.police.addWanted(p.wanted === 0 ? 1 : 0, reason);
+    this.notify('Infraction', reason);
+    this.audio.ui(280, 0.09, 0.09);
+    return true;
+  }
+
+  /** Distance signée à l'axe de rue le plus proche. */
+  static roadOffset(c) {
+    return ((c % STREET) + STREET * 1.5) % STREET - STREET / 2;
+  }
+
+  /**
+   * Feux grillés, contresens, excès de vitesse : ce qu'une patrouille
+   * remarque quand on conduit n'importe comment.
+   */
+  checkTrafficOffences(dt) {
+    this.offenceCooldown = Math.max(0, (this.offenceCooldown || 0) - dt);
+    const p = this.player;
+    const v = p.vehicle;
+    if (!v || v.model.fly || p.dead) { this.wrongWayT = 0; this.inJunction = false; return; }
+    const sp = Math.abs(v.speed);
+    const ox = Game.roadOffset(v.x), oz = Game.roadOffset(v.z);
+    const surX = Math.abs(ox) < 9;                 // sur une rue nord-sud
+    const surZ = Math.abs(oz) < 9;                 // sur une rue est-ouest
+    const fx = Math.sin(v.yaw) * Math.sign(v.speed || 1);
+    const fz = Math.cos(v.yaw) * Math.sign(v.speed || 1);
+
+    // ------------------------------------------------------------ feu rouge
+    const dansCarrefour = surX && surZ;
+    if (dansCarrefour && !this.inJunction) {
+      this.inJunction = true;
+      if (sp > 6) {
+        const axe = Math.abs(fx) > Math.abs(fz) ? 1 : 0;
+        const { green, amber } = Population.lightPhase(this.time);
+        if (axe !== green && !amber) this.trafficOffence('feu rouge grillé', v.x, v.z);
+      }
+    } else if (!dansCarrefour) {
+      this.inJunction = false;
+    }
+
+    // ----------------------------------------------------------- contresens
+    // Convention du trafic : en allant vers +z on roule côté +x, en allant
+    // vers +x on roule côté -z.
+    let bonCote = true;
+    if (surX && !surZ) bonCote = fz > 0 ? ox > -1 : ox < 1;
+    else if (surZ && !surX) bonCote = fx > 0 ? oz < 1 : oz > -1;
+    if (!bonCote && sp > 7) {
+      this.wrongWayT = (this.wrongWayT || 0) + dt;
+      if (this.wrongWayT > 2.6) { this.wrongWayT = 0; this.trafficOffence('circulation à contresens', v.x, v.z); }
+    } else {
+      this.wrongWayT = Math.max(0, (this.wrongWayT || 0) - dt * 2);
+    }
+
+    // -------------------------------------------------------- excès de vitesse
+    if (sp > 33 && (surX || surZ)) {               // ~120 km/h en pleine ville
+      this.speedT = (this.speedT || 0) + dt;
+      if (this.speedT > 3) { this.speedT = 0; this.trafficOffence('excès de vitesse', v.x, v.z); }
+    } else {
+      this.speedT = 0;
+    }
+  }
+
   onCrash(v, impact, x, y, z) {
     this.audio.impact(impact, x, z);
     if (v === this.player.vehicle) {
@@ -7277,6 +7840,14 @@ class Game {
     const ox = p.x + Math.sin(yaw) * 0.5 + Math.cos(yaw) * 0.3;
     const oz = p.z + Math.cos(yaw) * 0.5 - Math.sin(yaw) * 0.3;
 
+    if (!w.melee) {
+      // lueur de bouche du joueur : le tir se voit aussi de l'extérieur
+      const my = p.vehicle ? originY : 1.36;
+      this.particles.spawn(ox + Math.sin(yaw) * 0.35, my, oz + Math.cos(yaw) * 0.35,
+        Math.sin(yaw) * 5, 0.5, Math.cos(yaw) * 5, 0.26, 0.07, [1, 0.9, 0.5],
+        { glow: 1.6, drag: 7, gravity: 0 });
+    }
+
     if (w.melee) {
       let hitSomething = false;
       for (const ped of this.peds) {
@@ -7368,6 +7939,9 @@ class Game {
     dx /= l; dy /= l; dz /= l;
     const hit = raycastScene(this, ox, oy, oz, dx, dy, dz, 120, shooter);
     this.tracers.push({ x1: ox, y1: oy, z1: oz, x2: hit.x, y2: hit.y, z2: hit.z, life: 0.05, enemy: true });
+    // lueur de bouche : on voit d'où on nous tire dessus
+    this.particles.spawn(ox + dx * 0.5, oy + dy * 0.5, oz + dz * 0.5,
+      dx * 5, 0.5, dz * 5, 0.28, 0.08, [1, 0.85, 0.4], { glow: 1.5, drag: 7, gravity: 0 });
     this.audio.gunshot(weapon, ox, oz);
     this.impactEffect(hit, dx, dy, dz);
     const accuracy = clamp(1 - dist / 60, 0.15, 0.8);
@@ -7963,6 +8537,9 @@ class Game {
       const chase = (v) => v.ai && v.ai.chase;
       if ((a === p.vehicle && chase(b)) || (b === p.vehicle && chase(a))) {
         this.crime('refus d’obtempérer', p.wanted === 0 ? 2 : 0, x, z);
+      } else if ((a === p.vehicle || b === p.vehicle) && force > 9) {
+        // un accroc, ça passe ; emboutir quelqu'un devant une patrouille, non
+        this.trafficOffence('accident et délit de fuite', x, z);
       }
     });
 
@@ -8017,6 +8594,7 @@ class Game {
     this.updateRain(dt);
     this.population.update(dt);
     this.police.update(dt);
+    this.checkTrafficOffences(dt);
     this.missions.update(dt);
     this.checkPickups(dt);
     this.checkBusted(dt);
@@ -8029,7 +8607,7 @@ class Game {
     const audible = new Set();
     for (const v of this.vehicles) {
       const d = dist2D(v.x, v.z, p.x, p.z);
-      if (v === p.vehicle || (d < 55 && engines < 6 && Math.abs(v.speed) > 0.5)) {
+      if (v === p.vehicle || (d < 48 && engines < 6 && !v.dead)) {   // un moteur au ralenti tourne aussi
         this.audio.updateEngine(v, v === p.vehicle, dt);
         audible.add(v.id);
         engines++;
@@ -8043,7 +8621,6 @@ class Game {
       clamp(densityAt(p.x, p.z) * 0.7 + 0.35, 0, 1) * (p.vehicle ? 0.5 : 1),
       clamp(1 - seaDist / 420, 0, 1) * (p.vehicle ? 0.4 : 1));
     this.audio.setMuffled(!p.vehicle);
-    this.audio.tickMusic();
     if (p.onFoot && p.move > 0.4 && !p.dead) {
       this.stepT = (this.stepT || 0) + dt * p.move;
       if (this.stepT > 0.42) { this.stepT = 0; this.audio.footstep(p.x, p.z); }
