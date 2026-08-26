@@ -95,8 +95,10 @@ export class Game {
 
   giveStarterKit() {
     const inv = this.player.inventory;
+    // Une pile pleine de chaque, en respectant la taille maximale : un seau
+    // ne s'empile pas, en donner 64 remplirait tout l'inventaire.
     for (const n of ['grass_block', 'stone', 'oak_planks', 'glass', 'torch', 'oak_log', 'sand', 'wool_red', 'water_bucket']) {
-      inv.add(stack(n, 64));
+      inv.add(stack(n, maxStackOf(n)));
     }
   }
 
