@@ -47,6 +47,9 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;
   if (url.origin !== self.location.origin) return; // Firebase, tuiles, Nominatim : toujours en direct
+  // Le jeu hébergé sous /minecraft/ a son propre cycle de vie : on le laisse
+  // au réseau, sinon son repli hors ligne renverrait l'écran de ParkAlert.
+  if (url.pathname.includes('/minecraft/')) return;
 
   // « Network first » : l'application se met à jour dès qu'une nouvelle version est en ligne.
   e.respondWith(
