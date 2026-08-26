@@ -4,7 +4,85 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>CINÉMA TYCOON — dix semaines pour sauver une salle de quartier</title>
-<meta name="description" content="Un cinéma de quartier, dix semaines, un loyer qui tombe le dimanche. Réserve les films du distributeur, remplis la grille des séances, tiens le guichet, vends le pop-corn — ou produis tes propres films.">
+<meta name="description" content="Cinéma Tycoon est un jeu de gestion gratuit et sans installation : un cinéma de quartier, dix semaines, un loyer qui tombe le dimanche. Réserve les films, remplis la grille des séances, produis tes propres films — et va t'asseoir dans ta salle pour les regarder.">
+
+<!-- ===========================================================================
+     >>> LE SEUL ENDROIT À CHANGER SI LE DOMAINE CHANGE <<<
+     Deux balises portent l'adresse publique du site, et elles sont côte à côte
+     juste en dessous : le lien canonique et og:url. Rien d'autre dans le
+     fichier ne contient le domaine.
+     =========================================================================== -->
+<link rel="canonical" href="https://cinematycoon.netlify.app/">
+<meta property="og:url" content="https://cinematycoon.netlify.app/">
+
+<meta name="author" content="VanNDM Creations">
+<meta name="keywords" content="jeu de gestion gratuit, tycoon cinéma, jeu de navigateur, simulation cinéma, jeu html5 sans installation">
+<meta name="theme-color" content="#1b1726">
+<!-- Balise de propriété AdSense : elle relie ce site au compte éditeur. -->
+<meta name="google-adsense-account" content="ca-pub-5640171592773109">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Cinéma Tycoon — jeu de gestion gratuit">
+<meta property="og:description" content="Dix semaines pour sauver une salle de quartier. Programme les séances, produis tes films, et va les regarder dans ta propre salle.">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"VideoGame","name":"Cinéma Tycoon",
+"description":"Jeu de gestion gratuit jouable dans le navigateur : diriger un cinéma de quartier pendant dix semaines, programmer les séances, produire ses propres films et les projeter.",
+"genre":["Simulation","Gestion"],"gamePlatform":"Navigateur web","inLanguage":"fr",
+"applicationCategory":"Game","operatingSystem":"Tout navigateur moderne",
+"author":{"@type":"Organization","name":"VanNDM Creations"},
+"offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
+</script>
+
+<!-- Google Consent Mode v2 : tout est refusé par défaut. Le CMP certifié met
+     ensuite à jour ces signaux selon le choix réel de la personne. Ce bloc doit
+     rester AVANT tout script publicitaire. -->
+<script>
+window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments);}
+gtag('consent','default',{
+  ad_storage:'denied',
+  ad_user_data:'denied',
+  ad_personalization:'denied',
+  analytics_storage:'denied',
+  functionality_storage:'granted',
+  security_storage:'granted',
+  wait_for_update:2000
+});
+gtag('set','ads_data_redaction',true);
+gtag('set','url_passthrough',true);
+</script>
+
+<!-- CMP certifié IAB TCF v2.2 : Google Funding Choices.
+     À activer dans AdSense > Confidentialité et messages > Message de consentement UE. -->
+<script async src="https://fundingchoicesmessages.google.com/i/pub-5640171592773109?ers=1"></script>
+<script>(function(){function signalGooglefcPresent(){if(!window.frames['googlefcPresent']){
+if(document.body){const i=document.createElement('iframe');i.style='width:0;height:0;border:none;z-index:-1000;left:-1000px;top:-1000px;';
+i.style.display='none';i.name='googlefcPresent';document.body.appendChild(i);}else{setTimeout(signalGooglefcPresent,0);}}}
+signalGooglefcPresent();})();</script>
+<script>
+/* AdSense n'est chargé qu'une fois le CMP prêt : c'est ce que Google exige
+   pour que les annonces respectent le choix de la personne. Aucun bloc
+   d'annonce n'est écrit dans la page — seules les annonces automatiques,
+   pilotées depuis le compte AdSense, ont le droit de se placer. */
+(function(){
+  var lance=false;
+  function charger(){
+    if(lance) return; lance=true;
+    var t=document.createElement('script');
+    t.async=true; t.crossOrigin='anonymous';
+    t.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5640171592773109';
+    document.head.appendChild(t);
+  }
+  if(window.__tcfapi){
+    window.__tcfapi('addEventListener',2,function(d,ok){
+      if(ok && d && (d.eventStatus==='tcloaded'||d.eventStatus==='useractioncomplete')) charger();
+    });
+  }
+  /* filet : hors zone TCF (Canada, Japon...), le CMP ne s'affiche pas */
+  setTimeout(charger,2500);
+})();
+</script>
 <style>
 :root{
   --encre:#211d2b; --encre2:#403752; --gris:#8a8199; --gris2:#b3aabe;
@@ -244,12 +322,42 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 .gcr .gh{font:700 11px var(--mono);color:var(--encre);width:42px;flex:0 0 auto;
   font-variant-numeric:tabular-nums}
 .gcr .gt{flex:1;min-width:0}
-.gcr .gt b{display:block;font-size:10.5px;letter-spacing:.04em;white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis}
+.gcr .gt b{display:block;font-size:10.5px;letter-spacing:.04em;line-height:1.3;
+  overflow-wrap:anywhere}
 .gcr .gt span{display:block;font-size:9px;color:var(--gris);margin-top:2px}
 .gcr .gp{font:700 10px var(--mono);color:var(--vert);flex:0 0 auto}
 .gcr.vide .gh{color:var(--gris2)}
 .gcr.vide .gt b{color:var(--gris)}
+.gcr .gh i{display:block;font-size:8.5px;font-style:normal;color:var(--gris);
+  font-weight:400;letter-spacing:.02em}
+.gcr .gh{width:62px;line-height:1.25}
+/* le verdict sur l'heure : la seule chose qui explique pourquoi une séance
+   remplit ou non. Elle valait déjà 45 % du public, mais en silence. */
+/* le badge passe À LA LIGNE plutôt que de disputer sa place au titre :
+   à l'étroit, les deux finissaient tronqués */
+.hbadge{display:inline-block;font:700 8px var(--mono);letter-spacing:.10em;
+  padding:2px 5px;border-radius:5px;margin-top:3px;white-space:nowrap}
+.hbadge.ok{background:#dff3e4;color:#1f7a3d}
+.hbadge.non{background:#fbe0e5;color:#c0233c}
+
+/* ---- LA FRISE DE LA JOURNÉE ----
+   Une salle, de l'ouverture à minuit, à l'échelle. C'est elle qui répond d'un
+   coup d'œil à « pourquoi mon film commence à 15h47 ». */
+.frise{margin:10px 0 4px}
+.frise .fr{position:relative;height:34px;border-radius:8px;overflow:hidden;
+  background:#e9e2d2;border:2px solid var(--bord)}
+.frise .fr i{position:absolute;top:0;bottom:0;display:block}
+.frise .fr i.film{border-right:1px solid rgba(0,0,0,.25)}
+.frise .fr i.ent{background:repeating-linear-gradient(45deg,#cbbfa6 0 4px,#ddd2ba 4px 8px)}
+.frise .fr i.mnt{background:#c0233c;width:2px;z-index:3;box-shadow:0 0 6px #c0233c}
+.frise .fr u{position:absolute;top:0;bottom:0;width:1px;background:rgba(0,0,0,.10)}
+.frise .rec{font:700 8.5px var(--mono);color:var(--encre2);margin-top:4px;
+  letter-spacing:.04em}
+.frise .ech{display:flex;justify-content:space-between;margin-top:3px;
+  font:700 8px var(--mono);color:var(--gris)}
+.frise .lg{font-size:9px;color:var(--gris);line-height:1.6;margin-top:5px}
+.frise .lg em{font-style:normal;display:inline-block;width:9px;height:9px;
+  border-radius:2px;vertical-align:-1px;margin-right:3px}
 /* le choix du film dans un créneau */
 .chx{display:flex;flex-direction:column;gap:4px;margin-top:6px;max-height:230px;overflow-y:auto}
 .chx button{display:flex;align-items:center;gap:7px;padding:6px 7px;border-radius:8px;
@@ -624,6 +732,109 @@ body:not(.enJeu) #flash{display:none !important}
   #flash{top:calc(env(safe-area-inset-top) + 40px)}
   .msg{font-size:10px;padding:6px 12px}
 }
+
+/* ==========================================================================
+   LA PROJECTION — on s'assoit dans sa propre salle et on regarde le film
+   ========================================================================== */
+#projo{position:fixed;inset:0;z-index:400;background:#05040a;display:none;
+  flex-direction:column;align-items:center;justify-content:center}
+#projo.on{display:flex}
+#pjCv{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* la vidéo importée n'est jamais affichée telle quelle : elle est peinte sur
+   la toile, à sa place exacte, avec le grain et le halo du projecteur. Elle
+   doit malgré tout rester dans la page et « visible » pour que le navigateur
+   la laisse jouer — d'où deux pixels dans un coin plutôt qu'un display:none. */
+#pjVid{position:absolute;left:0;bottom:0;width:2px;height:2px;opacity:.01;
+  pointer-events:none}
+#pjHaut{position:absolute;top:0;left:0;right:0;z-index:3;padding:14px 16px;
+  display:flex;align-items:flex-start;gap:12px;pointer-events:none;
+  background:linear-gradient(#05040aee,#05040a00)}
+#pjHaut .ti{font-family:var(--titre);font-size:clamp(17px,3.4vw,27px);color:#fff;
+  letter-spacing:.04em;line-height:1.05;text-shadow:0 2px 14px #000}
+#pjHaut .so{font-size:10px;letter-spacing:.16em;color:#b9b0c8;margin-top:5px;
+  text-transform:uppercase}
+#pjHaut .dr{margin-left:auto;text-align:right}
+#pjBas{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:12px 14px
+  calc(12px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center;
+  flex-wrap:wrap;justify-content:center;
+  background:linear-gradient(#05040a00,#05040aee)}
+#pjBas button{padding:11px 15px;border-radius:11px;border:2px solid #453a58;
+  background:#14101ecc;color:#e7e2f2;font-family:var(--titre);font-size:13px;
+  letter-spacing:.09em;cursor:pointer;backdrop-filter:blur(3px)}
+#pjBas button:hover{border-color:var(--jaune);color:#fff}
+#pjBas button.pri{background:var(--jaune);border-color:var(--jaune);color:#241c07}
+#pjBar{position:absolute;left:0;right:0;bottom:0;height:3px;z-index:4;background:#ffffff18}
+#pjBar i{display:block;height:100%;background:var(--jaune);width:0%}
+#pjNote{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);z-index:3;
+  max-width:78vw;text-align:center;font-size:12px;line-height:1.7;color:#d8d2e6;
+  background:#0b0814d8;border:2px solid #453a58;border-radius:12px;padding:12px 16px;
+  display:none}
+#pjNote.on{display:block}
+@media(max-width:560px){
+  #pjBas button{padding:9px 11px;font-size:11px}
+  #pjHaut{padding:10px 12px}
+}
+/* le bouton d'import de vidéo, dans le formulaire de production */
+.vidF{grid-column:1 / -1;border:2px dashed var(--bord);border-radius:10px;
+  padding:11px 12px;background:#fffdf7}
+.vidF.pleine{border-style:solid;border-color:#1f7a3d;background:#f2fbf4}
+.vidF .vt{display:flex;align-items:center;gap:9px}
+.vidF .vt b{font-family:var(--titre);font-size:12px;letter-spacing:.08em}
+.vidF .vt span{font-size:10px;color:var(--gris);line-height:1.5}
+.vidF .vb{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.vidF button{padding:8px 11px;border:2px solid var(--bord);border-radius:8px;
+  background:#fff;font-family:var(--titre);font-size:11px;letter-spacing:.07em;
+  cursor:pointer}
+.vidF button:hover{border-color:var(--encre)}
+.vidF button.dan{color:#c0233c}
+
+/* ==========================================================================
+   LES PACKS ET LE CODE DE SAUVEGARDE
+   ========================================================================== */
+#packs{position:fixed;inset:0;z-index:420;background:#1a1226f2;display:none;
+  flex-direction:column;align-items:center;justify-content:center;padding:18px;
+  backdrop-filter:blur(4px)}
+#packs.on{display:flex}
+#pkTitre{font-family:var(--titre);font-size:clamp(22px,5vw,38px);color:var(--jaune2);
+  letter-spacing:.06em}
+#pkSous{font:700 10px var(--mono);letter-spacing:.16em;color:#c3b8d6;margin-top:6px;
+  text-transform:uppercase;min-height:14px}
+#pkGrille{display:grid;gap:9px;margin:16px 0;max-width:min(94vw,720px);width:100%;
+  grid-template-columns:repeat(auto-fit,minmax(96px,1fr));max-height:58vh;overflow-y:auto}
+.pkc{aspect-ratio:.72;border-radius:11px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;padding:7px 5px;text-align:center;
+  border:2px solid #4a3d63;position:relative;overflow:hidden;cursor:pointer;
+  transition:transform .18s}
+.pkc.dos{background:linear-gradient(150deg,#2e2340,#4a3868);color:#8f7fb0;font-size:24px}
+.pkc.dos:hover{transform:translateY(-4px)}
+.pkc.face{background:#fdfbf5;border-color:var(--r);cursor:default;
+  animation:pkFlip .32s ease-out}
+@keyframes pkFlip{from{transform:rotateY(90deg) scale(.9)}to{transform:none}}
+.pkc.face i{font:700 7.5px var(--mono);letter-spacing:.14em;color:#fff;
+  background:var(--r);border-radius:4px;padding:2px 6px;font-style:normal}
+.pkc.face span{font-size:26px;line-height:1}
+.pkc.face b{font-family:var(--titre);font-size:10.5px;letter-spacing:.03em;
+  color:var(--encre);line-height:1.2}
+.pkc.face em{font:400 9px var(--mono);color:var(--gris);font-style:normal;line-height:1.3}
+/* le reflet qui passe sur les cartes qui valent le coup */
+.pkc.brille::after{content:'';position:absolute;inset:-40%;
+  background:linear-gradient(105deg,transparent 42%,#ffffffcc 50%,transparent 58%);
+  animation:pkShine 1.9s ease-in-out infinite}
+@keyframes pkShine{0%{transform:translateX(-90%)}60%,100%{transform:translateX(90%)}}
+#pkBas{display:flex;gap:9px;align-items:center;flex-wrap:wrap;justify-content:center}
+#pkBas button{padding:12px 18px;border-radius:11px;border:2px solid var(--jaune);
+  background:var(--jaune);color:#241c07;font-family:var(--titre);font-size:14px;
+  letter-spacing:.08em;cursor:pointer}
+#pkJet{font:700 13px var(--mono);color:var(--jaune2)}
+
+#code .zone{width:100%;max-width:560px}
+#code textarea{width:100%;min-height:96px;padding:11px 12px;border:2px solid var(--bord);
+  border-radius:10px;background:var(--creme2);color:var(--encre);
+  font:400 11px var(--mono);resize:vertical;word-break:break-all}
+#code textarea:focus{border-color:var(--jaune);background:#fff;outline:none}
+.cdmsg{font:700 10px var(--mono);letter-spacing:.06em;margin-top:8px;min-height:15px}
+.cdmsg.bon{color:#1f7a3d}
+.cdmsg.mal{color:#c0233c}
 </style>
 </head>
 <body>
@@ -655,6 +866,25 @@ body:not(.enJeu) #flash{display:none !important}
 </div>
 
 <div id="flash"></div>
+
+<!-- la salle de projection : une toile, et une vidéo cachée qu'on y peint -->
+<div id="projo">
+  <canvas id="pjCv"></canvas>
+  <video id="pjVid" playsinline preload="auto"></video>
+  <div id="pjHaut">
+    <div><div class="ti" id="pjTitre">—</div><div class="so" id="pjSous">—</div></div>
+    <div class="dr"><div class="ti" id="pjCote" style="font-size:20px">—</div>
+      <div class="so">COTE</div></div>
+  </div>
+  <div id="pjNote"></div>
+  <div id="pjBar"><i></i></div>
+  <div id="pjBas">
+    <button id="pjPrec">◀ FILM PRÉCÉDENT</button>
+    <button id="pjSon">SON : COUPÉ</button>
+    <button class="pri" id="pjFermer">QUITTER LA SALLE</button>
+    <button id="pjSuiv">FILM SUIVANT ▶</button>
+  </div>
+</div>
 <div id="aide"></div>
 <div id="posteHud">
   <div class="chi">🎟</div>
@@ -713,6 +943,8 @@ body:not(.enJeu) #flash{display:none !important}
     <button class="lien" id="ouvrirBoutique">BOUTIQUE</button>
     <button class="lien" id="ouvrirSucces">SUCCÈS</button>
     <button class="lien" id="ouvrirRegl">RÈGLES</button>
+    <button class="lien" id="ouvrirCode">CODE DE SAUVEGARDE</button>
+    <button class="lien" id="ouvrirLegal">MENTIONS LÉGALES</button>
   </div>
 </div>
 
@@ -780,6 +1012,7 @@ body:not(.enJeu) #flash{display:none !important}
         <div class="plein"><label>BUDGET DE PROMOTION</label><div class="sl">
           <input type="range" id="pfPromo" min="0" max="60000" step="1000" value="12000">
           <b id="pfPromoV">12 000 €</b></div></div>
+        <div class="vidF" id="pfVideo"></div>
       </div>
       <div class="prodR">
         <div class="pk"><span>COTE ATTENDUE</span><b id="pfCote">—</b></div>
@@ -848,7 +1081,61 @@ body:not(.enJeu) #flash{display:none !important}
   <div class="eyebrow">LE GROUPEMENT D'EXPLOITANTS</div>
   <h1 style="font-size:var(--t2)">BOUTIQUE</h1>
   <div class="carte" id="bouTete"></div>
+  <div class="eyebrow" style="margin-top:14px">LES PACKS — MOINS CHER, MAIS TIRÉ AU SORT</div>
+  <div class="bouL" id="pkVitrine"></div>
+  <div class="eyebrow" style="margin-top:16px">À L'UNITÉ — PLUS CHER, MAIS TU CHOISIS</div>
   <div class="bouL" id="bouListe"></div>
+</div>
+
+<!-- l'ouverture d'un pack -->
+<div id="packs">
+  <div id="pkTitre">POCHETTE</div>
+  <div id="pkSous"></div>
+  <div id="pkGrille"></div>
+  <div id="pkBas">
+    <span id="pkJet">🪙 0</span>
+    <button id="pkSuite">RETOURNER LA SUIVANTE</button>
+    <button id="pkTout" style="background:transparent;color:#d8cfe8">TOUT RETOURNER</button>
+  </div>
+</div>
+
+<!-- mentions légales et confidentialité -->
+<div class="screen" id="legal">
+  <div class="btnHaut"><button id="fermerLegal">RETOUR</button></div>
+  <div class="eyebrow">QUI ÉDITE CE SITE, ET CE QU'IL FAIT DE TES DONNÉES</div>
+  <h1 style="font-size:var(--t2)">MENTIONS LÉGALES</h1>
+  <div class="carte zone" id="lgTxt"></div>
+  <div class="carte zone">
+    <div class="sur">TES CHOIX PUBLICITAIRES</div>
+    <div class="txt" id="lgConf"></div>
+    <button class="btn ghost" id="lgConsent">GÉRER MES CHOIX PUBLICITAIRES</button>
+  </div>
+</div>
+
+<!-- le code de sauvegarde -->
+<div class="screen" id="code">
+  <div class="btnHaut"><button id="fermerCode">RETOUR</button></div>
+  <div class="eyebrow">EMPORTER SA CARRIÈRE</div>
+  <h1 style="font-size:var(--t2)">CODE DE SAUVEGARDE</h1>
+  <div class="carte zone">
+    <div class="sur">TON CODE</div>
+    <div class="txt">Copie ce code et garde-le. Collé sur un autre appareil, ou après
+      avoir vidé ton navigateur, il te rend ta carrière entière : jetons, succès,
+      améliorations, packs, et la partie en cours.<br>
+      <b>Il n'emporte pas les vidéos que tu as importées</b> — un fichier vidéo pèse
+      mille fois ce qu'un code peut porter. Elles restent sur l'appareil d'origine.</div>
+    <textarea id="cdSortie" readonly spellcheck="false"></textarea>
+    <div class="cdmsg" id="cdInfo"></div>
+    <button class="btn" id="cdCopier">COPIER LE CODE</button>
+  </div>
+  <div class="carte zone">
+    <div class="sur">CHARGER UN CODE</div>
+    <div class="txt">Colle ici un code obtenu ailleurs. <b>Il remplacera ta progression
+      actuelle</b> — on te demandera confirmation.</div>
+    <textarea id="cdEntree" spellcheck="false" placeholder="CINE1.D...."></textarea>
+    <div class="cdmsg" id="cdMsg"></div>
+    <button class="btn" id="cdCharger">CHARGER CE CODE</button>
+  </div>
 </div>
 
 <div class="screen" id="succes">
@@ -2275,7 +2562,9 @@ function seancesDe(b){
     const f=filmDe(g[i]);
     if(!f){ l.push({i, film:null, debut:h, fin:h}); h+=1.75; continue; }
     const dur=(f.duree+ENTRACTE)/60;
-    if(h+f.duree/60>FERMETURE+.15) break;
+    /* refusé, mais on le dit : sans ça le créneau disparaissait de la grille
+       et le joueur cherchait où était passé son film */
+    if(h+f.duree/60>FERMETURE+.15){ l.push({i, film:null, debut:h, fin:h, refuse:f}); continue; }
     l.push({i, film:f, debut:h, fin:h+f.duree/60});
     h+=dur;
   }
@@ -4850,7 +5139,8 @@ let outil=null, selection=null;
 const souris={x:0,y:0,g:[0,0],down:false,bouge:false,pan:false,px:0,py:0};
 
 function ecrans(id){
-  ['menu','soir','commande','fin','reglages','profil','boutique','succes'].forEach(k=>{
+  ['menu','soir','commande','fin','reglages','profil','boutique','succes','code',
+   'legal'].forEach(k=>{
     const e=$(k); if(e) e.classList.toggle('on',k===id);
   });
 }
@@ -5221,38 +5511,120 @@ function alertes(){
    et de ménage. Le joueur ne place pas des heures, il place des films — et il
    voit l'heure tomber. */
 let creneauOuvert=-1;
+
+/* Une heure est bonne ou elle ne l'est pas : hors de sa fenêtre, un genre perd
+   quarante-cinq pour cent de son public. C'était vrai depuis toujours, mais
+   nulle part écrit — et c'est la première chose qu'on ne comprenait pas. */
+function heureVerdict(f,debut){
+  const G=GENRES[f.genre];
+  const dedans=(debut>=G.heure[0]&&debut<=G.heure[1]);
+  return {dedans, fen:G.heure[0]+'h–'+G.heure[1]+'h',
+    txt:dedans?'BONNE HEURE':'MAUVAISE HEURE'};
+}
+
+/* la durée en heures et minutes, comme on la dit à voix haute */
+function dureeTxt(min){
+  const m=Math.round(min);
+  return m<60?(m+' min'):(Math.floor(m/60)+' h'+(m%60?String(m%60).padStart(2,'0'):''));
+}
+
+/* ---------------------------------------------------------------------------
+   LA FRISE DE LA JOURNÉE
+   Une salle, de l'ouverture à minuit, à l'échelle. C'est elle qui répond d'un
+   seul coup d'œil à « pourquoi mon film commence à 15 h 47 » : on voit la
+   séance d'avant, on voit les vingt-cinq minutes de battement, on voit le trou.
+   ------------------------------------------------------------------------- */
+function friseHtml(b){
+  const l=seancesDe(b);
+  const pc=x=>((x-OUVERTURE)/HEURES_JOUR*100);
+  let barres='';
+  for(const s of l){
+    if(!s.film) continue;
+    const G=GENRES[s.film.genre];
+    const g0=pc(s.debut), g1=pc(s.fin);
+    barres+='<i class="film" style="left:'+g0.toFixed(2)+'%;width:'
+      +Math.max(.6,g1-g0).toFixed(2)+'%;background:'+G.col+'" title="'+s.film.titre+'"></i>';
+    /* le battement : publicités, sortie de salle, ménage */
+    const e0=g1, e1=pc(s.fin+ENTRACTE/60);
+    barres+='<i class="ent" style="left:'+e0.toFixed(2)+'%;width:'
+      +Math.max(.4,e1-e0).toFixed(2)+'%"></i>';
+  }
+  /* les traits des heures, et le curseur de l'heure qu'il est */
+  let ticks='';
+  for(let x=OUVERTURE+1;x<FERMETURE;x++)
+    ticks+='<u style="left:'+pc(x).toFixed(2)+'%"></u>';
+  const maintenant=(P.phase!=='prepa'&&P.heure>=OUVERTURE&&P.heure<=FERMETURE)
+    ? '<i class="mnt" style="left:'+pc(P.heure).toFixed(2)+'%"></i>' : '';
+  const n=l.filter(s=>s.film).length;
+  const occupe=l.filter(s=>s.film).reduce((a,s)=>a+(s.fin-s.debut),0);
+  return '<div class="frise"><div class="fr">'+ticks+barres+maintenant+'</div>'
+    +'<div class="ech"><span>'+OUVERTURE+'h</span><span>16h</span><span>19h</span>'
+    +'<span>22h</span><span>minuit</span></div>'
+    +'<div class="rec">'+(n?n+' séance'+(n>1?'s':'')+' · '+dureeTxt(occupe*60)
+      +' de projection sur les '+dureeTxt(HEURES_JOUR*60)+' de la journée'
+      :'AUCUNE SÉANCE PROGRAMMÉE')+'</div>'
+    +'<div class="lg"><em style="background:#7b8fa8"></em>film · '
+    +'<em style="background:repeating-linear-gradient(45deg,#cbbfa6 0 3px,#ddd2ba 3px 6px)"></em>'
+    +ENTRACTE+' min de battement (publicités, sortie, ménage) · '
+    +'<em style="background:#e9e2d2"></em>salle éteinte</div></div>';
+}
+
 function grilleHtml(b){
   const l=seancesDe(b);
-  let h='<div class="grl">';
+  let h=friseHtml(b)+'<div class="grl">';
   for(let i=0;i<creneauxMax(b);i++){
     const s=l[i];
     const f=s?s.film:null;
     const G=f?GENRES[f.genre]:null;
-    const trop=(s&&f&&s.fin>FERMETURE+.02);
+    const v=f?heureVerdict(f,s.debut):null;
     h+='<button class="gcr'+(f?'':' vide')+(creneauOuvert===i?' on':'')+'" data-cr="'+i+'">'
-      +'<span class="gh">'+(s?heureTxt(s.debut):'—')+'</span>'
+      /* début ET fin : afficher seulement l'heure de début n'apprenait rien */
+      +'<span class="gh">'+(s&&f?heureTxt(s.debut):'—')
+        +(s&&f?'<i>→ '+heureTxt(s.fin)+'</i>':'')+'</span>'
       +'<span class="gt"><b'+(G?' style="color:'+G.col+'"':'')+'>'
-        +(f?f.titre:'CRÉNEAU LIBRE')+'</b>'
-      +'<span>'+(f?(G.ico+' '+G.nom+' · '+f.duree+' min · cote '+f.cote
-        +(trop?' · <b style="color:#c0233c">DÉPASSE MINUIT</b>':''))
-        :'clique pour y mettre un film')+'</span></span>'
+        +(f?f.titre:(s&&s.refuse?s.refuse.titre:'CRÉNEAU LIBRE'))
+        +(v?'<span class="hbadge '+(v.dedans?'ok':'non')+'">'+v.txt+'</span>':'')+'</b>'
+      +'<span>'+(f
+        ? G.ico+' '+G.nom+' · '+dureeTxt(f.duree)+' de film, puis '+ENTRACTE
+          +' min de battement · cote '+f.cote
+          +'<br>le public de ce genre vient entre '+v.fen
+          +(v.dedans?'' : ' — à cette heure-ci, il en manque 45 %')
+        : (s&&s.refuse
+          ? '<b style="color:#c0233c">NE TIENT PAS AVANT MINUIT</b> — '
+            +dureeTxt(s.refuse.duree)+' à partir de '+heureTxt(s.debut)
+            +'. Mets un film plus court, ou libère un créneau avant.'
+          : 'Vide : la salle reste éteinte 1 h 45 ici, et tout ce qui suit '
+            +'commence d\'autant plus tard. C\'est aussi comme ça qu\'on repousse '
+            +'un film à son heure.'))
+      +'</span></span>'
       +(f?'<span class="gp">'+cts(tarifDe(b,f))+'</span>':'')
       +'</button>';
   }
   h+='</div>';
   if(creneauOuvert>=0&&creneauOuvert<creneauxMax(b)){
     const dispo=(P.affiche||[]).map(filmDe).filter(Boolean);
-    h+='<div class="sous" style="margin-top:10px">CE QUI EST RÉSERVÉ CETTE SEMAINE</div>'
+    /* l'heure à laquelle CE créneau démarrerait : sans elle, on choisit un film
+       sans savoir à quelle heure il passera */
+    const sc=l[creneauOuvert];
+    const hDeb=sc?sc.debut:OUVERTURE+AVANT_ENTREE;
+    h+='<div class="sous" style="margin-top:10px">CE QUI PASSERAIT À '
+      +heureTxt(hDeb).toUpperCase()+'</div>'
       +'<div class="chx">'
       +'<button data-mf="0"><i>✖</i><span class="cn"><b>LAISSER VIDE</b>'
-        +'<span>la salle reste éteinte sur ce créneau</span></span></button>';
+        +'<span>la salle reste éteinte, et la suite démarre 1 h 45 plus tard</span>'
+        +'</span></button>';
     for(const f of dispo){
       const G=GENRES[f.genre];
       const encours=(b.grille||[])[creneauOuvert]===f.id;
+      const v=heureVerdict(f,hDeb);
+      const fin=hDeb+f.duree/60;
+      const tient=fin<=FERMETURE+.15;
       h+='<button data-mf="'+f.id+'"'+(encours?' class="on"':'')+'>'
-        +'<i>'+G.ico+'</i><span class="cn"><b>'+f.titre+'</b>'
-        +'<span>'+G.nom+' · '+f.duree+' min · '+ageTxt(f.age)
-        +' · idéal '+G.heure[0]+'h–'+G.heure[1]+'h</span></span>'
+        +'<i>'+G.ico+'</i><span class="cn"><b>'+f.titre
+        +'<span class="hbadge '+(v.dedans&&tient?'ok':'non')+'">'
+        +(!tient?'DÉPASSE MINUIT':v.txt)+'</span></b>'
+        +'<span>'+heureTxt(hDeb)+' → '+heureTxt(fin)+' · '+dureeTxt(f.duree)
+        +' · '+ageTxt(f.age)+' · son public vient entre '+v.fen+'</span></span>'
         +'<span class="cw" style="color:'+G.col+'">'+f.cote+'</span></button>';
     }
     if(!dispo.length) h+='<div class="txt">Rien de réservé. Va au bureau réserver un film '
@@ -5356,6 +5728,12 @@ function ficheBati(b){
         +'<b style="color:#c9930f">+'+Math.round((d.premium-1)*100)+' %</b></div>':'')
       +'<div class="sous" style="margin-top:12px">LA GRILLE DU JOUR</div>'
       +grilleHtml(b);
+    /* diriger un cinéma sans jamais voir un film : c'était le grand absent */
+    const fv=filmDeLaSalle(b);
+    h+=fv
+      ? '<button class="bt or" id="bVoir">S\'ASSEOIR ET REGARDER « '+fv.titre+' »</button>'
+      : '<div class="txt">Rien à voir ici : programme un film dans cette salle et tu '
+        +'pourras venir t\'y asseoir.</div>';
     if(b.proprete<.98&&(b.dedans||0)<=0)
       h+='<button class="bt vert" id="bMenage">ALLER NETTOYER CETTE SALLE</button>';
     if(!b.servi) h+='<div class="txt"><b class="danger">Aucun passage n\'y mène : '
@@ -5410,6 +5788,8 @@ function ficheBati(b){
   el.innerHTML=h;
 
   if(b.cat==='salle') brancherGrille(b,el);
+  const vo=$('bVoir');
+  if(vo) vo.onclick=()=>{ const f=filmDeLaSalle(b); if(f) ouvrirProjection(f,b); };
   const mn=$('bMenage');
   if(mn) mn.onclick=()=>{ envoyerPatron(b.x,b.y); SND.clic(); ficheBati(b); };
   const cf=$('bConf');
@@ -6095,6 +6475,7 @@ function ligneFilm(f,perso){
   tags.push(['',G.heure[0]+'H–'+G.heure[1]+'H']);
   if(f.cote<28) tags.push(['mal','COTE ÉPUISÉE']);
   if(prog) tags.push(['bon','PROGRAMMÉ']);
+  if(f.video) tags.push(['bon','🎬 TA VIDÉO']);
   return '<div class="fil'+(f.perso?' perso':(res?' reserve':''))+'">'
     +'<div class="aff" style="background:'+G.col+'"><u>'+G.ico+'</u>'
       +'<em>'+f.cote+'</em><i>COTE</i></div>'
@@ -6109,7 +6490,11 @@ function ligneFilm(f,perso){
       ? '<button class="dan" data-ret="'+f.id+'">RETIRER</button>'
       : '<button class="pri" data-res="'+f.id+'"'+(cout>P.argent?' disabled':'')+'>'
         +(f.perso?'REMETTRE':'RÉSERVER')+'<br>'+eur(cout)+'</button>')
+    +'<button data-voir="'+f.id+'">REGARDER</button>'
     +(res?'<button data-ren="'+f.id+'">RENOMMER</button>':'')
+    +(f.perso?'<button data-vid="'+f.id+'">'
+      +(f.video?'CHANGER LA VIDÉO':'AJOUTER MA VIDÉO')+'</button>':'')
+    +(f.perso&&f.video?'<button class="dan" data-vidx="'+f.id+'">SANS VIDÉO</button>':'')
     +'</div></div>';
 }
 function majCatalogue(){
@@ -6137,6 +6522,15 @@ function majCatalogue(){
     b.onclick=()=>{ retirerAffiche(+b.getAttribute('data-ret'));
       majCatalogue(); aideAffiche(); majCats(); enregistrerPrepa(); };
   });
+  el.querySelectorAll('[data-voir]').forEach(b=>{
+    b.onclick=()=>{ const f=filmDe(+b.getAttribute('data-voir')); if(f) ouvrirProjection(f,null); };
+  });
+  el.querySelectorAll('[data-vid]').forEach(b=>{
+    b.onclick=()=>{ const f=filmDe(+b.getAttribute('data-vid')); if(f) attacherVideo(f); };
+  });
+  el.querySelectorAll('[data-vidx]').forEach(b=>{
+    b.onclick=()=>{ const f=filmDe(+b.getAttribute('data-vidx')); if(f) detacherVideo(f); };
+  });
   el.querySelectorAll('[data-ren]').forEach(b=>{
     b.onclick=()=>{
       const id=+b.getAttribute('data-ren');
@@ -6154,7 +6548,7 @@ function majCatalogue(){
 }
 
 /* ---- le formulaire de production ---- */
-const prodF={titre:'', genre:null, duree:105, age:0, promo:12000};
+const prodF={titre:'', genre:null, duree:105, age:0, promo:12000, video:null};
 function majFormeProduction(){
   const ouverts=genresOuverts();
   if(!prodF.genre||ouverts.indexOf(prodF.genre)<0) prodF.genre=ouverts[0]||'action';
@@ -6183,10 +6577,26 @@ function majFormeProduction(){
   pr.value=Math.min(prodF.promo,+pr.max);
   prodF.promo=+pr.value;
   pr.oninput=()=>{ prodF.promo=+pr.value; majChiffresProduction(); };
+  majCaseVideo();
   $('pfValider').onclick=()=>{
+    const enAttente=prodF.video;
     const f=produireFilm(prodF.titre,prodF.genre,prodF.duree,prodF.age,prodF.promo);
-    if(f){ prodF.titre=''; majFormeProduction(); majCatalogue(); aideProduction();
-      majCats(); enregistrerPrepa(); }
+    if(!f) return;
+    /* la vidéo n'est rangée QU'UNE FOIS le film accepté : produire peut
+       échouer faute d'argent, et on ne veut pas laisser un fichier orphelin
+       dans la base pour autant */
+    if(enAttente){
+      rangerVideo(enAttente.fichier).then(cle=>{
+        f.video=cle; f.videoNom=enAttente.nom;
+        decrocher('projectionniste');
+        majCatalogue(); enregistrerPrepa();
+      }).catch(()=>{
+        flash('La vidéo n\'a pas pu être enregistrée — le film reste, sans elle','mal');
+      });
+    }
+    prodF.titre=''; prodF.video=null;
+    majFormeProduction(); majCatalogue(); aideProduction();
+    majCats(); enregistrerPrepa();
   };
   majChiffresProduction();
 }
@@ -6425,7 +6835,7 @@ const SAVE_DEF={ volume:.6, son:true, diff:'normale', reprise:true,
   nom:'', avatar:0,
   parties:0, victoires:0, meilleur:0, meilleureRep:0, meilleurNiveau:0,
   totalClients:0, totalBillets:0, totalCA:0, meilleureCaisse:0, meilleureSeance:0,
-  jetons:0, xpCarriere:0, succes:{}, ameliorations:{}, partie:null };
+  jetons:0, xpCarriere:0, succes:{}, ameliorations:{}, packs:0, partie:null };
 
 const RANGS=[
  {s:0,      nom:'PROJECTIONNISTE',  ico:'📽', d:'On change les bobines soi-même.'},
@@ -6506,7 +6916,10 @@ const SUCCES=[
  {id:'sansincident',nom:'PROJECTION PARFAITE',d:'Une soirée complète sans un incident',    j:8},
  {id:'vedette',  nom:'AVANT-PREMIÈRE',  d:'Payer une avant-première',                      j:6},
  {id:'gagne',    nom:'DIX SEMAINES',    d:'Payer les dix loyers',                          j:35},
- {id:'gagnedur', nom:'MULTIPLEXE BATTU',d:'Gagner en difficulté MULTIPLEXE EN FACE',       j:60}
+ {id:'gagnedur', nom:'MULTIPLEXE BATTU',d:'Gagner en difficulté MULTIPLEXE EN FACE',       j:60},
+ {id:'spectateur',nom:'DE L\'AUTRE CÔTÉ',d:'S\'asseoir dans une de tes salles et regarder',j:5},
+ {id:'projectionniste',nom:'TA PROPRE BOBINE',d:'Attacher ta vidéo à un film maison',      j:10},
+ {id:'collectionneur',nom:'COLLECTIONNEUR',   d:'Ouvrir cinq packs',                       j:8}
 ];
 function succesFait(id){ return !!(SAVE.succes&&SAVE.succes[id]); }
 function decrocher(id){
@@ -6656,7 +7069,7 @@ function serialiserPartie(){
     const f=P.films[id];
     films[id]=[f.id,f.titre,f.genre,f.duree,f.age,f.cote,f.cote0,f.loc,
       +f.part.toFixed(4),f.sem,f.perso?1:0,f.sorties|0,f.entrees|0,
-      Math.round(f.recette||0),f.semAffiche|0];
+      Math.round(f.recette||0),f.semAffiche|0,f.video||'',f.videoNom||''];
   }
   return {
     v:1, diff:SAVE.diff,
@@ -6667,7 +7080,7 @@ function serialiserPartie(){
     prix:P.prix, commande:P.commande,
     licences:P.licences, livraisons:P.livraisons,
     stock:P.stock, sal,
-    films, catalogue:P.catalogue, affiche:P.affiche, idFilm,
+    films, catalogue:P.catalogue, affiche:P.affiche, idFilm, idVideo,
     produits:P.produits|0,
     meubles:P.meubles.map(b=>[b.cat,b.k,b.x,b.y,(b.grille||[]).slice(),
       b.entrees|0, Math.round(b.recette||0), +(b.proprete||1).toFixed(3)]),
@@ -6713,8 +7126,16 @@ function restaurerPartie(d){
       if(!a||!GENRES[a[2]]) continue;
       P.films[a[0]]={id:a[0], titre:a[1], genre:a[2], duree:a[3], age:a[4],
         cote:a[5], cote0:a[6], loc:a[7], part:a[8], sem:a[9], perso:a[10],
-        sorties:a[11], entrees:a[12], recette:a[13], semAffiche:a[14]};
+        sorties:a[11], entrees:a[12], recette:a[13], semAffiche:a[14],
+        video:a[15]||null, videoNom:a[16]||''};
       idFilm=Math.max(idFilm,a[0]+1);
+    }
+    /* les clés vidéo ne se réutilisent jamais : on repart au-dessus de la plus
+       haute rencontrée, même si la sauvegarde vient d'une version d'avant */
+    idVideo=Math.max(1,d.idVideo|0);
+    for(const id in P.films){
+      const c=P.films[id].video;
+      if(c) idVideo=Math.max(idVideo,(+String(c).slice(1)||0)+1);
     }
     P.catalogue=(d.catalogue||[]).filter(id=>P.films[id]);
     P.affiche=(d.affiche||[]).filter(id=>P.films[id]);
@@ -6922,6 +7343,7 @@ function montrerBoutique(){
   ecranActif='boutique'; ecrans('boutique');
 }
 function majBoutique(){
+  majVitrinePacks();
   const je=SAVE.jetons||0;
   $('bouListe').innerHTML=Object.keys(AMELIORATIONS).map(k=>{
     const a=AMELIORATIONS[k], n=AM(k), plein=n>=a.max;
@@ -7010,6 +7432,1647 @@ function majMenu(){
 
 
 /* ==========================================================================
+   10 bis. LA PROJECTION
+   ==========================================================================
+   On dirige un cinéma sans jamais voir un film : c'était le grand absent. On
+   peut désormais s'asseoir dans sa propre salle et regarder ce qu'on y a
+   programmé.
+
+   Deux sources d'image, et une seule façon de la peindre :
+
+   — un film du distributeur, ou un film maison sans vidéo, joue une petite
+     bobine dessinée à la volée, différente pour chacun des onze genres ;
+   — un film maison auquel on a attaché une vidéo joue CETTE vidéo.
+
+   Dans les deux cas l'image passe par la même toile, avec le même grain, le
+   même halo de projecteur et les mêmes rideaux : ce qu'on regarde a toujours
+   l'air d'être projeté dans une salle, pas collé dans une page.
+
+   Les vidéos ne peuvent pas tenir dans le localStorage — quelques mégaoctets
+   au total, et du texte uniquement. Elles vont donc dans IndexedDB, qui garde
+   des fichiers entiers et les rend tels quels au rechargement.
+   ========================================================================== */
+const VDB={
+  nom:'cinemaTycoonVideos', mag:'videos', p:null,
+  ouvrir(){
+    if(this.p) return this.p;
+    this.p=new Promise((res,rej)=>{
+      let r;
+      try{ r=indexedDB.open(this.nom,1); }catch(e){ return rej(e); }
+      r.onupgradeneeded=()=>{
+        const db=r.result;
+        if(!db.objectStoreNames.contains('videos')) db.createObjectStore('videos');
+      };
+      r.onsuccess=()=>res(r.result);
+      r.onerror=()=>rej(r.error||new Error('indexedDB'));
+      r.onblocked=()=>rej(new Error('bloqué'));
+    });
+    return this.p;
+  },
+  op(mode,fn){
+    return this.ouvrir().then(db=>new Promise((res,rej)=>{
+      const t=db.transaction('videos',mode), st=t.objectStore('videos');
+      let req;
+      try{ req=fn(st); }catch(e){ return rej(e); }
+      t.oncomplete=()=>res(req&&'result' in req?req.result:undefined);
+      t.onerror=()=>rej(t.error);
+      t.onabort=()=>rej(t.error||new Error('abandon'));
+    }));
+  },
+  poser(cle,blob){ return this.op('readwrite',st=>st.put(blob,cle)); },
+  lire(cle){ return this.op('readonly',st=>st.get(cle)); },
+  oter(cle){ return this.op('readwrite',st=>st.delete(cle)); },
+  cles(){ return this.op('readonly',st=>st.getAllKeys()); }
+};
+
+/* Les clés vidéo ne réutilisent jamais un numéro : un identifiant de film
+   repart à 1 à chaque nouvelle partie, et on retrouverait la vidéo d'un film
+   effacé collée sur un film neuf. */
+let idVideo=1;
+const TAILLE_MAX_VIDEO=260*1024*1024;
+
+/* une adresse d'objet par clé, fabriquée une seule fois par session */
+const urlsVideo={};
+function urlVideo(cle){
+  if(urlsVideo[cle]) return Promise.resolve(urlsVideo[cle]);
+  return VDB.lire(cle).then(b=>{
+    if(!b) return null;
+    urlsVideo[cle]=URL.createObjectURL(b);
+    return urlsVideo[cle];
+  });
+}
+
+/* Au démarrage d'une partie, on jette les vidéos qu'aucun film ne réclame
+   plus : sinon un joueur qui recommence dix fois garde dix gigaoctets de
+   fichiers auxquels rien ne renvoie. */
+function elaguerVideos(){
+  if(!P) return;
+  VDB.cles().then(cles=>{
+    const gardees={};
+    for(const id in (P.films||{})) if(P.films[id].video) gardees[P.films[id].video]=1;
+    for(const c of (cles||[])) if(!gardees[c]) VDB.oter(c).catch(()=>{});
+  }).catch(()=>{});
+}
+
+/* ---------------------------------------------------------------- la salle */
+const PJ={
+  ouvert:false, film:null, salle:null, t:0, dernier:0, raf:0,
+  liste:[], son:false, pauseAvant:false, video:null, cleChargee:null,
+  pretVideo:false, echecVideo:false
+};
+
+function filmsRegardables(b){
+  const vus={}, out=[];
+  const ajoute=id=>{ const f=filmDe(id); if(f&&!vus[f.id]){ vus[f.id]=1; out.push(f); } };
+  if(b&&b.cat==='salle') for(const id of (b.grille||[])) if(id) ajoute(id);
+  for(const id of (P.affiche||[])) ajoute(id);
+  if(!out.length) for(const id of (P.catalogue||[])) ajoute(id);
+  return out;
+}
+
+/* le film que cette salle passe en ce moment, ou à défaut le prochain */
+function filmDeLaSalle(b){
+  const e=etatSalle(b);
+  if(e&&e.s&&e.s.film) return e.s.film;
+  const p=prochaineSeance(b);
+  if(p&&p.film) return p.film;
+  for(const id of (b.grille||[])) if(id){ const f=filmDe(id); if(f) return f; }
+  return null;
+}
+
+function ouvrirProjection(film,b){
+  if(!P||!film) return;
+  PJ.liste=filmsRegardables(b);
+  if(PJ.liste.indexOf(film)<0) PJ.liste.unshift(film);
+  PJ.film=film; PJ.salle=b||null;
+  PJ.t=0; PJ.dernier=performance.now();
+  PJ.echecVideo=false; PJ.pretVideo=false;
+  if(!PJ.ouvert){
+    PJ.pauseAvant=enPause;
+    enPause=true;
+    PJ.ouvert=true;
+    $('projo').classList.add('on');
+    redimProjo();
+    PJ.raf=requestAnimationFrame(boucleProjo);
+  }
+  chargerVideoProjection();
+  majEnteteProjection();
+  if(!P.demo) decrocher('spectateur');
+  SND.clic();
+}
+
+function fermerProjection(){
+  if(!PJ.ouvert) return;
+  PJ.ouvert=false;
+  cancelAnimationFrame(PJ.raf);
+  $('projo').classList.remove('on');
+  const v=$('pjVid');
+  try{ v.pause(); v.removeAttribute('src'); v.load(); }catch(e){}
+  PJ.cleChargee=null;
+  enPause=PJ.pauseAvant;
+  majVitesse&&majVitesse();
+}
+
+function filmSuivantProjection(d){
+  if(!PJ.liste.length) return;
+  let i=PJ.liste.indexOf(PJ.film);
+  if(i<0) i=0;
+  i=(i+d+PJ.liste.length)%PJ.liste.length;
+  PJ.film=PJ.liste[i];
+  PJ.t=0; PJ.echecVideo=false; PJ.pretVideo=false;
+  chargerVideoProjection();
+  majEnteteProjection();
+  SND.clic();
+}
+
+function chargerVideoProjection(){
+  const v=$('pjVid'), f=PJ.film;
+  note('');
+  if(!f||!f.video){
+    if(PJ.cleChargee){ try{ v.pause(); v.removeAttribute('src'); v.load(); }catch(e){} }
+    PJ.cleChargee=null;
+    return;
+  }
+  if(PJ.cleChargee===f.video){ try{ v.currentTime=0; v.play(); }catch(e){} return; }
+  PJ.cleChargee=f.video;
+  urlVideo(f.video).then(u=>{
+    if(!PJ.ouvert||PJ.cleChargee!==f.video) return;
+    if(!u){ PJ.echecVideo=true; note('La vidéo de ce film est introuvable — elle a dû '
+      +'être effacée avec les données du navigateur. La bobine dessinée prend le relais.');
+      return; }
+    v.src=u; v.loop=true; v.muted=!PJ.son; v.volume=PJ.son?1:0;
+    v.play().catch(()=>{});
+  }).catch(()=>{
+    PJ.echecVideo=true;
+    note('Impossible de relire cette vidéo. La bobine dessinée prend le relais.');
+  });
+}
+
+function note(txt){
+  const el=$('pjNote');
+  el.textContent=txt||'';
+  el.classList.toggle('on',!!txt);
+}
+
+function majEnteteProjection(){
+  const f=PJ.film;
+  if(!f) return;
+  const G=GENRES[f.genre];
+  $('pjTitre').textContent=f.titre;
+  $('pjTitre').style.color=G.col;
+  const bits=[G.ico+' '+G.nom, f.duree+' min', ageTxt(f.age)];
+  if(PJ.salle) bits.push(PJ.salle.d.nom);
+  if(f.perso) bits.push('FILM MAISON');
+  if(f.video&&!PJ.echecVideo) bits.push('TA VIDÉO');
+  else bits.push('BOBINE DESSINÉE');
+  $('pjSous').textContent=bits.join(' · ');
+  $('pjCote').textContent=f.cote;
+  $('pjCote').style.color=G.col;
+  $('pjSon').textContent='SON : '+(PJ.son?'ACTIVÉ':'COUPÉ');
+  const n=PJ.liste.length;
+  $('pjPrec').style.display=n>1?'':'none';
+  $('pjSuiv').style.display=n>1?'':'none';
+}
+
+/* ------------------------------------------------------------ la toile */
+let pjCv=null, pjCtx=null, pjW=0, pjH=0, pjDpr=1;
+function redimProjo(){
+  pjCv=$('pjCv'); pjCtx=pjCv.getContext('2d');
+  pjDpr=Math.min(2,window.devicePixelRatio||1);
+  pjW=pjCv.clientWidth; pjH=pjCv.clientHeight;
+  pjCv.width=Math.round(pjW*pjDpr); pjCv.height=Math.round(pjH*pjDpr);
+  pjCtx.setTransform(pjDpr,0,0,pjDpr,0,0);
+}
+
+function boucleProjo(now){
+  if(!PJ.ouvert) return;
+  const dt=Math.min(.06,(now-PJ.dernier)/1000);
+  PJ.dernier=now;
+  PJ.t+=dt;
+  if(pjW!==$('pjCv').clientWidth||pjH!==$('pjCv').clientHeight) redimProjo();
+  dessinerProjection(dt);
+  PJ.raf=requestAnimationFrame(boucleProjo);
+}
+
+/* le rectangle de l'écran : seize neuvièmes, centré, de la place dessous pour
+   les fauteuils */
+function rectEcran(){
+  const w=pjW,h=pjH;
+  let sw=Math.min(w*.84,(h*.60)*16/9);
+  let sh=sw*9/16;
+  return {x:(w-sw)/2, y:h*.10, w:sw, h:sh};
+}
+
+function dessinerProjection(dt){
+  const g=pjCtx, w=pjW, h=pjH, t=PJ.t, f=PJ.film;
+  if(!f) return;
+  const G=GENRES[f.genre];
+  const R=rectEcran();
+  const v=$('pjVid');
+  const videoPrete=!!(f.video&&!PJ.echecVideo&&v.readyState>=2&&v.videoWidth>0);
+
+  g.fillStyle='#05040a'; g.fillRect(0,0,w,h);
+
+  /* --- l'image, dans le cadre de l'écran --- */
+  g.save();
+  g.beginPath(); g.rect(R.x,R.y,R.w,R.h); g.clip();
+  g.fillStyle='#000'; g.fillRect(R.x,R.y,R.w,R.h);
+  if(videoPrete){
+    /* la vidéo garde ses proportions : on ne déforme jamais ce que le joueur
+       a tourné, on met des bandes noires comme au cinéma */
+    const ra=v.videoWidth/v.videoHeight, rc=R.w/R.h;
+    let dw=R.w, dh=R.h;
+    if(ra>rc) dh=R.w/ra; else dw=R.h*ra;
+    g.drawImage(v,R.x+(R.w-dw)/2,R.y+(R.h-dh)/2,dw,dh);
+  } else {
+    g.save(); g.translate(R.x,R.y);
+    (BOBINES[f.genre]||BOBINES.action)(g,R.w,R.h,t,G.col,f);
+    g.restore();
+  }
+  /* le grain de la pellicule, la même quantité pour tout le monde */
+  grainPellicule(g,R.x,R.y,R.w,R.h,t);
+  g.restore();
+
+  /* --- ce qui déborde du cadre --- */
+  halo(g,R,G.col,t,videoPrete,v);
+  faisceau(g,R,t);
+  cadreEcran(g,R);
+  rideaux(g,R,w,h);
+  fauteuils(g,R,w,h,t);
+  vignettage(g,w,h,R);
+
+  /* --- la barre de progression de la séance en cours --- */
+  const b=PJ.salle;
+  let p=-1;
+  if(b){
+    const e=etatSalle(b);
+    if(e&&e.s&&e.s.film===f&&e.etat==='projection')
+      p=clamp((P.heure-e.s.debut)/Math.max(.01,f.duree/60),0,1);
+  }
+  if(p<0&&videoPrete&&v.duration&&isFinite(v.duration)) p=clamp(v.currentTime/v.duration,0,1);
+  $('pjBar').firstElementChild.style.width=(p<0?0:p*100).toFixed(1)+'%';
+}
+
+/* ---------------------------------------------------------- les habillages */
+function grainPellicule(g,x,y,w,h,t){
+  g.save();
+  g.globalAlpha=.055;
+  g.fillStyle='#fff';
+  for(let i=0;i<70;i++)
+    g.fillRect(x+Math.random()*w,y+Math.random()*h,1.6,1.6);
+  g.globalAlpha=.05;
+  g.fillStyle='#000';
+  for(let i=0;i<40;i++)
+    g.fillRect(x+Math.random()*w,y+Math.random()*h,2.2,2.2);
+  /* une rayure verticale, de temps en temps, comme sur une copie fatiguée */
+  if(Math.random()<.10){
+    g.globalAlpha=.14; g.fillStyle='#fff';
+    g.fillRect(x+Math.random()*w,y,1.2,h);
+  }
+  /* et la marque de changement de bobine, toutes les vingt secondes */
+  const q=t%20;
+  if(q<.28){
+    g.globalAlpha=.55; g.strokeStyle='#fff'; g.lineWidth=2;
+    g.beginPath(); g.arc(x+w*.92,y+h*.12,Math.min(w,h)*.035,0,6.283); g.stroke();
+  }
+  g.restore();
+}
+
+/* la lumière qui déborde de l'écran et repeint toute la salle */
+function halo(g,R,col,t,videoPrete,v){
+  const bat=.72+Math.sin(t*2.3)*.10+Math.sin(t*8.7)*.05;
+  g.save();
+  /* tout sauf l'écran : la lumière du projecteur déborde du cadre, elle ne
+     repeint pas ce qu'il projette */
+  g.beginPath();
+  g.rect(0,0,pjW,pjH);
+  g.rect(R.x,R.y,R.w,R.h);
+  g.clip('evenodd');
+  g.globalCompositeOperation='lighter';
+  const gr=g.createRadialGradient(R.x+R.w/2,R.y+R.h/2,R.h*.3,
+                                  R.x+R.w/2,R.y+R.h/2,R.h*2.4);
+  gr.addColorStop(0,teinte(col,.26*bat));
+  gr.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=gr;
+  g.fillRect(0,0,pjW,pjH);
+  g.restore();
+}
+
+/* le faisceau du projecteur, vu de dos, avec la poussière dedans */
+function faisceau(g,R,t){
+  g.save();
+  g.globalCompositeOperation='lighter';
+  const px=pjW/2, py=pjH*1.02;
+  const gr=g.createLinearGradient(0,R.y+R.h,0,py);
+  gr.addColorStop(0,'rgba(255,255,255,.055)');
+  gr.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=gr;
+  g.beginPath();
+  g.moveTo(R.x,R.y+R.h); g.lineTo(R.x+R.w,R.y+R.h);
+  g.lineTo(px+pjW*.06,py); g.lineTo(px-pjW*.06,py);
+  g.closePath(); g.fill();
+  g.globalAlpha=.5;
+  for(let i=0;i<26;i++){
+    const u=((i*.137+t*.035)%1);
+    const yy=R.y+R.h+u*(py-R.y-R.h);
+    const k=(yy-R.y-R.h)/(py-R.y-R.h);
+    const lx=lerpPJ(R.x,px-pjW*.06,k), rx=lerpPJ(R.x+R.w,px+pjW*.06,k);
+    const xx=lx+((i*.618+t*.02)%1)*(rx-lx);
+    g.fillStyle='rgba(255,255,255,'+(.10+.10*Math.sin(t*3+i)).toFixed(3)+')';
+    g.fillRect(xx,yy,1.6,1.6);
+  }
+  g.restore();
+}
+const lerpPJ=(a,b,k)=>a+(b-a)*k;
+
+function cadreEcran(g,R){
+  const m=Math.max(3,R.h*.028);
+  g.strokeStyle='#0a0810'; g.lineWidth=m*2;
+  g.strokeRect(R.x-m,R.y-m,R.w+m*2,R.h+m*2);
+  g.strokeStyle='#2a2233'; g.lineWidth=Math.max(1,m*.4);
+  g.strokeRect(R.x-m*1.6,R.y-m*1.6,R.w+m*3.2,R.h+m*3.2);
+}
+
+function rideaux(g,R,w,h){
+  const lw=Math.max(18,(w-R.w)/2*.92);
+  for(const cote of [0,1]){
+    const x0=cote?w-lw:0;
+    const gr=g.createLinearGradient(x0,0,x0+lw,0);
+    if(cote){ gr.addColorStop(0,'rgba(0,0,0,.25)'); gr.addColorStop(1,'#3a0d18'); }
+    else { gr.addColorStop(0,'#3a0d18'); gr.addColorStop(1,'rgba(0,0,0,.25)'); }
+    g.fillStyle=gr;
+    g.fillRect(x0,0,lw,h*.80);
+    /* les plis : de simples bandes plus sombres, mais c'est ce qui fait le
+       velours */
+    g.save(); g.globalAlpha=.35;
+    for(let i=0;i<7;i++){
+      const u=i/7;
+      g.fillStyle=i%2?'#5c1526':'#22070f';
+      g.fillRect(x0+u*lw,0,lw/14,h*.80);
+    }
+    g.restore();
+  }
+}
+
+function fauteuils(g,R,w,h,t){
+  const y0=h*.74;
+  g.fillStyle='#0a0810';
+  g.fillRect(0,y0-h*.02,w,h-y0+h*.02);
+  /* trois rangs, du plus loin au plus près */
+  for(let r=0;r<3;r++){
+    const yy=y0+r*h*.095;
+    const hh=h*.10+r*h*.03;
+    const n=Math.max(4,Math.round(w/(90+r*22)));
+    const lg=w/n;
+    g.fillStyle=r===0?'#1a1220':r===1?'#140e1a':'#0d0913';
+    for(let i=0;i<n;i++){
+      const x=i*lg+lg*.06;
+      arrondiPJ(g,x,yy,lg*.88,hh,Math.min(lg*.2,hh*.35));
+      g.fill();
+    }
+    /* quelques têtes : autant que de spectateurs vraiment dans la salle */
+    const b=PJ.salle;
+    const dedans=b?(b.dedans||0):0;
+    if(dedans>0&&r<2){
+      const parRang=Math.min(n,Math.ceil(dedans/2));
+      g.fillStyle=r===0?'#241a2e':'#1b1424';
+      for(let i=0;i<parRang;i++){
+        const x=((i*7+r*3)%n)*lg+lg*.44;
+        const bob=Math.sin(t*.8+i*1.7+r)*1.4;
+        g.beginPath();
+        g.arc(x,yy-hh*.10+bob,lg*.17,0,6.283);
+        g.fill();
+      }
+    }
+  }
+}
+function arrondiPJ(g,x,y,w,h,r){
+  g.beginPath();
+  g.moveTo(x+r,y); g.lineTo(x+w-r,y); g.quadraticCurveTo(x+w,y,x+w,y+r);
+  g.lineTo(x+w,y+h); g.lineTo(x,y+h); g.lineTo(x,y+r);
+  g.quadraticCurveTo(x,y,x+r,y);
+  g.closePath();
+}
+
+function vignettage(g,w,h,R){
+  g.save();
+  if(R){
+    g.beginPath();
+    g.rect(0,0,w,h);
+    g.rect(R.x,R.y,R.w,R.h);
+    g.clip('evenodd');
+  }
+  const gr=g.createRadialGradient(w/2,h*.45,Math.min(w,h)*.28,
+                                  w/2,h*.45,Math.max(w,h)*.78);
+  gr.addColorStop(0,'rgba(0,0,0,0)');
+  gr.addColorStop(1,'rgba(0,0,0,.72)');
+  g.fillStyle=gr; g.fillRect(0,0,w,h);
+  g.restore();
+}
+
+/* ==========================================================================
+   LES BOBINES DESSINÉES
+   ==========================================================================
+   Onze petits films, un par genre, tracés à la volée. Aucun n'essaie de
+   raconter quoi que ce soit : ils essaient d'être RECONNAISSABLES en une
+   seconde, écran éteint dans le dos. On doit savoir qu'on est devant une
+   horreur avant d'avoir lu le titre — c'est tout ce qu'on leur demande, et
+   c'est ce qui fait qu'ils valent la peine d'être onze plutôt qu'un.
+
+   Chacune reçoit un contexte déjà translaté sur le coin de l'écran, sa
+   largeur, sa hauteur, le temps en secondes, la couleur du genre et le film :
+   l'identifiant du film sert de graine, de sorte que le même film compose
+   toujours la même ville, la même savane, le même ciel étoilé.
+   ========================================================================== */
+const hachB=n=>{ n=(n*374761393+668265263)|0; n=(n^(n>>13))*1274126177;
+  return ((n^(n>>16))>>>0)/4294967296; };
+function cielB(g,w,h,l){
+  const gr=g.createLinearGradient(0,0,0,h);
+  for(const [p,c] of l) gr.addColorStop(p,c);
+  g.fillStyle=gr; g.fillRect(0,0,w,h);
+}
+function polyB(g,pts,col){
+  g.fillStyle=col; g.beginPath();
+  g.moveTo(pts[0][0],pts[0][1]);
+  for(let i=1;i<pts.length;i++) g.lineTo(pts[i][0],pts[i][1]);
+  g.closePath(); g.fill();
+}
+/* une silhouette de marcheur : deux jambes, deux bras, une tête. Bête, mais
+   dès qu'elle bouge on y voit quelqu'un. */
+function marcheurB(g,x,y,s,ph,col,chapeau){
+  g.save();
+  g.strokeStyle=col; g.fillStyle=col;
+  g.lineWidth=Math.max(1.6,s*.11); g.lineCap='round'; g.lineJoin='round';
+  const j1=Math.sin(ph), j2=Math.sin(ph+Math.PI);
+  const genou=y-s*.20;
+  g.beginPath();
+  /* le buste, très légèrement penché */
+  g.moveTo(x-s*.02,y-s*.98); g.lineTo(x+s*.02,y-s*.42);
+  /* les jambes en deux segments : c'est le genou qui fait la marche */
+  g.moveTo(x+s*.02,y-s*.42); g.lineTo(x+j1*s*.16,genou); g.lineTo(x+j1*s*.30,y);
+  g.moveTo(x+s*.02,y-s*.42); g.lineTo(x+j2*s*.16,genou); g.lineTo(x+j2*s*.30,y);
+  /* les bras pendent le long du corps et balancent trois fois moins : avec le
+     même balancement que les jambes, les quatre membres partaient en étoile */
+  g.moveTo(x-s*.01,y-s*.86); g.lineTo(x-j1*s*.10,y-s*.62); g.lineTo(x-j1*s*.16,y-s*.38);
+  g.moveTo(x-s*.01,y-s*.86); g.lineTo(x-j2*s*.10,y-s*.62); g.lineTo(x-j2*s*.16,y-s*.38);
+  g.stroke();
+  g.beginPath(); g.arc(x-s*.03,y-s*1.13,s*.16,0,6.283); g.fill();
+  if(chapeau){
+    g.fillRect(x-s*.32,y-s*1.30,s*.60,s*.05);
+    g.fillRect(x-s*.19,y-s*1.48,s*.34,s*.19);
+  }
+  g.restore();
+}
+
+const BOBINES={
+
+/* ------------------------------------------------------------------ ACTION */
+action(g,w,h,t,col,f){
+  cielB(g,w,h,[[0,'#2b0c07'],[.5,'#8a2f11'],[.78,'#c25a1e'],[1,'#180703']]);
+  const cyc=2.2, ph=(t%cyc)/cyc, n=Math.floor(t/cyc);
+  const sec=ph<.16?(1-ph/.16)*w*.014:0;
+  g.save(); g.translate((Math.random()-.5)*sec,(Math.random()-.5)*sec);
+  /* la ville, toujours la même pour un film donné */
+  const nb=14;
+  for(let i=0;i<nb;i++){
+    const a=hachB(f.id*97+i), b=hachB(f.id*31+i*7);
+    const bw=w/nb*(.7+a*.7), bx=i*w/nb, bh=h*(.20+b*.34);
+    g.fillStyle='#0d0503';
+    g.fillRect(bx,h*.78-bh,bw,bh+h*.22);
+    g.fillStyle='rgba(255,190,120,.30)';
+    for(let k=0;k<4;k++){
+      if(hachB(i*13+k*5+f.id)<.45) continue;
+      g.fillRect(bx+bw*.2,h*.78-bh+bh*(.15+k*.2),bw*.16,bh*.09);
+    }
+  }
+  /* l'incendie de fond : la ville brûle en permanence, même entre deux coups */
+  g.save(); g.globalCompositeOperation='lighter';
+  for(let i=0;i<4;i++){
+    const fx=w*(.12+i*.25+Math.sin(t*.4+i)*.02);
+    const gr=g.createRadialGradient(fx,h*.78,0,fx,h*.78,h*(.24+Math.sin(t*3+i)*.03));
+    gr.addColorStop(0,'rgba(255,140,50,.34)');
+    gr.addColorStop(1,'rgba(255,80,20,0)');
+    g.fillStyle=gr; g.fillRect(0,h*.40,w,h*.60);
+  }
+  g.restore();
+  /* deux explosions décalées d'un demi-cycle : il se passe toujours quelque
+     chose. Avec une seule, on regardait une ville éteinte la moitié du temps. */
+  for(let k=0;k<2;k++){
+    const p=(ph+k*.5)%1, m=n+(ph+k*.5>=1?1:0)+k*17;
+    if(p>=.62) continue;
+    const ex=w*(.15+.70*hachB(f.id+m*3)), ey=h*(.34+.26*hachB(m*11));
+    const r=p*Math.min(w,h)*(.50+.18*hachB(m*5));
+    const a=1-p/.62;
+    g.save(); g.globalCompositeOperation='lighter';
+    g.fillStyle='rgba(255,150,40,'+(a*.55).toFixed(3)+')';
+    g.beginPath(); g.arc(ex,ey,r,0,6.283); g.fill();
+    g.fillStyle='rgba(255,240,190,'+(a*.9).toFixed(3)+')';
+    g.beginPath(); g.arc(ex,ey,r*.42,0,6.283); g.fill();
+    g.strokeStyle='rgba(255,220,150,'+(a*.7).toFixed(3)+')';
+    g.lineWidth=Math.max(1,h*.008);
+    g.beginPath(); g.arc(ex,ey,r*1.15,0,6.283); g.stroke();
+    g.restore();
+    for(let i=0;i<14;i++){
+      const an=hachB(i*7+m)*6.283, d=r*(.5+hachB(i*3+m)*1.1);
+      g.fillStyle='rgba(30,14,8,'+a.toFixed(3)+')';
+      g.fillRect(ex+Math.cos(an)*d,ey+Math.sin(an)*d-p*p*h*.2,h*.014,h*.014);
+    }
+  }
+  /* l'hélicoptère */
+  const hx=((t*.16)%1.3-.15)*w, hy=h*.18+Math.sin(t*1.7)*h*.02;
+  g.fillStyle='#0a0402';
+  g.fillRect(hx,hy,w*.075,h*.032);
+  g.fillRect(hx+w*.06,hy+h*.006,w*.045,h*.010);
+  g.strokeStyle='#0a0402'; g.lineWidth=Math.max(1,h*.007);
+  const pale=Math.sin(t*30)*w*.05;
+  g.beginPath(); g.moveTo(hx+w*.02-pale,hy-h*.012);
+  g.lineTo(hx+w*.02+pale,hy-h*.012); g.stroke();
+  g.restore();
+},
+
+/* ----------------------------------------------------------------- COMÉDIE */
+comedie(g,w,h,t,col,f){
+  cielB(g,w,h,[[0,'#ffe9a8'],[.6,'#ffd25e'],[1,'#f0a92c']]);
+  g.save(); g.globalAlpha=.25;
+  const gr=g.createRadialGradient(w*.5,h*.45,0,w*.5,h*.45,w*.6);
+  gr.addColorStop(0,'#fff9e0'); gr.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=gr; g.fillRect(0,0,w,h); g.restore();
+  /* les rayons qui tournent, très pâles */
+  g.save(); g.translate(w*.5,h*.45); g.rotate(t*.18); g.globalAlpha=.10;
+  for(let i=0;i<12;i++){
+    g.rotate(6.283/12); g.fillStyle='#fff';
+    g.beginPath(); g.moveTo(0,0); g.lineTo(w,-h*.05); g.lineTo(w,h*.05);
+    g.closePath(); g.fill();
+  }
+  g.restore();
+  g.fillStyle='#d8912a'; g.fillRect(0,h*.80,w,h*.20);
+  /* deux bonshommes ronds qui rebondissent, décalés */
+  for(let i=0;i<2;i++){
+    const bx=w*(.34+i*.32), s=h*.20;
+    const bo=Math.abs(Math.sin(t*2.2+i*1.1))*h*.10;
+    const y=h*.80-bo;
+    g.fillStyle=i?'#e2603b':'#3d8fd1';
+    g.beginPath(); g.arc(bx,y-s*.55,s*.55,0,6.283); g.fill();
+    g.fillStyle='#fff';
+    g.beginPath(); g.arc(bx-s*.20,y-s*.68,s*.14,0,6.283); g.fill();
+    g.beginPath(); g.arc(bx+s*.20,y-s*.68,s*.14,0,6.283); g.fill();
+    g.fillStyle='#20160c';
+    const rg=Math.sin(t*1.3+i)*s*.05;
+    g.beginPath(); g.arc(bx-s*.20+rg,y-s*.68,s*.06,0,6.283); g.fill();
+    g.beginPath(); g.arc(bx+s*.20+rg,y-s*.68,s*.06,0,6.283); g.fill();
+    g.strokeStyle='#20160c'; g.lineWidth=Math.max(1.4,s*.07);
+    g.beginPath(); g.arc(bx,y-s*.50,s*.26,.35,2.79); g.stroke();
+  }
+  /* la peau de banane qui glisse */
+  const px=((t*.22)%1.25-.12)*w;
+  g.fillStyle='#ffe14d'; g.strokeStyle='#c9a318'; g.lineWidth=Math.max(1,h*.005);
+  g.beginPath();
+  g.moveTo(px,h*.80); g.quadraticCurveTo(px+w*.03,h*.775,px+w*.06,h*.80);
+  g.quadraticCurveTo(px+w*.03,h*.79,px,h*.80);
+  g.fill(); g.stroke();
+  /* les confettis */
+  for(let i=0;i<34;i++){
+    const a=hachB(i*13+f.id);
+    const x=((a+t*(.05+a*.06))%1)*w;
+    const y=((hachB(i*7)+t*(.10+a*.14))%1)*h;
+    g.fillStyle=['#e2603b','#3d8fd1','#4bb37b','#e0559b','#fff'][i%5];
+    g.save(); g.translate(x,y); g.rotate(t*2+i); g.globalAlpha=.85;
+    g.fillRect(-h*.010,-h*.006,h*.020,h*.012); g.restore();
+  }
+},
+
+/* --------------------------------------------------------------- ANIMATION */
+animation(g,w,h,t,col,f){
+  cielB(g,w,h,[[0,'#bfe8ff'],[.55,'#e6f7d8'],[1,'#a8dd8a']]);
+  /* le soleil et ses rayons */
+  g.save(); g.translate(w*.80,h*.20); g.rotate(t*.30);
+  g.fillStyle='rgba(255,240,150,.55)';
+  for(let i=0;i<10;i++){ g.rotate(6.283/10);
+    g.fillRect(0,-h*.012,h*.22,h*.024); }
+  g.restore();
+  g.fillStyle='#ffe680';
+  g.beginPath(); g.arc(w*.80,h*.20,h*.085,0,6.283); g.fill();
+  /* les nuages */
+  for(let i=0;i<3;i++){
+    const cx=((hachB(i*17+f.id)+t*.018*(1+i*.4))%1.25-.12)*w, cy=h*(.14+i*.09);
+    g.fillStyle='rgba(255,255,255,.88)';
+    for(let k=0;k<4;k++){
+      g.beginPath();
+      g.arc(cx+k*h*.055,cy+Math.sin(k)*h*.012,h*(.045-k*.004),0,6.283);
+      g.fill();
+    }
+  }
+  /* les collines */
+  for(let c=0;c<2;c++){
+    g.fillStyle=c?'#4bb37b':'#7fcf8f';
+    g.beginPath(); g.moveTo(0,h);
+    for(let x=0;x<=w;x+=w/24)
+      g.lineTo(x,h*(.70+c*.10)+Math.sin(x/w*6+c*2)*h*.05);
+    g.lineTo(w,h); g.closePath(); g.fill();
+  }
+  /* la bestiole qui saute */
+  const bx=w*.30+Math.sin(t*.55)*w*.20;
+  const bo=Math.abs(Math.sin(t*3.1))*h*.10;
+  const by=h*.80-bo, s=h*.13;
+  g.fillStyle='#8a5a3c';
+  g.beginPath(); g.ellipse(bx,by-s*.5,s*.58,s*.48,0,0,6.283); g.fill();
+  g.beginPath(); g.arc(bx+s*.42,by-s*.85,s*.34,0,6.283); g.fill();
+  g.beginPath(); g.ellipse(bx+s*.30,by-s*1.25,s*.10,s*.26,-.3,0,6.283); g.fill();
+  g.beginPath(); g.ellipse(bx+s*.58,by-s*1.25,s*.10,s*.26,.3,0,6.283); g.fill();
+  g.fillStyle='#20160c';
+  g.beginPath(); g.arc(bx+s*.56,by-s*.90,s*.06,0,6.283); g.fill();
+  g.strokeStyle='#8a5a3c'; g.lineWidth=Math.max(1.4,s*.14);
+  g.beginPath(); g.moveTo(bx-s*.55,by-s*.55);
+  g.quadraticCurveTo(bx-s*.95,by-s*.95+Math.sin(t*6)*s*.2,bx-s*.80,by-s*1.2);
+  g.stroke();
+  /* deux papillons */
+  for(let i=0;i<2;i++){
+    const px=w*(.55+i*.18)+Math.sin(t*1.1+i*2)*w*.06;
+    const py=h*(.45+i*.10)+Math.cos(t*1.6+i)*h*.05;
+    const b=Math.abs(Math.sin(t*9+i))*.7+.3;
+    g.fillStyle=i?'#e0559b':'#f0b93c';
+    g.beginPath(); g.ellipse(px-h*.012,py,h*.014*b,h*.018,0,0,6.283); g.fill();
+    g.beginPath(); g.ellipse(px+h*.012,py,h*.014*b,h*.018,0,0,6.283); g.fill();
+  }
+},
+
+/* ----------------------------------------------------------------- HORREUR */
+horreur(g,w,h,t,col,f){
+  g.fillStyle='#05040a'; g.fillRect(0,0,w,h);
+  const cyc=6.4, ph=(t%cyc)/cyc;
+  /* le couloir : deux murs qui fuient vers une porte */
+  const cx=w*.5, cy=h*.55;
+  g.fillStyle='#0d0a16';
+  polyB(g,[[0,0],[cx-w*.10,cy-h*.20],[cx-w*.10,cy+h*.20],[0,h]],'#0d0a16');
+  polyB(g,[[w,0],[cx+w*.10,cy-h*.20],[cx+w*.10,cy+h*.20],[w,h]],'#0d0a16');
+  g.fillStyle='#080611';
+  polyB(g,[[0,h],[cx-w*.10,cy+h*.20],[cx+w*.10,cy+h*.20],[w,h]],'#080611');
+  /* la porte entrebâillée, et la lumière qui en sort */
+  const ouv=clamp((ph-.10)/.35,0,1)*.7;
+  g.fillStyle='#100c1c';
+  g.fillRect(cx-w*.10,cy-h*.20,w*.20,h*.40);
+  g.save(); g.globalCompositeOperation='lighter';
+  const gr=g.createLinearGradient(cx-w*.10,0,cx-w*.10+w*.20*ouv,0);
+  gr.addColorStop(0,'rgba(190,150,255,.30)');
+  gr.addColorStop(1,'rgba(190,150,255,0)');
+  g.fillStyle=gr;
+  g.fillRect(cx-w*.10,cy-h*.20,w*.20*ouv+1,h*.40);
+  g.restore();
+  /* la silhouette qui approche */
+  const k=Math.pow(clamp((ph-.25)/.68,0,1),2.2);
+  const s=h*(.10+k*.38);
+  const sy=cy+h*.22+k*h*.30;
+  const sx0=cx+Math.sin(t*1.1)*w*.01;
+  /* un liseré pâle derrière : sans lui, une silhouette noire sur un couloir
+     noir n'est plus une silhouette, c'est un trou */
+  g.save();
+  g.globalAlpha=.35;
+  marcheurB(g,sx0,sy,s*1.06,t*3.0,'#b48ce0',0);
+  g.restore();
+  marcheurB(g,sx0,sy,s,t*3.0,'#000',0);
+  /* deux yeux, qui n'apparaissent qu'à la fin */
+  if(k>.35){
+    g.fillStyle='rgba(230,195,255,'+clamp((k-.35)*2,0,1).toFixed(3)+')';
+    g.beginPath(); g.arc(sx0-s*.09,sy-s*1.15,s*.038,0,6.283); g.fill();
+    g.beginPath(); g.arc(sx0+s*.04,sy-s*1.15,s*.038,0,6.283); g.fill();
+  }
+  /* le scintillement dur : une image sur vingt, brutalement */
+  if(Math.random()<.05){
+    g.fillStyle='rgba(120,80,170,.18)'; g.fillRect(0,0,w,h);
+  }
+  if(ph>.94){ g.fillStyle='rgba(255,255,255,.16)'; g.fillRect(0,0,w,h); }
+  const vg=g.createRadialGradient(cx,cy,h*.10,cx,cy,h*.85);
+  vg.addColorStop(0,'rgba(0,0,0,0)');
+  vg.addColorStop(1,'rgba(40,0,20,.85)');
+  g.fillStyle=vg; g.fillRect(0,0,w,h);
+},
+
+/* --------------------------------------------------------- SCIENCE-FICTION */
+sf(g,w,h,t,col,f){
+  g.fillStyle='#04060f'; g.fillRect(0,0,w,h);
+  /* la nébuleuse */
+  g.save(); g.globalCompositeOperation='lighter';
+  for(let i=0;i<3;i++){
+    const nx=w*(.2+hachB(f.id+i)*.6), ny=h*(.2+hachB(i*9)*.5);
+    const gr=g.createRadialGradient(nx,ny,0,nx,ny,h*.5);
+    gr.addColorStop(0,['rgba(60,120,220,.20)','rgba(150,70,220,.16)','rgba(40,200,220,.12)'][i]);
+    gr.addColorStop(1,'rgba(0,0,0,0)');
+    g.fillStyle=gr; g.fillRect(0,0,w,h);
+  }
+  g.restore();
+  /* les étoiles filantes du saut en vitesse */
+  for(let i=0;i<90;i++){
+    const a=hachB(i*11+f.id), b=hachB(i*29);
+    const an=a*6.283, d=((b+t*(.06+a*.22))%1);
+    const r=d*Math.max(w,h)*.75;
+    const x=w*.5+Math.cos(an)*r, y=h*.5+Math.sin(an)*r*.62;
+    const l=d*h*.09;
+    g.strokeStyle='rgba(255,255,255,'+(d*.7).toFixed(3)+')';
+    g.lineWidth=Math.max(.8,d*2.2);
+    g.beginPath(); g.moveTo(x,y);
+    g.lineTo(x-Math.cos(an)*l,y-Math.sin(an)*l*.62); g.stroke();
+  }
+  /* la planète et son anneau */
+  const px=w*.74, py=h*.66, pr=h*.30;
+  g.save();
+  g.fillStyle='#1d3f6e';
+  g.beginPath(); g.arc(px,py,pr,0,6.283); g.fill();
+  const tg=g.createLinearGradient(px-pr,py-pr,px+pr,py+pr);
+  tg.addColorStop(0,'rgba(120,200,255,.30)');
+  tg.addColorStop(1,'rgba(0,0,0,.55)');
+  g.fillStyle=tg;
+  g.beginPath(); g.arc(px,py,pr,0,6.283); g.fill();
+  g.strokeStyle='rgba(160,210,255,.45)'; g.lineWidth=Math.max(1.4,h*.010);
+  g.beginPath(); g.ellipse(px,py,pr*1.55,pr*.30,-.35,0,6.283); g.stroke();
+  g.restore();
+  /* le vaisseau */
+  const vx=((t*.12)%1.3-.15)*w, vy=h*.34+Math.sin(t*.9)*h*.03;
+  g.save(); g.translate(vx,vy);
+  g.fillStyle='#c9d4e2';
+  g.beginPath(); g.moveTo(w*.075,0); g.lineTo(-w*.03,-h*.028);
+  g.lineTo(-w*.015,0); g.lineTo(-w*.03,h*.028); g.closePath(); g.fill();
+  g.save(); g.globalCompositeOperation='lighter';
+  const eg=g.createLinearGradient(-w*.015,0,-w*.13,0);
+  eg.addColorStop(0,'rgba(120,200,255,.85)');
+  eg.addColorStop(1,'rgba(120,200,255,0)');
+  g.fillStyle=eg;
+  g.fillRect(-w*.13,-h*.012,w*.115,h*.024);
+  g.restore(); g.restore();
+},
+
+/* ------------------------------------------------------------------- DRAME */
+drame(g,w,h,t,col,f){
+  cielB(g,w,h,[[0,'#2b3440'],[.6,'#3d4a58'],[1,'#222b35']]);
+  /* la fenêtre */
+  const fx=w*.14, fy=h*.12, fw=w*.72, fh=h*.66;
+  g.fillStyle='#1b2029'; g.fillRect(fx,fy,fw,fh);
+  const gr=g.createLinearGradient(0,fy,0,fy+fh);
+  gr.addColorStop(0,'#8a99a8'); gr.addColorStop(1,'#4e5b69');
+  g.fillStyle=gr; g.fillRect(fx+w*.012,fy+h*.02,fw-w*.024,fh-h*.04);
+  /* la pluie sur la vitre */
+  g.save();
+  g.beginPath(); g.rect(fx+w*.012,fy+h*.02,fw-w*.024,fh-h*.04); g.clip();
+  for(let i=0;i<70;i++){
+    const a=hachB(i*13+f.id);
+    const x=fx+a*fw;
+    const y=fy+((hachB(i*7)+t*(.10+a*.22))%1)*fh;
+    g.strokeStyle='rgba(230,240,250,'+(.10+a*.22).toFixed(3)+')';
+    g.lineWidth=Math.max(.8,h*.004);
+    g.beginPath(); g.moveTo(x,y); g.lineTo(x-h*.004,y+h*(.03+a*.05)); g.stroke();
+  }
+  g.restore();
+  /* la croisée */
+  g.fillStyle='#141920';
+  g.fillRect(fx+fw/2-w*.010,fy,w*.020,fh);
+  g.fillRect(fx,fy+fh*.46,fw,h*.018);
+  g.strokeStyle='#141920'; g.lineWidth=Math.max(2,w*.012);
+  g.strokeRect(fx,fy,fw,fh);
+  /* quelqu'un, de dos, sur le côté, qui ne bouge presque pas. Au centre et
+     coupé par le bas du cadre, il ressemblait à un bonhomme de neige. */
+  const s=h*.34, sx=w*.13, sy=h*.99+Math.sin(t*.35)*h*.004;
+  g.fillStyle='#0e1218';
+  g.beginPath();
+  g.moveTo(sx-s*.32,sy);
+  g.quadraticCurveTo(sx-s*.30,sy-s*.62,sx,sy-s*.66);
+  g.quadraticCurveTo(sx+s*.30,sy-s*.62,sx+s*.32,sy);
+  g.closePath(); g.fill();
+  g.beginPath(); g.arc(sx,sy-s*.84,s*.18,0,6.283); g.fill();
+  g.fillStyle='rgba(0,0,0,.30)'; g.fillRect(0,h*.90,w,h*.10);
+},
+
+/* ---------------------------------------------------------------- THRILLER */
+thriller(g,w,h,t,col,f){
+  g.fillStyle='#0b0710'; g.fillRect(0,0,w,h);
+  const cx=w*.46, cy=h*.52;
+  /* le couloir de portes qui fuit */
+  for(let i=6;i>=1;i--){
+    const k=i/7;
+    const bw=w*.86*k, bh=h*.86*k;
+    g.strokeStyle='rgba(150,120,170,'+(.06+ .05*(1-k)).toFixed(3)+')';
+    g.lineWidth=Math.max(1,h*.006);
+    g.strokeRect(cx-bw/2,cy-bh/2,bw,bh);
+    if(i%2===0){
+      g.fillStyle='rgba(200,60,80,'+(.05+.05*(1-k)).toFixed(3)+')';
+      g.fillRect(cx-bw/2,cy-bh*.30,bw*.10,bh*.60);
+      g.fillRect(cx+bw/2-bw*.10,cy-bh*.30,bw*.10,bh*.60);
+    }
+  }
+  /* le gyrophare */
+  const st=(Math.sin(t*4.2)>.55)?1:0;
+  if(st){
+    g.save(); g.globalCompositeOperation='lighter';
+    const gr=g.createRadialGradient(cx,cy,0,cx,cy,h*.9);
+    gr.addColorStop(0,'rgba(200,50,70,.35)'); gr.addColorStop(1,'rgba(0,0,0,0)');
+    g.fillStyle=gr; g.fillRect(0,0,w,h); g.restore();
+  }
+  /* les phares qui balaient */
+  const bal=Math.sin(t*.55);
+  g.save(); g.globalCompositeOperation='lighter';
+  const fg=g.createLinearGradient(0,0,w,0);
+  fg.addColorStop(clamp(.5+bal*.4-.12,0,1),'rgba(255,240,220,0)');
+  fg.addColorStop(clamp(.5+bal*.4,0,1),'rgba(255,240,220,.13)');
+  fg.addColorStop(clamp(.5+bal*.4+.12,0,1),'rgba(255,240,220,0)');
+  g.fillStyle=fg; g.fillRect(0,0,w,h);
+  g.restore();
+  /* quelqu'un qui court, très près */
+  const rx=w*(.30+.40*(((t*.28)%1)));
+  marcheurB(g,rx,h*.90,h*.44,t*11,'#05030a',0);
+  const vg=g.createRadialGradient(cx,cy,h*.12,cx,cy,h*.9);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.80)');
+  g.fillStyle=vg; g.fillRect(0,0,w,h);
+},
+
+/* ----------------------------------------------------------------- ROMANCE */
+romance(g,w,h,t,col,f){
+  cielB(g,w,h,[[0,'#5c3a86'],[.42,'#e0559b'],[.72,'#ff9a5e'],[1,'#ffd9a0']]);
+  /* le gros soleil bas */
+  const sy=h*.68;
+  g.save(); g.globalCompositeOperation='lighter';
+  const gr=g.createRadialGradient(w*.5,sy,0,w*.5,sy,h*.55);
+  gr.addColorStop(0,'rgba(255,230,180,.55)'); gr.addColorStop(1,'rgba(255,180,140,0)');
+  g.fillStyle=gr; g.fillRect(0,0,w,h); g.restore();
+  g.fillStyle='rgba(255,238,200,.92)';
+  g.beginPath(); g.arc(w*.5,sy,h*.19,0,6.283); g.fill();
+  /* la colline */
+  g.fillStyle='#3a1f3d';
+  g.beginPath(); g.moveTo(0,h);
+  for(let x=0;x<=w;x+=w/30) g.lineTo(x,h*.78+Math.sin(x/w*3.4+1)*h*.06);
+  g.lineTo(w,h); g.closePath(); g.fill();
+  /* deux silhouettes qui se rejoignent, puis repartent */
+  const cyc=9, ph=(t%cyc)/cyc;
+  const app=ph<.45?ph/.45:(ph<.72?1:1-(ph-.72)/.28);
+  const d=w*.30*(1-app*.86);
+  const solY=x=>h*.78+Math.sin(x/w*3.4+1)*h*.06;
+  const x1=w*.5-d, x2=w*.5+d;
+  marcheurB(g,x1,solY(x1)+h*.02,h*.20,app<1?t*5:0,'#241226',0);
+  marcheurB(g,x2,solY(x2)+h*.02,h*.19,app<1?t*5+3:0,'#241226',0);
+  if(app>.92){
+    const a=(app-.92)/.08;
+    for(let i=0;i<5;i++){
+      const u=(t*.5+i*.2)%1;
+      g.fillStyle='rgba(255,140,190,'+((1-u)*a*.8).toFixed(3)+')';
+      const hx=w*.5+Math.sin(i*2+t)*w*.02, hy=solY(w*.5)-h*.10-u*h*.22, s=h*.020;
+      g.beginPath();
+      g.moveTo(hx,hy+s*.5);
+      g.bezierCurveTo(hx-s,hy-s*.4,hx-s*.4,hy-s,hx,hy-s*.35);
+      g.bezierCurveTo(hx+s*.4,hy-s,hx+s,hy-s*.4,hx,hy+s*.5);
+      g.fill();
+    }
+  }
+  /* les pétales */
+  for(let i=0;i<26;i++){
+    const a=hachB(i*17+f.id);
+    const x=((a+t*(.03+a*.05))%1.1-.05)*w;
+    const y=((hachB(i*5)+t*(.05+a*.07))%1)*h;
+    g.save(); g.translate(x,y); g.rotate(Math.sin(t+i)*1.2);
+    g.fillStyle='rgba(255,190,215,'+(.35+a*.4).toFixed(3)+')';
+    g.beginPath(); g.ellipse(0,0,h*.012,h*.006,0,0,6.283); g.fill();
+    g.restore();
+  }
+},
+
+/* ----------------------------------------------------------- DOCUMENTAIRE */
+doc(g,w,h,t,col,f){
+  cielB(g,w,h,[[0,'#7fc4d6'],[.5,'#e8d9a8'],[1,'#c9a25e']]);
+  g.fillStyle='rgba(255,244,210,.85)';
+  g.beginPath(); g.arc(w*.22,h*.22,h*.10,0,6.283); g.fill();
+  /* le lent travelling : tout glisse doucement vers la gauche */
+  const pan=(t*.020)%1;
+  for(let c=0;c<2;c++){
+    g.fillStyle=c?'#8a6a35':'#a98a4a';
+    g.beginPath(); g.moveTo(0,h);
+    for(let x=0;x<=w;x+=w/28)
+      g.lineTo(x,h*(.62+c*.10)+Math.sin((x/w+pan*(c?2:1))*5+c)*h*.035);
+    g.lineTo(w,h); g.closePath(); g.fill();
+  }
+  /* un acacia */
+  const ax=((.7-pan*1.4)%1.3-.15)*w;
+  g.strokeStyle='#4a3418'; g.lineWidth=Math.max(2,h*.012);
+  g.beginPath(); g.moveTo(ax,h*.70); g.lineTo(ax,h*.50); g.stroke();
+  g.fillStyle='#3f5c33';
+  g.beginPath(); g.ellipse(ax,h*.47,h*.13,h*.055,0,0,6.283); g.fill();
+  /* les animaux qui traversent */
+  for(let i=0;i<4;i++){
+    const x=(((i*.29+.04)-pan*1.9)%1.4-.20)*w;
+    const y=h*(.80+(i%2)*.06), s=h*(.22-(i%2)*.05);
+    const pas=Math.sin(pan*40+i*2)*s*.10;
+    g.fillStyle='#33240f';
+    g.beginPath(); g.ellipse(x,y-s*.62,s*.58,s*.30,0,0,6.283); g.fill();
+    /* quatre pattes, deux en avant deux en arrière : c'est le décalage qui
+       fait qu'on y voit un animal qui marche et pas un tonneau */
+    g.fillRect(x-s*.40+pas,y-s*.40,s*.11,s*.40);
+    g.fillRect(x-s*.22-pas,y-s*.40,s*.11,s*.40);
+    g.fillRect(x+s*.16+pas,y-s*.40,s*.11,s*.40);
+    g.fillRect(x+s*.32-pas,y-s*.40,s*.11,s*.40);
+    if(i===0){
+      /* la girafe : le cou fait tout le travail de reconnaissance */
+      g.save(); g.translate(x+s*.42,y-s*.80); g.rotate(.28+Math.sin(pan*20)*.05);
+      g.fillRect(-s*.07,-s*1.05,s*.15,s*1.10);
+      g.beginPath(); g.ellipse(s*.04,-s*1.12,s*.17,s*.11,.35,0,6.283); g.fill();
+      g.restore();
+    } else if(i===2){
+      /* l'éléphant : une trompe, et des oreilles */
+      g.beginPath(); g.arc(x+s*.62,y-s*.72,s*.24,0,6.283); g.fill();
+      g.beginPath(); g.ellipse(x+s*.52,y-s*.80,s*.16,s*.20,0,0,6.283); g.fill();
+      g.strokeStyle='#33240f'; g.lineWidth=Math.max(1.4,s*.09);
+      g.beginPath();
+      g.moveTo(x+s*.80,y-s*.66);
+      g.quadraticCurveTo(x+s*.94,y-s*.40,x+s*.86,y-s*.16); g.stroke();
+    } else {
+      g.beginPath(); g.arc(x+s*.62,y-s*.78,s*.19,0,6.283); g.fill();
+      g.beginPath();
+      g.moveTo(x+s*.52,y-s*.94); g.lineTo(x+s*.60,y-s*1.18);
+      g.lineTo(x+s*.70,y-s*.92); g.fill();
+    }
+  }
+  /* les oiseaux */
+  for(let i=0;i<5;i++){
+    const bx=((hachB(i*23+f.id)+t*.05)%1.1-.05)*w;
+    const by=h*(.16+hachB(i*7)*.16)+Math.sin(t*1.4+i)*h*.012;
+    const s=h*.016, b=Math.sin(t*5+i)*.5+.5;
+    g.strokeStyle='rgba(40,30,15,.6)'; g.lineWidth=Math.max(1,h*.004);
+    g.beginPath();
+    g.moveTo(bx-s,by+s*b); g.quadraticCurveTo(bx,by-s*b,bx+s,by+s*b); g.stroke();
+  }
+},
+
+/* ----------------------------------------------------------------- REPRISE */
+patrimoine(g,w,h,t,col,f){
+  /* le tressautement de la copie : l'image ne tient jamais tout à fait en place */
+  const saut=Math.sin(t*37)*h*.004+ (Math.random()<.04?h*.010:0);
+  g.save(); g.translate(0,saut);
+  cielB(g,w,h,[[0,'#d8d2c4'],[.55,'#b8b1a2'],[1,'#8f887a']]);
+  /* un décor très simple : un lampadaire, un banc, un mur */
+  g.fillStyle='#6e6759'; g.fillRect(0,h*.74,w,h*.26);
+  g.fillStyle='#7d7768'; g.fillRect(0,h*.30,w,h*.44);
+  g.fillStyle='#5f594c';
+  for(let i=0;i<8;i++) g.fillRect(i*w/8,h*.30,w/8*.06,h*.44);
+  g.fillStyle='#3b362d';
+  g.fillRect(w*.72,h*.34,h*.014,h*.40);
+  g.beginPath(); g.arc(w*.72+h*.007,h*.33,h*.038,0,6.283); g.fill();
+  g.fillStyle='rgba(255,250,220,.30)';
+  g.beginPath(); g.arc(w*.72+h*.007,h*.33,h*.10,0,6.283); g.fill();
+  /* le monsieur au chapeau, canne comprise */
+  const mx=w*(.10+((t*.06)%1.1)*.75);
+  marcheurB(g,mx,h*.92,h*.26,t*5.4,'#2a251d',1);
+  g.strokeStyle='#2a251d'; g.lineWidth=Math.max(1.2,h*.006);
+  g.beginPath();
+  g.moveTo(mx+h*.075,h*.92-h*.13); g.lineTo(mx+h*.105,h*.92); g.stroke();
+  g.restore();
+  /* et tout ce qui trahit la pellicule */
+  g.save();
+  g.globalCompositeOperation='saturation';
+  g.fillStyle='#808080'; g.fillRect(0,0,w,h);
+  g.restore();
+  g.save(); g.globalAlpha=.10; g.fillStyle='#b08d5a'; g.fillRect(0,0,w,h); g.restore();
+  g.save(); g.globalAlpha=.16; g.fillStyle='#fff';
+  for(let i=0;i<4;i++){
+    if(hachB(Math.floor(t*12)+i)<.6) continue;
+    g.fillRect(hachB(Math.floor(t*12)*7+i)*w,0,1.4,h);
+  }
+  g.restore();
+  /* l'iris, qui se ferme et se rouvre toutes les douze secondes */
+  const cyc=12, ph=(t%cyc)/cyc;
+  const ir=ph>.86?(1-(ph-.86)/.14):(ph<.06?ph/.06:1);
+  if(ir<1){
+    const r=Math.max(1,ir)*Math.hypot(w,h)*.62;
+    const ig=g.createRadialGradient(w*.5,h*.5,r*.86,w*.5,h*.5,r);
+    ig.addColorStop(0,'rgba(11,10,8,0)');
+    ig.addColorStop(1,'#0b0a08');
+    g.fillStyle=ig; g.fillRect(0,0,w,h);
+  }
+},
+
+/* --------------------------------------------------------------- ÉVÉNEMENT */
+evenement(g,w,h,t,col,f){
+  g.fillStyle='#0a0710'; g.fillRect(0,0,w,h);
+  /* les projecteurs qui balaient depuis le haut */
+  g.save(); g.globalCompositeOperation='lighter';
+  for(let i=0;i<3;i++){
+    const a=Math.sin(t*(.5+i*.17)+i*2)*.5;
+    const px=w*(.2+i*.3), py=-h*.05;
+    const gr=g.createLinearGradient(px,py,px+a*w*.5,h);
+    gr.addColorStop(0,['rgba(255,215,120,.30)','rgba(255,160,220,.22)','rgba(140,200,255,.24)'][i]);
+    gr.addColorStop(1,'rgba(0,0,0,0)');
+    g.fillStyle=gr;
+    g.beginPath();
+    g.moveTo(px-w*.02,py); g.lineTo(px+w*.02,py);
+    g.lineTo(px+a*w*.5+w*.16,h); g.lineTo(px+a*w*.5-w*.16,h);
+    g.closePath(); g.fill();
+  }
+  g.restore();
+  /* la scène, éclairée : une scène de concert n'est pas dans le noir */
+  const ys=h*.56;
+  g.fillStyle='#241a2e'; g.fillRect(0,ys,w,h*.10);
+  g.fillStyle='#3a2a48'; g.fillRect(0,ys,w,h*.014);
+  g.save(); g.globalCompositeOperation='lighter';
+  const sg=g.createRadialGradient(w*.5,ys,0,w*.5,ys,w*.42);
+  sg.addColorStop(0,'rgba(255,205,120,.30)');
+  sg.addColorStop(1,'rgba(255,205,120,0)');
+  g.fillStyle=sg; g.fillRect(0,h*.18,w,h*.58);
+  g.restore();
+  /* la personne au micro, plus grande et bien détachée */
+  const s=h*.34, sx=w*.5;
+  const bob=Math.sin(t*1.6)*h*.008;
+  marcheurB(g,sx,ys+bob,s,Math.sin(t*2.4)*.55,'#100a16',0);
+  g.strokeStyle='#100a16'; g.lineWidth=Math.max(1.6,s*.07);
+  g.beginPath(); g.moveTo(sx+s*.14,ys+bob-s*.66);
+  g.lineTo(sx+s*.34,ys+bob-s*.94); g.stroke();
+  g.fillStyle='#100a16';
+  g.beginPath(); g.arc(sx+s*.37,ys+bob-s*.99,s*.08,0,6.283); g.fill();
+  /* la foule : des têtes et des bras levés, vus de dos et de tout près. En
+     traits fins, ça ressemblait à une clôture, pas à du public. */
+  const n=Math.max(9,Math.round(w/56));
+  for(let i=0;i<n;i++){
+    const x=i*w/n+w/n*.5+Math.sin(i*2.3)*w/n*.14;
+    const tete=h*(.050+hachB(i*13+f.id)*.020);
+    const base=h*(.90+hachB(i*7)*.05);
+    g.fillStyle=i%2?'#0d0912':'#120c1a';
+    g.beginPath(); g.ellipse(x,base+tete*.9,tete*1.5,tete*1.1,0,0,6.283); g.fill();
+    g.beginPath(); g.arc(x,base,tete,0,6.283); g.fill();
+    g.strokeStyle=i%2?'#0d0912':'#120c1a';
+    g.lineWidth=Math.max(2,tete*.42); g.lineCap='round';
+    for(const c of [-1,1]){
+      const lev=Math.sin(t*2.6+i*.9+(c>0?1.6:0))*.5+.5;
+      const hx=x+c*tete*1.25, hy=base+tete*.5;
+      g.beginPath();
+      g.moveTo(hx,hy);
+      g.lineTo(hx+c*tete*.55,hy-tete*(1.0+lev*.7));
+      g.lineTo(hx+c*tete*.30,hy-tete*(2.1+lev*1.5));
+      g.stroke();
+    }
+  }
+  /* les flashs des appareils */
+  for(let i=0;i<3;i++){
+    if(Math.random()<.90) continue;
+    g.fillStyle='rgba(255,255,255,.75)';
+    g.beginPath();
+    g.arc(Math.random()*w,h*(.80+Math.random()*.12),h*.012,0,6.283); g.fill();
+  }
+}
+};
+
+/* ==========================================================================
+   IMPORTER SA PROPRE VIDÉO
+   ==========================================================================
+   Un film maison peut porter un vrai fichier vidéo. Le fichier ne quitte
+   jamais l'appareil : il n'est pas téléversé, il est rangé dans la base
+   locale du navigateur et relu de là. C'est la seule façon honnête de faire
+   ça dans un jeu qui n'a pas de serveur — et c'est aussi la seule qui marche
+   hors ligne.
+   ========================================================================== */
+let champFichier=null;
+function choisirFichierVideo(apres){
+  if(!champFichier){
+    champFichier=document.createElement('input');
+    champFichier.type='file';
+    champFichier.accept='video/*';
+    champFichier.style.cssText='position:absolute;left:-9999px;width:1px;height:1px';
+    document.body.appendChild(champFichier);
+  }
+  champFichier.value='';
+  champFichier.onchange=()=>{
+    const fic=champFichier.files&&champFichier.files[0];
+    if(!fic) return;
+    if(!/^video\//.test(fic.type)&&!/\.(mp4|webm|ogg|ogv|mov|m4v)$/i.test(fic.nom||fic.name||'')){
+      flash('Ce fichier n\'est pas une vidéo','mal'); SND.erreur(); return;
+    }
+    if(fic.size>TAILLE_MAX_VIDEO){
+      flash('Vidéo trop lourde ('+Math.round(fic.size/1048576)+' Mo, maximum '
+        +Math.round(TAILLE_MAX_VIDEO/1048576)+')','mal');
+      SND.erreur(); return;
+    }
+    /* on lit la durée avant de ranger quoi que ce soit : c'est ce qui permet
+       de proposer au joueur d'aligner la durée du film sur celle de sa vidéo */
+    const u=URL.createObjectURL(fic);
+    const v=document.createElement('video');
+    v.preload='metadata';
+    v.onloadedmetadata=()=>{
+      const d=isFinite(v.duration)?v.duration:0;
+      URL.revokeObjectURL(u);
+      apres(fic,d);
+    };
+    v.onerror=()=>{
+      URL.revokeObjectURL(u);
+      flash('Ton navigateur ne sait pas lire cette vidéo','mal'); SND.erreur();
+    };
+    v.src=u;
+  };
+  champFichier.click();
+}
+
+/* range le fichier et rend la clé */
+function rangerVideo(fic){
+  const cle='v'+(idVideo++);
+  return VDB.poser(cle,fic).then(()=>cle);
+}
+
+/* attache (ou remplace) la vidéo d'un film déjà produit */
+function attacherVideo(f){
+  if(!f||!f.perso){ flash('Seul un film maison peut porter ta vidéo','mal');
+    SND.erreur(); return; }
+  choisirFichierVideo((fic,duree)=>{
+    const ancienne=f.video;
+    rangerVideo(fic).then(cle=>{
+      f.video=cle;
+      f.videoNom=(fic.name||'').slice(0,60);
+      if(ancienne){ VDB.oter(ancienne).catch(()=>{}); delete urlsVideo[ancienne]; }
+      if(duree>60){
+        const min=clamp(Math.round(duree/60/5)*5,70,180);
+        f.duree=min;
+      }
+      SND.cloche();
+      flash('VIDÉO ATTACHÉE À « '+f.titre+' »','bon');
+      decrocher&&decrocher('projectionniste');
+      majCatalogue(); enregistrerPrepa();
+    }).catch(()=>{
+      flash('Impossible d\'enregistrer la vidéo sur cet appareil','mal'); SND.erreur();
+    });
+  });
+}
+
+function detacherVideo(f){
+  if(!f||!f.video) return;
+  const cle=f.video;
+  f.video=null; f.videoNom='';
+  VDB.oter(cle).catch(()=>{});
+  delete urlsVideo[cle];
+  SND.clic();
+  flash('VIDÉO RETIRÉE','bon');
+  majCatalogue(); enregistrerPrepa();
+}
+
+/* ---- la case du formulaire de production ---- */
+function majCaseVideo(){
+  const el=$('pfVideo');
+  if(!el) return;
+  const v=prodF.video;
+  el.className='vidF'+(v?' pleine':'');
+  el.innerHTML='<div class="vt"><b>'+(v?'🎬 '+v.nom:'TA VIDÉO — FACULTATIF')+'</b>'
+    +'<span>'+(v
+      ? Math.round(v.taille/1048576)+' Mo'+(v.duree?' · '+Math.round(v.duree/60)+' min':'')
+        +' — elle sera projetée telle quelle dans tes salles.'
+      : 'Choisis un fichier vidéo et c\'est LUI que tu verras à l\'écran quand tu '
+        +'iras t\'asseoir dans la salle. Sans fichier, le film joue une bobine '
+        +'dessinée selon son genre. Ton fichier ne quitte jamais cet appareil.')
+    +'</span></div>'
+    +'<div class="vb"><button id="pfVidChoisir">'+(v?'CHANGER DE VIDÉO':'CHOISIR UNE VIDÉO')
+    +'</button>'+(v?'<button class="dan" id="pfVidOter">RETIRER</button>':'')+'</div>';
+  $('pfVidChoisir').onclick=()=>{
+    choisirFichierVideo((fic,duree)=>{
+      prodF.video={fichier:fic, nom:(fic.name||'vidéo').slice(0,60),
+        taille:fic.size, duree};
+      /* la durée du film suit celle de la vidéo : personne n'a envie de la
+         recopier à la main, et une séance qui dure autre chose que le film
+         serait un mensonge dans la grille */
+      if(duree>60){
+        prodF.duree=clamp(Math.round(duree/60/5)*5,70,180);
+        const du=$('pfDuree'); if(du) du.value=prodF.duree;
+      }
+      SND.cloche();
+      majCaseVideo(); majChiffresProduction();
+    });
+  };
+  const ot=$('pfVidOter');
+  if(ot) ot.onclick=()=>{ prodF.video=null; SND.clic(); majCaseVideo(); };
+}
+
+/* ==========================================================================
+   LES PACKS
+   ==========================================================================
+   La boutique vend les améliorations à l'unité, au prix fort, et on choisit
+   exactement ce qu'on veut. Les packs font l'inverse : beaucoup moins cher au
+   rang, mais c'est le hasard qui choisit.
+
+   C'est un échange, pas un piège. La boutique reste ouverte et complète : rien
+   n'est enfermé derrière un tirage, et quelqu'un qui déteste le hasard peut
+   tout acheter à l'unité sans jamais ouvrir un seul pack. Un pack ne peut pas
+   non plus donner un rang qu'on possède déjà : s'il ne reste rien à donner, il
+   rend des jetons.
+   ========================================================================== */
+
+/* le prix moyen d'un rang à l'unité, tous compris, sert de repère aux packs */
+const RANG_MOYEN=30;
+
+const RARETES={
+ commune:{nom:'COMMUNE',  col:'#7b8fa8', rangs:1, poids:70},
+ rare:{nom:'RARE',        col:'#3d8fd1', rangs:1, poids:23, cher:1},
+ eclat:{nom:'ÉCLAT',      col:'#e5b84b', rangs:2, poids:7,  cher:1}
+};
+
+const PACKS={
+ pochette:{nom:'POCHETTE', ico:'🎞', cout:60,  n:3,
+   garanti:{rare:1},
+   d:'Trois cartes, au moins une rare.'},
+ boite:{nom:'BOÎTE',       ico:'📦', cout:130, n:7,
+   garanti:{rare:1},
+   d:'Sept cartes, au moins une rare.'},
+ coffret:{nom:'COFFRET',   ico:'🏆', cout:260, n:15,
+   garanti:{rare:3, eclat:1},
+   d:'Quinze cartes, au moins trois rares et un éclat garanti.'}
+};
+
+/* une amélioration est « chère » si son prochain rang coûte cher : c'est ce
+   qui la range dans les cartes rares plutôt que communes */
+function amelioChere(k){
+  const a=AMELIORATIONS[k];
+  return a.cout(Math.min(a.max,AM(k)+1))>=28;
+}
+function amelioPlace(k){ return AM(k)<AMELIORATIONS[k].max; }
+
+/* Tire une carte en tenant compte de ce qu'on possède DÉJÀ : on simule les
+   rangs que les cartes précédentes du même pack vont donner, sinon un pack
+   pourrait promettre trois fois le dernier rang d'une même amélioration. */
+function tirerCarte(rar,pris){
+  const dispo=Object.keys(AMELIORATIONS).filter(k=>{
+    const a=AMELIORATIONS[k];
+    return AM(k)+(pris[k]||0)<a.max;
+  });
+  if(!dispo.length) return {rar, k:null, rangs:0, jetons:Math.round(RANG_MOYEN*.55)};
+  const veut=RARETES[rar].cher;
+  let bassin=dispo.filter(k=>!!amelioChere(k)===!!veut);
+  if(!bassin.length) bassin=dispo;
+  const k=bassin[(Math.random()*bassin.length)|0];
+  const a=AMELIORATIONS[k];
+  const place=a.max-(AM(k)+(pris[k]||0));
+  const rangs=Math.min(RARETES[rar].rangs,place);
+  pris[k]=(pris[k]||0)+rangs;
+  return {rar, k, rangs, jetons:0};
+}
+
+function composerPack(p){
+  const pris={}, cartes=[];
+  const g=p.garanti||{};
+  for(const r in g) for(let i=0;i<g[r];i++) cartes.push(tirerCarte(r,pris));
+  while(cartes.length<p.n){
+    let tot=0;
+    for(const r in RARETES) tot+=RARETES[r].poids;
+    let z=Math.random()*tot, r='commune';
+    for(const k in RARETES){ z-=RARETES[k].poids; if(z<=0){ r=k; break; } }
+    cartes.push(tirerCarte(r,pris));
+  }
+  /* on mélange, sinon les cartes garanties sortent toujours en premier et le
+     pack n'a plus aucun suspense */
+  for(let i=cartes.length-1;i>0;i--){
+    const j=(Math.random()*(i+1))|0;
+    const t=cartes[i]; cartes[i]=cartes[j]; cartes[j]=t;
+  }
+  return cartes;
+}
+
+/* ---------------------------------------------------------------- l'ouverture */
+const PK={cartes:[], i:0, ouvert:false, tim:0, pack:null};
+
+function acheterPack(k){
+  const p=PACKS[k];
+  if(!p) return;
+  if((SAVE.jetons||0)<p.cout){ SND.erreur(); flash('Pas assez de jetons','mal'); return; }
+  SAVE.jetons-=p.cout;
+  SAVE.packs=(SAVE.packs||0)+1;
+  PK.cartes=composerPack(p);
+  PK.i=0; PK.ouvert=true; PK.pack=p;
+  sauver();
+  $('packs').classList.add('on');
+  peindrePack();
+  SND.cloche();
+}
+
+function peindrePack(){
+  const p=PK.pack;
+  $('pkTitre').textContent=p.ico+' '+p.nom;
+  $('pkSous').textContent=PK.i>=PK.cartes.length
+    ? 'TOUT EST RETOURNÉ'
+    : (PK.i?'CARTE '+(PK.i+1)+' SUR '+PK.cartes.length
+        :'TOUCHE UNE CARTE POUR LA RETOURNER');
+  $('pkGrille').innerHTML=PK.cartes.map((c,i)=>{
+    if(i>PK.i) return '<div class="pkc dos" data-i="'+i+'"><span>🎬</span></div>';
+    const R=RARETES[c.rar];
+    if(!c.k) return '<div class="pkc face" data-i="'+i+'" style="--r:'+R.col+'">'
+      +'<i>'+R.nom+'</i><span>🪙</span><b>+'+c.jetons+' JETONS</b>'
+      +'<em>tout est déjà au maximum</em></div>';
+    const a=AMELIORATIONS[c.k];
+    return '<div class="pkc face'+(c.rar!=='commune'?' brille':'')+'" data-i="'+i+'"'
+      +' style="--r:'+R.col+'">'
+      +'<i>'+R.nom+'</i><span>'+a.ico+'</span><b>'+a.nom+'</b>'
+      +'<em>+'+c.rangs+' rang'+(c.rangs>1?'s':'')+'</em></div>';
+  }).join('');
+  $('pkGrille').querySelectorAll('[data-i]').forEach(el=>{
+    el.onclick=()=>{ if(+el.getAttribute('data-i')===PK.i) retournerCarte(); };
+  });
+  const fini=PK.i>=PK.cartes.length;
+  $('pkSuite').textContent=fini?'TERMINER':'RETOURNER LA SUIVANTE';
+  $('pkJet').textContent='🪙 '+nb(SAVE.jetons||0);
+}
+
+function retournerCarte(){
+  if(PK.i>=PK.cartes.length){ fermerPack(); return; }
+  const c=PK.cartes[PK.i];
+  /* l'effet est appliqué AU MOMENT où on retourne : c'est ce qui fait qu'on
+     voit ses jetons ou ses rangs bouger en même temps que la carte */
+  if(c.k){
+    SAVE.ameliorations=SAVE.ameliorations||{};
+    const a=AMELIORATIONS[c.k];
+    SAVE.ameliorations[c.k]=Math.min(a.max,AM(c.k)+c.rangs);
+  } else {
+    SAVE.jetons=(SAVE.jetons||0)+c.jetons;
+  }
+  PK.i++;
+  sauver();
+  if(c.rar==='eclat') SND.cloche(); else SND.clic();
+  peindrePack();
+  if(PK.i>=PK.cartes.length){
+    majBoutique(); majMenu();
+    if((SAVE.packs||0)>=5) decrocher('collectionneur');
+  }
+}
+
+function fermerPack(){
+  PK.ouvert=false;
+  $('packs').classList.remove('on');
+  majBoutique(); majMenu();
+}
+
+/* la vitrine des packs, dans la boutique */
+function majVitrinePacks(){
+  const el=$('pkVitrine');
+  if(!el) return;
+  const je=SAVE.jetons||0;
+  const reste=Object.keys(AMELIORATIONS).reduce(
+    (a,k)=>a+(AMELIORATIONS[k].max-AM(k)),0);
+  el.innerHTML=Object.keys(PACKS).map(k=>{
+    const p=PACKS[k];
+    const parRang=Math.round(p.cout/p.n);
+    return '<div class="art">'
+      +'<span class="ai">'+p.ico+'</span>'
+      +'<div class="ac"><h4>'+p.nom+'</h4>'
+      +'<p>'+p.d+'<br><b>'+parRang+' jetons par carte</b> — à l\'unité, un rang '
+      +'coûte '+RANG_MOYEN+' jetons en moyenne.</p></div>'
+      +'<button class="achat" data-pk="'+k+'"'
+      +((p.cout>je||!reste)?' disabled':'')+'>'
+      +(!reste?'TOUT ACQUIS':'<b>🪙 '+p.cout+'</b>OUVRIR')+'</button></div>';
+  }).join('')
+    +'<div class="txt" style="font-size:10px;color:var(--gris);margin-top:8px">'
+    +(reste?'Il te reste <b>'+reste+' rangs</b> à décrocher. Un pack ne donne jamais '
+      +'un rang que tu as déjà : s\'il ne reste rien à donner, il rend des jetons. '
+      +'Et tout ce qu\'un pack contient reste achetable à l\'unité, en dessous.'
+      :'Toutes les améliorations sont au maximum. Les packs n\'ont plus rien à '
+       +'t\'apprendre.')
+    +'</div>';
+  el.querySelectorAll('[data-pk]').forEach(b=>{
+    b.onclick=()=>acheterPack(b.getAttribute('data-pk'));
+  });
+}
+
+/* ==========================================================================
+   LE CODE DE SAUVEGARDE
+   ==========================================================================
+   Tout ce que le jeu retient vit dans le navigateur. Changer de téléphone, ou
+   vider ses données, et tout est perdu — c'est la seule chose vraiment fragile
+   d'un jeu sans compte. Un code règle ça : on le copie, on le colle ailleurs,
+   on retrouve sa carrière.
+
+   Ce que le code contient : le nom, l'avatar, les jetons, l'expérience, les
+   succès, les améliorations, les packs ouverts, et la partie en cours.
+   Ce qu'il ne contient PAS : les vidéos importées. Un fichier vidéo pèse mille
+   fois ce qu'un code peut porter — on le dit en toutes lettres plutôt que de
+   laisser quelqu'un croire qu'il les emporte.
+   ========================================================================== */
+const CODE_PREFIXE='CINE1';
+
+function sommeCode(txt){
+  let h=0x811c9dc5;
+  for(let i=0;i<txt.length;i++){ h^=txt.charCodeAt(i); h=Math.imul(h,0x01000193); }
+  return ((h>>>0).toString(36)).padStart(7,'0').slice(-7);
+}
+function octetsEnB64(o){
+  let s='';
+  for(let i=0;i<o.length;i+=0x8000)
+    s+=String.fromCharCode.apply(null,o.subarray(i,i+0x8000));
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function b64EnOctets(b){
+  const s=atob(b.replace(/-/g,'+').replace(/_/g,'/'));
+  const o=new Uint8Array(s.length);
+  for(let i=0;i<s.length;i++) o[i]=s.charCodeAt(i);
+  return o;
+}
+/* Le navigateur sait dégonfler tout seul depuis quelques années. S'il ne sait
+   pas, on se rabat sur du base64 brut : le code est plus long, mais il marche. */
+function comprimer(txt){
+  const brut=new TextEncoder().encode(txt);
+  if(typeof CompressionStream==='undefined') return Promise.resolve(['B',brut]);
+  try{
+    const f=new Blob([brut]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    return new Response(f).arrayBuffer().then(a=>['D',new Uint8Array(a)]);
+  }catch(e){ return Promise.resolve(['B',brut]); }
+}
+function decomprimer(mode,octets){
+  if(mode==='B') return Promise.resolve(new TextDecoder().decode(octets));
+  const f=new Blob([octets]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Response(f).text();
+}
+
+function donneesCode(){
+  return {
+    v:1, nom:SAVE.nom||'', avatar:SAVE.avatar|0, diff:SAVE.diff||'normale',
+    jetons:Math.max(0,SAVE.jetons|0), xp:Math.max(0,Math.round(SAVE.xpCarriere||0)),
+    succes:SAVE.succes||{}, am:SAVE.ameliorations||{}, packs:SAVE.packs|0,
+    partie:SAVE.partie||null
+  };
+}
+
+function fabriquerCode(){
+  const txt=JSON.stringify(donneesCode());
+  return comprimer(txt).then(([mode,o])=>
+    CODE_PREFIXE+'.'+mode+'.'+octetsEnB64(o)+'.'+sommeCode(txt));
+}
+
+/* Un code abîmé est REFUSÉ, jamais rafistolé : une carrière à moitié restaurée
+   fait des dégâts qu'on met des heures à comprendre. */
+function lireCode(code){
+  const c=(code||'').trim().replace(/\s+/g,'');
+  const p=c.split('.');
+  if(p.length!==4||p[0]!==CODE_PREFIXE) return Promise.reject('Ce n\'est pas un code de ce jeu.');
+  if(p[1]!=='D'&&p[1]!=='B') return Promise.reject('Code d\'une version inconnue.');
+  let o;
+  try{ o=b64EnOctets(p[2]); }catch(e){ return Promise.reject('Le code est abîmé.'); }
+  return decomprimer(p[1],o).then(txt=>{
+    if(sommeCode(txt)!==p[3]) throw 'Le code est incomplet ou modifié.';
+    let d;
+    try{ d=JSON.parse(txt); }catch(e){ throw 'Le code est abîmé.'; }
+    if(!d||d.v!==1) throw 'Code d\'une version inconnue.';
+    return d;
+  }).catch(e=>Promise.reject(typeof e==='string'?e:'Le code est abîmé.'));
+}
+
+/* on relit champ par champ : ce qui n'est pas reconnu est jeté */
+function appliquerCode(d){
+  SAVE.nom=String(d.nom||'').slice(0,18);
+  SAVE.avatar=clamp(d.avatar|0,0,AVATARS.length-1);
+  if(DIFFS[d.diff]) SAVE.diff=d.diff;
+  SAVE.jetons=clamp(d.jetons|0,0,9999999);
+  SAVE.xpCarriere=clamp(Math.round(+d.xp||0),0,99999999);
+  SAVE.packs=clamp(d.packs|0,0,999999);
+  SAVE.succes={};
+  if(d.succes&&typeof d.succes==='object')
+    for(const s of SUCCES) if(d.succes[s.id]) SAVE.succes[s.id]=1;
+  SAVE.ameliorations={};
+  if(d.am&&typeof d.am==='object')
+    for(const k in AMELIORATIONS){
+      const n=d.am[k]|0;
+      if(n>0) SAVE.ameliorations[k]=Math.min(n,AMELIORATIONS[k].max);
+    }
+  SAVE.partie=(d.partie&&d.partie.meubles)?d.partie:null;
+  sauver();
+}
+
+/* ------------------------------------------------------------------ l'écran */
+function montrerCode(){
+  ecrans('code');
+  const z=$('cdSortie');
+  z.value='… fabrication du code …';
+  fabriquerCode().then(c=>{
+    z.value=c;
+    $('cdInfo').textContent=c.length+' caractères';
+  }).catch(()=>{ z.value=''; $('cdInfo').textContent='Impossible de fabriquer le code.'; });
+  $('cdEntree').value='';
+  $('cdMsg').textContent='';
+  $('cdMsg').className='cdmsg';
+}
+
+function copierCode(){
+  const z=$('cdSortie');
+  if(!z.value) return;
+  const fini=()=>{ $('cdMsg').textContent='Code copié. Colle-le en lieu sûr.';
+    $('cdMsg').className='cdmsg bon'; SND.clic(); };
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(z.value).then(fini,()=>{ z.select(); document.execCommand('copy'); fini(); });
+  else { z.select(); try{ document.execCommand('copy'); }catch(e){} fini(); }
+}
+
+function chargerCode(){
+  const v=$('cdEntree').value;
+  if(!v.trim()){ $('cdMsg').textContent='Colle d\'abord un code.';
+    $('cdMsg').className='cdmsg mal'; return; }
+  lireCode(v).then(d=>{
+    const n=Object.keys(d.am||{}).length, s=Object.keys(d.succes||{}).length;
+    if(!confirm('Ce code contient '+(d.jetons|0)+' jetons, '+s+' succès et '
+      +n+' amélioration(s).\n\nIl REMPLACERA ta progression actuelle. Continuer ?')) return;
+    appliquerCode(d);
+    P=null;
+    SND.cloche();
+    $('cdMsg').textContent='Progression restaurée. Les vidéos importées, elles, '
+      +'restent sur l\'appareil d\'origine.';
+    $('cdMsg').className='cdmsg bon';
+    majMenu();
+    setTimeout(()=>ecrans('menu'),1400);
+  },err=>{
+    SND.erreur();
+    $('cdMsg').textContent=err;
+    $('cdMsg').className='cdmsg mal';
+  });
+}
+
+/* ==========================================================================
+   MENTIONS LÉGALES ET CONFIDENTIALITÉ
+   ==========================================================================
+   Un site qui affiche de la publicité doit pouvoir être joint et doit dire ce
+   qu'il fait des données : c'est une obligation légale, et Google refuse
+   l'inscription d'un site sans éditeur identifiable ni page de confidentialité.
+   ========================================================================== */
+
+/* >>> UNE SEULE LIGNE À REMPLIR <<<
+   L'adresse de contact publique du site. Tant qu'elle est vide, les mentions
+   légales le disent en toutes lettres plutôt que de faire semblant. */
+const ADRESSE_CONTACT='cours2gtmathis78@gmail.com';
+const EDITEUR='VanNDM Creations';
+
+function lienContact(){
+  return ADRESSE_CONTACT
+    ? '<a href="mailto:'+ADRESSE_CONTACT+'" style="color:var(--violet)">'+ADRESSE_CONTACT+'</a>'
+    : '<b style="color:var(--rouge)">ADRESSE DE CONTACT À RENSEIGNER</b> — remplis la '
+      +'constante <b>ADRESSE_CONTACT</b> avant la mise en ligne : sans elle, AdSense '
+      +'refusera le site.';
+}
+
+function montrerLegal(){
+  $('lgTxt').innerHTML='<div class="sur">L\'ÉDITEUR</div><div class="txt">'
+    +'<b>'+EDITEUR+'</b> — créateur indépendant de jeux de navigateur, personne '
+    +'physique éditant ce site à titre non professionnel.<br>Contact : '+lienContact()
+    +'<br>Hébergeur : <b>Netlify, Inc.</b>, 512 2nd Street, Suite 200, San Francisco, '
+    +'CA 94107, États-Unis.</div>'
+    +'<div class="sur" style="margin-top:14px">LE JEU</div><div class="txt">'
+    +'<b>Cinéma Tycoon</b> est un jeu de gestion original. Tout le contenu — code, '
+    +'dessin, sons, textes, bobines — a été créé pour ce jeu. Aucune image ni aucun son '
+    +'n\'est téléchargé : le dessin est tracé au canevas et le son est synthétisé à la '
+    +'volée. Le jeu est gratuit, sans compte et sans achat. Les jetons et les packs '
+    +'s\'obtiennent uniquement en jouant : <b>rien ne s\'achète avec de l\'argent réel</b>.'
+    +'</div>'
+    +'<div class="sur" style="margin-top:14px">PROPRIÉTÉ ET RESPONSABILITÉ</div>'
+    +'<div class="txt">© '+EDITEUR+'. Le code, les textes et les éléments graphiques et '
+    +'sonores sont la propriété de l\'éditeur, proposés pour un usage personnel. Le jeu '
+    +'est fourni tel quel, sans garantie : l\'éditeur ne peut être tenu responsable d\'une '
+    +'indisponibilité du site ni d\'une perte de progression, celle-ci étant enregistrée '
+    +'dans le navigateur — c\'est précisément à quoi sert le <b>code de sauvegarde</b>.'
+    +'</div>';
+
+  $('lgConf').innerHTML=
+    '<b>Ce que le jeu enregistre.</b> Ta carrière (jetons, succès, améliorations, '
+    +'partie en cours) est écrite dans le <code>localStorage</code> de ton navigateur, '
+    +'<b>sur ton appareil uniquement</b>. Les vidéos que tu importes pour tes films sont '
+    +'rangées dans la base locale <code>IndexedDB</code> du même navigateur : elles ne '
+    +'sont <b>jamais téléversées nulle part</b>. Rien de tout cela ne quitte l\'appareil, '
+    +'et tout part avec les données du navigateur si tu les effaces.<br><br>'
+    +'<b>La publicité.</b> Ce site est financé par des annonces fournies par '
+    +'<b>Google AdSense</b>. Pour les afficher, Google et ses partenaires peuvent lire et '
+    +'écrire des cookies ou des identifiants sur ton appareil, afin de mesurer l\'audience, '
+    +'limiter la répétition d\'une annonce, détecter la fraude et — <b>si tu l\'as '
+    +'accepté</b> — te proposer des annonces personnalisées.<br><br>'
+    +'Tant que tu n\'as pas donné ton accord, les signaux de consentement publicitaire '
+    +'sont réglés sur <code>refusé</code> (Google Consent Mode v2), la réduction des '
+    +'données publicitaires est active, et le script d\'annonces n\'est même pas chargé. '
+    +'Dans l\'Espace économique européen, au Royaume-Uni et en Suisse, une fenêtre de '
+    +'consentement conforme au cadre IAB TCF v2.2 s\'affiche à la première visite ; tu '
+    +'peux revenir sur ton choix à tout moment avec le bouton ci-dessous.<br><br>'
+    +'Informations de Google : <a href="https://policies.google.com/technologies/partner-sites" '
+    +'target="_blank" rel="noopener noreferrer" style="color:var(--violet)">'
+    +'policies.google.com/technologies/partner-sites</a> · réglages personnels : '
+    +'<a href="https://myadcenter.google.com/" target="_blank" rel="noopener noreferrer" '
+    +'style="color:var(--violet)">myadcenter.google.com</a>.<br><br>'
+    +'<b>Ce que ce site ne fait pas.</b> Pas de traceur d\'analyse, pas de réseau social '
+    +'embarqué, pas de revente de données, pas de contenu payant. Pour toute question, '
+    +'écris à '+lienContact()+'.';
+  ecrans('legal');
+}
+
+/* Rouvre la fenêtre de consentement du CMP certifié. Hors zone TCF il n'y a
+   simplement rien à rouvrir : on le dit plutôt que de laisser un bouton mort. */
+function gererConsentement(){
+  let ouvert=false;
+  try{
+    if(window.googlefc&&window.googlefc.showRevocationMessage){
+      window.googlefc.showRevocationMessage(); ouvert=true;
+    } else if(window.__tcfapi){
+      window.__tcfapi('displayConsentUi',2,()=>{}); ouvert=true;
+    }
+  }catch(e){}
+  if(!ouvert){
+    const b=$('lgConsent');
+    if(b) b.textContent='AUCUNE FENÊTRE À AFFICHER DANS TA RÉGION';
+  }
+}
+
+/* Les annonces d'ancrage des Auto ads se collent en haut et en bas de l'écran.
+   La barre du bas porte toute la construction, celle du haut l'horloge et la
+   caisse : sans ce marqueur, une annonce viendrait se poser dessus et chaque
+   geste du joueur deviendrait un clic publicitaire involontaire — ce que Google
+   compte comme du trafic invalide. */
+function protegerCommandes(){
+  for(const id of ['barre','construire','prepa','panneau','flash','packs','projo'])
+    { const e=$(id); if(e) e.classList.add('adsbygoogle-noablate'); }
+}
+
+/* ==========================================================================
    11. LES ENTRÉES, LE CINÉMA DE DÉMONSTRATION, LA BOUCLE
    ========================================================================== */
 function poserIci(gx,gy){
@@ -7070,6 +9133,39 @@ function zoomer(f,sx,sy){
   const [bx,by]=monde(sx,sy);
   cam.x+=ax-bx; cam.y+=ay-by;
   cadrer();
+}
+
+function cablerPacksEtCode(){
+  $('pkSuite').onclick=()=>retournerCarte();
+  $('pkTout').onclick=()=>{
+    /* pour qui n'a pas envie de retourner quinze cartes une par une */
+    while(PK.i<PK.cartes.length) retournerCarte();
+    peindrePack();
+  };
+  $('ouvrirCode').onclick=()=>{ SND.clic(); montrerCode(); };
+  $('ouvrirLegal').onclick=()=>{ SND.clic(); montrerLegal(); };
+  $('fermerLegal').onclick=()=>{ SND.clic(); ecrans('menu'); };
+  $('lgConsent').onclick=()=>{ SND.clic(); gererConsentement(); };
+  protegerCommandes();
+  $('fermerCode').onclick=()=>{ SND.clic(); ecrans('menu'); };
+  $('cdCopier').onclick=()=>copierCode();
+  $('cdCharger').onclick=()=>chargerCode();
+}
+
+function cablerProjection(){
+  $('pjFermer').onclick=()=>{ fermerProjection(); SND.clic(); };
+  $('pjPrec').onclick=()=>filmSuivantProjection(-1);
+  $('pjSuiv').onclick=()=>filmSuivantProjection(1);
+  $('pjSon').onclick=()=>{
+    PJ.son=!PJ.son;
+    const v=$('pjVid');
+    v.muted=!PJ.son; v.volume=PJ.son?1:0;
+    if(PJ.son) v.play().catch(()=>{});
+    majEnteteProjection(); SND.clic();
+  };
+  /* un clic sur la toile ferme aussi : c'est le geste qu'on tente en premier */
+  $('pjCv').addEventListener('click',()=>{ fermerProjection(); });
+  addEventListener('resize',()=>{ if(PJ.ouvert) redimProjo(); });
 }
 
 function cabler(){
@@ -7145,6 +9241,19 @@ function cabler(){
 
   addEventListener('keydown',e=>{
     if(e.target&&e.target.tagName==='INPUT') return;
+    if(PK.ouvert){
+      if(e.code==='Escape') fermerPack();
+      else if(e.code==='Space'||e.code==='Enter'){ e.preventDefault(); retournerCarte(); }
+      return;
+    }
+    if(PJ.ouvert){
+      /* la salle de projection est l'écran le plus au-dessus : c'est le
+         premier que doivent fermer Échap et la barre d'espace */
+      if(e.code==='Escape'||e.code==='Space'){ e.preventDefault(); fermerProjection(); }
+      else if(e.code==='ArrowLeft') filmSuivantProjection(-1);
+      else if(e.code==='ArrowRight') filmSuivantProjection(1);
+      return;
+    }
     if(e.code==='Escape'){ outil=null; catOuverte=null; majCats(); $('palette').innerHTML='';
       majBas(); aide(null); fermerFiche(); return; }
     if(ecranActif!=='jeu') return;
@@ -7197,7 +9306,7 @@ function cabler(){
     if(SAVE.partie&&!confirm('Une partie est en cours (semaine '+SAVE.partie.sem+', '
       +JOURS_SEM[SAVE.partie.jour-1].nom+'). Elle sera perdue. Recommencer ?')) return;
     SAVE.partie=null; sauver();
-    nouvellePartie(); demarrer();
+    nouvellePartie(); elaguerVideos(); demarrer();
     aide('Pose une <b>salle</b> et un <b>guichet</b>, va au <b>BUREAU</b> réserver un film, '
       +'puis mets-le dans la grille de la salle. Prends ensuite l\'outil <b>TRAVAILLER</b> : '
       +'tu tiens le guichet toi-même et tu nettoies les salles — tant que tu ne peux pas '
@@ -7219,7 +9328,8 @@ function cabler(){
   $('cAuto').onclick=()=>{ SND.clic(); commandeAuto(); majCommande(); };
   $('cVide').onclick=()=>{ SND.clic(); P.commande={}; majCommande(); };
   $('cRetour').onclick=()=>{ SND.clic(); fermerCommande(); };
-  $('fRejouer').onclick=()=>{ SND.clic(); nouvellePartie(); demarrer(); ouvrirJournee(); };
+  $('fRejouer').onclick=()=>{ SND.clic(); nouvellePartie(); elaguerVideos();
+    demarrer(); ouvrirJournee(); };
   $('fMenu').onclick=()=>{ P=null; ecranActif='menu'; majMenu(); ecrans('menu'); cinemaDemo(); };
   $('ouvrirRegl').onclick=()=>{ majReglages(); ecrans('reglages'); ecranActif='reglages'; };
   $('fermerRegl').onclick=()=>{
@@ -7390,7 +9500,10 @@ function boucle(now){
   /* en pause ou pendant un écran, les chemins se refont quand même : sinon la
      fiche d'un bâti posé à l'arrêt annonce qu'aucun passage n'y mène */
   if(P&&P.sale&&!joue){ refaireChamps(); P.saleT=0; }
-  dessiner(dt);
+  /* pendant la projection, le plan du cinéma est entièrement caché : le
+     redessiner soixante fois par seconde derrière un écran opaque ne sert
+     qu'à faire chauffer le téléphone */
+  if(!PJ.ouvert) dessiner(dt);
   if(P&&ecranActif==='jeu') majBarre();
   document.body.classList.toggle('enJeu',ecranActif==='jeu');
   requestAnimationFrame(boucle);
@@ -7403,6 +9516,8 @@ SND.volume=SAVE.volume;
 construireDeblocages();
 redim();
 cabler();
+cablerProjection();
+cablerPacksEtCode();
 cinemaDemo();
 majMenu();
 majVitesse();
