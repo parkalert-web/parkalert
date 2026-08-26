@@ -1,3 +1,58 @@
+# Fermer la base, puis mettre le serveur en service
+
+Deux choses différentes, souvent confondues :
+
+| | Coût | Urgence |
+|---|---|---|
+| **Fermer la base** (règles de sécurité) | **gratuit, aucune carte bancaire** | à faire tout de suite |
+| Mettre le serveur en service (notifications) | demande le plan Blaze | quand vous voulez |
+
+---
+
+## À FAIRE MAINTENANT — fermer la base
+
+Firebase vous envoie des e-mails d'alerte : *« N'importe quel utilisateur peut lire et écrire
+sur votre base de données »*. C'est exact, et c'est l'état d'origine du projet. Tant que
+personne ne connaît l'adresse, le risque reste théorique — mais il ne faut pas donner
+l'application à d'autres personnes dans cet état.
+
+**Cette étape est gratuite et ne demande aucune carte bancaire.**
+
+### La méthode sans terminal, en cinq clics
+
+1. Ouvrez <https://console.firebase.google.com/project/parking-98737/database/parking-98737-default-rtdb/rules>
+2. Dans un autre onglet, ouvrez
+   <https://github.com/parkalert-web/parkalert/blob/main/database.rules.json>
+   et copiez tout le fichier (bouton « Copy raw file », en haut à droite)
+3. Revenez sur Firebase, effacez tout le texte du cadre, collez à la place
+4. Cliquez sur **Publier**
+5. L'e-mail d'alerte s'arrête au prochain contrôle
+
+### Ou en une commande
+
+```bash
+npx firebase login
+npx firebase deploy --only database
+```
+
+### Ces règles ont été testées
+
+`npm run test:rules` rejoue **13 scénarios** contre une vraie base lancée en local, en parlant
+à la base comme un vrai téléphone — avec un compte, et sans les droits d'administration.
+
+Ce qui est bloqué : un inconnu sans compte ne peut rien lire ni écrire ; personne ne peut lire
+le compte d'un autre, annoncer une place à sa place, ni s'écrire des points ; une réservation
+n'est visible que de ses deux participants ; la clé privée des notifications n'est lisible par
+personne ; et la marque « déjà récompensés ensemble » ne peut pas être effacée par l'autre pour
+regagner des points en boucle.
+
+Ce qui continue de marcher : **le parcours complet des deux conducteurs**, de l'inscription
+jusqu'aux points, y compris la carte, les signalements, les notifications et la suppression de
+compte. C'est la moitié la plus importante du test : des règles trop strictes casseraient
+l'application pour tout le monde.
+
+---
+
 # Mettre le serveur en service
 
 Le code du serveur est écrit et testé. Il reste **deux choses que je ne peux pas faire à votre
@@ -71,8 +126,7 @@ npx firebase deploy --only functions,database
 C'est tout. Le déploiement prend deux à trois minutes. Vous verrez défiler le nom des quatre
 fonctions, puis un message de réussite.
 
-La deuxième commande envoie aussi les **règles de sécurité** de la base : c'est ce qui referme
-la base, comme discuté. Vous n'avez donc plus besoin de les copier à la main dans la console.
+Cette commande envoie aussi les **règles de sécurité**, si ce n'est pas déjà fait.
 
 ### Vérifier que ça a marché
 

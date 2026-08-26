@@ -47,14 +47,15 @@ Dans la [console Firebase](https://console.firebase.google.com/project/parking-9
    sinon la connexion Google échouera depuis le site publié.
 3. **Realtime Database → Règles** : y coller le contenu de [`database.rules.json`](database.rules.json).
 
-> ⚠️ **À faire en priorité.** La base est actuellement ouverte en lecture et en écriture à
-> tout Internet. Les règles fournies exigent un compte, limitent chaque utilisateur à ses
+> ⚠️ **À faire en priorité, et c'est gratuit** — voir [`DEPLOIEMENT.md`](DEPLOIEMENT.md).
+> Tant que ce n'est pas fait, la base est ouverte en lecture et en écriture à
+> tout Internet, et Firebase envoie des e-mails d'alerte. Les règles fournies exigent un compte, limitent chaque utilisateur à ses
 > propres données et réservent une réservation à ses deux participants.
 >
 > Ces règles n'ont pas pu être déployées depuis ce dépôt (cela demande un accès administrateur
-> au projet Firebase). Avant de les publier, passez-les au « Rules Playground » de la console
-> sur deux ou trois chemins typiques — `spots/<votre uid>`, `offers/<autre uid>`,
-> `sessions/<id>` — puis rejouez le scénario complet à deux téléphones.
+> au projet Firebase), mais elles sont **testées** : `npm run test:rules` rejoue 13 scénarios
+> contre une vraie base locale, en vérifiant à la fois ce qui doit être bloqué et le fait que
+> le parcours complet des deux conducteurs marche toujours.
 
 ### Mise en relation : téléphone ou serveur
 
@@ -262,6 +263,7 @@ fermée ; réglage fin des seuils à partir des retours réels.
 ```bash
 npm test          # logique métier : compatibilité, priorités, points, fiabilité
 npm run test:server   # mise en relation serveur, contre une vraie base locale
+npm run test:rules    # règles de sécurité : ce qui est bloqué, ce qui marche encore
 ```
 
 20 tests rejouent les exemples chiffrés du cahier des charges — dont le tableau du §13
