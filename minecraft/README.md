@@ -7,21 +7,28 @@ démarrage et les bruitages sont synthétisés par Web Audio.
 
 ```
 minecraft/
-  index.html          page du jeu
+  minecraft.html      LE JEU EN UN SEUL FICHIER (engendré) — 355 Ko
+  index.html          version modulaire, pour développer
   style.css           habillage (menus, ATH, inventaires)
   src/                21 modules ES, sans dépendance
+  build.mjs           assemble les modules en un fichier unique
   tests/game.test.mjs 29 tests de la logique de jeu
 ```
 
 ## Lancer le jeu
 
-Il faut un serveur HTTP (les modules ES ne se chargent pas depuis `file://`) :
+**Le plus simple** : téléchargez `minecraft.html` et ouvrez-le d'un double-clic.
+Tout y est — code, style, textures, sons —, rien à installer, aucun serveur.
+Les mondes sont sauvegardés dans le navigateur.
+
+**Pour développer**, la version modulaire a besoin d'un serveur HTTP (les
+modules ES ne se chargent pas depuis `file://`) :
 
 ```bash
-npm start            # puis http://localhost:8080/minecraft/
+npm start                  # puis http://localhost:8080/minecraft/
+npm run build:minecraft    # régénère minecraft.html depuis src/
+npm run test:minecraft     # les 29 tests de logique
 ```
-
-Depuis la racine du dépôt, `npm run test:minecraft` exécute la suite de tests.
 
 Un navigateur récent avec **WebGL2** est nécessaire (Chrome, Firefox, Edge,
 Safari 15+).
@@ -105,6 +112,12 @@ cubes pleins, des croix et des panneaux plats).
 
 ## Notes techniques
 
+- **Fichier unique** : `build.mjs` recopie les modules dans un seul HTML en
+  enfermant chacun dans une fonction, de sorte que les noms internes identiques
+  d'un fichier à l'autre (`ID`, `el`, `GRAVITY`…) ne se marchent pas dessus —
+  exactement ce que font de vrais modules. L'ordre d'écriture suit les
+  dépendances. Le stockage se replie sur `localStorage` puis sur la mémoire
+  quand le navigateur refuse IndexedDB, ce qui arrive en `file://`.
 - **Empaquetage des sommets** : `x(5) y(8) z(5) u(1) v(1) normale(3) décalage(2)
   occlusion(2)` dans un entier, `couche(8) ciel(4) bloc(4) teinte 5·5·5` dans un
   second. Le nuanceur décode le tout ; un tronçon de terrain typique pèse 75 Ko.

@@ -30,24 +30,61 @@ function openDB() {
   });
 }
 
+/**
+ * Repli quand IndexedDB est indisponible (page ouverte en file://, mode privé).
+ * On tente localStorage ; s'il est lui aussi refusé, on garde tout en mémoire
+ * pour que la partie reste jouable — sans survivre au rechargement.
+ */
 class LocalFallback {
-  constructor() { this.prefix = 'mcjs:'; }
+  constructor() {
+    this.prefix = 'mcjs:';
+    this.mem = new Map();
+    this.hasLocal = (() => {
+      try {
+        localStorage.setItem('mcjs:test', '1');
+        localStorage.removeItem('mcjs:test');
+        return true;
+      } catch { return false; }
+    })();
+  }
+
+  key(store, key) { return `${this.prefix}${store}:${key}`; }
+
   async get(store, key) {
-    const v = localStorage.getItem(`${this.prefix}${store}:${key}`);
-    return v ? JSON.parse(v) : undefined;
+    const k = this.key(store, key);
+    if (!this.hasLocal) return this.mem.get(k);
+    try {
+      const v = localStorage.getItem(k);
+      return v ? JSON.parse(v) : undefined;
+    } catch { return this.mem.get(k); }
   }
+
   async put(store, key, value) {
-    localStorage.setItem(`${this.prefix}${store}:${key}`, JSON.stringify(value));
+    const k = this.key(store, key);
+    this.mem.set(k, value);
+    if (!this.hasLocal) return;
+    try { localStorage.setItem(k, JSON.stringify(value)); } catch { this.hasLocal = false; }
   }
-  async del(store, key) { localStorage.removeItem(`${this.prefix}${store}:${key}`); }
+
+  async del(store, key) {
+    const k = this.key(store, key);
+    this.mem.delete(k);
+    if (this.hasLocal) { try { localStorage.removeItem(k); } catch { /* ignoré */ } }
+  }
+
   async keys(store) {
-    const out = [];
     const p = `${this.prefix}${store}:`;
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k.startsWith(p)) out.push(k.slice(p.length));
+    const out = new Set();
+    for (const k of this.mem.keys()) if (k.startsWith(p)) out.add(k.slice(p.length));
+    if (this.hasLocal) {
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(p)) out.add(k.slice(p.length));
+        }
+      } catch { /* ignoré */ }
     }
-    return out;
+    return [...out];
   }
 }
 
@@ -70,7 +107,9 @@ let backend = null;
 export async function initStorage() {
   if (backend) return backend;
   try {
-    backend = new IDB(await openDB());
+    const db = new IDB(await openDB());
+    await db.keys('worlds');   // une origine opaque échoue seulement ici
+    backend = db;
   } catch {
     backend = new LocalFallback();
   }
