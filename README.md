@@ -258,10 +258,60 @@ fermée ; réglage fin des seuils à partir des retours réels.
 
 ---
 
+## Second outil : « En commun » — comparer des emplois du temps
+
+**En ligne :** https://parkalert-web.github.io/parkalert/edt/ — [`edt/index.html`](edt/index.html)
+
+On importe la photo de l'emploi du temps de chacun, on corrige ce que la lecture a raté,
+et l'outil dit ce que les personnes ont **en commun** : les heures de cours simultanées, les
+trous partagés, les déjeuners possibles ensemble, les journées qui commencent ou finissent à
+la même heure, les professeurs et les matières partagés, et les cours où l'on est visiblement
+assis dans la même salle.
+
+### Lire une photo sans IA et sans serveur
+
+| Étape | Moyen | Coût |
+|---|---|---|
+| Redressement, contraste, ombres | canevas HTML, seuillage local (image intégrale) | gratuit |
+| Reconnaissance du texte | [Tesseract](https://tesseract-ocr.github.io/) en WebAssembly, dans le navigateur | gratuit |
+| Dictionnaire français | `tessdata` officiel, téléchargé une fois puis gardé par le navigateur | gratuit |
+| Reconstruction de la grille | géométrie et expressions régulières ([`src/edt/parse.js`](src/edt/parse.js)) | gratuit |
+
+Aucun service d'intelligence artificielle n'est appelé : **ni clé d'API, ni quota, ni facture**.
+Les photos ne quittent jamais l'appareil, il n'y a pas de compte, et tout est enregistré dans
+le navigateur (`localStorage`). Le bouton « Exporter » produit un fichier que l'on peut
+s'échanger : l'autre le réimporte et compare, sans avoir à refaire de photo.
+
+### Comment la grille est reconstituée
+
+1. La photo est mise à l'échelle, redressée (l'angle est mesuré sur la densité des lignes de
+   texte) puis binarisée par seuillage **local**, ce qui rattrape une feuille à moitié dans l'ombre.
+2. Tesseract est lancé en mode « texte épars » : un emploi du temps n'est pas un bloc de texte
+   mais des mots éparpillés dans des cases. Ce mode s'est révélé nettement plus fidèle
+   (21 libellés sur 21 contre 19 en mode « bloc » sur la grille de test).
+3. Les colonnes sont repérées sur les mots *Lundi*, *Mardi*… — avec une tolérance d'une lettre
+   fausse, `VENDREOI` est reconnu.
+4. L'axe des heures est ajusté sur la colonne de gauche par consensus (une heure mal lue est
+   écartée au lieu de fausser toute la grille).
+5. La durée d'un cours vient, dans l'ordre : du créneau écrit dans la case (`8h00-10h00`), sinon
+   des traits du tableau **relevés colonne par colonne** — une case fusionnée n'a pas de trait
+   au milieu, et c'est précisément ce qui indique un cours de deux heures — sinon de la position
+   du texte, et l'outil signale alors que c'est une estimation.
+6. Le contenu de la case est découpé en matière / professeur / salle.
+
+### Ce que ça ne fait pas
+
+La reconnaissance de caractères se trompe : un mot trop petit, une photo floue ou de travers, et
+il manque une matière. C'est pour cela que **le tableau est modifiable** — c'est lui qui sert au
+calcul, pas la photo — et qu'une capture d'écran (Pronote, ADE, EcoleDirecte) donne toujours un
+meilleur résultat qu'une photo de papier. La saisie entièrement manuelle est possible aussi.
+
+---
+
 ## Tests
 
 ```bash
-npm test          # logique métier : compatibilité, priorités, points, fiabilité
+npm test          # logique métier ParkAlert + lecture et comparaison des emplois du temps
 npm run test:server   # mise en relation serveur, contre une vraie base locale
 npm run test:rules    # règles de sécurité : ce qui est bloqué, ce qui marche encore
 ```
@@ -285,6 +335,17 @@ Les scénarios bout en bout pilotent la vraie application contre le vrai Firebas
   la proposition au candidat suivant ;
 - `wait-eta.e2e.mjs` vérifie que le conducteur qui attend reprend la main tout seul, et que
   la correction d'heure d'arrivée remonte bien jusqu'à celui qui attend.
+
+```bash
+npm run test:edt  # « En commun » de bout en bout, avec la vraie OCR
+```
+
+`edt.e2e.mjs` **dessine** un emploi du temps dans une page (une grille comme celles que l'on
+photographie), l'exporte en PNG et l'importe dans l'outil comme le ferait un utilisateur : la
+chaîne réelle — préparation de l'image, Tesseract, reconstruction de la grille — doit retrouver
+les neuf cours avec leurs horaires, leurs professeurs et leurs salles, sans couper le cours de
+quatre heures du vendredi, puis la comparaison doit annoncer le bon trou commun et le bon
+déjeuner. Aucune capture de référence n'est comparée : ce sont les cours lus qui sont vérifiés.
 
 Les comptes de test sont supprimés à la fin de chaque scénario.
 
