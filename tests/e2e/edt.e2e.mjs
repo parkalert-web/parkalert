@@ -15,7 +15,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { launch, ROOT, ORIGIN, sleep, log } from './harness.mjs';
 
-const PAGE = `${ORIGIN}/edt/index.html`;
+const PAGE = `${ORIGIN}/edt.html`;
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png' };
 
 const assert = (cond, msg) => { if (!cond) throw new Error(`ÉCHEC : ${msg}`); log('OK', msg); };

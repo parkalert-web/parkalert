@@ -31,15 +31,8 @@ const ASSETS = [
   'src/ui.js',
   'src/vehicles.js',
   'src/push.js',
-  // Comparateur d'emplois du temps (edt/) : utilisable hors ligne lui aussi.
-  'edt/index.html',
-  'edt/edt.css',
-  'src/edt/app.js',
-  'src/edt/compare.js',
-  'src/edt/image.js',
-  'src/edt/ocr.js',
-  'src/edt/parse.js',
-  'src/edt/store.js',
+  // Comparateur d'emplois du temps : un seul fichier, hors ligne lui aussi.
+  'edt.html',
 ];
 
 self.addEventListener('install', (e) => {

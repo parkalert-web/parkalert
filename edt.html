@@ -1,0 +1,2489 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>En commun — comparateur d’emplois du temps</title>
+<!--
+  Un seul fichier : style et code compris. Ouvrable tel quel, hébergeable
+  n’importe où, transmissible par courriel.
+
+  La reconnaissance du texte est faite par Tesseract (OCR libre) compilé en
+  WebAssembly et exécuté dans le navigateur : aucun service d’intelligence
+  artificielle, aucune clé, aucun coût, et aucune photo ne quitte l’appareil.
+  Seul le moteur et le dictionnaire français sont téléchargés — une fois.
+
+  Deux blocs de script : « noyau » (logique pure, testée) et « interface ».
+-->
+<meta name="description" content="Importez des photos d’emplois du temps : elles sont lues sur votre appareil, sans IA et sans compte, puis comparées — heures communes, trous, déjeuners, profs partagés."/>
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"/>
+<meta name="theme-color" content="#171b21" media="(prefers-color-scheme: dark)"/>
+<link rel="icon" href="data:image/svg+xml,<svg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2032%2032"><rect%20width="32"%20height="32"%20rx="7"%20fill="#0b5fd0"/><g%20fill="#fff"><rect%20x="7"%20y="7"%20width="7"%20height="6"%20rx="1.6"/><rect%20x="18"%20y="7"%20width="7"%20height="10"%20rx="1.6"/><rect%20x="7"%20y="17"%20width="7"%20height="8"%20rx="1.6"%20opacity=".5"/><rect%20x="18"%20y="21"%20width="7"%20height="4"%20rx="1.6"%20opacity=".5"/></g></svg>" type="image/svg+xml"/>
+<style>
+/* ============================================================================
+   « En commun » — comparateur d'emplois du temps.
+   Mêmes partis pris que ParkAlert : police du système, une couleur d'accent,
+   lisible au soleil comme de nuit, rien d'autre à l'écran que l'essentiel.
+   ========================================================================= */
+
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #f8f9fb;
+  --text: #101623;
+  --text-2: #59626f;
+  --text-3: #8b929d;
+  --border: #e2e5ea;
+  --border-strong: #cfd4dc;
+
+  --accent: #0b5fd0;
+  --accent-text: #ffffff;
+  --accent-soft: #e8f0fd;
+
+  --success: #0f7a45;
+  --success-soft: #e6f4ec;
+  --warning: #9a5b00;
+  --warning-soft: #fdf1de;
+  --danger: #c0332b;
+  --danger-soft: #fdeceb;
+
+  --shadow: 0 1px 2px rgba(16, 22, 35, .06), 0 8px 24px rgba(16, 22, 35, .06);
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116;
+    --surface: #171b21;
+    --surface-2: #1e232b;
+    --text: #eef1f5;
+    --text-2: #a4acb8;
+    --text-3: #767e8a;
+    --border: #272d36;
+    --border-strong: #39414c;
+
+    --accent: #4b93ff;
+    --accent-text: #071426;
+    --accent-soft: #16263d;
+
+    --success: #3cc17f;
+    --success-soft: #12291f;
+    --warning: #e0a33f;
+    --warning-soft: #2a2116;
+    --danger: #ff6f62;
+    --danger-soft: #2d1917;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
+    color-scheme: dark;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+body.locked { overflow: hidden; }
+
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+h2, h3, h4 { margin: 0 0 10px; }
+h2 { font-size: 20px; letter-spacing: -.01em; }
+h3 { font-size: 16px; }
+h4 { font-size: 14px; margin-top: 18px; }
+p { margin: 8px 0; }
+.muted { color: var(--text-2); }
+.small { font-size: 13px; }
+.note { color: var(--text-2); font-size: 14px; }
+.no { color: var(--text-3); }
+
+/* ─────────────────────────── En-tête ─────────────────────────── */
+
+.top {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: saturate(1.6) blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.brand { flex: 1; font-weight: 800; letter-spacing: .12em; font-size: 15px; }
+.brand span { color: var(--accent); }
+.back {
+  display: grid; place-items: center;
+  width: 34px; height: 34px; border-radius: 50%;
+  color: var(--text-2); text-decoration: none;
+  border: 1px solid var(--border);
+}
+.icon {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-2); font-size: 17px; line-height: 1;
+}
+.icon:hover { color: var(--text); border-color: var(--border-strong); }
+
+main { max-width: 1080px; margin: 0 auto; padding: 20px 16px 60px; }
+section { margin-bottom: 26px; }
+.num {
+  display: inline-grid; place-items: center;
+  width: 24px; height: 24px; margin-right: 8px;
+  border-radius: 50%; background: var(--accent); color: var(--accent-text);
+  font-size: 13px; font-weight: 700; vertical-align: 2px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 18px;
+  box-shadow: var(--shadow);
+  margin-bottom: 14px;
+}
+
+/* ─────────────────────────── Boutons ─────────────────────────── */
+
+.btn {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-weight: 600;
+  transition: transform .06s ease;
+}
+.btn:active { transform: scale(.98); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.btn.ghost { background: var(--surface-2); }
+.btn.small { padding: 7px 13px; font-size: 14px; }
+.btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, var(--border)); }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* ─────────────────────────── Zone de dépôt ─────────────────────────── */
+
+.drop {
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--r-md);
+  padding: 26px 18px;
+  text-align: center;
+  background: var(--surface-2);
+  transition: border-color .15s ease, background .15s ease;
+}
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop-t { font-weight: 600; }
+.drop-s { color: var(--text-2); font-size: 14px; margin-top: 2px; }
+.drop-b { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 14px 0 10px; }
+.drop-n { color: var(--text-3); font-size: 12.5px; }
+
+/* ─────────────────────────── Cartes personnes ─────────────────────────── */
+
+.people { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); margin-top: 14px; }
+.person { border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px; background: var(--surface-2); }
+.p-head { display: flex; align-items: center; gap: 8px; }
+.p-head .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); flex: none; }
+.p-name {
+  flex: 1; min-width: 0;
+  border: 1px solid transparent; background: transparent;
+  border-radius: 8px; padding: 4px 6px; font-weight: 700;
+}
+.p-name:hover { border-color: var(--border); }
+.p-name:focus { border-color: var(--accent); outline: none; background: var(--surface); }
+.p-body { display: flex; gap: 10px; margin: 10px 0; }
+.p-thumb { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); cursor: zoom-in; }
+.p-info { flex: 1; min-width: 0; }
+.p-status { font-size: 13.5px; color: var(--text-2); }
+.p-warn { font-size: 12.5px; color: var(--warning); background: var(--warning-soft); border-radius: 8px; padding: 6px 8px; margin-top: 6px; }
+.p-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.bar { height: 5px; border-radius: 3px; background: var(--border); overflow: hidden; margin-bottom: 5px; }
+.bar span { display: block; height: 100%; background: var(--accent); transition: width .25s ease; }
+
+.mini { display: flex; gap: 4px; margin-top: 8px; height: 46px; }
+.mini-day { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.mini-l { font-size: 10px; color: var(--text-3); }
+.mini-track { position: relative; width: 100%; flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 3px; }
+.mini-track i { position: absolute; left: 1px; right: 1px; background: var(--c); border-radius: 2px; opacity: .85; min-height: 2px; }
+
+/* ─────────────────────────── Réglages ─────────────────────────── */
+
+.opts { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
+.opts summary { cursor: pointer; color: var(--text-2); font-size: 14px; font-weight: 600; }
+.opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 10px 0; flex-wrap: wrap; }
+.opt label { font-size: 14px; color: var(--text-2); }
+.opt select { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); }
+
+/* ─────────────────────────── Tuiles de synthèse ─────────────────────────── */
+
+.tiles { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 14px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px 14px; box-shadow: var(--shadow); }
+.t-l { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-3); }
+.t-v { font-size: 22px; font-weight: 700; letter-spacing: -.02em; margin: 2px 0; }
+.t-s { font-size: 12.5px; color: var(--text-2); }
+
+/* ─────────────────────────── Grille de la semaine ─────────────────────────── */
+
+.week-wrap { overflow-x: auto; padding-bottom: 4px; }
+.week-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; font-size: 13px; color: var(--text-2); }
+.lg { display: inline-flex; align-items: center; gap: 6px; }
+.lg i { width: 11px; height: 11px; border-radius: 3px; background: var(--c); }
+.lg.free i { background: var(--success-soft); border: 1px dashed var(--success); }
+
+.week { display: flex; gap: 6px; min-width: 620px; }
+.week .hours { flex: 0 0 46px; display: flex; flex-direction: column; }
+.week .h-track { position: relative; height: var(--rows, 620px); }
+.week .h-track span { position: absolute; right: 4px; transform: translateY(-50%); font-size: 11px; color: var(--text-3); white-space: nowrap; }
+.week .day { flex: 1 1 0; min-width: 96px; display: flex; flex-direction: column; }
+.week .d-head { height: 22px; line-height: 22px; text-align: center; font-size: 12.5px; font-weight: 700; color: var(--text-2); }
+.week .track {
+  position: relative; height: var(--rows, 620px);
+  background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  background-image: repeating-linear-gradient(to bottom, transparent 0 calc(var(--hour, 62px) - 1px), var(--border) calc(var(--hour, 62px) - 1px) var(--hour, 62px));
+}
+.week .band.free { position: absolute; left: 0; right: 0; background: var(--success-soft); border-top: 1px dashed var(--success); border-bottom: 1px dashed var(--success); }
+.week .cols { position: absolute; inset: 0; display: flex; }
+.week .col { position: relative; flex: 1 1 0; }
+.week .blk {
+  position: absolute; left: 1px; right: 1px; overflow: hidden;
+  background: var(--surface);
+  background: color-mix(in srgb, var(--c) 15%, var(--surface));
+  border-left: 3px solid var(--c);
+  border-radius: 4px; padding: 2px 4px;
+  font-size: 10.5px; line-height: 1.15;
+}
+.week .blk b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.week .blk i { display: block; font-style: normal; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.week .blk.pause { opacity: .55; }
+
+/* ─────────────────────────── Détail par jour ─────────────────────────── */
+
+.details { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.details .card { margin: 0; }
+.day-card h3 { border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.row { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 14px; }
+.row:last-child { border-bottom: 0; }
+.row .k { flex: 0 0 132px; color: var(--text-3); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding-top: 2px; }
+.row .v { flex: 1; }
+.tag { display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 0 8px; font-size: 11.5px; font-weight: 700; }
+ul.plain { list-style: none; margin: 0; padding: 0; }
+ul.plain li { padding: 5px 0; border-bottom: 1px dashed var(--border); font-size: 14px; }
+ul.plain li:last-child { border-bottom: 0; }
+
+.tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; padding-top: 8px; }
+
+/* ─────────────────────────── Modales ─────────────────────────── */
+
+.modal { position: fixed; inset: 0; z-index: 60; background: rgba(9, 12, 18, .55); display: grid; place-items: center; padding: 16px; }
+.modal[hidden] { display: none; }
+.modal-box {
+  background: var(--surface); border-radius: var(--r-lg);
+  width: min(560px, 100%); max-height: 92vh; display: flex; flex-direction: column;
+  border: 1px solid var(--border); box-shadow: 0 24px 60px rgba(0, 0, 0, .35);
+}
+.modal-box.wide { width: min(940px, 100%); }
+.modal-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.modal-head h3 { flex: 1; margin: 0; }
+.modal-body { padding: 16px; overflow: auto; }
+.modal-body ul { padding-left: 20px; }
+.modal-body li { margin: 5px 0; font-size: 14.5px; }
+.modal-foot { padding: 12px 16px; border-top: 1px solid var(--border); text-align: right; }
+
+.sheet-thumb { float: right; width: 190px; max-width: 40%; margin: 0 0 10px 14px; border-radius: 10px; border: 1px solid var(--border); }
+.tbl-wrap { overflow-x: auto; clear: both; }
+.tbl { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 14px; }
+.tbl th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); padding: 6px 4px; }
+.tbl td { padding: 3px 4px; border-top: 1px solid var(--border); }
+.tbl input, .tbl select { width: 100%; padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }
+.tbl input:focus, .tbl select:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+.tbl td:nth-child(2), .tbl td:nth-child(3) { width: 104px; }
+.tbl td:last-child { width: 40px; }
+.sheet-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+#lightbox {
+  position: fixed; inset: 0; z-index: 70;
+  background: rgba(9, 12, 18, .82);
+  display: grid; place-items: center; padding: 20px; cursor: zoom-out;
+}
+#lightbox[hidden] { display: none; }
+#lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; }
+
+#toast {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 80;
+  background: var(--text); color: var(--bg);
+  padding: 11px 16px; border-radius: 999px; font-size: 14px; max-width: 92vw;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
+}
+#toast[hidden] { display: none; }
+
+/* ─────────────────────────── Impression ─────────────────────────── */
+
+@media print {
+  .top, .drop, .opts, .tools, .p-actions, .modal, #toast, #lightbox, #empty { display: none !important; }
+  body { background: #fff; }
+  .card, .tile { box-shadow: none; break-inside: avoid; }
+  .week { min-width: 0; }
+  main { max-width: none; padding: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <a class="back" href="./" title="Retour à ParkAlert">←</a>
+  <div class="brand">EN <span>COMMUN</span></div>
+  <button class="icon" data-act="help" type="button" title="Comment ça marche" aria-label="Comment ça marche">?</button>
+</header>
+
+<main>
+
+  <!-- ══════════════ 1. IMPORT ══════════════ -->
+  <section class="card">
+    <h2><span class="num">1</span> Vos emplois du temps</h2>
+
+    <div id="drop" class="drop">
+      <div class="drop-t">Déposez ici les photos des emplois du temps</div>
+      <div class="drop-s">une photo par personne — vous pouvez aussi les coller (Ctrl+V)</div>
+      <div class="drop-b">
+        <button class="btn primary" data-act="pick" type="button">Choisir des photos</button>
+        <button class="btn ghost" data-act="manual" type="button">Saisir à la main</button>
+      </div>
+      <div class="drop-n">Les images sont lues <b>sur votre appareil</b> : rien n’est envoyé, aucun compte, aucune IA, aucun frais.</div>
+    </div>
+
+    <input id="file" type="file" accept="image/*" multiple hidden/>
+    <input id="file-json" type="file" accept="application/json,.json" hidden/>
+
+    <div id="empty" class="note" hidden>Aucun emploi du temps pour l’instant.</div>
+    <div id="people" class="people"></div>
+
+    <details class="opts">
+      <summary>Réglages</summary>
+      <div class="opt">
+        <label for="opt-quality">Qualité de lecture</label>
+        <select id="opt-quality">
+          <option value="precise">Précise — dictionnaire de 6 Mo, plus lent</option>
+          <option value="fast">Rapide — dictionnaire de 0,6 Mo</option>
+        </select>
+      </div>
+      <div class="opt">
+        <label for="opt-min">Durée minimale d’un créneau commun</label>
+        <select id="opt-min">
+          <option value="10">10 minutes</option>
+          <option value="15">15 minutes</option>
+          <option value="20">20 minutes</option>
+          <option value="30">30 minutes</option>
+        </select>
+      </div>
+      <p class="note">Le dictionnaire n’est téléchargé qu’une fois, puis gardé par le navigateur : les lectures suivantes marchent même hors ligne.</p>
+    </details>
+  </section>
+
+  <!-- ══════════════ 2. RÉSULTATS ══════════════ -->
+  <section id="results" hidden>
+    <h2><span class="num">2</span> Ce qu’on a en commun</h2>
+    <div id="summary" class="tiles"></div>
+    <div class="card">
+      <div class="week-wrap"><div id="week"></div></div>
+    </div>
+    <div id="details" class="details"></div>
+  </section>
+
+  <footer class="tools">
+    <button class="btn ghost small" data-act="export" type="button">Exporter (fichier)</button>
+    <button class="btn ghost small" data-act="import" type="button">Importer un fichier</button>
+    <button class="btn ghost small" data-act="print" type="button">Imprimer</button>
+    <button class="btn ghost small danger" data-act="reset" type="button">Tout effacer</button>
+  </footer>
+</main>
+
+<!-- ══════════════ ÉDITEUR ══════════════ -->
+<div id="sheet" class="modal" hidden>
+  <div class="modal-box wide" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="modal-head">
+      <h3 id="sheet-title">Corriger</h3>
+      <button class="icon" data-act="close-sheet" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div id="sheet-body" class="modal-body"></div>
+    <div class="modal-foot"><button class="btn primary" data-act="close-sheet" type="button">C’est bon</button></div>
+  </div>
+</div>
+
+<!-- ══════════════ AIDE ══════════════ -->
+<div id="help" class="modal" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div class="modal-head">
+      <h3 id="help-title">Comment ça marche</h3>
+      <button class="icon" data-act="close-help" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div class="modal-body">
+      <h4>La lecture des photos</h4>
+      <p>La photo est d’abord redressée et nettoyée (contraste, ombres, travers), puis le texte
+      est reconnu par <b>Tesseract</b>, un moteur d’OCR libre qui s’exécute dans votre navigateur.
+      La position de chaque mot dans l’image sert ensuite à reconstituer la grille : les colonnes
+      donnent les jours, la colonne de gauche donne les heures, les traits du tableau donnent la
+      durée des cours.</p>
+      <p class="note">Aucun service d’intelligence artificielle n’est appelé, il n’y a ni clé
+      d’API, ni quota, ni facture. Les photos ne quittent jamais l’appareil.</p>
+
+      <h4>Pour que ça marche bien</h4>
+      <ul>
+        <li>Photographiez <b>bien en face</b>, sans ombre portée, la grille entière dans le cadre.</li>
+        <li>Une capture d’écran (Pronote, ADE, EcoleDirecte…) donne toujours un meilleur résultat qu’une photo de papier.</li>
+        <li>Les titres des jours (<i>Lundi</i>, <i>Mardi</i>…) doivent être lisibles : c’est sur eux que les colonnes sont repérées.</li>
+        <li>Relisez le tableau : l’OCR se trompe, corriger deux lignes prend dix secondes.</li>
+      </ul>
+
+      <h4>Ce qui est calculé</h4>
+      <ul>
+        <li>Les moments où vous êtes <b>tous en cours</b> en même temps, et ceux où vous êtes dans le <b>même cours</b> (même prof, même salle).</li>
+        <li>Les <b>trous communs</b> : libres au même moment, alors que la journée est commencée.</li>
+        <li>Le <b>déjeuner</b> : le temps libre commun entre 11h et 14h30.</li>
+        <li>Les <b>débuts</b> et <b>fins</b> de journée identiques.</li>
+        <li>Les <b>profs</b> et les <b>matières</b> que vous partagez.</li>
+      </ul>
+
+      <h4>Vos données</h4>
+      <p>Tout est enregistré dans ce navigateur uniquement. « Exporter » produit un fichier que
+      vous pouvez envoyer à quelqu’un : il le réimporte et compare son emploi du temps au vôtre,
+      sans photo à refaire.</p>
+    </div>
+    <div class="modal-foot"><button class="btn primary" data-act="close-help" type="button">Compris</button></div>
+  </div>
+</div>
+
+<div id="lightbox" data-act="zoom-close" hidden></div>
+
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script id="noyau">
+/* ════════════════════════════════════════════════════════════════════════
+   NOYAU — logique pure : lecture d'une grille, puis comparaison.
+   Aucun accès au DOM ni au réseau ici : cette partie est rejouable telle
+   quelle hors navigateur, et c'est ce que font les tests.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ══ De la photo au tableau de cours ═══════════════════════════════════════════ */
+
+/**
+ * Emploi du temps — de la photo au tableau de cours.
+ *
+ * Ce module ne contient QUE de la géométrie et des expressions régulières :
+ * il reçoit les mots repérés par l'OCR (chacun avec sa boîte dans l'image) et
+ * en déduit la grille — quel jour, quel créneau, quelle matière, quel prof.
+ *
+ * Aucune dépendance au DOM ni au réseau : tout est rejouable hors navigateur
+ * (voir tests/edt.test.mjs). Aucun service d'intelligence artificielle n'est
+ * appelé, ni ici ni ailleurs : la lecture de l'image est faite par Tesseract,
+ * moteur OCR libre, qui tourne entièrement dans le téléphone.
+ */
+
+const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+
+/** Noms de jours acceptés, du plus long au plus court (jamais moins de 3 lettres). */
+const DAY_KEYS = [
+  ['LUNDI', 'LUN'],
+  ['MARDI', 'MAR'],
+  ['MERCREDI', 'MERCRE', 'MERC', 'MER'],
+  ['JEUDI', 'JEU'],
+  ['VENDREDI', 'VENDRE', 'VEND', 'VEN'],
+  ['SAMEDI', 'SAM'],
+  ['DIMANCHE', 'DIM'],
+];
+
+/* ─────────────────────────── Texte ─────────────────────────── */
+
+const stripAccents = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+/** Majuscules, sans accent : la seule forme sur laquelle on compare. */
+const norm = (s) => stripAccents(s).toUpperCase().replace(/\s+/g, ' ').trim();
+
+/** Distance de Levenshtein, bornée : sert à absorber une lettre mal lue. */
+function levenshtein(a, b) {
+  const m = a.length; const n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i += 1) {
+    const cur = [i];
+    for (let j = 1; j <= n; j += 1) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+
+/** Indice du jour (0 = lundi) pour un mot, ou -1. Tolère une faute de lecture. */
+function dayIndexOf(token) {
+  const t = norm(token).replace(/[^A-Z]/g, '');
+  if (t.length < 3) return -1;
+  for (let i = 0; i < DAY_KEYS.length; i += 1) {
+    for (const key of DAY_KEYS[i]) {
+      if (t === key) return i;
+      if (key.length >= 5 && Math.abs(t.length - key.length) <= 1 && levenshtein(t, key) <= 1) return i;
+    }
+  }
+  return -1;
+}
+
+/* ─────────────────────────── Heures ─────────────────────────── */
+
+/** Confusions courantes de l'OCR, appliquées seulement à un jeton horaire. */
+const digitFix = (s) => s.replace(/[OoQ°]/g, '0').replace(/[lI|!]/g, '1').replace(/[ \s]/g, '');
+
+/**
+ * « 8h », « 8h30 », « 08:00 », « 8.30 », « 8 H 15 » → minutes depuis minuit.
+ * `bare` autorise un nombre seul (« 8 »), utile dans la colonne des heures.
+ */
+function parseTime(raw, { bare = false } = {}) {
+  const t = digitFix(String(raw ?? '').trim());
+  if (!t) return null;
+  let m = /^(\d{1,2})[Hh:.,](\d{2})$/.exec(t)
+    || /^(\d{1,2})[Hh:.,](\d)$/.exec(t)
+    || /^(\d{1,2})[Hh]$/.exec(t)
+    || /^(\d{1,2})[Hh:.,]$/.exec(t);
+  if (!m && /^\d{4}$/.test(t)) m = [t, t.slice(0, 2), t.slice(2)];
+  if (!m && bare && /^\d{1,2}$/.test(t)) m = [t, t, '0'];
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = m[2] == null || m[2] === '' ? 0 : Number(m[2].length === 1 ? `${m[2]}0` : m[2]);
+  if (!(h >= 0 && h <= 23) || !(min >= 0 && min <= 59)) return null;
+  return h * 60 + min;
+}
+
+/** Cherche « 8h00 - 10h00 » dans un texte de cellule. */
+function parseRange(text) {
+  const t = String(text ?? '').replace(/[ ]/g, ' ');
+  const re = /(\d{1,2}\s*[HhOo:.,]\s*\d{0,2})\s*(?:-|–|—|\/|à|a|au)\s*(\d{1,2}\s*[HhOo:.,]?\s*\d{0,2})/;
+  const m = re.exec(t);
+  if (!m) return null;
+  const start = parseTime(m[1]);
+  const end = parseTime(m[2]) ?? parseTime(m[2], { bare: true });
+  if (start == null || end == null || end <= start || end - start > 8 * 60) return null;
+  return { start, end, matched: m[0] };
+}
+
+/** 495 → « 8h15 ». */
+function fmtTime(min) {
+  if (min == null || !Number.isFinite(min)) return '—';
+  const h = Math.floor(min / 60); const m = Math.round(min % 60);
+  return `${h}h${String(m).padStart(2, '0')}`;
+}
+
+/** 95 → « 1 h 35 ». */
+function fmtDuration(min) {
+  const m = Math.max(0, Math.round(min));
+  const h = Math.floor(m / 60);
+  if (!h) return `${m} min`;
+  return m % 60 ? `${h} h ${String(m % 60).padStart(2, '0')}` : `${h} h`;
+}
+
+const snapTo = (min, step = 5) => Math.round(min / step) * step;
+
+/* ─────────────── Axe des heures : y (pixels) → minutes ─────────────── */
+
+function leastSquares(points) {
+  const n = points.length;
+  let sx = 0; let sy = 0; let sxx = 0; let sxy = 0;
+  for (const p of points) { sx += p.y; sy += p.minutes; sxx += p.y * p.y; sxy += p.y * p.minutes; }
+  const den = n * sxx - sx * sx;
+  if (!den) return null;
+  const a = (n * sxy - sx * sy) / den;
+  const b = (sy - a * sx) / n;
+  return { a, b };
+}
+
+const median = (arr) => {
+  if (!arr.length) return 0;
+  const s = [...arr].sort((x, y) => x - y);
+  const h = Math.floor(s.length / 2);
+  return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2;
+};
+
+/**
+ * Droite « minutes = a·y + b » ajustée sur les repères horaires trouvés,
+ * en écartant les points aberrants (un « 8h » lu à la place d'un « 3h »).
+ */
+function fitAxis(samples) {
+  const pts = samples.filter((p) => Number.isFinite(p.y) && Number.isFinite(p.minutes));
+  if (pts.length < 2) return null;
+
+  const plausible = (a) => a > 0.008 && a <= 12;
+  const finish = (inliers) => {
+    const fit = leastSquares(inliers);
+    if (!fit || !Number.isFinite(fit.a) || !plausible(fit.a)) return null;
+    const rmse = Math.sqrt(inliers.reduce((s, p) => s + (fit.a * p.y + fit.b - p.minutes) ** 2, 0) / inliers.length);
+    return {
+      a: fit.a,
+      b: fit.b,
+      n: inliers.length,
+      rmse,
+      toMinutes: (y) => fit.a * y + fit.b,
+      toY: (min) => (min - fit.b) / fit.a,
+    };
+  };
+
+  if (pts.length === 2) return finish(pts);
+
+  // Une seule heure mal lue suffit à faire basculer une régression : on cherche
+  // donc la droite qui met le plus de repères d'accord (le reste est écarté).
+  let best = null;
+  for (let i = 0; i < pts.length; i += 1) {
+    for (let j = i + 1; j < pts.length; j += 1) {
+      const dy = pts[j].y - pts[i].y;
+      if (Math.abs(dy) < 1e-6) continue;
+      const a = (pts[j].minutes - pts[i].minutes) / dy;
+      if (!plausible(a)) continue;
+      const b = pts[i].minutes - a * pts[i].y;
+      const inliers = pts.filter((p) => Math.abs(a * p.y + b - p.minutes) <= 10);
+      const err = inliers.reduce((s, p) => s + Math.abs(a * p.y + b - p.minutes), 0);
+      if (!best || inliers.length > best.inliers.length
+        || (inliers.length === best.inliers.length && err < best.err)) best = { inliers, err };
+    }
+  }
+  if (!best || best.inliers.length < 2) return null;
+  return finish(best.inliers);
+}
+
+/* ─────────────────────────── Mots et lignes ─────────────────────────── */
+
+const cx = (w) => (w.x0 + w.x1) / 2;
+const cy = (w) => (w.y0 + w.y1) / 2;
+const overlap = (a0, a1, b0, b1) => Math.max(0, Math.min(a1, b1) - Math.max(a0, b0));
+
+/** Normalise ce que renvoie l'OCR et jette le bruit (points, traits, ratés). */
+function cleanWords(raw, { minConf = 30 } = {}) {
+  return (raw || [])
+    .map((w) => ({
+      text: String(w.text ?? '').replace(/\s+/g, ' ').trim(),
+      conf: Number.isFinite(w.conf) ? w.conf : 100,
+      x0: Math.min(w.x0, w.x1),
+      x1: Math.max(w.x0, w.x1),
+      y0: Math.min(w.y0, w.y1),
+      y1: Math.max(w.y0, w.y1),
+    }))
+    .filter((w) => w.text && w.x1 > w.x0 && w.y1 > w.y0)
+    .filter((w) => w.conf >= minConf || /\d/.test(w.text))
+    .filter((w) => !/^[^\p{L}\p{N}]+$/u.test(w.text));
+}
+
+/** Regroupe des mots en lignes de texte (ils se chevauchent verticalement). */
+function groupLines(words) {
+  const sorted = [...words].sort((a, b) => cy(a) - cy(b) || a.x0 - b.x0);
+  const lines = [];
+  for (const w of sorted) {
+    const h = w.y1 - w.y0;
+    const line = lines.find((L) => overlap(L.y0, L.y1, w.y0, w.y1) > 0.45 * Math.min(L.y1 - L.y0, h));
+    if (line) {
+      line.words.push(w);
+      line.y0 = Math.min(line.y0, w.y0); line.y1 = Math.max(line.y1, w.y1);
+      line.x0 = Math.min(line.x0, w.x0); line.x1 = Math.max(line.x1, w.x1);
+    } else {
+      lines.push({ words: [w], x0: w.x0, x1: w.x1, y0: w.y0, y1: w.y1 });
+    }
+  }
+  for (const L of lines) {
+    L.words.sort((a, b) => a.x0 - b.x0);
+    L.text = L.words.map((w) => w.text).join(' ');
+  }
+  return lines.sort((a, b) => a.y0 - b.y0);
+}
+
+/* ─────────────────────────── Colonnes des jours ─────────────────────────── */
+
+/** Repère les en-têtes « LUNDI », « MARDI »… parmi les mots. */
+function findDayHeaders(words) {
+  const found = [];
+  for (const w of words) {
+    const d = dayIndexOf(w.text);
+    if (d >= 0) found.push({ day: d, ...w });
+  }
+  // Un même jour peut être lu deux fois : on garde l'occurrence la plus haute.
+  const best = new Map();
+  for (const f of found) {
+    const cur = best.get(f.day);
+    if (!cur || f.y0 < cur.y0) best.set(f.day, f);
+  }
+  return [...best.values()].sort((a, b) => cx(a) - cx(b));
+}
+
+/** Bandes verticales : une par jour, frontières à mi-chemin entre deux en-têtes. */
+function bandsFromHeaders(headers, bounds) {
+  const sorted = [...headers].sort((a, b) => cx(a) - cx(b));
+  const centers = sorted.map(cx);
+  const widths = [];
+  for (let i = 1; i < centers.length; i += 1) widths.push(centers[i] - centers[i - 1]);
+  const step = widths.length ? median(widths) : (bounds.x1 - bounds.x0) / Math.max(1, sorted.length);
+
+  return sorted.map((h, i) => {
+    const left = i === 0 ? centers[0] - step / 2 : (centers[i - 1] + centers[i]) / 2;
+    const right = i === sorted.length - 1 ? centers[i] + step / 2 : (centers[i] + centers[i + 1]) / 2;
+    return { day: h.day, x0: Math.max(bounds.x0, left), x1: Math.min(bounds.x1, right), header: h };
+  });
+}
+
+/* ─────────────────────────── Contenu d'une cellule ─────────────────────────── */
+
+const ROOM_WORDS = /^(CDI|GYMNASE|GYM|AMPHI|LABO|ATELIER|PERM|EXT|DISTANCIEL|STADE|PISCINE)$/;
+const CIVILITY = /^(M|MR|MME|MLLE|MLE|MADAME|MONSIEUR|PROF|PR)\.?$/;
+const PAUSE_RE = /^(PAUSE|RECRE|RECREATION|DEJEUNER|DEJ|REPAS|MIDI|CANTINE|INTERCLASSE|LIBRE)\b/;
+
+/** « MATHEMATIQUES » → « Mathématiques » n'est pas possible sans dictionnaire :
+ *  on se contente d'une casse lisible, en gardant les sigles courts. */
+function prettyCase(s) {
+  return String(s ?? '')
+    .toLowerCase()
+    .replace(/(^|[\s'’\-/(])([\p{L}])/gu, (_, p, c) => p + c.toUpperCase())
+    .replace(/\b(Svt|Eps|Ses|Llce|Hlp|Hggsp|Nsi|Sti2d|Stmg|Pc|Es|Vf|Td|Tp|Cdi|Ue|Lv1|Lv2|Lva|Lvb|Tp1|Tp2|Amc|Dnl|Ap)\b/g, (m) => m.toUpperCase());
+}
+
+/** Sépare le contenu d'une cellule en matière / professeur / salle. */
+function splitCell(lines) {
+  const raw = lines.map((L) => L.text.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const rest = [];
+  let teacher = '';
+  let room = '';
+
+  for (const line of raw) {
+    let text = line;
+
+    // Salle : « Salle 204 », « S. B12 », « Gymnase »…
+    const mRoom = /\b(?:SALLES?|SLL?|S)\s*\.?\s*:?\s*([A-Z]{0,3}\s?-?\s?\d{1,3}[A-Z]?)\b/i.exec(stripAccents(text));
+    if (!room && mRoom) {
+      room = mRoom[1].replace(/\s+/g, '');
+      text = text.replace(new RegExp(`\\S*${mRoom[0].trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\S*`, 'i'), ' ');
+    }
+    if (!room) {
+      const tokens = text.split(/[\s,;]+/).filter(Boolean);
+      const solo = tokens.find((tk, i) => ROOM_WORDS.test(norm(tk))
+        || ((raw.indexOf(line) > 0 || (i === tokens.length - 1 && tokens.length > 1))
+          && /^[A-Z]{0,2}-?\d{2,3}[A-Z]?$/.test(norm(tk))));
+      if (solo) { room = ROOM_WORDS.test(norm(solo)) ? prettyCase(solo) : norm(solo); text = text.replace(solo, ' '); }
+    }
+
+    // Professeur : civilité explicite, puis nom.
+    const mTeacher = /\b(M|MR|MME|MLLE|MLE)\.?\s+([\p{L}][\p{L}'’\-]{1,}(?:\s+[\p{L}][\p{L}'’\-]+)?)/iu.exec(text);
+    if (!teacher && mTeacher) {
+      const civ = { M: 'M.', MR: 'M.', MME: 'Mme', MLLE: 'Mlle', MLE: 'Mlle' }[mTeacher[1].toUpperCase()] || 'M.';
+      teacher = `${civ} ${prettyCase(mTeacher[2])}`.trim();
+      text = text.replace(mTeacher[0], ' ');
+    }
+
+    const cleaned = text.replace(/\s+/g, ' ').trim();
+    if (cleaned) rest.push(cleaned);
+  }
+
+  // Sans civilité : une ligne courte, sans chiffre, autre que la première, fait un nom.
+  if (!teacher && rest.length > 1) {
+    for (let i = rest.length - 1; i >= 1; i -= 1) {
+      const tokens = rest[i].split(/\s+/).filter(Boolean);
+      const looksName = tokens.length <= 3
+        && !/\d/.test(rest[i])
+        && rest[i].length >= 3
+        && tokens.every((tk) => !CIVILITY.test(norm(tk)))
+        && norm(rest[i]) === rest[i].toUpperCase().replace(/\s+/g, ' ').trim();
+      if (looksName) { teacher = prettyCase(rest[i]); rest.splice(i, 1); break; }
+    }
+  }
+
+  const subject = prettyCase(rest.join(' ').replace(/\s+/g, ' ').trim());
+  return { subject, teacher, room };
+}
+
+/** Clé de comparaison d'un professeur : le nom de famille, sans civilité ni accent. */
+function teacherKey(name) {
+  const t = norm(name).replace(/[^A-Z\s'’\-]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  const tokens = t.split(' ').filter((tk) => !CIVILITY.test(tk.replace('.', '')));
+  if (!tokens.length) return '';
+  // « DUPONT J. » ou « J. DUPONT » : le nom de famille est le jeton le plus long.
+  return tokens.reduce((a, b) => (b.length > a.length ? b : a), '');
+}
+
+/** Clé de comparaison d'une matière (les abréviations d'un lycée à l'autre). */
+const SUBJECT_ALIASES = [
+  [/^(MATHS?|MATHEMATIQUES?|MATH)\b/, 'MATHEMATIQUES'],
+  [/^(FRANC|FRANCAIS|FR)\b/, 'FRANCAIS'],
+  [/^(HIST|HISTOIRE|HG|HIST[- ]?GEO|HISTOIRE[- ]?GEOGRAPHIE)\b/, 'HISTOIRE-GEO'],
+  [/^(ANG|ANGLAIS|LV1 ANGLAIS|LVA)\b/, 'ANGLAIS'],
+  [/^(ESP|ESPAGNOL|LV2 ESPAGNOL|LVB)\b/, 'ESPAGNOL'],
+  [/^(ALL|ALLEMAND)\b/, 'ALLEMAND'],
+  [/^(PHYS|PHYSIQUE|PHYSIQUE[- ]?CHIMIE|PC)\b/, 'PHYSIQUE-CHIMIE'],
+  [/^(SVT|BIO|BIOLOGIE)\b/, 'SVT'],
+  [/^(EPS|SPORT)\b/, 'EPS'],
+  [/^(SES|ECO|ECONOMIE)\b/, 'SES'],
+  [/^(PHILO|PHILOSOPHIE)\b/, 'PHILOSOPHIE'],
+  [/^(NSI|INFO|INFORMATIQUE)\b/, 'NSI'],
+];
+
+function subjectKey(subject) {
+  const s = norm(subject).replace(/[^A-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  for (const [re, key] of SUBJECT_ALIASES) if (re.test(s)) return key;
+  return s;
+}
+
+/* ─────────────────────────── Lecture complète ─────────────────────────── */
+
+const DEFAULTS = {
+  minConf: 30,
+  defaultDuration: 60,
+  minDuration: 20,
+  maxDuration: 5 * 60,
+  snap: 5,
+};
+
+/** Échange x et y : permet de traiter à l'identique une grille couchée. */
+const transposeWord = (w) => ({ ...w, x0: w.y0, x1: w.y1, y0: w.x0, y1: w.x1 });
+
+/**
+ * Lecture principale.
+ *
+ * @param {Array} rawWords  mots de l'OCR : { text, conf, x0, y0, x1, y1 }
+ * @param {Object} opts     { rulings: { rows: number[] }, ...réglages }
+ * @returns {{ courses: Array, warnings: string[], quality: number, layout: Object }}
+ */
+function readSchedule(rawWords, opts = {}) {
+  const cfg = { ...DEFAULTS, ...opts };
+  const warnings = [];
+  let words = cleanWords(rawWords, cfg);
+  if (words.length < 6) {
+    return { courses: [], warnings: ['Presque rien n’a pu être lu sur cette image.'], quality: 0, layout: {} };
+  }
+
+  // Grille couchée (jours en lignes) : on pivote tout, le reste est identique.
+  let headers = findDayHeaders(words);
+  let rowEdges = (cfg.rulings?.rows || []).slice().sort((a, b) => a - b);
+  let transposed = false;
+  if (headers.length >= 2) {
+    const spreadX = Math.max(...headers.map(cx)) - Math.min(...headers.map(cx));
+    const spreadY = Math.max(...headers.map(cy)) - Math.min(...headers.map(cy));
+    if (spreadY > spreadX * 1.6) {
+      transposed = true;
+      words = words.map(transposeWord);
+      headers = findDayHeaders(words);
+      rowEdges = (cfg.rulings?.cols || []).slice().sort((a, b) => a - b);
+    }
+  }
+
+  const bounds = {
+    x0: Math.min(...words.map((w) => w.x0)),
+    x1: Math.max(...words.map((w) => w.x1)),
+    y0: Math.min(...words.map((w) => w.y0)),
+    y1: Math.max(...words.map((w) => w.y1)),
+  };
+
+  if (headers.length < 2) {
+    return {
+      courses: [],
+      warnings: ['Aucune colonne de jour reconnue (Lundi, Mardi…). Vérifiez que la photo est bien droite et que les titres des jours sont nets.'],
+      quality: 0,
+      layout: { transposed },
+    };
+  }
+  if (headers.length < 4) warnings.push(`Seulement ${headers.length} jours reconnus : les autres colonnes seront ignorées.`);
+
+  const bands = bandsFromHeaders(headers, bounds);
+  const headerBottom = Math.max(...headers.map((h) => h.y1));
+
+  // 1. Colonne des heures : à gauche du premier jour, sous les en-têtes.
+  const gutter = [];
+  for (const w of words) {
+    if (cy(w) <= headerBottom || cx(w) >= headers[0].x0) continue;
+    const min = parseTime(w.text) ?? parseTime(w.text, { bare: true });
+    if (min != null && min >= 5 * 60 && min <= 22 * 60) gutter.push({ w, min });
+  }
+  // Cette colonne ne fait pas partie du lundi : on recale le bord de la grille.
+  if (gutter.length >= 2) {
+    const edge = Math.max(...gutter.map((g) => g.w.x1)) + 2;
+    if (edge > bands[0].x0 && edge < cx(bands[0].header)) bands[0].x0 = edge;
+  }
+  const gridLeft = Math.min(...bands.map((b) => b.x0));
+  const samples = gutter.map((g) => ({ y: cy(g.w), minutes: g.min, from: 'gutter' }));
+
+  // 2. Repères supplémentaires : les créneaux écrits dans les cellules elles-mêmes.
+  const inGrid = words.filter((w) => cy(w) > headerBottom && cx(w) >= gridLeft);
+  const gridLines = groupLines(inGrid);
+  for (const L of gridLines) {
+    const r = parseRange(L.text);
+    if (r) samples.push({ y: cy(L), minutes: (r.start + r.end) / 2, from: 'cell' });
+  }
+
+  let axis = fitAxis(samples);
+  if (!axis) {
+    // Dernier recours : la grille est supposée aller de 8h à 18h de haut en bas.
+    const top = headerBottom + 2;
+    const bottom = Math.max(bounds.y1, top + 10);
+    axis = fitAxis([{ y: top, minutes: 8 * 60 }, { y: bottom, minutes: 18 * 60 }]);
+    warnings.push('Aucune heure lisible sur le côté : les horaires sont estimés (8h–18h) et sont sûrement à corriger.');
+  }
+
+  // 3. Découpage en cellules, colonne par colonne.
+  const medianH = median(gridLines.map((L) => L.y1 - L.y0)) || 12;
+  const courses = [];
+
+  for (const band of bands) {
+    const mine = inGrid.filter((w) => overlap(band.x0, band.x1, w.x0, w.x1) > 0.5 * (w.x1 - w.x0));
+    if (!mine.length) continue;
+    const lines = groupLines(mine);
+
+    const bandRows = (!transposed && typeof cfg.rowsForBand === 'function'
+      ? (cfg.rowsForBand(band.x0, band.x1) || []).slice().sort((a, b) => a - b)
+      : rowEdges);
+
+    const cells = [];
+    for (const L of lines) {
+      const cur = cells[cells.length - 1];
+      const gap = cur ? L.y0 - cur.y1 : Infinity;
+      const crossesRule = cur ? bandRows.some((y) => y > cur.y1 - 1 && y < L.y0 + 1) : false;
+      if (!cur || gap > 0.85 * medianH || crossesRule) {
+        cells.push({ lines: [L], x0: L.x0, x1: L.x1, y0: L.y0, y1: L.y1 });
+      } else {
+        cur.lines.push(L);
+        cur.y1 = Math.max(cur.y1, L.y1); cur.x0 = Math.min(cur.x0, L.x0); cur.x1 = Math.max(cur.x1, L.x1);
+      }
+    }
+
+    for (const cell of cells) {
+      const text = cell.lines.map((L) => L.text).join(' ');
+      if (!/[\p{L}]{2}/u.test(text)) continue;             // une cellule sans lettre n'est pas un cours
+
+      // a) créneau écrit dans la cellule : c'est la source la plus sûre.
+      const explicit = parseRange(text);
+      let start; let end; let source;
+      if (explicit) {
+        ({ start, end } = explicit);
+        source = 'texte';
+      } else if (bandRows.length >= 2) {
+        // b) le cours occupe les lignes du tableau que son texte recouvre.
+        const rows = [];
+        for (let i = 1; i < bandRows.length; i += 1) {
+          const top = bandRows[i - 1]; const bot = bandRows[i];
+          if (bot - top < 4) continue;
+          // Le texte est dans la case s'il la recouvre franchement, ou si son
+          // milieu y tombe — un cours de quatre heures n'a que trois lignes.
+          const middle = (cell.y0 + cell.y1) / 2;
+          const inside = middle >= top && middle < bot;
+          if (inside || overlap(top, bot, cell.y0, cell.y1) > 0.25 * (bot - top)) rows.push([top, bot]);
+        }
+        if (rows.length) {
+          start = axis.toMinutes(rows[0][0]);
+          end = axis.toMinutes(rows[rows.length - 1][1]);
+          source = 'grille';
+        }
+      }
+      if (start == null) {
+        // c) à défaut, la position verticale du texte, marge comprise.
+        start = axis.toMinutes(cell.y0 - 0.35 * medianH);
+        end = axis.toMinutes(cell.y1 + 0.35 * medianH);
+        source = 'position';
+      }
+
+      start = snapTo(start, cfg.snap);
+      end = snapTo(end, cfg.snap);
+      if (end - start < cfg.minDuration) end = start + cfg.defaultDuration;
+      if (end - start > cfg.maxDuration) end = start + cfg.maxDuration;
+
+      const fields = splitCell(cell.lines);
+      const cleanSubject = explicit
+        ? prettyCase(norm(text).replace(norm(explicit.matched), ' ').replace(/\s+/g, ' ').trim())
+        : fields.subject;
+      const found = explicit ? splitCell([{ text: cleanSubject }]).subject : fields.subject;
+      const subject = found || 'Cours';
+
+      courses.push({
+        day: band.day,
+        start,
+        end,
+        subject,
+        teacher: explicit ? (fields.teacher || splitCell([{ text: cleanSubject }]).teacher) : fields.teacher,
+        room: fields.room,
+        kind: PAUSE_RE.test(norm(subject)) ? 'pause' : 'cours',
+        incomplete: !found || undefined,
+        source,
+        conf: Math.round(median(cell.lines.flatMap((L) => L.words.map((w) => w.conf)))),
+      });
+    }
+  }
+
+  const merged = mergeAdjacent(courses.sort((a, b) => a.day - b.day || a.start - b.start));
+  const sansMatiere = merged.filter((c) => c.incomplete).length;
+  if (sansMatiere) {
+    warnings.push(`${sansMatiere} cours ${sansMatiere > 1 ? 'sont' : 'est'} sans matière lisible : à compléter.`);
+  }
+  const quality = qualityScore(merged, axis, warnings);
+  if (!merged.length) warnings.push('Aucun cours n’a pu être isolé : la photo est peut-être trop floue ou trop inclinée.');
+
+  return {
+    courses: merged,
+    warnings,
+    quality,
+    layout: { transposed, days: bands.map((b) => b.day), axis: { a: axis.a, b: axis.b, n: axis.n }, samples: samples.length },
+  };
+}
+
+/** Deux cellules identiques qui se touchent sont un seul cours de deux heures. */
+function mergeAdjacent(courses, tolerance = 6) {
+  const out = [];
+  for (const c of courses) {
+    const prev = out[out.length - 1];
+
+    // Même case lue en deux morceaux (la matière d'un côté, le prof de
+    // l'autre) : une ligne du tableau ne contient qu'un cours, on recolle.
+    if (prev && prev.day === c.day && prev.start === c.start && prev.end === c.end) {
+      if (prev.incomplete && !c.incomplete) { prev.subject = c.subject; delete prev.incomplete; }
+      prev.teacher = prev.teacher || c.teacher;
+      prev.room = prev.room || c.room;
+      prev.conf = Math.min(prev.conf ?? 100, c.conf ?? 100);
+      continue;
+    }
+
+    const same = prev && prev.day === c.day
+      && subjectKey(prev.subject) === subjectKey(c.subject)
+      && teacherKey(prev.teacher) === teacherKey(c.teacher)
+      && c.start - prev.end <= tolerance && c.start - prev.end >= -tolerance;
+    if (same) prev.end = Math.max(prev.end, c.end);
+    else out.push({ ...c });
+  }
+  return out;
+}
+
+/** Note de confiance grossière, affichée à l'utilisateur pour l'inciter à vérifier. */
+function qualityScore(courses, axis, warnings) {
+  if (!courses.length) return 0;
+  let score = 55;
+  if (axis?.n >= 4) score += 15; else if (axis?.n >= 2) score += 5;
+  if (axis && axis.rmse < 8) score += 10;
+  const named = courses.filter((c) => c.teacher).length / courses.length;
+  score += Math.round(named * 12);
+  const solid = courses.filter((c) => c.source !== 'position').length / courses.length;
+  score += Math.round(solid * 12);
+  score -= warnings.length * 8;
+  score -= Math.max(0, 6 - courses.length) * 4;
+  return Math.max(5, Math.min(97, score));
+}
+
+/* ══ Ce qu'on a en commun ══════════════════════════════════════════════════════ */
+
+/**
+ * Emploi du temps — ce qu'on a en commun.
+ *
+ * Logique pure : elle prend N emplois du temps déjà lus (ou saisis à la main)
+ * et répond aux questions qui comptent — quand est-ce qu'on est en cours en
+ * même temps, quels trous a-t-on ensemble, qui commence et finit en même
+ * temps, quand peut-on manger ensemble, quels profs a-t-on en commun.
+ *
+ * Aucune dépendance : testable hors navigateur (tests/edt.test.mjs).
+ * Toutes les heures sont des minutes depuis minuit.
+ */
+
+
+
+const COMPARE_DEFAULTS = {
+  minCommon: 15,          // on ignore les créneaux communs plus courts (min)
+  minLunch: 30,           // durée minimale pour appeler ça un déjeuner
+  lunch: { start: 11 * 60, end: 14 * 60 + 30 },
+  tolerance: 0,           // « en même temps » à ± n minutes
+};
+
+/* ─────────────────────────── Intervalles ─────────────────────────── */
+
+function mergeIntervals(list) {
+  const sorted = list.filter((i) => i.end > i.start).sort((a, b) => a.start - b.start);
+  const out = [];
+  for (const i of sorted) {
+    const last = out[out.length - 1];
+    if (last && i.start <= last.end) last.end = Math.max(last.end, i.end);
+    else out.push({ start: i.start, end: i.end });
+  }
+  return out;
+}
+
+function intersectPair(a, b) {
+  const out = [];
+  let i = 0; let j = 0;
+  while (i < a.length && j < b.length) {
+    const start = Math.max(a[i].start, b[j].start);
+    const end = Math.min(a[i].end, b[j].end);
+    if (end > start) out.push({ start, end });
+    if (a[i].end < b[j].end) i += 1; else j += 1;
+  }
+  return out;
+}
+
+function intersectAll(lists) {
+  if (!lists.length) return [];
+  return lists.map(mergeIntervals).reduce((acc, l) => intersectPair(acc, l));
+}
+
+/** base moins holes. */
+function subtract(base, holes) {
+  let out = mergeIntervals(base);
+  for (const h of mergeIntervals(holes)) {
+    const next = [];
+    for (const i of out) {
+      if (h.end <= i.start || h.start >= i.end) { next.push(i); continue; }
+      if (h.start > i.start) next.push({ start: i.start, end: h.start });
+      if (h.end < i.end) next.push({ start: h.end, end: i.end });
+    }
+    out = next;
+  }
+  return out;
+}
+
+const clip = (list, win) => list
+  .map((i) => ({ ...i, start: Math.max(i.start, win.start), end: Math.min(i.end, win.end) }))
+  .filter((i) => i.end > i.start);
+
+const totalMinutes = (list) => list.reduce((s, i) => s + (i.end - i.start), 0);
+
+/* ─────────────────────────── Une journée ─────────────────────────── */
+
+/** Les cours d'une personne un jour donné (les pauses ne sont pas du cours). */
+const coursesOf = (sched, day) => (sched.courses || [])
+  .filter((c) => c.day === day && c.kind !== 'pause' && c.end > c.start)
+  .sort((a, b) => a.start - b.start);
+
+const busyOf = (sched, day) => mergeIntervals(coursesOf(sched, day).map((c) => ({ start: c.start, end: c.end })));
+
+/** Amplitude de la journée : du premier cours au dernier. */
+function dayWindow(sched, day) {
+  const list = coursesOf(sched, day);
+  if (!list.length) return null;
+  return { start: list[0].start, end: Math.max(...list.map((c) => c.end)) };
+}
+
+/** Le cours en train d'avoir lieu à un instant donné. */
+const courseAt = (sched, day, min) => coursesOf(sched, day).find((c) => c.start <= min && c.end > min) || null;
+
+/** Deux cours au même moment, même prof, même salle : c'est le même cours. */
+function sameCourse(a, b) {
+  if (!a || !b) return false;
+  // Les deux emplois du temps ne sont pas au pixel près : on accepte un
+  // décalage de quelques minutes, mais il faut un vrai recouvrement.
+  const shared = Math.min(a.end, b.end) - Math.max(a.start, b.start);
+  const shorter = Math.min(a.end - a.start, b.end - b.start);
+  const sameSlot = shared >= Math.min(30, shorter) && Math.abs(a.start - b.start) <= 15;
+  if (!sameSlot) return false;
+  const tA = teacherKey(a.teacher); const tB = teacherKey(b.teacher);
+  const rA = String(a.room || '').toUpperCase(); const rB = String(b.room || '').toUpperCase();
+  const sameTeacher = !!tA && tA === tB;
+  const sameRoom = !!rA && rA === rB;
+  const sameSubject = !!subjectKey(a.subject) && subjectKey(a.subject) === subjectKey(b.subject);
+  return (sameTeacher && (sameRoom || sameSubject)) || (sameRoom && sameSubject);
+}
+
+/**
+ * Comparaison complète.
+ *
+ * @param {Array} schedules  [{ id, name, courses: [...] }]
+ * @param {Object} options   voir DEFAULTS
+ */
+function compare(schedules, options = {}) {
+  const cfg = { ...COMPARE_DEFAULTS, ...options };
+  const list = (schedules || []).filter((s) => s && Array.isArray(s.courses));
+  const result = {
+    people: list.map((s) => ({ id: s.id, name: s.name })),
+    days: [],
+    teachers: [],
+    subjects: [],
+    sameClass: [],
+    totals: { together: 0, gaps: 0, free: 0, lunch: 0 },
+    best: { free: null, gap: null, lunch: null },
+  };
+  if (list.length < 2) return result;
+
+  for (let day = 0; day < 7; day += 1) {
+    const present = list.filter((s) => coursesOf(s, day).length);
+    if (present.length < 2) {
+      // Une seule personne (ou aucune) a cours : rien à mettre en commun ce jour-là.
+      if (present.length === 1) {
+        result.days.push({
+          day, name: DAYS[day], present: present.map((s) => s.id), partial: true,
+          together: [], gaps: [], free: [], lunch: [], starts: null, ends: null,
+        });
+      }
+      continue;
+    }
+
+    const windows = present.map((s) => dayWindow(s, day));
+    const win = { start: Math.min(...windows.map((w) => w.start)), end: Math.max(...windows.map((w) => w.end)) };
+
+    // Toutes les personnes comptent, même celles qui n'ont pas cours ce jour-là :
+    // elles sont alors libres sur toute l'amplitude commune.
+    const busyLists = list.map((s) => clip(busyOf(s, day), win));
+    const freeLists = busyLists.map((b) => subtract([win], b));
+
+    // 1. En cours en même temps.
+    const together = intersectAll(busyLists)
+      .filter((i) => i.end - i.start >= cfg.minCommon)
+      .map((i) => {
+        const who = list.map((s) => ({ id: s.id, name: s.name, course: courseAt(s, day, i.start + 1) }));
+        const withCourse = who.filter((w) => w.course);
+        const identical = withCourse.length === list.length
+          && withCourse.every((w) => sameCourse(w.course, withCourse[0].course));
+        return { ...i, who: withCourse, sameCourse: identical };
+      });
+
+    // 2. Libres en même temps, à l'intérieur de la journée du groupe.
+    const free = intersectAll(freeLists).filter((i) => i.end - i.start >= cfg.minCommon);
+
+    // 3. Trous : du temps libre commun coincé entre deux cours pour au moins un.
+    const gaps = free.filter((i) => present.some((s) => {
+      const w = dayWindow(s, day);
+      return w && i.start >= w.start && i.end <= w.end;
+    }));
+
+    // 4. Déjeuner : le temps libre commun qui tombe sur la pause du midi.
+    const lunch = clip(free, cfg.lunch).filter((i) => i.end - i.start >= cfg.minLunch);
+
+    // 5. Débuts et fins de journée.
+    const starts = groupTimes(present.map((s) => ({ id: s.id, name: s.name, time: dayWindow(s, day).start })), cfg.tolerance);
+    const ends = groupTimes(present.map((s) => ({ id: s.id, name: s.name, time: dayWindow(s, day).end })), cfg.tolerance);
+
+    result.days.push({
+      day, name: DAYS[day], present: present.map((s) => s.id), partial: present.length < list.length,
+      window: win, together, free, gaps, lunch, starts, ends,
+    });
+
+    result.totals.together += totalMinutes(together);
+    result.totals.free += totalMinutes(free);
+    result.totals.gaps += totalMinutes(gaps);
+    result.totals.lunch += totalMinutes(lunch);
+    result.best.free = longest(result.best.free, free, day);
+    result.best.gap = longest(result.best.gap, gaps, day);
+    result.best.lunch = longest(result.best.lunch, lunch, day);
+  }
+
+  result.teachers = commonTeachers(list);
+  result.subjects = commonSubjects(list);
+  result.sameClass = sameClassCourses(list);
+  return result;
+}
+
+/** Regroupe des horaires identiques : « Lou et Sam commencent à 8h, Max à 9h ». */
+function groupTimes(entries, tolerance = 0) {
+  const groups = [];
+  for (const e of [...entries].sort((a, b) => a.time - b.time)) {
+    const g = groups.find((x) => Math.abs(x.time - e.time) <= tolerance);
+    if (g) g.people.push({ id: e.id, name: e.name });
+    else groups.push({ time: e.time, people: [{ id: e.id, name: e.name }] });
+  }
+  return {
+    groups,
+    same: groups.length === 1,
+    time: groups.length === 1 ? groups[0].time : null,
+    spread: groups.length ? groups[groups.length - 1].time - groups[0].time : 0,
+  };
+}
+
+function longest(current, intervals, day) {
+  let best = current;
+  for (const i of intervals) {
+    const len = i.end - i.start;
+    if (!best || len > best.end - best.start) best = { ...i, day };
+  }
+  return best;
+}
+
+/* ─────────────────────────── Profs, matières, classes ─────────────────────────── */
+
+/** Professeurs partagés par au moins deux personnes. */
+function commonTeachers(schedules) {
+  const byKey = new Map();
+  for (const s of schedules) {
+    for (const c of s.courses || []) {
+      const key = teacherKey(c.teacher);
+      if (!key || key.length < 2) continue;
+      if (!byKey.has(key)) byKey.set(key, { key, label: c.teacher, people: new Map() });
+      const entry = byKey.get(key);
+      if (String(c.teacher).length > String(entry.label).length) entry.label = c.teacher;
+      if (!entry.people.has(s.id)) entry.people.set(s.id, { id: s.id, name: s.name, subjects: new Set(), hours: 0, slots: [] });
+      const p = entry.people.get(s.id);
+      p.subjects.add(c.subject || '—');
+      p.hours += (c.end - c.start) / 60;
+      p.slots.push({ day: c.day, start: c.start, end: c.end, room: c.room });
+    }
+  }
+  return [...byKey.values()]
+    .map((e) => ({
+      key: e.key,
+      label: e.label,
+      people: [...e.people.values()].map((p) => ({ ...p, subjects: [...p.subjects] })),
+    }))
+    .filter((e) => e.people.length >= 2)
+    .sort((a, b) => b.people.length - a.people.length || a.label.localeCompare(b.label, 'fr'));
+}
+
+/** Matières suivies par tout le monde (et par qui, si ce n'est pas tout le monde). */
+function commonSubjects(schedules) {
+  const byKey = new Map();
+  for (const s of schedules) {
+    for (const c of s.courses || []) {
+      if (c.kind === 'pause') continue;
+      const key = subjectKey(c.subject);
+      if (!key || key.length < 2) continue;
+      if (!byKey.has(key)) byKey.set(key, { key, label: c.subject, people: new Map() });
+      const e = byKey.get(key);
+      if (!e.people.has(s.id)) e.people.set(s.id, { id: s.id, name: s.name, hours: 0 });
+      e.people.get(s.id).hours += (c.end - c.start) / 60;
+    }
+  }
+  return [...byKey.values()]
+    .map((e) => ({ key: e.key, label: e.label, people: [...e.people.values()] }))
+    .filter((e) => e.people.length >= 2)
+    .sort((a, b) => b.people.length - a.people.length || a.label.localeCompare(b.label, 'fr'));
+}
+
+/** Cours où l'on est visiblement assis dans la même salle, avec le même prof. */
+function sameClassCourses(schedules) {
+  const out = [];
+  for (let i = 0; i < schedules.length; i += 1) {
+    for (let j = i + 1; j < schedules.length; j += 1) {
+      for (const a of schedules[i].courses || []) {
+        for (const b of schedules[j].courses || []) {
+          if (a.day !== b.day || !sameCourse(a, b)) continue;
+          out.push({
+            day: a.day,
+            start: a.start,
+            end: a.end,
+            subject: a.subject || b.subject,
+            teacher: a.teacher || b.teacher,
+            room: a.room || b.room,
+            people: [
+              { id: schedules[i].id, name: schedules[i].name },
+              { id: schedules[j].id, name: schedules[j].name },
+            ],
+          });
+        }
+      }
+    }
+  }
+  // Trois personnes dans le même cours donnent trois paires : on les regroupe.
+  const grouped = new Map();
+  for (const x of out) {
+    const key = `${x.day}|${Math.round(x.start / 15)}|${teacherKey(x.teacher)}|${subjectKey(x.subject)}`;
+    const cur = grouped.get(key);
+    if (!cur) { grouped.set(key, x); continue; }
+    cur.start = Math.min(cur.start, x.start);
+    cur.end = Math.max(cur.end, x.end);
+    for (const p of x.people) if (!cur.people.some((q) => q.id === p.id)) cur.people.push(p);
+  }
+  return [...grouped.values()].sort((a, b) => a.day - b.day || a.start - b.start);
+}
+
+/* ─────────────────────────── Mise en phrases ─────────────────────────── */
+
+const liste = (noms) => (noms.length <= 1 ? (noms[0] || '') : `${noms.slice(0, -1).join(', ')} et ${noms[noms.length - 1]}`);
+
+/** Une phrase française pour un groupe d'horaires (début ou fin de journée). */
+function phraseGroups(g, { verb = 'commencent', verbOne = 'commence' } = {}) {
+  if (!g || !g.groups.length) return '';
+  if (g.same) return `Tout le monde ${verbOne} à ${fmtTime(g.time)}.`;
+  return g.groups
+    .map((x) => `${liste(x.people.map((p) => p.name))} ${x.people.length > 1 ? verb : verbOne} à ${fmtTime(x.time)}`)
+    .join(' · ');
+}
+
+const phraseSlot = (i) => `${fmtTime(i.start)} → ${fmtTime(i.end)} (${fmtDuration(i.end - i.start)})`;
+
+/* ══ Mémoire locale et fichier d'échange ═══════════════════════════════════════ */
+
+/**
+ * Emploi du temps — mémoire locale.
+ *
+ * Tout reste dans le navigateur : ni compte, ni serveur, ni envoi de photo.
+ * Le partage se fait par un fichier que l'on s'échange comme on veut.
+ */
+
+const KEY = 'edt.v1';
+
+const COLORS = ['#0b5fd0', '#c0332b', '#0f7a45', '#9a5b00', '#6b3fa0', '#0d7f8c'];
+
+const DEFAULT_OPTIONS = {
+  quality: 'precise',    // dictionnaire Tesseract : 'precise' (6 Mo) ou 'fast' (0,6 Mo)
+  minCommon: 15,         // durée minimale d'un créneau commun, en minutes
+  minLunch: 30,
+  tolerance: 0,          // « en même temps » à ± n minutes
+};
+
+const newId = () => `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+const empty = () => ({ schedules: [], options: { ...DEFAULT_OPTIONS } });
+
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return empty();
+    const data = JSON.parse(raw);
+    return {
+      schedules: Array.isArray(data.schedules) ? data.schedules : [],
+      options: { ...DEFAULT_OPTIONS, ...(data.options || {}) },
+    };
+  } catch { return empty(); }
+}
+
+function save(state) {
+  const payload = { ...state, savedAt: Date.now() };
+  try {
+    localStorage.setItem(KEY, JSON.stringify(payload));
+    return true;
+  } catch {
+    // Plus de place : on sacrifie les vignettes, jamais les cours.
+    try {
+      const light = { ...payload, schedules: payload.schedules.map((s) => ({ ...s, preview: null })) };
+      localStorage.setItem(KEY, JSON.stringify(light));
+      return true;
+    } catch { return false; }
+  }
+}
+
+function nextColor(schedules) {
+  const used = new Set(schedules.map((s) => s.color));
+  return COLORS.find((c) => !used.has(c)) || COLORS[schedules.length % COLORS.length];
+}
+
+/** Fichier d'échange : lisible, réimportable, sans photo. */
+function toFile(state) {
+  const data = {
+    format: 'emploi-du-temps-en-commun',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    schedules: state.schedules.map(({ id, name, color, courses, source }) => ({ id, name, color, source, courses })),
+  };
+  return new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+}
+
+async function fromFile(file) {
+  const data = JSON.parse(await file.text());
+  const list = Array.isArray(data) ? data : data.schedules;
+  if (!Array.isArray(list)) throw new Error('Fichier non reconnu');
+  return list
+    .filter((s) => s && Array.isArray(s.courses))
+    .map((s) => ({
+      id: newId(),
+      name: String(s.name || 'Sans nom').slice(0, 30),
+      color: s.color || COLORS[0],
+      source: s.source || 'fichier',
+      courses: s.courses
+        .filter((c) => Number.isFinite(c.day) && Number.isFinite(c.start) && Number.isFinite(c.end))
+        .map((c) => ({
+          day: Math.max(0, Math.min(6, Math.round(c.day))),
+          start: Math.round(c.start),
+          end: Math.round(c.end),
+          subject: String(c.subject || '').slice(0, 60),
+          teacher: String(c.teacher || '').slice(0, 40),
+          room: String(c.room || '').slice(0, 20),
+          kind: c.kind === 'pause' ? 'pause' : 'cours',
+        })),
+    }));
+}
+
+/* Ce que le noyau expose : l'interface s'en sert, et les tests le rejouent
+   directement depuis ce fichier (voir tests/edt.test.mjs). */
+globalThis.EDT = {
+  DAYS, fmtTime, fmtDuration, snapTo, norm, stripAccents, levenshtein, prettyCase,
+  parseTime, parseRange, dayIndexOf, fitAxis, cleanWords, groupLines, findDayHeaders,
+  bandsFromHeaders, splitCell, teacherKey, subjectKey, readSchedule, mergeAdjacent,
+  mergeIntervals, intersectPair, intersectAll, subtract, clip, totalMinutes,
+  coursesOf, busyOf, dayWindow, sameCourse, compare, groupTimes, commonTeachers,
+  commonSubjects, sameClassCourses, phraseGroups, phraseSlot,
+  COLORS, DEFAULT_OPTIONS, newId, load, save, nextColor, toFile, fromFile,
+};
+</script>
+
+<script id="interface">
+/* ════════════════════════════════════════════════════════════════════════
+   INTERFACE — préparation de l'image, OCR, et affichage.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ══ Préparation de la photo ═══════════════════════════════════════════════════ */
+
+/**
+ * Emploi du temps — préparation de la photo avant lecture.
+ *
+ * Une photo d'emploi du temps prise au téléphone est rarement propre :
+ * éclairage inégal, léger travers, ombre du portable. On corrige tout ça ici,
+ * avec des traitements classiques (niveaux de gris, seuillage local, détection
+ * des traits du tableau) — rien qui demande un service en ligne.
+ *
+ * Tout se passe dans le navigateur : l'image ne quitte jamais l'appareil.
+ */
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/** Décode un fichier image en respectant l'orientation EXIF du téléphone. */
+async function decode(file) {
+  if (typeof createImageBitmap === 'function') {
+    try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch { /* repli */ }
+  }
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.decoding = 'sync';
+    await new Promise((ok, ko) => { img.onload = ok; img.onerror = () => ko(new Error('image illisible')); img.src = url; });
+    return img;
+  } finally { setTimeout(() => URL.revokeObjectURL(url), 10000); }
+}
+
+/** Dessine l'image à la bonne taille et à la bonne rotation (quarts de tour). */
+function renderImage(source, { rotate = 0, maxSide = 2000, minSide = 900 } = {}) {
+  const sw = source.width || source.naturalWidth;
+  const sh = source.height || source.naturalHeight;
+  const quarter = ((Math.round(rotate / 90) % 4) + 4) % 4;
+  const swapped = quarter % 2 === 1;
+  const w0 = swapped ? sh : sw;
+  const h0 = swapped ? sw : sh;
+
+  let scale = Math.min(1, maxSide / Math.max(w0, h0));
+  if (Math.max(w0, h0) * scale < minSide) scale = Math.min(2, minSide / Math.max(w0, h0));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(w0 * scale));
+  canvas.height = Math.max(1, Math.round(h0 * scale));
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingQuality = 'high';
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((quarter * Math.PI) / 2);
+  ctx.drawImage(source, -(sw * scale) / 2, -(sh * scale) / 2, sw * scale, sh * scale);
+  ctx.restore();
+  return canvas;
+}
+
+/** Niveaux de gris (luminance perçue). */
+function toGray(canvas) {
+  const { width, height } = canvas;
+  const data = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, width, height).data;
+  const gray = new Uint8Array(width * height);
+  for (let i = 0, p = 0; i < data.length; i += 4, p += 1) {
+    gray[p] = (data[i] * 77 + data[i + 1] * 151 + data[i + 2] * 28) >> 8;
+  }
+  return gray;
+}
+
+/**
+ * Seuillage local : chaque pixel est comparé à la moyenne de son voisinage.
+ * C'est ce qui permet de lire une feuille à moitié dans l'ombre.
+ * Renvoie 1 pour l'encre, 0 pour le papier.
+ */
+function threshold(gray, width, height, { window: winOpt, bias = 10 } = {}) {
+  const win = Math.max(15, (winOpt ?? Math.round(width / 22)) | 1);
+  const half = win >> 1;
+
+  // Image intégrale : la moyenne d'un rectangle coûte alors quatre lectures.
+  const sum = new Float64Array((width + 1) * (height + 1));
+  for (let y = 0; y < height; y += 1) {
+    let row = 0;
+    for (let x = 0; x < width; x += 1) {
+      row += gray[y * width + x];
+      sum[(y + 1) * (width + 1) + x + 1] = sum[y * (width + 1) + x + 1] + row;
+    }
+  }
+  const mean = (x0, y0, x1, y1) => {
+    const a = sum[y0 * (width + 1) + x0];
+    const b = sum[y0 * (width + 1) + x1];
+    const c = sum[y1 * (width + 1) + x0];
+    const d = sum[y1 * (width + 1) + x1];
+    return (d - b - c + a) / Math.max(1, (x1 - x0) * (y1 - y0));
+  };
+
+  const ink = new Uint8Array(width * height);
+  for (let y = 0; y < height; y += 1) {
+    const y0 = clamp(y - half, 0, height - 1);
+    const y1 = clamp(y + half + 1, 1, height);
+    for (let x = 0; x < width; x += 1) {
+      const x0 = clamp(x - half, 0, width - 1);
+      const x1 = clamp(x + half + 1, 1, width);
+      ink[y * width + x] = gray[y * width + x] < mean(x0, y0, x1, y1) - bias ? 1 : 0;
+    }
+  }
+  return ink;
+}
+
+/** Enlève les pixels isolés (grain du capteur, trame du papier). */
+function denoise(ink, width, height) {
+  const out = new Uint8Array(ink);
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const i = y * width + x;
+      if (!ink[i]) continue;
+      let n = 0;
+      for (let dy = -1; dy <= 1; dy += 1) for (let dx = -1; dx <= 1; dx += 1) n += ink[i + dy * width + dx];
+      if (n <= 1) out[i] = 0;
+    }
+  }
+  return out;
+}
+
+/**
+ * Travers de la photo : on cherche l'angle qui aligne le mieux les lignes de
+ * texte (celui pour lequel l'encre se concentre dans le moins de rangées).
+ * Renvoie un angle en degrés, entre -4 et 4.
+ */
+function estimateSkew(ink, width, height, { max = 4, step = 0.4 } = {}) {
+  const scale = Math.min(1, 480 / width);
+  const w = Math.max(2, Math.round(width * scale));
+  const h = Math.max(2, Math.round(height * scale));
+  const small = new Uint8Array(w * h);
+  for (let y = 0; y < h; y += 1) {
+    const sy = Math.min(height - 1, Math.round(y / scale));
+    for (let x = 0; x < w; x += 1) small[y * w + x] = ink[sy * width + Math.min(width - 1, Math.round(x / scale))];
+  }
+
+  const scoreOf = (a) => {
+    const tan = Math.tan((a * Math.PI) / 180);
+    const rows = new Float64Array(h + 2);
+    for (let y = 0; y < h; y += 1) {
+      for (let x = 0; x < w; x += 1) {
+        if (!small[y * w + x]) continue;
+        const yy = Math.round(y + (x - w / 2) * tan);
+        if (yy >= 0 && yy < h) rows[yy] += 1;
+      }
+    }
+    let score = 0;
+    for (let y = 1; y < h; y += 1) score += (rows[y] - rows[y - 1]) ** 2;   // contraste entre rangées
+    return score;
+  };
+
+  const flat = scoreOf(0);
+  let best = { angle: 0, score: flat };
+  for (let a = -max; a <= max + 1e-9; a += step) {
+    if (Math.abs(a) < 1e-9) continue;
+    const score = scoreOf(a);
+    if (score > best.score) best = { angle: a, score };
+  }
+  // Dans le doute, on ne touche pas à la photo : redresser à tort abîme le texte.
+  if (Math.abs(best.angle) < 0.2 || best.score < flat * 1.04) return 0;
+  return best.angle;
+}
+
+/** Redresse le canevas d'un petit angle (fond blanc, pas de bord noir). */
+function deskew(canvas, angle) {
+  if (!angle) return canvas;
+  const out = document.createElement('canvas');
+  out.width = canvas.width; out.height = canvas.height;
+  const ctx = out.getContext('2d', { willReadFrequently: true });
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, out.width, out.height);
+  ctx.translate(out.width / 2, out.height / 2);
+  // `estimateSkew` renvoie déjà l'angle qui remet les lignes à plat.
+  ctx.rotate((angle * Math.PI) / 180);
+  ctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+  return out;
+}
+
+/** Canevas noir sur blanc, tel qu'il sera donné à l'OCR. */
+function inkToCanvas(ink, width, height) {
+  const canvas = document.createElement('canvas');
+  canvas.width = width; canvas.height = height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const img = ctx.createImageData(width, height);
+  for (let i = 0, p = 0; i < ink.length; i += 1, p += 4) {
+    const v = ink[i] ? 0 : 255;
+    img.data[p] = v; img.data[p + 1] = v; img.data[p + 2] = v; img.data[p + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return canvas;
+}
+
+/** Vignette légère : c'est elle qu'on garde en mémoire, pas la photo entière. */
+function thumbnail(canvas, maxSide = 380) {
+  const scale = Math.min(1, maxSide / Math.max(canvas.width, canvas.height));
+  const out = document.createElement('canvas');
+  out.width = Math.max(1, Math.round(canvas.width * scale));
+  out.height = Math.max(1, Math.round(canvas.height * scale));
+  const ctx = out.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(canvas, 0, 0, out.width, out.height);
+  return out.toDataURL('image/jpeg', 0.7);
+}
+
+/* ─────────────────── Traits du tableau ─────────────────── */
+
+/**
+ * Rangées de traits horizontaux à l'intérieur d'une colonne.
+ * On regarde colonne par colonne : une case fusionnée (un cours de deux heures)
+ * n'a pas de trait au milieu, et c'est exactement ce qui nous dit qu'elle dure
+ * deux heures.
+ */
+function horizontalRules(ink, width, height, x0 = 0, x1 = width, { ratio = 0.62 } = {}) {
+  const left = clamp(Math.round(x0), 0, width - 1);
+  const right = clamp(Math.round(x1), left + 1, width);
+  const span = right - left;
+  if (span < 20) return [];
+
+  const counts = new Float64Array(height);
+  for (let y = 0; y < height; y += 1) {
+    let n = 0;
+    for (let x = left; x < right; x += 1) n += ink[y * width + x];
+    counts[y] = n / span;
+  }
+  // Un trait légèrement de travers déborde sur deux rangées : on lisse.
+  const smooth = new Float64Array(height);
+  for (let y = 0; y < height; y += 1) {
+    smooth[y] = Math.max(counts[y], (counts[y - 1] || 0) * 0.9, (counts[y + 1] || 0) * 0.9);
+  }
+
+  const edges = [];
+  let run = null;
+  for (let y = 0; y < height; y += 1) {
+    if (smooth[y] >= ratio) { run = run || { y0: y }; run.y1 = y; }
+    else if (run) { edges.push((run.y0 + run.y1) / 2); run = null; }
+  }
+  if (run) edges.push((run.y0 + run.y1) / 2);
+
+  // Deux traits collés (bordure double) n'en font qu'un.
+  const merged = [];
+  for (const e of edges) {
+    if (merged.length && e - merged[merged.length - 1] < Math.max(3, height * 0.006)) merged[merged.length - 1] = (merged[merged.length - 1] + e) / 2;
+    else merged.push(e);
+  }
+  return merged;
+}
+
+/** Traits verticaux (colonnes du tableau), même principe. */
+function verticalRules(ink, width, height, { ratio = 0.62 } = {}) {
+  const counts = new Float64Array(width);
+  for (let x = 0; x < width; x += 1) {
+    let n = 0;
+    for (let y = 0; y < height; y += 1) n += ink[y * width + x];
+    counts[x] = n / height;
+  }
+  const edges = [];
+  let run = null;
+  for (let x = 0; x < width; x += 1) {
+    if (counts[x] >= ratio) { run = run || { x0: x }; run.x1 = x; }
+    else if (run) { edges.push((run.x0 + run.x1) / 2); run = null; }
+  }
+  if (run) edges.push((run.x0 + run.x1) / 2);
+  return edges;
+}
+
+/**
+ * Chaîne complète : fichier → image prête pour l'OCR + traits du tableau.
+ * @returns {{ canvas, ocrCanvas, ink, width, height, angle, rules }}
+ */
+async function prepare(file, { rotate = 0, maxSide = 2000, binarize = true } = {}) {
+  const source = await decode(file);
+  let canvas = renderImage(source, { rotate, maxSide });
+
+  let gray = toGray(canvas);
+  let ink = denoise(threshold(gray, canvas.width, canvas.height), canvas.width, canvas.height);
+
+  const angle = estimateSkew(ink, canvas.width, canvas.height);
+  if (angle) {
+    canvas = deskew(canvas, angle);
+    gray = toGray(canvas);
+    ink = denoise(threshold(gray, canvas.width, canvas.height), canvas.width, canvas.height);
+  }
+
+  const { width, height } = canvas;
+  return {
+    canvas,
+    ocrCanvas: binarize ? inkToCanvas(ink, width, height) : canvas,
+    ink,
+    width,
+    height,
+    angle,
+    rules: {
+      rows: horizontalRules(ink, width, height),
+      cols: verticalRules(ink, width, height),
+    },
+    rowsForBand: (x0, x1) => horizontalRules(ink, width, height, x0, x1),
+  };
+}
+
+/* ══ Lecture du texte (Tesseract, dans le navigateur) ══════════════════════════ */
+
+/**
+ * Emploi du temps — lecture du texte de l'image (OCR).
+ *
+ * Le moteur est Tesseract, un logiciel libre d'OCR (le même que celui utilisé
+ * pour numériser des livres). Il est chargé depuis un CDN public et s'exécute
+ * *dans le navigateur*, en WebAssembly : aucune photo n'est envoyée nulle part,
+ * il n'y a aucune clé d'API, aucun quota et aucun coût.
+ *
+ * Le dictionnaire français est téléchargé une seule fois puis gardé par le
+ * navigateur : les lectures suivantes marchent même sans réseau.
+ */
+
+
+const VERSION = '5.1.1';
+const CDN = {
+  script: `https://cdn.jsdelivr.net/npm/tesseract.js@${VERSION}/dist/tesseract.min.js`,
+  worker: `https://cdn.jsdelivr.net/npm/tesseract.js@${VERSION}/dist/worker.min.js`,
+  core: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/',
+  lang: {
+    precise: 'https://tessdata.projectnaptha.com/4.0.0',
+    fast: 'https://tessdata.projectnaptha.com/4.0.0_fast',
+  },
+};
+
+/** Poids annoncé à l'utilisateur avant le premier téléchargement. */
+const LANG_SIZE = { precise: '≈ 6 Mo', fast: '≈ 0,6 Mo' };
+
+/** Découpage de la page tenté par Tesseract. */
+const PSM = { block: '6', sparse: '11', auto: '3', column: '4' };
+
+const STATUS_FR = {
+  'loading tesseract core': 'Chargement du moteur',
+  'initializing tesseract': 'Démarrage du moteur',
+  'loading language traineddata': 'Téléchargement du dictionnaire français',
+  'loaded language traineddata': 'Dictionnaire prêt',
+  'initializing api': 'Préparation',
+  'recognizing text': 'Lecture du texte',
+};
+
+let scriptPromise = null;
+
+/** Charge la bibliothèque une seule fois. */
+function loadTesseract() {
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  if (scriptPromise) return scriptPromise;
+  scriptPromise = new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = CDN.script;
+    el.async = true;
+    el.onload = () => (window.Tesseract ? resolve(window.Tesseract) : reject(new Error('Tesseract introuvable')));
+    el.onerror = () => { scriptPromise = null; reject(new Error('Le moteur de lecture n’a pas pu être téléchargé (connexion ?)')); };
+    document.head.appendChild(el);
+  });
+  return scriptPromise;
+}
+
+const workers = new Map();
+let report = () => {};
+
+/** Un ouvrier par qualité de dictionnaire, réutilisé d'une photo à l'autre. */
+async function getWorker(quality = 'precise') {
+  if (workers.has(quality)) return workers.get(quality);
+  const promise = (async () => {
+    const T = await loadTesseract();
+    return T.createWorker('fra', 1, {
+      workerPath: CDN.worker,
+      corePath: CDN.core,
+      langPath: CDN.lang[quality] || CDN.lang.precise,
+      gzip: true,
+      logger: (m) => report(STATUS_FR[m.status] || m.status, m.progress ?? 0),
+      errorHandler: (e) => console.warn('[edt/ocr]', e),
+    });
+  })();
+  workers.set(quality, promise);
+  promise.catch(() => workers.delete(quality));
+  return promise;
+}
+
+/** Libère la mémoire (utile sur téléphone entre deux séries de photos). */
+async function release() {
+  const list = [...workers.values()];
+  workers.clear();
+  await Promise.all(list.map(async (p) => { try { (await p).terminate(); } catch { /* déjà parti */ } }));
+}
+
+const mapWord = (w) => ({
+  text: w.text,
+  conf: w.confidence,
+  x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1,
+});
+
+/** Tesseract v5 range les mots dans des blocs ; les versions plus anciennes les donnent à plat. */
+function flattenWords(data) {
+  if (!data) return [];
+  if (Array.isArray(data.words) && data.words.length) return data.words.map(mapWord);
+  const out = [];
+  for (const b of data.blocks || []) {
+    for (const p of b.paragraphs || []) {
+      for (const l of p.lines || []) for (const w of l.words || []) out.push(mapWord(w));
+    }
+  }
+  return out;
+}
+
+/** Un passage d'OCR sur un canevas. */
+async function recognize(canvas, { quality = 'precise', psm = PSM.block, onProgress } = {}) {
+  report = (label, progress) => onProgress?.(label, progress);
+  const worker = await getWorker(quality);
+  await worker.setParameters({
+    tessedit_pageseg_mode: psm,
+    preserve_interword_spaces: '1',
+    user_defined_dpi: '300',
+  });
+  const { data } = await worker.recognize(canvas, {}, { blocks: true, text: true });
+  return { words: flattenWords(data), text: data.text || '' };
+}
+
+/**
+ * Chaîne complète : fichier photo → cours.
+ *
+ * Une seconde tentative est lancée si la première ne trouve rien : les grilles
+ * très colorées se lisent mieux sans seuillage, et en mode « texte épars ».
+ */
+async function readTimetable(file, { rotate = 0, quality = 'precise', onProgress } = {}) {
+  const step = (label, progress = 0) => onProgress?.(label, progress);
+
+  step('Préparation de l’image', 0.02);
+  const img = await prepare(file, { rotate });
+
+  // Un emploi du temps n'est pas un bloc de texte mais des mots éparpillés dans
+  // des cases : le mode « texte épars » lit nettement mieux ces grilles, et la
+  // position des mots suffit à reconstituer la structure.
+  const attempts = [
+    { canvas: img.ocrCanvas, psm: PSM.sparse, label: 'Lecture du texte' },
+    { canvas: img.canvas, psm: PSM.auto, label: 'Nouvel essai (autre découpage)' },
+  ];
+
+  let best = null;
+  for (let i = 0; i < attempts.length; i += 1) {
+    const a = attempts[i];
+    step(a.label, 0.05);
+    const { words } = await recognize(a.canvas, {
+      quality,
+      psm: a.psm,
+      onProgress: (label, p) => step(i ? `${label} (2ᵉ essai)` : label, 0.05 + p * 0.9),
+    });
+    const parsed = readSchedule(words, { rulings: img.rules, rowsForBand: img.rowsForBand });
+    const score = parsed.courses.length * 100 + parsed.quality;
+    if (!best || score > best.score) best = { ...parsed, score, words, psm: a.psm };
+    if (parsed.courses.length >= 3) break;         // inutile d'insister, c'est lu
+  }
+
+  step('Terminé', 1);
+  return {
+    ...best,
+    angle: img.angle,
+    size: { width: img.width, height: img.height },
+    preview: thumbnail(img.canvas),
+  };
+}
+
+/* ══ Écran ═════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Emploi du temps — interface.
+ *
+ * Trois temps : on importe des photos, on vérifie ce qui a été lu, on regarde
+ * ce que l'on a en commun. Rien ne sort du navigateur.
+ */
+
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+
+const esc = (s) => String(s ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+const hhmm = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(Math.round(min % 60)).padStart(2, '0')}`;
+const fromHhmm = (v) => {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(v || ''));
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+};
+const names = (list) => (list.length <= 1 ? (list[0] || '') : `${list.slice(0, -1).join(', ')} et ${list[list.length - 1]}`);
+
+let state = load();
+const previews = new Map();      // id → vignette (hors localStorage si trop lourd)
+const files = new Map();         // id → fichier d'origine, pour pouvoir relire
+const jobs = new Map();          // id → { label, value }
+let running = false;
+
+let quotaSignale = false;
+function persist() {
+  if (save(state) || quotaSignale) return;
+  quotaSignale = true;
+  toast('La mémoire du navigateur est pleine : exportez vos emplois du temps dans un fichier.');
+}
+const byId = (id) => state.schedules.find((s) => s.id === id);
+const usable = () => state.schedules.filter((s) => (s.courses || []).length);
+
+/* ══════════════════════════ Import ══════════════════════════ */
+
+function addFiles(list) {
+  const images = [...list].filter((f) => /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|bmp)$/i.test(f.name || ''));
+  if (!images.length) { toast('Choisissez des images (photo ou capture d’écran).'); return; }
+
+  for (const file of images) {
+    const id = newId();
+    files.set(id, file);
+    state.schedules.push({
+      id,
+      name: `Emploi du temps ${state.schedules.length + 1}`,
+      color: nextColor(state.schedules),
+      source: 'photo',
+      rotate: 0,
+      courses: [],
+      warnings: [],
+      quality: null,
+      fileName: file.name || 'photo',
+    });
+    jobs.set(id, { label: 'En attente…', value: 0 });
+  }
+  persist();
+  render();
+  runQueue();
+}
+
+async function runQueue() {
+  if (running) return;
+  running = true;
+  try {
+    while (jobs.size) {
+      const id = [...jobs.keys()][0];
+      const sched = byId(id);
+      const file = files.get(id);
+      if (!sched || !file) { jobs.delete(id); continue; }
+      await readOne(sched, file);        // retire la tâche en fin de lecture
+    }
+  } finally {
+    running = false;
+    jobs.clear();
+    renderPeople();
+    release();                       // on rend la mémoire au téléphone
+  }
+}
+
+async function readOne(sched, file) {
+  const setJob = (label, value) => { jobs.set(sched.id, { label, value }); renderPeople(); };
+  setJob('Préparation…', 0.02);
+  try {
+    const out = await readTimetable(file, {
+      rotate: sched.rotate || 0,
+      quality: state.options.quality,
+      onProgress: (label, value) => setJob(label, value),
+    });
+    sched.courses = out.courses;
+    sched.warnings = out.warnings;
+    sched.quality = out.quality;
+    sched.angle = out.angle;
+    previews.set(sched.id, out.preview);
+    sched.preview = out.preview;
+  } catch (err) {
+    console.error(err);
+    sched.warnings = [err.message || 'La lecture a échoué.'];
+    sched.quality = 0;
+  }
+  jobs.delete(sched.id);
+  persist();
+  render();
+}
+
+/* ══════════════════════════ Rendu : les personnes ══════════════════════════ */
+
+function renderPeople() {
+  const host = $('#people');
+  if (!state.schedules.length) {
+    host.innerHTML = '';
+    $('#empty').hidden = false;
+    return;
+  }
+  $('#empty').hidden = true;
+
+  host.innerHTML = state.schedules.map((s) => {
+    const job = jobs.get(s.id);
+    const preview = previews.get(s.id) || s.preview;
+    const nb = (s.courses || []).length;
+    const days = new Set((s.courses || []).map((c) => c.day));
+
+    const status = job
+      ? `<div class="bar"><span style="width:${Math.round((job.value || 0) * 100)}%"></span></div>
+         <div class="p-status">${esc(job.label)}</div>`
+      : nb
+        ? `<div class="p-status"><b>${nb} cours</b> sur ${days.size} jour${days.size > 1 ? 's' : ''}
+             ${s.quality != null ? `· lecture ${qualityWord(s.quality)}` : ''}</div>`
+        : `<div class="p-status muted">${s.source === 'photo' ? 'Rien n’a pu être lu' : 'Aucun cours pour l’instant'}</div>`;
+
+    const warn = (s.warnings || []).length
+      ? `<div class="p-warn">${s.warnings.map((w) => esc(w)).join('<br>')}</div>` : '';
+
+    return `<article class="person" data-id="${s.id}" style="--c:${esc(s.color)}">
+      <div class="p-head">
+        <span class="dot"></span>
+        <input class="p-name" value="${esc(s.name)}" data-act="rename" maxlength="24" aria-label="Nom"/>
+        <button class="icon" data-act="del" title="Supprimer" aria-label="Supprimer">×</button>
+      </div>
+      <div class="p-body">
+        ${preview ? `<img class="p-thumb" src="${esc(preview)}" alt="Aperçu de la photo" data-act="zoom"/>` : ''}
+        <div class="p-info">
+          ${status}
+          ${warn}
+          ${nb ? miniWeek(s) : ''}
+        </div>
+      </div>
+      <div class="p-actions">
+        <button class="btn small" data-act="edit">Vérifier / corriger</button>
+        ${s.source === 'photo' ? `
+          <button class="btn ghost small" data-act="rotate" title="Si la photo est de travers">Pivoter</button>
+          <button class="btn ghost small" data-act="reread" ${files.has(s.id) ? '' : 'disabled title="Photo non conservée : réimportez-la"'}>Relire</button>` : ''}
+      </div>
+    </article>`;
+  }).join('');
+}
+
+const qualityWord = (q) => (q >= 80 ? 'sûre' : q >= 55 ? 'correcte' : q > 0 ? 'incertaine — à vérifier' : 'ratée');
+
+/** Aperçu très compact de la semaine d'une personne. */
+function miniWeek(sched) {
+  const cours = (sched.courses || []).filter((c) => c.end > c.start);
+  if (!cours.length) return '';
+  const t0 = Math.min(...cours.map((c) => c.start));
+  const t1 = Math.max(...cours.map((c) => c.end));
+  const span = Math.max(60, t1 - t0);
+  const days = [...new Set(cours.map((c) => c.day))].sort((a, b) => a - b);
+  return `<div class="mini">${days.map((d) => `
+    <div class="mini-day" title="${esc(DAYS[d])}">
+      <span class="mini-l">${DAYS[d].slice(0, 1)}</span>
+      <div class="mini-track">${cours.filter((c) => c.day === d).map((c) => `
+        <i style="top:${((c.start - t0) / span) * 100}%;height:${((c.end - c.start) / span) * 100}%"></i>`).join('')}
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+/* ══════════════════════════ Rendu : le commun ══════════════════════════ */
+
+function renderResults() {
+  const list = usable();
+  const host = $('#results');
+  if (list.length < 2) {
+    host.hidden = true;
+    return;
+  }
+  host.hidden = false;
+
+  const r = compare(list, state.options);
+  $('#summary').innerHTML = tiles(r);
+  $('#week').innerHTML = weekGrid(list, r);
+  $('#details').innerHTML = dayCards(r) + teacherCard(r) + subjectCard(r) + sameClassCard(r);
+}
+
+function tiles(r) {
+  const best = r.best.free;
+  return [
+    ['Libres ensemble', fmtDuration(r.totals.free), 'sur la semaine, journée commencée'],
+    ['Trous en commun', fmtDuration(r.totals.gaps), 'libres au même moment, entre deux cours'],
+    ['Déjeuners ensemble', fmtDuration(r.totals.lunch), 'temps libre commun entre 11h et 14h30'],
+    ['Meilleur moment', best ? `${DAYS[best.day]} ${fmtTime(best.start)}` : '—', best ? `${fmtDuration(best.end - best.start)} devant vous` : 'aucun créneau commun'],
+  ].map(([label, value, sub]) => `<div class="tile"><div class="t-l">${label}</div><div class="t-v">${esc(value)}</div><div class="t-s">${esc(sub)}</div></div>`).join('');
+}
+
+/** La semaine des uns par-dessus celle des autres, avec le libre commun en fond. */
+function weekGrid(list, r) {
+  const all = list.flatMap((s) => s.courses || []);
+  if (!all.length) return '';
+  const t0 = Math.floor(Math.min(...all.map((c) => c.start)) / 60) * 60;
+  const t1 = Math.ceil(Math.max(...all.map((c) => c.end)) / 60) * 60;
+  const span = Math.max(60, t1 - t0);
+  const pct = (min) => ((min - t0) / span) * 100;
+  const days = [...new Set(all.map((c) => c.day))].sort((a, b) => a - b);
+
+  const hours = [];
+  for (let h = t0; h <= t1; h += 60) hours.push(`<span style="top:${pct(h)}%">${fmtTime(h)}</span>`);
+
+  const columns = days.map((d) => {
+    const info = r.days.find((x) => x.day === d);
+    const free = (info && !info.partial ? info.free : []).map((i) => `<div class="band free" style="top:${pct(i.start)}%;height:${((i.end - i.start) / span) * 100}%"></div>`).join('');
+    const cols = list.map((s) => {
+      const blocks = (s.courses || []).filter((c) => c.day === d).map((c) => `
+        <div class="blk${c.kind === 'pause' ? ' pause' : ''}" style="top:${pct(c.start)}%;height:${Math.max(1.5, ((c.end - c.start) / span) * 100)}%"
+             title="${esc(`${s.name} · ${DAYS[d]} ${fmtTime(c.start)}–${fmtTime(c.end)} · ${c.subject}${c.teacher ? ` · ${c.teacher}` : ''}${c.room ? ` · salle ${c.room}` : ''}`)}">
+          <b>${esc(c.subject)}</b><i>${esc(c.teacher || c.room || '')}</i>
+        </div>`).join('');
+      return `<div class="col" style="--c:${esc(s.color)}">${blocks}</div>`;
+    }).join('');
+    return `<div class="day">
+      <div class="d-head">${DAYS[d]}</div>
+      <div class="track">${free}<div class="cols">${cols}</div></div>
+    </div>`;
+  }).join('');
+
+  return `<div class="week-legend">
+      ${list.map((s) => `<span class="lg" style="--c:${esc(s.color)}"><i></i>${esc(s.name)}</span>`).join('')}
+      <span class="lg free"><i></i>libres ensemble</span>
+    </div>
+    <div class="week" style="--rows:${(span / 60) * 62}px;--hour:62px">
+      <div class="hours"><div class="d-head"></div><div class="h-track">${hours.join('')}</div></div>
+      ${columns}
+    </div>`;
+}
+
+function dayCards(r) {
+  const days = r.days.filter((d) => !d.partial);
+  if (!days.length) return '<div class="card note">Aucun jour où vous avez cours tous les deux (ou tous ensemble).</div>';
+
+  return days.map((d) => {
+    const rows = [];
+    rows.push(['Vous commencez', phraseGroups(d.starts, { verb: 'commencent', verbOne: 'commence' })
+      + (d.starts.same ? '' : ` — ${fmtDuration(d.starts.spread)} d’écart`)]);
+    rows.push(['Vous finissez', phraseGroups(d.ends, { verb: 'finissent', verbOne: 'finit' })
+      + (d.ends.same ? '' : ` — ${fmtDuration(d.ends.spread)} d’écart`)]);
+    if (d.lunch.length) rows.push(['Vous mangez ensemble', d.lunch.map(phraseSlot).join(' · ')]);
+    else rows.push(['Vous mangez ensemble', '<span class="no">aucune pause commune au milieu de la journée</span>']);
+    rows.push(['Trous en commun', d.gaps.length ? d.gaps.map(phraseSlot).join(' · ') : '<span class="no">aucun</span>']);
+    const other = d.free.filter((f) => !d.gaps.some((g) => g.start === f.start && g.end === f.end));
+    if (other.length) rows.push(['Libres ensemble', other.map(phraseSlot).join(' · ')]);
+    rows.push(['En cours en même temps', d.together.length
+      ? d.together.map((t) => `${phraseSlot(t)}${t.sameCourse ? ' <span class="tag">même cours</span>' : ''}`).join(' · ')
+      : '<span class="no">jamais</span>']);
+
+    return `<div class="card day-card">
+      <h3>${DAYS[d.day]}</h3>
+      ${rows.map(([k, v]) => `<div class="row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+function teacherCard(r) {
+  if (!r.teachers.length) {
+    return `<div class="card"><h3>Profs en commun</h3>
+      <p class="note">Aucun professeur commun repéré. Si les noms n’ont pas été lus sur les photos, ajoutez-les dans « Vérifier / corriger ».</p></div>`;
+  }
+  return `<div class="card"><h3>Profs en commun</h3>
+    <ul class="plain">${r.teachers.map((t) => `<li>
+      <b>${esc(t.label)}</b>
+      <span class="muted small">— ${esc(names(t.people.map((p) => `${p.name} (${p.subjects.map((x) => x).join(', ')})`)))}</span>
+    </li>`).join('')}</ul></div>`;
+}
+
+function subjectCard(r) {
+  if (!r.subjects.length) return '';
+  return `<div class="card"><h3>Matières en commun</h3>
+    <ul class="plain">${r.subjects.map((s) => `<li><b>${esc(s.label)}</b>
+      <span class="muted small">— ${esc(names(s.people.map((p) => `${p.name} : ${fmtDuration(p.hours * 60)}/semaine`)))}</span></li>`).join('')}</ul></div>`;
+}
+
+function sameClassCard(r) {
+  if (!r.sameClass.length) return '';
+  return `<div class="card"><h3>Cours suivis ensemble</h3>
+    <p class="note">Même créneau, même prof, même salle : vous êtes très probablement dans le même cours.</p>
+    <ul class="plain">${r.sameClass.map((x) => `<li>
+      <b>${DAYS[x.day]} ${fmtTime(x.start)}–${fmtTime(x.end)}</b> · ${esc(x.subject)}
+      ${x.teacher ? `· ${esc(x.teacher)}` : ''}${x.room ? ` · salle ${esc(x.room)}` : ''}
+      <span class="muted small">— ${esc(names(x.people.map((p) => p.name)))}</span></li>`).join('')}</ul></div>`;
+}
+
+/* ══════════════════════════ Éditeur ══════════════════════════ */
+
+let editing = null;
+
+function openEditor(id) {
+  editing = id;
+  const s = byId(id);
+  if (!s) return;
+  const preview = previews.get(id) || s.preview;
+
+  $('#sheet-title').textContent = s.name;
+  $('#sheet-body').innerHTML = `
+    ${preview ? `<img class="sheet-thumb" src="${esc(preview)}" alt="La photo importée"/>` : ''}
+    <p class="note">Corrigez ce qui a été mal lu : c’est ce tableau qui sert au calcul, pas la photo.</p>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>Jour</th><th>Début</th><th>Fin</th><th>Matière</th><th>Professeur</th><th>Salle</th><th></th></tr></thead>
+      <tbody>${(s.courses || []).map((c, i) => courseRow(c, i)).join('')}</tbody>
+    </table></div>
+    <div class="sheet-actions">
+      <button class="btn ghost" data-act="add-course">+ Ajouter un cours</button>
+      <button class="btn ghost danger" data-act="clear-courses">Tout effacer</button>
+    </div>`;
+  $('#sheet').hidden = false;
+  document.body.classList.add('locked');
+}
+
+function courseRow(c, i) {
+  return `<tr data-i="${i}">
+    <td><select data-f="day">${DAYS.slice(0, 6).map((d, k) => `<option value="${k}"${k === c.day ? ' selected' : ''}>${d}</option>`).join('')}</select></td>
+    <td><input type="time" step="300" data-f="start" value="${hhmm(c.start)}"/></td>
+    <td><input type="time" step="300" data-f="end" value="${hhmm(c.end)}"/></td>
+    <td><input type="text" data-f="subject" value="${esc(c.subject)}" placeholder="Matière"/></td>
+    <td><input type="text" data-f="teacher" value="${esc(c.teacher || '')}" placeholder="Prof"/></td>
+    <td><input type="text" data-f="room" value="${esc(c.room || '')}" placeholder="Salle"/></td>
+    <td><button class="icon" data-act="del-course" title="Supprimer la ligne" aria-label="Supprimer la ligne">×</button></td>
+  </tr>`;
+}
+
+function closeEditor() {
+  editing = null;
+  $('#sheet').hidden = true;
+  document.body.classList.remove('locked');
+  render();
+}
+
+/* ══════════════════════════ Événements ══════════════════════════ */
+
+function render() { renderPeople(); renderResults(); }
+
+let toastTimer = null;
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 4000);
+}
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const act = btn.dataset.act;
+
+  // — dans la liste des personnes
+  const card = btn.closest('.person');
+  if (card) {
+    const id = card.dataset.id;
+    const s = byId(id);
+    if (!s) return;
+    if (act === 'del') {
+      if (!confirm(`Supprimer « ${s.name} » ?`)) return;
+      state.schedules = state.schedules.filter((x) => x.id !== id);
+      files.delete(id); previews.delete(id); jobs.delete(id);
+      persist(); render();
+    } else if (act === 'edit') openEditor(id);
+    else if (act === 'zoom') {
+      const src = previews.get(id) || s.preview;
+      if (src) {
+        $('#lightbox').innerHTML = `<img src="${esc(src)}" alt="${esc(s.name)}"/>`;
+        $('#lightbox').hidden = false;
+      }
+    } else if (act === 'rotate') {
+      s.rotate = ((s.rotate || 0) + 90) % 360;
+      persist();
+      const f = files.get(id);
+      if (f) { jobs.set(id, { label: 'Rotation…', value: 0 }); renderPeople(); runQueue(); }
+      else toast('Réimportez la photo pour la faire pivoter.');
+    } else if (act === 'reread') {
+      const f = files.get(id);
+      if (!f) { toast('La photo n’est plus en mémoire : réimportez-la.'); return; }
+      jobs.set(id, { label: 'En attente…', value: 0 }); renderPeople(); runQueue();
+    }
+    return;
+  }
+
+  // — dans l'éditeur
+  if (act === 'del-course') {
+    const tr = btn.closest('tr');
+    const s = byId(editing);
+    s.courses.splice(Number(tr.dataset.i), 1);
+    persist(); openEditor(editing);
+    return;
+  }
+  if (act === 'add-course') {
+    const s = byId(editing);
+    const last = s.courses[s.courses.length - 1];
+    s.courses.push({ day: last ? last.day : 0, start: last ? last.end : 480, end: last ? last.end + 60 : 540, subject: '', teacher: '', room: '', kind: 'cours' });
+    persist(); openEditor(editing);
+    return;
+  }
+  if (act === 'clear-courses') {
+    const s = byId(editing);
+    if (!confirm('Effacer tous les cours de cet emploi du temps ?')) return;
+    s.courses = [];
+    persist(); openEditor(editing);
+    return;
+  }
+  if (act === 'close-sheet') { closeEditor(); return; }
+  if (btn.id === 'lightbox') { btn.hidden = true; return; }
+
+  // — barre d'outils
+  if (act === 'pick') $('#file').click();
+  else if (act === 'manual') {
+    const id = newId();
+    state.schedules.push({ id, name: `Personne ${state.schedules.length + 1}`, color: nextColor(state.schedules), source: 'manuel', courses: [], warnings: [] });
+    persist(); render(); openEditor(id);
+  } else if (act === 'export') {
+    const url = URL.createObjectURL(toFile(state));
+    const a = document.createElement('a');
+    a.href = url; a.download = 'emplois-du-temps.json'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  } else if (act === 'import') $('#file-json').click();
+  else if (act === 'help') { $('#help').hidden = false; document.body.classList.add('locked'); }
+  else if (act === 'close-help') { $('#help').hidden = true; document.body.classList.remove('locked'); }
+  else if (act === 'print') window.print();
+  else if (act === 'reset') {
+    if (!confirm('Tout effacer et repartir de zéro ?')) return;
+    state = { schedules: [], options: state.options };
+    files.clear(); previews.clear(); jobs.clear();
+    persist(); render();
+  }
+});
+
+document.addEventListener('change', (e) => {
+  const el = e.target;
+
+  if (el.dataset.act === 'rename') {
+    const s = byId(el.closest('.person').dataset.id);
+    if (s) { s.name = el.value.trim() || 'Sans nom'; persist(); renderResults(); }
+    return;
+  }
+
+  if (el.dataset.f && editing) {
+    const s = byId(editing);
+    const i = Number(el.closest('tr').dataset.i);
+    const c = s.courses[i];
+    if (!c) return;
+    const f = el.dataset.f;
+    if (f === 'day') c.day = Number(el.value);
+    else if (f === 'start' || f === 'end') {
+      const v = fromHhmm(el.value);
+      if (v != null) c[f] = v;
+      if (c.end <= c.start) c.end = c.start + 60;
+      $$('input[data-f="end"]', el.closest('tr')).forEach((x) => { x.value = hhmm(c.end); });
+    } else c[f] = el.value.slice(0, 60);
+    c.kind = /^(pause|récré|recre|déjeuner|dejeuner|repas|midi)/i.test(c.subject || '') ? 'pause' : 'cours';
+    persist();
+    return;
+  }
+
+  if (el.id === 'file') { addFiles(el.files); el.value = ''; }
+  else if (el.id === 'file-json') {
+    const f = el.files[0];
+    el.value = '';
+    if (f) {
+      fromFile(f)
+        .then((list) => {
+          state.schedules.push(...list);
+          persist(); render();
+          toast(`${list.length} emploi${list.length > 1 ? 's' : ''} du temps importé${list.length > 1 ? 's' : ''}.`);
+        })
+        .catch(() => toast('Fichier illisible.'));
+    }
+  } else if (el.id === 'opt-quality') { state.options.quality = el.value; persist(); }
+  else if (el.id === 'opt-min') { state.options.minCommon = Number(el.value); persist(); renderResults(); }
+});
+
+/* Glisser-déposer et copier-coller : deux façons naturelles d'ajouter une photo. */
+const drop = () => $('#drop');
+['dragenter', 'dragover'].forEach((ev) => document.addEventListener(ev, (e) => {
+  e.preventDefault(); drop()?.classList.add('over');
+}));
+['dragleave', 'drop'].forEach((ev) => document.addEventListener(ev, (e) => {
+  e.preventDefault(); if (ev === 'dragleave' && e.relatedTarget) return; drop()?.classList.remove('over');
+}));
+document.addEventListener('drop', (e) => { if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files); });
+document.addEventListener('paste', (e) => {
+  const items = [...(e.clipboardData?.files || [])];
+  if (items.length) addFiles(items);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!$('#lightbox').hidden) $('#lightbox').hidden = true;
+  else if (!$('#sheet').hidden) closeEditor();
+  else if (!$('#help').hidden) { $('#help').hidden = true; document.body.classList.remove('locked'); }
+});
+
+/* ══════════════════════════ Démarrage ══════════════════════════ */
+
+$('#opt-quality').value = state.options.quality;
+$('#opt-quality').title = `Dictionnaire téléchargé une seule fois : ${LANG_SIZE.precise} en précis, ${LANG_SIZE.fast} en rapide.`;
+$('#opt-min').value = String(state.options.minCommon);
+for (const s of state.schedules) if (s.preview) previews.set(s.id, s.preview);
+render();
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+<noscript><p style="padding:24px;font-family:system-ui,sans-serif">Cet outil a besoin de JavaScript : tout le calcul se fait dans votre navigateur.</p></noscript>
+</body>
+</html>

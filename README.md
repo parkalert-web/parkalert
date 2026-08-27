@@ -260,7 +260,9 @@ fermée ; réglage fin des seuils à partir des retours réels.
 
 ## Second outil : « En commun » — comparer des emplois du temps
 
-**En ligne :** https://parkalert-web.github.io/parkalert/edt/ — [`edt/index.html`](edt/index.html)
+**En ligne :** https://parkalert-web.github.io/parkalert/edt.html — un **seul fichier** :
+[`edt.html`](edt.html). Style et code compris : il s'ouvre tel quel, s'héberge n'importe où
+et se transmet par courriel.
 
 On importe la photo de l'emploi du temps de chacun, on corrige ce que la lecture a raté,
 et l'outil dit ce que les personnes ont **en commun** : les heures de cours simultanées, les
@@ -275,12 +277,22 @@ assis dans la même salle.
 | Redressement, contraste, ombres | canevas HTML, seuillage local (image intégrale) | gratuit |
 | Reconnaissance du texte | [Tesseract](https://tesseract-ocr.github.io/) en WebAssembly, dans le navigateur | gratuit |
 | Dictionnaire français | `tessdata` officiel, téléchargé une fois puis gardé par le navigateur | gratuit |
-| Reconstruction de la grille | géométrie et expressions régulières ([`src/edt/parse.js`](src/edt/parse.js)) | gratuit |
+| Reconstruction de la grille | géométrie et expressions régulières | gratuit |
 
 Aucun service d'intelligence artificielle n'est appelé : **ni clé d'API, ni quota, ni facture**.
 Les photos ne quittent jamais l'appareil, il n'y a pas de compte, et tout est enregistré dans
 le navigateur (`localStorage`). Le bouton « Exporter » produit un fichier que l'on peut
 s'échanger : l'autre le réimporte et compare, sans avoir à refaire de photo.
+
+Seuls le moteur et le dictionnaire sont téléchargés depuis un CDN public, au premier usage.
+Le reste fonctionne ensuite hors ligne, y compris en ouvrant le fichier depuis le disque.
+
+### Deux blocs dans le fichier
+
+- `<script id="noyau">` — **logique pure**, sans accès au DOM ni au réseau : lecture d'une
+  grille à partir des mots repérés par l'OCR, puis calcul de ce qui est commun. C'est ce
+  bloc que les tests extraient du fichier livré et rejouent hors navigateur.
+- `<script id="interface">` — préparation de l'image, appel à Tesseract, et affichage.
 
 ### Comment la grille est reconstituée
 
@@ -341,11 +353,14 @@ npm run test:edt  # « En commun » de bout en bout, avec la vraie OCR
 ```
 
 `edt.e2e.mjs` **dessine** un emploi du temps dans une page (une grille comme celles que l'on
-photographie), l'exporte en PNG et l'importe dans l'outil comme le ferait un utilisateur : la
+photographie), l'exporte en PNG et l'importe dans `edt.html` comme le ferait un utilisateur : la
 chaîne réelle — préparation de l'image, Tesseract, reconstruction de la grille — doit retrouver
 les neuf cours avec leurs horaires, leurs professeurs et leurs salles, sans couper le cours de
 quatre heures du vendredi, puis la comparaison doit annoncer le bon trou commun et le bon
 déjeuner. Aucune capture de référence n'est comparée : ce sont les cours lus qui sont vérifiés.
+
+Les 17 tests unitaires de l'emploi du temps ne lisent pas une copie du code : ils extraient le
+bloc `noyau` de `edt.html` et l'exécutent, si bien qu'ils portent sur le fichier réellement livré.
 
 Les comptes de test sont supprimés à la fin de chaque scénario.
 

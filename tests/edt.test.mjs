@@ -2,19 +2,34 @@
  * Emploi du temps : lecture d'une grille (à partir de mots d'OCR simulés)
  * et calcul de ce que plusieurs personnes ont en commun.
  *
+ * Tout tient dans edt.html : ces tests en extraient le bloc « noyau ».
+ *
  *   node --test tests/edt.test.mjs
  */
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
+import fs from 'node:fs';
+import vm from 'node:vm';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+/**
+ * Le noyau est extrait de `edt.html` puis exécuté hors navigateur : ce sont
+ * donc les lignes réellement livrées qui sont vérifiées, pas une copie.
+ */
+const FICHIER = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../edt.html');
+const bloc = /<script id="noyau">([\s\S]*?)<\/script>/.exec(fs.readFileSync(FICHIER, 'utf8'));
+if (!bloc) throw new Error('bloc « noyau » introuvable dans edt.html');
+// Dans le realm courant, sinon `deepEqual` refuserait des objets « étrangers ».
+vm.runInThisContext(bloc[1], { filename: 'edt.html' });
+
+const {
   readSchedule, parseTime, parseRange, dayIndexOf, splitCell, teacherKey,
   subjectKey, fitAxis, mergeAdjacent, fmtTime, fmtDuration,
-} from '../src/edt/parse.js';
-import {
   compare, mergeIntervals, intersectAll, subtract, commonTeachers,
-  commonSubjects, sameClassCourses, groupTimes, phraseGroups, dayWindow,
-} from '../src/edt/compare.js';
+  commonSubjects, groupTimes, phraseGroups, dayWindow,
+} = globalThis.EDT;
 
 /* ─────────────────────────── Briques ─────────────────────────── */
 
@@ -154,6 +169,18 @@ test('sans en-tête de jour lisible, on le dit au lieu d’inventer', () => {
   assert.equal(out.courses.length, 0);
   assert.match(out.warnings[0], /jour/i);
   assert.equal(out.quality, 0);
+});
+
+test('une case lue en deux morceaux redevient un seul cours', () => {
+  // La matière d'un côté, le professeur de l'autre, sur le même créneau.
+  const merged = mergeAdjacent([
+    { day: 1, start: 540, end: 660, subject: 'Anglais', teacher: '', room: '' },
+    { day: 1, start: 540, end: 660, subject: 'Cours', teacher: 'Mme Martin', room: 'B12', incomplete: true },
+  ]);
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].subject, 'Anglais');
+  assert.equal(merged[0].teacher, 'Mme Martin');
+  assert.equal(merged[0].room, 'B12');
 });
 
 test('deux cases identiques qui se touchent font un seul cours', () => {
