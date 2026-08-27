@@ -956,6 +956,75 @@ test('on entre et on ressort de chaque intérieur', async () => {
   assert.equal(g.exitInterior(), false, 'sortir deux fois ne fait rien');
 });
 
+test('la prise en main est complète et cohérente', async () => {
+  const { TUTORIAL_STEPS, HELP_SECTIONS, contextKeys, Onboarding } =
+    await import('../game/src/systems/onboarding.js');
+
+  // --- tutoriel
+  assert.ok(TUTORIAL_STEPS.length >= 6, 'il faut plusieurs premiers pas');
+  const ids = TUTORIAL_STEPS.map((s) => s.id);
+  assert.equal(ids.length, new Set(ids).size, 'pas deux fois la même étape');
+  for (const s of TUTORIAL_STEPS) {
+    assert.ok(s.goal && s.why, `${s.id} : consigne ou raison manquante`);
+    assert.equal(typeof s.done, 'function', `${s.id} : pas de condition de réussite`);
+    assert.ok(/<b>/.test(s.goal) || /<b>/.test(s.why),
+      `${s.id} : la touche à utiliser doit ressortir quelque part`);
+  }
+
+  // --- aide
+  const touchesAide = HELP_SECTIONS.flatMap((sec) => sec.rows.map((r) => r[0]));
+  for (const t of ['Z Q S D', 'Souris', 'E', 'M', 'I', 'H', 'Échap', 'V', 'Alt']) {
+    assert.ok(touchesAide.includes(t), `l’aide doit expliquer « ${t} »`);
+  }
+  for (const sec of HELP_SECTIONS) {
+    assert.ok(sec.title && sec.rows.length, `section « ${sec.title} » vide`);
+    for (const [k, txt] of sec.rows) assert.ok(k && txt && txt.length > 3, `ligne d’aide incomplète (${k})`);
+  }
+
+  // --- barre de commandes selon la situation
+  const faireJeu = (over = {}) => ({
+    state: 'play',
+    inside: null,
+    peds: [],
+    hud: { actionLabel: '', mapOpen: false, invOpen: false },
+    player: { x: 0, z: 0, dead: false, vehicle: null, move: 0, weaponDef: { melee: false } },
+    nearestVehicle: () => null,
+    input: { mouseDX: 0, mouseDY: 0 },
+    camera: { yaw: 0, pitch: 0 },
+    ...over,
+  });
+
+  const aPied = contextKeys(faireJeu());
+  assert.ok(aPied.length >= 4, 'à pied, la barre doit être garnie');
+  assert.ok(aPied.some(([k]) => k === 'Souris'), 'la souris doit être annoncée : c’est elle qui oriente la vue');
+  assert.ok(aPied.some(([k]) => k === 'H'), 'l’aide doit être rappelée');
+
+  const enVoiture = contextKeys(faireJeu({ player: { ...faireJeu().player, vehicle: {} } }));
+  assert.ok(enVoiture.some(([, t]) => /Descendre/.test(t)), 'en voiture on doit savoir comment descendre');
+  assert.ok(!enVoiture.some(([, t]) => /Marcher/.test(t)), 'et pas comment marcher');
+
+  const dedans = contextKeys(faireJeu({ inside: { name: 'Ammu-Nation' }, hud: { actionLabel: 'Acheter' } }));
+  assert.ok(dedans.some(([k, t]) => k === 'E' && t === 'Acheter'), 'à l’intérieur, E doit dire ce qu’il fait');
+
+  const mort = contextKeys(faireJeu({ player: { ...faireJeu().player, dead: true } }));
+  assert.deepEqual(mort, [], 'mort, plus de barre');
+
+  // --- l'avancement suit vraiment les gestes du joueur
+  const g = faireJeu();
+  const onb = new Onboarding(g);
+  g.tuto = { looked: 0, walked: 0, driven: 0, reachedCar: false, openedMap: false, openedInv: false, talked: false };
+  assert.equal(onb.current.id, 'look', 'on commence par apprendre à regarder');
+  for (let i = 0; i < 60; i++) onb.update(1 / 30);
+  assert.equal(onb.current.id, 'look', 'caméra immobile : on reste à la première étape');
+  // on fait tourner la caméra, comme le ferait la souris
+  for (let i = 0; i < 60; i++) { g.camera.yaw += 0.05; onb.update(1 / 30); }
+  assert.equal(onb.current.id, 'walk', 'après avoir regardé autour, on passe à la marche');
+
+  onb.skip();
+  assert.equal(onb.current, null, 'on doit pouvoir passer le tutoriel');
+  assert.equal(onb.finished, true);
+});
+
 test('on peut adresser la parole à un passant', async () => {
   const { Ped, PED_LINES, PED_LINES_PANIC } = await import('../game/src/entities/character.js');
   assert.ok(PED_LINES.length >= 8, 'il faut de quoi varier les répliques');

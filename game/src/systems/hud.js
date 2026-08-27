@@ -6,6 +6,7 @@
 import { clamp, lerp, dist2D } from '../engine/math.js';
 import { MISSIONS } from './missions.js';
 import { WEAPONS, WEAPON_ORDER } from './weapons.js';
+import { contextKeys, HELP_SECTIONS, TUTORIAL_STEPS } from './onboarding.js';
 import { CHARACTERS } from '../entities/player.js';
 import { STREET, GRID, CITY_MAX, SHORE_X, OCEAN_X, ZONES, zoneAt } from '../world/gen.js';
 
@@ -287,7 +288,7 @@ export class HUD {
     if (!n) return;
     const el = this.el('#notification');
     el.querySelector('.n-title').textContent = n.title;
-    el.querySelector('.n-sub').textContent = n.sub || '';
+    el.querySelector('.n-sub').innerHTML = n.sub || '';   // les touches sont mises en valeur
     el.classList.add('show');
     this.notifT = n.sub ? 4.5 : 3;
   }
@@ -395,6 +396,7 @@ export class HUD {
       z.classList.add('show');
     }
 
+    this.updateKeyBar();
     this.drawRadar();
 
     // Le point d'intérêt le plus proche, écrit en toutes lettres : c'est ce
@@ -724,6 +726,61 @@ export class HUD {
       txt.textContent = e.label;
       ligne.append(cv, txt);
       el.append(ligne);
+    }
+  }
+
+  /* ------------------------------------------- barre de commandes et aide */
+
+  /** Ce qu'on peut faire là, maintenant, avec quelle touche. */
+  updateKeyBar() {
+    const el = this.el('#keybar');
+    if (!el) return;
+    const keys = contextKeys(this.game);
+    const clef = keys.map((k) => k.join('\u0000')).join('|');
+    if (clef === this._keybar) return;            // on ne redessine que si ça change
+    this._keybar = clef;
+    el.innerHTML = keys.map(([k, t]) => `<span><i>${k}</i>${t}</span>`).join('');
+  }
+
+  toggleHelp(on) {
+    this.helpOpen = on !== undefined ? on : !this.helpOpen;
+    const el = this.el('#help');
+    if (!el) return this.helpOpen;
+    el.classList.toggle('show', this.helpOpen);
+    if (this.helpOpen && !el.dataset.pret) {
+      el.dataset.pret = '1';
+      el.querySelector('.help-body').innerHTML = HELP_SECTIONS.map((sec) => `<h5>${sec.title}</h5>`
+        + sec.rows.map(([k, t]) => `<div class="row"><u><b>${k}</b></u><span>${t}</span></div>`).join('')).join('');
+      const fermer = this.el('#help-close');
+      if (fermer) fermer.addEventListener('click', () => this.game.toggleHelp(false));
+    }
+    return this.helpOpen;
+  }
+
+  /** Encart du tutoriel : l'étape en cours, ou rien une fois fini. */
+  updateTutorial(onb, dt = 1 / 60) {
+    const el = this.el('#tutorial');
+    if (!el) return;
+    const s = onb.current;
+    if (!s) {
+      if (this.tutoFin === undefined) this.tutoFin = 3.5;   // on laisse le mot de la fin
+      this.tutoFin -= dt;
+      if (this.tutoFin > 0) {
+        el.hidden = false;
+        el.classList.add('done');
+        this.el('#tuto-goal').innerHTML = 'Vous savez tout. <b>H</b> rappelle les commandes.';
+        this.el('#tuto-why').textContent = 'La ville est à vous.';
+        this.el('#tuto-count').textContent = `${TUTORIAL_STEPS.length} / ${TUTORIAL_STEPS.length}`;
+      } else el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.classList.remove('done');
+    if (this._tutoStep !== s.id) {
+      this._tutoStep = s.id;
+      this.el('#tuto-goal').innerHTML = s.goal;
+      this.el('#tuto-why').innerHTML = s.why;
+      this.el('#tuto-count').textContent = `${onb.step + 1} / ${TUTORIAL_STEPS.length}`;
     }
   }
 

@@ -13,11 +13,15 @@ export class Input {
     this.mouse = { left: false, right: false };
     this.wheel = 0;
     this.locked = false;
-    // Curseur libre par défaut : sous capture de pointeur, plus aucun bouton
-    // de l'écran n'est cliquable — la souris appartient au canevas. On tourne
-    // donc la tête en gardant le bouton enfoncé, et les menus restent à portée
-    // de clic. Ceux qui préfèrent la souris capturée l'activent dans le menu.
-    this.pointerLockWanted = false;
+    /**
+     * La souris est capturée pendant le jeu : c'est la seule façon de tourner
+     * la tête sans buter contre le bord de l'écran. Revers de la médaille, le
+     * curseur appartient alors au canevas et aucun bouton n'est cliquable —
+     * d'où la touche Alt, qui rend le curseur le temps qu'on la garde.
+     */
+    this.pointerLockWanted = true;
+    this.cursorFreed = false;      // Alt maintenu : curseur rendu à l'écran
+    this.canLock = null;           // le jeu y branche « aucun écran n'est ouvert »
     this.lockDenied = false;       // capture refusée (page embarquée) : on vise à la souris tenue
     this.dragging = false;
     this.dragX = 0; this.dragY = 0;
@@ -30,10 +34,18 @@ export class Input {
     addEventListener('keydown', (e) => {
       if (e.repeat) return;
       if (['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'F1'].includes(e.code)) e.preventDefault();
+      // Alt maintenu : on rend le curseur pour atteindre les boutons d'écran.
+      if (e.code === 'AltLeft' || e.code === 'AltRight') {
+        e.preventDefault();
+        this.freeCursor(true);
+      }
       this.keys.add(e.code);
       this.pressed.add(e.code);
     });
-    addEventListener('keyup', (e) => this.keys.delete(e.code));
+    addEventListener('keyup', (e) => {
+      if (e.code === 'AltLeft' || e.code === 'AltRight') this.freeCursor(false);
+      this.keys.delete(e.code);
+    });
     addEventListener('blur', () => { this.keys.clear(); });
 
     canvas.addEventListener('mousedown', (e) => {
@@ -81,8 +93,20 @@ export class Input {
    * le focus). Le navigateur rejette alors une promesse : on l'absorbe, sinon
    * elle remonte en erreur non gérée.
    */
+  /** Alt maintenu : le curseur revient, les boutons redeviennent cliquables. */
+  freeCursor(on) {
+    if (this.cursorFreed === on) return;
+    this.cursorFreed = on;
+    if (on) this.releaseLock();
+    else this.requestLock();
+  }
+
   requestLock() {
-    if (!this.pointerLockWanted || !this.enabled || this.locked) return;
+    // `canLock` est fourni par le jeu et consulté à l'instant même : un
+    // drapeau calculé en début d'image aurait empêché de reprendre la souris
+    // juste après avoir refermé un écran.
+    if (this.canLock && !this.canLock()) return;
+    if (!this.pointerLockWanted || this.cursorFreed || !this.enabled || this.locked) return;
     const refuse = () => { this.lockDenied = true; };
     try {
       const r = this.canvas.requestPointerLock();

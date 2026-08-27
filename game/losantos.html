@@ -104,6 +104,74 @@ html, body {
 #hint.show { opacity: 1; }
 #hint b { color: var(--gold); font-family: var(--title); font-size: 15px; letter-spacing: 1px; }
 
+/* ------------------------------------------------- barre de commandes */
+
+#keybar {
+  position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
+  display: flex; gap: 7px; flex-wrap: wrap; justify-content: center;
+  max-width: 54vw; pointer-events: none;
+}
+#keybar span {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px 4px 5px;
+  background: rgba(8, 12, 18, .66); border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 5px; font-size: 11.5px; white-space: nowrap;
+}
+#keybar i {
+  font-style: normal; font-family: var(--title); font-size: 11px; letter-spacing: .06em;
+  padding: 2px 6px; border-radius: 3px; background: rgba(245, 212, 66, .18); color: var(--gold);
+}
+
+/* ------------------------------------------------------------ tutoriel */
+
+#tutorial {
+  position: absolute; left: 18px; top: 92px; width: 288px;
+  background: rgba(8, 12, 18, .92); border: 1px solid rgba(245, 212, 66, .32);
+  border-left: 3px solid var(--gold); border-radius: 7px; padding: 11px 14px 13px;
+  pointer-events: auto;
+}
+#tutorial[hidden] { display: none; }
+.tuto-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.tuto-head b { font-family: var(--title); font-size: 12px; letter-spacing: 1.3px; color: var(--gold); }
+.tuto-head span { font-size: 10.5px; opacity: .55; font-variant-numeric: tabular-nums; }
+#tuto-skip {
+  margin-left: auto; background: none; border: 0; color: inherit; opacity: .5;
+  font: inherit; font-size: 11px; cursor: pointer; text-decoration: underline;
+}
+#tuto-skip:hover { opacity: 1; }
+#tuto-goal { font-size: 14px; line-height: 1.35; }
+#tuto-goal b { color: var(--gold); font-family: var(--title); font-size: 15px; letter-spacing: .8px; }
+#tuto-why { font-size: 11.5px; opacity: .62; margin-top: 6px; line-height: 1.4; }
+#tutorial.done { border-color: var(--hp); border-left-color: var(--hp); }
+
+/* ---------------------------------------------------------------- aide */
+
+#help { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(4, 6, 9, .84); z-index: 9; }
+#help.show { display: flex; }
+.help-panel {
+  width: min(720px, 94vw); max-height: 86vh; overflow-y: auto;
+  background: rgba(10, 14, 19, .97); border: 1px solid rgba(255, 255, 255, .12); border-radius: 10px;
+}
+.help-head {
+  display: flex; align-items: center; padding: 13px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, .09);
+}
+.help-head b { font-family: var(--title); font-size: 20px; letter-spacing: 1.4px; }
+#help-close { margin-left: auto; background: none; border: 0; color: inherit; font-size: 22px; opacity: .5; cursor: pointer; }
+#help-close:hover { opacity: 1; }
+.help-body { padding: 6px 18px 14px; }
+.help-body h5 {
+  margin: 15px 0 7px; font-family: var(--title); font-size: 13px; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--gold); font-weight: 400;
+}
+.help-body .row { display: flex; gap: 10px; align-items: baseline; margin: 5px 0; font-size: 12.5px; }
+.help-body .row u { text-decoration: none; flex: 0 0 128px; }
+.help-body .row u b {
+  font-family: var(--title); font-size: 11px; letter-spacing: .06em; padding: 2px 6px;
+  border-radius: 3px; background: rgba(245, 212, 66, .18); color: var(--gold); margin-right: 4px;
+}
+.help-body .row span { opacity: .82; }
+.help-foot { padding: 10px 18px; font-size: 11.5px; opacity: .55; border-top: 1px solid rgba(255, 255, 255, .09); }
+
 /* --------------------------------------------------------- boutons d'écran */
 
 /* Le HUD est en `pointer-events: none` pour laisser passer les clics vers la
@@ -121,6 +189,11 @@ html, body {
 }
 #screen-buttons button b { font-size: 17px; font-weight: 400; }
 #screen-buttons button span { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; opacity: .78; }
+#screen-buttons button kbd {
+  font: inherit; font-size: 9px; margin-top: 2px; padding: 0 4px; border-radius: 3px;
+  background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .18);
+  color: var(--gold); letter-spacing: .04em;
+}
 #screen-buttons button:hover { background: rgba(28, 38, 52, .88); }
 #screen-buttons button:active { transform: scale(.94); }
 #screen-buttons button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
@@ -476,6 +549,21 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 2px 5
     <div id="objective"></div>
     <div id="hint"></div>
 
+    <!-- Ce qu'on peut faire là, maintenant. Toujours affiché : une commande
+         qu'il faut deviner n'est jamais trouvée. -->
+    <div id="keybar"></div>
+
+    <!-- Tutoriel du premier lancement -->
+    <div id="tutorial" hidden>
+      <div class="tuto-head">
+        <b>PREMIERS PAS</b>
+        <span id="tuto-count">1 / 8</span>
+        <button id="tuto-skip">Passer</button>
+      </div>
+      <div id="tuto-goal"></div>
+      <div id="tuto-why"></div>
+    </div>
+
     <div id="bottom-left">
       <div id="radar-wrap">
         <canvas id="radar" width="230" height="150"></canvas>
@@ -493,10 +581,10 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 2px 5
     <!-- Boutons d'écran : tout ce qui n'est accessible qu'au clavier finit par
          ne jamais être trouvé. -->
     <div id="screen-buttons">
-      <button id="btn-view" title="Changer de vue (V)"><b>◱</b><span>Vue</span></button>
-      <button id="btn-inv" title="Inventaire (I)"><b>▤</b><span>Armes</span></button>
-      <button id="btn-map" title="Carte (M)"><b>🗺</b><span>Carte</span></button>
-      <button id="btn-menu" title="Menu (Échap)"><b>☰</b><span>Menu</span></button>
+      <button id="btn-view" title="Changer de vue"><b>◱</b><span>Vue</span><kbd>V</kbd></button>
+      <button id="btn-inv" title="Inventaire des armes"><b>▤</b><span>Armes</span><kbd>I</kbd></button>
+      <button id="btn-map" title="Carte et missions"><b>🗺</b><span>Carte</span><kbd>M</kbd></button>
+      <button id="btn-menu" title="Menu et réglages"><b>☰</b><span>Menu</span><kbd>Éch</kbd></button>
     </div>
 
     <div id="speedo">
@@ -532,6 +620,15 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 2px 5
       <b>CARTE DE LOS SANTOS</b>
       <span>Clic : placer un point de destination · Molette : zoom · Glisser : déplacer</span>
       <span>M ou Échap pour fermer</span>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------------- aide -->
+  <div id="help">
+    <div class="help-panel">
+      <div class="help-head"><b>COMMENT ON JOUE</b><button id="help-close">×</button></div>
+      <div class="help-body"></div>
+      <div class="help-foot">H ou Échap pour fermer</div>
     </div>
   </div>
 
@@ -581,7 +678,8 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 2px 5
             <div><kbd>1</kbd>–<kbd>9</kbd><span>Armes</span></div>
             <div><kbd>M</kbd><span>Carte</span></div>
             <div><kbd>V</kbd><span>Vue caméra</span></div>
-            <div><kbd>H</kbd><span>Klaxon</span></div>
+            <div><kbd>H</kbd><span>Aide à pied · klaxon en voiture</span></div>
+            <div><kbd>Alt</kbd><span>Rendre le curseur (maintenir)</span></div>
             <div><kbd>,</kbd><kbd>.</kbd><span>Station de radio</span></div>
             <div><kbd>C</kbd><span>Caméra libre en voiture</span></div>
             <div><kbd>Échap</kbd><span>Pause</span></div>
@@ -600,7 +698,7 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 2px 5
         <label>Ombres <input type="checkbox" id="opt-shadows" checked></label>
         <label>Qualité <input type="range" id="opt-scale" min="50" max="100" value="100"></label>
         <label>Sensibilité <input type="range" id="opt-sens" min="5" max="60" value="22"></label>
-        <label>Capturer la souris <input type="checkbox" id="opt-lock"></label>
+        <label>Capturer la souris <input type="checkbox" id="opt-lock" checked></label>
         <label>Volume <input type="range" id="opt-vol" min="0" max="100" value="85"></label>
         <label>Musique <input type="range" id="opt-music" min="0" max="100" value="50"></label>
       </div>
@@ -624,7 +722,7 @@ kbd { display: inline-block; min-width: 20px; text-align: center; padding: 2px 5
   <div id="loading">
     <div class="load-inner">
       <div class="load-logo">LOS<span>SANTOS</span></div>
-      <div class="load-sub">Un bac à sable façon Grand Theft Auto V, écrit en WebGL sans aucune dépendance</div>
+      <div class="load-sub">Un bac à sable façon Grand Theft Auto V, écrit en WebGL sans aucune dépendance.<br><b>Z Q S D</b> pour marcher, la <b>souris</b> pour regarder, <b>F</b> pour monter dans une voiture, <b>H</b> pour l’aide. Un tutoriel vous guide au départ.</div>
       <div class="load-bar"><i id="load-fill"></i></div>
       <div class="load-step" id="load-step">Initialisation…</div>
       <div class="load-tip" id="load-tip"></div>
@@ -1950,11 +2048,15 @@ class Input {
     this.mouse = { left: false, right: false };
     this.wheel = 0;
     this.locked = false;
-    // Curseur libre par défaut : sous capture de pointeur, plus aucun bouton
-    // de l'écran n'est cliquable — la souris appartient au canevas. On tourne
-    // donc la tête en gardant le bouton enfoncé, et les menus restent à portée
-    // de clic. Ceux qui préfèrent la souris capturée l'activent dans le menu.
-    this.pointerLockWanted = false;
+    /**
+     * La souris est capturée pendant le jeu : c'est la seule façon de tourner
+     * la tête sans buter contre le bord de l'écran. Revers de la médaille, le
+     * curseur appartient alors au canevas et aucun bouton n'est cliquable —
+     * d'où la touche Alt, qui rend le curseur le temps qu'on la garde.
+     */
+    this.pointerLockWanted = true;
+    this.cursorFreed = false;      // Alt maintenu : curseur rendu à l'écran
+    this.canLock = null;           // le jeu y branche « aucun écran n'est ouvert »
     this.lockDenied = false;       // capture refusée (page embarquée) : on vise à la souris tenue
     this.dragging = false;
     this.dragX = 0; this.dragY = 0;
@@ -1967,10 +2069,18 @@ class Input {
     addEventListener('keydown', (e) => {
       if (e.repeat) return;
       if (['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'F1'].includes(e.code)) e.preventDefault();
+      // Alt maintenu : on rend le curseur pour atteindre les boutons d'écran.
+      if (e.code === 'AltLeft' || e.code === 'AltRight') {
+        e.preventDefault();
+        this.freeCursor(true);
+      }
       this.keys.add(e.code);
       this.pressed.add(e.code);
     });
-    addEventListener('keyup', (e) => this.keys.delete(e.code));
+    addEventListener('keyup', (e) => {
+      if (e.code === 'AltLeft' || e.code === 'AltRight') this.freeCursor(false);
+      this.keys.delete(e.code);
+    });
     addEventListener('blur', () => { this.keys.clear(); });
 
     canvas.addEventListener('mousedown', (e) => {
@@ -2018,8 +2128,20 @@ class Input {
    * le focus). Le navigateur rejette alors une promesse : on l'absorbe, sinon
    * elle remonte en erreur non gérée.
    */
+  /** Alt maintenu : le curseur revient, les boutons redeviennent cliquables. */
+  freeCursor(on) {
+    if (this.cursorFreed === on) return;
+    this.cursorFreed = on;
+    if (on) this.releaseLock();
+    else this.requestLock();
+  }
+
   requestLock() {
-    if (!this.pointerLockWanted || !this.enabled || this.locked) return;
+    // `canLock` est fourni par le jeu et consulté à l'instant même : un
+    // drapeau calculé en début d'image aurait empêché de reprendre la souris
+    // juste après avoir refermé un écran.
+    if (this.canLock && !this.canLock()) return;
+    if (!this.pointerLockWanted || this.cursorFreed || !this.enabled || this.locked) return;
     const refuse = () => { this.lockDenied = true; };
     try {
       const r = this.canvas.requestPointerLock();
@@ -6990,6 +7112,208 @@ class MissionSystem {
 }
     return { MISSIONS, MissionSystem };
   })();
+  /* ---------------------------------------------- systems/onboarding.js */
+  __m["systems/onboarding.js"] = (() => {
+/**
+ * Prise en main.
+ *
+ * Un bac à sable où rien n'est expliqué n'est pas un jeu difficile, c'est un
+ * jeu qu'on ferme. Trois choses ici :
+ *
+ *   — la **barre de commandes**, en bas, qui montre en permanence ce qu'on
+ *     peut faire *maintenant* et avec quelle touche ;
+ *   — le **tutoriel** du premier lancement, huit gestes à faire dans l'ordre,
+ *     chacun validé dès qu'on l'a fait ;
+ *   — le **panneau d'aide** (H), le rappel complet, à portée de main.
+ */
+
+/** Touches affichées selon la situation. La première est la plus utile. */
+function contextKeys(game) {
+  const p = game.player;
+  if (game.state !== 'play' || p.dead) return [];
+  if (game.inside) {
+    return [
+      ['E', game.hud.actionLabel || 'Agir'],
+      ['ZQSD', 'Se déplacer'],
+      ['Souris', 'Regarder'],
+      ['Alt', 'Curseur'],
+      ['H', 'Aide'],
+    ];
+  }
+  if (p.vehicle) {
+    return [
+      ['Z / S', 'Accélérer, freiner'],
+      ['Q / D', 'Tourner'],
+      ['Espace', 'Frein à main'],
+      ['F', 'Descendre'],
+      ['H', 'Klaxon'],
+      ['M', 'Carte'],
+    ];
+  }
+  const keys = [['ZQSD', 'Marcher'], ['Souris', 'Regarder'], ['Maj', 'Courir']];
+  if (game.hud.actionLabel) keys.unshift(['E', game.hud.actionLabel]);
+  if (game.nearestVehicle && game.nearestVehicle(p.x, p.z, 6)) keys.push(['F', 'Monter']);
+  if (!p.weaponDef.melee) keys.push(['Clic', 'Tirer']);
+  keys.push(['M', 'Carte'], ['H', 'Aide']);
+  return keys.slice(0, 7);
+}
+
+/**
+ * Les huit gestes du tutoriel. `done(game)` dit si c'est fait ; `why` explique
+ * à quoi ça sert, parce qu'une consigne sans raison ne se retient pas.
+ */
+const TUTORIAL_STEPS = [
+  {
+    id: 'look',
+    goal: 'Bouge la <b>souris</b> pour regarder autour de toi',
+    why: 'La souris oriente la caméra, sans rien tenir. Maintiens <b>Alt</b> pour récupérer le curseur et cliquer les boutons de droite.',
+    // Un quart de tour suffit, ou une seconde de mouvement : on valide au geste,
+    // pas à l'endurance.
+    done: (g) => g.tuto.turned > 1.4 || g.tuto.looked > 1,
+  },
+  {
+    id: 'walk',
+    goal: 'Avance avec <b>Z Q S D</b>',
+    why: 'Les flèches marchent aussi. <b>Maj</b> pour courir.',
+    done: (g) => g.tuto.walked > 8,
+  },
+  {
+    id: 'car',
+    goal: 'Approche d’une voiture et appuie sur <b>F</b>',
+    why: 'N’importe quelle voiture de la rue fait l’affaire — c’est un GTA, après tout.',
+    done: (g) => !!g.player.vehicle,
+  },
+  {
+    id: 'drive',
+    goal: 'Roule une soixantaine de mètres',
+    why: '<b>Z</b> accélère, <b>S</b> freine et fait marche arrière, <b>Espace</b> est le frein à main.',
+    done: (g) => g.tuto.driven > 60,
+  },
+  {
+    id: 'out',
+    goal: 'Ressors du véhicule avec <b>F</b>',
+    why: 'On peut descendre en roulant, mais ça fait mal.',
+    done: (g) => g.tuto.reachedCar && !g.player.vehicle,
+  },
+  {
+    id: 'map',
+    goal: 'Ouvre la carte avec <b>M</b>',
+    why: 'Elle liste les dix missions et explique chaque point quand on clique dessus.',
+    done: (g) => g.tuto.openedMap,
+  },
+  {
+    id: 'inv',
+    goal: 'Ouvre ton inventaire avec <b>I</b>',
+    why: 'Tes armes et tes munitions. Les chiffres <b>1</b> à <b>9</b> les changent aussi.',
+    done: (g) => g.tuto.openedInv,
+  },
+  {
+    id: 'talk',
+    goal: 'Approche un passant et appuie sur <b>E</b>',
+    why: '<b>E</b> sert à tout : parler, entrer quelque part, acheter, lancer une mission.',
+    done: (g) => g.tuto.talked,
+  },
+];
+
+/** Contenu du panneau d'aide, par thème. */
+const HELP_SECTIONS = [
+  {
+    title: 'Se déplacer',
+    rows: [
+      ['Z Q S D', 'Marcher, conduire'],
+      ['Souris', 'Orienter la caméra'],
+      ['Maj', 'Courir'],
+      ['Espace', 'Sauter · frein à main en voiture'],
+      ['F', 'Monter dans un véhicule, en descendre'],
+      ['V', 'Changer de vue : épaule, large, première personne'],
+    ],
+  },
+  {
+    title: 'Agir',
+    rows: [
+      ['E', 'Parler à un passant, entrer dans un bâtiment, acheter, lancer une mission'],
+      ['Clic gauche', 'Tirer ou frapper'],
+      ['Clic droit', 'Viser précisément'],
+      ['R', 'Recharger'],
+      ['1 – 9', 'Changer d’arme'],
+      ['X', 'Capacité spéciale du personnage'],
+    ],
+  },
+  {
+    title: 'Écrans',
+    rows: [
+      ['M', 'Carte : missions, lieux, destination'],
+      ['I', 'Inventaire des armes'],
+      ['H', 'Cette aide'],
+      ['Échap', 'Menu, réglages, retour au menu principal'],
+      ['Alt', 'Rendre le curseur pour cliquer les boutons (maintenir)'],
+      ['G', 'Changer de personnage (maintenir)'],
+    ],
+  },
+  {
+    title: 'Bon à savoir',
+    rows: [
+      ['Étoiles', 'La police monte avec vos délits — et vos infractions au code de la route'],
+      ['Los Santos Customs', 'Réparer la voiture efface aussi l’indice de recherche'],
+      ['Appartement', 'Le lit enregistre la partie'],
+      ['Ruiné', 'Plus un dollar en poche et la partie s’arrête'],
+    ],
+  },
+];
+
+/** Suit l'avancement du tutoriel et met la barre de commandes à jour. */
+class Onboarding {
+  constructor(game) {
+    this.game = game;
+    this.step = 0;
+    this.finished = false;
+    this.lastKeys = '';
+    game.tuto = {
+      looked: 0, turned: 0, walked: 0, driven: 0,
+      reachedCar: false, openedMap: false, openedInv: false, talked: false,
+    };
+    // On mesure le mouvement de la caméra, pas les deltas de la souris : ceux-ci
+    // sont déjà remis à zéro quand on arrive ici.
+    this.lastYaw = game.camera.yaw;
+    this.lastPitch = game.camera.pitch;
+  }
+
+  skip() {
+    this.finished = true;
+    this.step = TUTORIAL_STEPS.length;
+  }
+
+  /** Avance d'une étape si le geste demandé a été fait. */
+  update(dt) {
+    const g = this.game;
+    const p = g.player;
+    // compteurs
+    const bouge = Math.abs(g.camera.yaw - this.lastYaw) + Math.abs(g.camera.pitch - this.lastPitch);
+    this.lastYaw = g.camera.yaw;
+    this.lastPitch = g.camera.pitch;
+    if (bouge > 0.004) { g.tuto.looked += dt; g.tuto.turned += bouge; }
+    if (!p.vehicle && p.move > 0.1) g.tuto.walked += p.move * 3 * dt;
+    if (p.vehicle) { g.tuto.reachedCar = true; g.tuto.driven += Math.abs(p.vehicle.speed) * dt; }
+    if (g.hud.mapOpen) g.tuto.openedMap = true;
+    if (g.hud.invOpen) g.tuto.openedInv = true;
+    if (g.peds.some((q) => q.line && q.talkT > 0)) g.tuto.talked = true;
+
+    if (this.finished) return null;
+    const s = TUTORIAL_STEPS[this.step];
+    if (!s) { this.finished = true; return 'fin'; }
+    if (s.done(g)) {
+      this.step++;
+      return this.step >= TUTORIAL_STEPS.length ? 'fin' : 'suivant';
+    }
+    return null;
+  }
+
+  get current() {
+    return this.finished ? null : TUTORIAL_STEPS[this.step] || null;
+  }
+}
+    return { contextKeys, TUTORIAL_STEPS, HELP_SECTIONS, Onboarding };
+  })();
   /* ---------------------------------------------- systems/hud.js */
   __m["systems/hud.js"] = (() => {
 /**
@@ -7000,6 +7324,7 @@ class MissionSystem {
   const { clamp, lerp, dist2D } = __m["engine/math.js"];
   const { MISSIONS } = __m["systems/missions.js"];
   const { WEAPONS, WEAPON_ORDER } = __m["systems/weapons.js"];
+  const { contextKeys, HELP_SECTIONS, TUTORIAL_STEPS } = __m["systems/onboarding.js"];
   const { CHARACTERS } = __m["entities/player.js"];
   const { STREET, GRID, CITY_MAX, SHORE_X, OCEAN_X, ZONES, zoneAt } = __m["world/gen.js"];
 const BLIP_COLORS = {
@@ -7278,7 +7603,7 @@ class HUD {
     if (!n) return;
     const el = this.el('#notification');
     el.querySelector('.n-title').textContent = n.title;
-    el.querySelector('.n-sub').textContent = n.sub || '';
+    el.querySelector('.n-sub').innerHTML = n.sub || '';   // les touches sont mises en valeur
     el.classList.add('show');
     this.notifT = n.sub ? 4.5 : 3;
   }
@@ -7386,6 +7711,7 @@ class HUD {
       z.classList.add('show');
     }
 
+    this.updateKeyBar();
     this.drawRadar();
 
     // Le point d'intérêt le plus proche, écrit en toutes lettres : c'est ce
@@ -7718,6 +8044,61 @@ class HUD {
     }
   }
 
+  /* ------------------------------------------- barre de commandes et aide */
+
+  /** Ce qu'on peut faire là, maintenant, avec quelle touche. */
+  updateKeyBar() {
+    const el = this.el('#keybar');
+    if (!el) return;
+    const keys = contextKeys(this.game);
+    const clef = keys.map((k) => k.join('\u0000')).join('|');
+    if (clef === this._keybar) return;            // on ne redessine que si ça change
+    this._keybar = clef;
+    el.innerHTML = keys.map(([k, t]) => `<span><i>${k}</i>${t}</span>`).join('');
+  }
+
+  toggleHelp(on) {
+    this.helpOpen = on !== undefined ? on : !this.helpOpen;
+    const el = this.el('#help');
+    if (!el) return this.helpOpen;
+    el.classList.toggle('show', this.helpOpen);
+    if (this.helpOpen && !el.dataset.pret) {
+      el.dataset.pret = '1';
+      el.querySelector('.help-body').innerHTML = HELP_SECTIONS.map((sec) => `<h5>${sec.title}</h5>`
+        + sec.rows.map(([k, t]) => `<div class="row"><u><b>${k}</b></u><span>${t}</span></div>`).join('')).join('');
+      const fermer = this.el('#help-close');
+      if (fermer) fermer.addEventListener('click', () => this.game.toggleHelp(false));
+    }
+    return this.helpOpen;
+  }
+
+  /** Encart du tutoriel : l'étape en cours, ou rien une fois fini. */
+  updateTutorial(onb, dt = 1 / 60) {
+    const el = this.el('#tutorial');
+    if (!el) return;
+    const s = onb.current;
+    if (!s) {
+      if (this.tutoFin === undefined) this.tutoFin = 3.5;   // on laisse le mot de la fin
+      this.tutoFin -= dt;
+      if (this.tutoFin > 0) {
+        el.hidden = false;
+        el.classList.add('done');
+        this.el('#tuto-goal').innerHTML = 'Vous savez tout. <b>H</b> rappelle les commandes.';
+        this.el('#tuto-why').textContent = 'La ville est à vous.';
+        this.el('#tuto-count').textContent = `${TUTORIAL_STEPS.length} / ${TUTORIAL_STEPS.length}`;
+      } else el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.classList.remove('done');
+    if (this._tutoStep !== s.id) {
+      this._tutoStep = s.id;
+      this.el('#tuto-goal').innerHTML = s.goal;
+      this.el('#tuto-why').innerHTML = s.why;
+      this.el('#tuto-count').textContent = `${onb.step + 1} / ${TUTORIAL_STEPS.length}`;
+    }
+  }
+
   /* ------------------------------------------------------------- inventaire */
 
   /**
@@ -7825,6 +8206,7 @@ class HUD {
   const { PoliceSystem } = __m["systems/police.js"];
   const { MissionSystem, MISSIONS } = __m["systems/missions.js"];
   const { HUD } = __m["systems/hud.js"];
+  const { Onboarding } = __m["systems/onboarding.js"];
   const { WEAPONS, WEAPON_ORDER, raycastScene, Projectile } = __m["systems/weapons.js"];
   const { resolveVehicleCollisions, separateCharacters } = __m["systems/physics.js"];
   const { m4, m4compose, clamp, lerp, damp, rng, range, pick, dist2D, color, mixColor, TAU } = __m["engine/math.js"];
@@ -7977,6 +8359,7 @@ class Game {
   initEntities() {
     this.audio = new AudioEngine();
     this.input = new Input(this.canvas);
+    this.input.canLock = () => !this.uiOpen();
     this.camera = new Camera();
     this.player = new Player('franklin');
     this.peds = [];
@@ -7986,6 +8369,7 @@ class Game {
     this.tracers = [];
     this.pickups = [];
     this.population = new Population(this);
+    this.onboarding = new Onboarding(this);
     this.police = new PoliceSystem(this);
     this.missions = new MissionSystem(this);
     this.hud = new HUD(this, this.root);
@@ -8119,7 +8503,7 @@ class Game {
     this.last = performance.now();
     this.bindScreenButtons();
     this.hud.setObjective('');
-    this.notify('Bienvenue à Los Santos', 'F pour monter dans un véhicule · Échap pour le menu');
+    this.notify('Bienvenue à Los Santos', 'Suivez les « premiers pas » à gauche · <b>H</b> rappelle toutes les commandes');
     requestAnimationFrame(this.frame);
   }
 
@@ -8206,6 +8590,13 @@ class Game {
     return noms[this.cameraMode];
   }
 
+  toggleHelp(on) {
+    if (this.shopOpen) return false;
+    const open = this.hud.toggleHelp(on);
+    if (open) this.input.releaseLock(); else this.input.requestLock();
+    return open;
+  }
+
   toggleInventory(on) {
     if (this.shopOpen || this.state !== 'play') return false;
     const open = this.hud.toggleInventory(on);
@@ -8229,6 +8620,7 @@ class Game {
     });
     brancher('#btn-menu', () => this.togglePause());
     brancher('#btn-quit', () => this.showMainMenu('Menu principal', 'La partie vous attend.'));
+    brancher('#tuto-skip', () => { this.onboarding.skip(); this.notify('Tutoriel passé', 'H rappelle les commandes à tout moment'); });
   }
 
   /** Fait apparaître un piéton à un endroit précis (missions, scripts, tests). */
@@ -8752,9 +9144,13 @@ class Game {
     if (this.garageCooldown) this.garageCooldown = Math.max(0, this.garageCooldown - dt);
   }
 
-  /** Ce que le joueur peut faire ici et maintenant. */
+  /**
+   * Ce que le joueur peut faire ici et maintenant. Renseigne aussi le libellé
+   * de l'action E, que la barre de commandes affiche en permanence.
+   */
   updateHint() {
     const p = this.player;
+    this.hud.actionLabel = '';
     if (this.state !== 'play' || p.dead) { this.hud.setHint(''); return; }
     if (p.vehicle) {
       const g = this.garage;
@@ -8767,12 +9163,14 @@ class Game {
     }
     if (this.inside) {
       const it = this.inside;
-      if (dist2D(p.x, p.z, it.exit.x, it.exit.z) < 3.4) { this.hud.setHint('<b>E</b> — sortir'); return; }
+      if (dist2D(p.x, p.z, it.exit.x, it.exit.z) < 3.4) { this.hud.actionLabel = 'Sortir'; this.hud.setHint('<b>E</b> — sortir'); return; }
       if (it.shop && dist2D(p.x, p.z, it.counter.x, it.counter.z) < 4.5) {
+        this.hud.actionLabel = it.shop === 'guns' ? 'Acheter' : 'Se soigner';
         this.hud.setHint(it.shop === 'guns' ? '<b>E</b> — acheter des armes' : '<b>E</b> — se faire soigner');
         return;
       }
       if (it.save && dist2D(p.x, p.z, it.counter.x, it.counter.z) < 6) {
+        this.hud.actionLabel = 'Enregistrer';
         this.hud.setHint('<b>E</b> — dormir et enregistrer la partie');
         return;
       }
@@ -8780,15 +9178,17 @@ class Game {
       return;
     }
     const porte = this.nearDoor();
-    if (porte) { this.hud.setHint(`<b>E</b> — entrer : ${porte.name}`); return; }
+    if (porte) { this.hud.actionLabel = `Entrer : ${porte.name}`; this.hud.setHint(`<b>E</b> — entrer : ${porte.name}`); return; }
     for (const pu of this.pickups) {
       if (!pu.kind.startsWith('shop-') || dist2D(p.x, p.z, pu.x, pu.z) > 4) continue;
+      this.hud.actionLabel = pu.kind === 'shop-guns' ? 'Ammu-Nation' : 'Hôpital';
       this.hud.setHint(pu.kind === 'shop-guns' ? '<b>E</b> — Ammu-Nation' : '<b>E</b> — Hôpital : soins et gilet');
       return;
     }
     if (!this.missions.active) {
       const dessus = this.missions.atMarker;
       if (dessus) {
+        this.hud.actionLabel = `Lancer « ${dessus.name} »`;
         this.hud.setHint(`<b>E</b> — lancer « ${dessus.name} » (${dessus.kind})`);
         return;
       }
@@ -8806,6 +9206,7 @@ class Game {
       return;
     }
     if (this.nearestPed(p.x, p.z, 3.2)) {
+      this.hud.actionLabel = 'Parler';
       this.hud.setHint('<b>E</b> — parler à ce passant');
       return;
     }
@@ -8913,7 +9314,7 @@ class Game {
     }
 
     let scale = this.timeScale;
-    if (this.paused || this.hud.mapOpen || this.shopOpen || this.hud.invOpen || this.state === 'menu') scale = 0;
+    if (this.paused || this.hud.mapOpen || this.shopOpen || this.hud.invOpen || this.hud.helpOpen || this.state === 'menu') scale = 0;
     const sdt = dt * scale;
 
     // Une image en erreur ne doit jamais figer les entrées : sans ce filet,
@@ -9012,11 +9413,18 @@ class Game {
     }
   }
 
+  /** Un écran est-il ouvert par-dessus le jeu ? */
+  uiOpen() {
+    return !!(this.paused || this.shopOpen || this.state !== 'play'
+      || this.hud.mapOpen || this.hud.invOpen || this.hud.helpOpen);
+  }
+
   handleGlobalKeys() {
     const i = this.input;
     if (this.state === 'menu') return;            // le menu se pilote à la souris
     if (i.hit('Escape')) {
       if (this.shopOpen) this.closeShop();
+      else if (this.hud.helpOpen) this.toggleHelp(false);
       else if (this.hud.invOpen) this.toggleInventory(false);
       else if (this.hud.mapOpen) this.hud.toggleMap(false);
       else this.togglePause();
@@ -9030,6 +9438,10 @@ class Game {
     if (this.shopOpen) {
       for (let n = 1; n <= 9; n++) if (i.hit(`Digit${n}`)) this.buy(n - 1);
       if (i.hit('KeyE')) this.closeShop();
+      return;
+    }
+    if (this.hud.helpOpen) {
+      if (i.hit('KeyH')) this.toggleHelp(false);
       return;
     }
     if (this.hud.invOpen) {
@@ -9050,6 +9462,7 @@ class Game {
     if (i.hit('KeyR')) p.startReload();
     if (i.hit('KeyV')) this.cycleCamera();
     if (i.hit('KeyI')) this.toggleInventory();
+    if (i.hit('KeyH') && !p.vehicle) this.toggleHelp();
     if (i.hit('KeyE')) this.tryInteract();
     if (i.hit('Comma')) this.notify('Radio', this.audio.setStation(this.audio.station - 1));
     if (i.hit('Period')) this.notify('Radio', this.audio.setStation(this.audio.station + 1));
@@ -9452,6 +9865,11 @@ class Game {
     this.checkPickups(dt);
     this.checkBusted(dt);
     this.updateHint();
+
+    // prise en main : l'étape en cours du tutoriel, validée dès qu'on l'a faite
+    const avance = this.onboarding.update(dt);
+    if (avance) this.audio.ui(avance === 'fin' ? 880 : 700, 0.09, 0.12);
+    this.hud.updateTutorial(this.onboarding, dt);
     if (this.time - (this.lastSave || 0) > 25) this.save();
 
     // audio

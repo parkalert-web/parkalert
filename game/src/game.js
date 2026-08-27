@@ -16,6 +16,7 @@ import { Population } from './systems/traffic.js';
 import { PoliceSystem } from './systems/police.js';
 import { MissionSystem, MISSIONS } from './systems/missions.js';
 import { HUD } from './systems/hud.js';
+import { Onboarding } from './systems/onboarding.js';
 import { WEAPONS, WEAPON_ORDER, raycastScene, Projectile } from './systems/weapons.js';
 import { resolveVehicleCollisions, separateCharacters } from './systems/physics.js';
 import {
@@ -172,6 +173,7 @@ export class Game {
   initEntities() {
     this.audio = new AudioEngine();
     this.input = new Input(this.canvas);
+    this.input.canLock = () => !this.uiOpen();
     this.camera = new Camera();
     this.player = new Player('franklin');
     this.peds = [];
@@ -181,6 +183,7 @@ export class Game {
     this.tracers = [];
     this.pickups = [];
     this.population = new Population(this);
+    this.onboarding = new Onboarding(this);
     this.police = new PoliceSystem(this);
     this.missions = new MissionSystem(this);
     this.hud = new HUD(this, this.root);
@@ -314,7 +317,7 @@ export class Game {
     this.last = performance.now();
     this.bindScreenButtons();
     this.hud.setObjective('');
-    this.notify('Bienvenue à Los Santos', 'F pour monter dans un véhicule · Échap pour le menu');
+    this.notify('Bienvenue à Los Santos', 'Suivez les « premiers pas » à gauche · <b>H</b> rappelle toutes les commandes');
     requestAnimationFrame(this.frame);
   }
 
@@ -401,6 +404,13 @@ export class Game {
     return noms[this.cameraMode];
   }
 
+  toggleHelp(on) {
+    if (this.shopOpen) return false;
+    const open = this.hud.toggleHelp(on);
+    if (open) this.input.releaseLock(); else this.input.requestLock();
+    return open;
+  }
+
   toggleInventory(on) {
     if (this.shopOpen || this.state !== 'play') return false;
     const open = this.hud.toggleInventory(on);
@@ -424,6 +434,7 @@ export class Game {
     });
     brancher('#btn-menu', () => this.togglePause());
     brancher('#btn-quit', () => this.showMainMenu('Menu principal', 'La partie vous attend.'));
+    brancher('#tuto-skip', () => { this.onboarding.skip(); this.notify('Tutoriel passé', 'H rappelle les commandes à tout moment'); });
   }
 
   /** Fait apparaître un piéton à un endroit précis (missions, scripts, tests). */
@@ -947,9 +958,13 @@ export class Game {
     if (this.garageCooldown) this.garageCooldown = Math.max(0, this.garageCooldown - dt);
   }
 
-  /** Ce que le joueur peut faire ici et maintenant. */
+  /**
+   * Ce que le joueur peut faire ici et maintenant. Renseigne aussi le libellé
+   * de l'action E, que la barre de commandes affiche en permanence.
+   */
   updateHint() {
     const p = this.player;
+    this.hud.actionLabel = '';
     if (this.state !== 'play' || p.dead) { this.hud.setHint(''); return; }
     if (p.vehicle) {
       const g = this.garage;
@@ -962,12 +977,14 @@ export class Game {
     }
     if (this.inside) {
       const it = this.inside;
-      if (dist2D(p.x, p.z, it.exit.x, it.exit.z) < 3.4) { this.hud.setHint('<b>E</b> — sortir'); return; }
+      if (dist2D(p.x, p.z, it.exit.x, it.exit.z) < 3.4) { this.hud.actionLabel = 'Sortir'; this.hud.setHint('<b>E</b> — sortir'); return; }
       if (it.shop && dist2D(p.x, p.z, it.counter.x, it.counter.z) < 4.5) {
+        this.hud.actionLabel = it.shop === 'guns' ? 'Acheter' : 'Se soigner';
         this.hud.setHint(it.shop === 'guns' ? '<b>E</b> — acheter des armes' : '<b>E</b> — se faire soigner');
         return;
       }
       if (it.save && dist2D(p.x, p.z, it.counter.x, it.counter.z) < 6) {
+        this.hud.actionLabel = 'Enregistrer';
         this.hud.setHint('<b>E</b> — dormir et enregistrer la partie');
         return;
       }
@@ -975,15 +992,17 @@ export class Game {
       return;
     }
     const porte = this.nearDoor();
-    if (porte) { this.hud.setHint(`<b>E</b> — entrer : ${porte.name}`); return; }
+    if (porte) { this.hud.actionLabel = `Entrer : ${porte.name}`; this.hud.setHint(`<b>E</b> — entrer : ${porte.name}`); return; }
     for (const pu of this.pickups) {
       if (!pu.kind.startsWith('shop-') || dist2D(p.x, p.z, pu.x, pu.z) > 4) continue;
+      this.hud.actionLabel = pu.kind === 'shop-guns' ? 'Ammu-Nation' : 'Hôpital';
       this.hud.setHint(pu.kind === 'shop-guns' ? '<b>E</b> — Ammu-Nation' : '<b>E</b> — Hôpital : soins et gilet');
       return;
     }
     if (!this.missions.active) {
       const dessus = this.missions.atMarker;
       if (dessus) {
+        this.hud.actionLabel = `Lancer « ${dessus.name} »`;
         this.hud.setHint(`<b>E</b> — lancer « ${dessus.name} » (${dessus.kind})`);
         return;
       }
@@ -1001,6 +1020,7 @@ export class Game {
       return;
     }
     if (this.nearestPed(p.x, p.z, 3.2)) {
+      this.hud.actionLabel = 'Parler';
       this.hud.setHint('<b>E</b> — parler à ce passant');
       return;
     }
@@ -1108,7 +1128,7 @@ export class Game {
     }
 
     let scale = this.timeScale;
-    if (this.paused || this.hud.mapOpen || this.shopOpen || this.hud.invOpen || this.state === 'menu') scale = 0;
+    if (this.paused || this.hud.mapOpen || this.shopOpen || this.hud.invOpen || this.hud.helpOpen || this.state === 'menu') scale = 0;
     const sdt = dt * scale;
 
     // Une image en erreur ne doit jamais figer les entrées : sans ce filet,
@@ -1207,11 +1227,18 @@ export class Game {
     }
   }
 
+  /** Un écran est-il ouvert par-dessus le jeu ? */
+  uiOpen() {
+    return !!(this.paused || this.shopOpen || this.state !== 'play'
+      || this.hud.mapOpen || this.hud.invOpen || this.hud.helpOpen);
+  }
+
   handleGlobalKeys() {
     const i = this.input;
     if (this.state === 'menu') return;            // le menu se pilote à la souris
     if (i.hit('Escape')) {
       if (this.shopOpen) this.closeShop();
+      else if (this.hud.helpOpen) this.toggleHelp(false);
       else if (this.hud.invOpen) this.toggleInventory(false);
       else if (this.hud.mapOpen) this.hud.toggleMap(false);
       else this.togglePause();
@@ -1225,6 +1252,10 @@ export class Game {
     if (this.shopOpen) {
       for (let n = 1; n <= 9; n++) if (i.hit(`Digit${n}`)) this.buy(n - 1);
       if (i.hit('KeyE')) this.closeShop();
+      return;
+    }
+    if (this.hud.helpOpen) {
+      if (i.hit('KeyH')) this.toggleHelp(false);
       return;
     }
     if (this.hud.invOpen) {
@@ -1245,6 +1276,7 @@ export class Game {
     if (i.hit('KeyR')) p.startReload();
     if (i.hit('KeyV')) this.cycleCamera();
     if (i.hit('KeyI')) this.toggleInventory();
+    if (i.hit('KeyH') && !p.vehicle) this.toggleHelp();
     if (i.hit('KeyE')) this.tryInteract();
     if (i.hit('Comma')) this.notify('Radio', this.audio.setStation(this.audio.station - 1));
     if (i.hit('Period')) this.notify('Radio', this.audio.setStation(this.audio.station + 1));
@@ -1647,6 +1679,11 @@ export class Game {
     this.checkPickups(dt);
     this.checkBusted(dt);
     this.updateHint();
+
+    // prise en main : l'étape en cours du tutoriel, validée dès qu'on l'a faite
+    const avance = this.onboarding.update(dt);
+    if (avance) this.audio.ui(avance === 'fin' ? 880 : 700, 0.09, 0.12);
+    this.hud.updateTutorial(this.onboarding, dt);
     if (this.time - (this.lastSave || 0) > 25) this.save();
 
     // audio

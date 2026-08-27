@@ -158,6 +158,20 @@ ses éoliennes, la chaîne de montagnes du nord, l'aéroport au sud et le port �
 l'est. À l'ouest, on peut entrer dans l'eau : le joueur **nage**, et les
 véhicules calent puis coulent.
 
+### Comprendre le jeu sans manuel
+
+Un bac à sable où rien n'est expliqué n'est pas un jeu difficile, c'est un jeu
+qu'on ferme. Trois choses répondent à ça :
+
+- un **tutoriel** au premier lancement — huit gestes dans l'ordre, chacun validé
+  dès qu'on l'a fait, avec la raison à côté de la consigne. Passable d'un clic ;
+- une **barre de commandes** en bas de l'écran, qui montre en permanence ce
+  qu'on peut faire *maintenant* : elle change quand on monte en voiture, quand
+  on entre quelque part, quand quelqu'un est à portée de parole ;
+- un **panneau d'aide** (**H**), le rappel complet en quatre thèmes.
+
+Et les quatre boutons de droite portent leur touche : **V**, **I**, **M**, **Éch**.
+
 ### À l'écran, sans rien connaître
 
 Quatre boutons cliquables en haut à droite — **Vue**, **Armes**, **Carte**,
@@ -167,10 +181,13 @@ trouvée. Le viseur est **toujours affiché** dès qu'on a une arme en main, et 
 autour d'elle, rouge pour une menace, avec sa distance. Tirer envoie la balle
 sur la personne encadrée, pas sur le mur derrière.
 
-La souris est **libre par défaut** : on tourne la tête en gardant un bouton
-enfoncé, ce qui laisse tous les boutons cliquables. Ceux qui préfèrent la vue à
-la souris nue activent « Capturer la souris » dans le menu — mais les boutons
-d'écran deviennent alors inaccessibles, le curseur appartenant au canevas.
+La souris est **capturée pendant le jeu** : on tourne la tête sans rien tenir,
+comme dans n'importe quel jeu — c'est la seule façon de ne pas buter contre le
+bord de l'écran. Revers de la médaille, le curseur appartient alors au canevas
+et aucun bouton n'est cliquable ; **maintenir Alt** le rend le temps qu'il faut,
+et le relâcher reprend la main. Ceux qui préfèrent jouer au curseur libre
+décochent « Capturer la souris » dans le menu : la vue se pilote alors en gardant
+un bouton enfoncé.
 
 ### Entrer quelque part
 
@@ -307,7 +324,7 @@ lectures dans cette table. Aucun outil externe, aucune étape d'installation.
 node --test tests/game.test.mjs
 ```
 
-49 tests couvrent les mathématiques, l'orientation des faces (un enroulement
+50 tests couvrent les mathématiques, l'orientation des faces (un enroulement
 inversé rend la géométrie invisible), la reproductibilité de la ville, la
 connexité du réseau routier, l'absence d'obstacle sur la chaussée et de
 marqueur de mission dans un mur, les collisions, la physique des véhicules

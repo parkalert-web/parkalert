@@ -36,6 +36,21 @@
     <div id="objective"></div>
     <div id="hint"></div>
 
+    <!-- Ce qu'on peut faire là, maintenant. Toujours affiché : une commande
+         qu'il faut deviner n'est jamais trouvée. -->
+    <div id="keybar"></div>
+
+    <!-- Tutoriel du premier lancement -->
+    <div id="tutorial" hidden>
+      <div class="tuto-head">
+        <b>PREMIERS PAS</b>
+        <span id="tuto-count">1 / 8</span>
+        <button id="tuto-skip">Passer</button>
+      </div>
+      <div id="tuto-goal"></div>
+      <div id="tuto-why"></div>
+    </div>
+
     <div id="bottom-left">
       <div id="radar-wrap">
         <canvas id="radar" width="230" height="150"></canvas>
@@ -53,10 +68,10 @@
     <!-- Boutons d'écran : tout ce qui n'est accessible qu'au clavier finit par
          ne jamais être trouvé. -->
     <div id="screen-buttons">
-      <button id="btn-view" title="Changer de vue (V)"><b>◱</b><span>Vue</span></button>
-      <button id="btn-inv" title="Inventaire (I)"><b>▤</b><span>Armes</span></button>
-      <button id="btn-map" title="Carte (M)"><b>🗺</b><span>Carte</span></button>
-      <button id="btn-menu" title="Menu (Échap)"><b>☰</b><span>Menu</span></button>
+      <button id="btn-view" title="Changer de vue"><b>◱</b><span>Vue</span><kbd>V</kbd></button>
+      <button id="btn-inv" title="Inventaire des armes"><b>▤</b><span>Armes</span><kbd>I</kbd></button>
+      <button id="btn-map" title="Carte et missions"><b>🗺</b><span>Carte</span><kbd>M</kbd></button>
+      <button id="btn-menu" title="Menu et réglages"><b>☰</b><span>Menu</span><kbd>Éch</kbd></button>
     </div>
 
     <div id="speedo">
@@ -92,6 +107,15 @@
       <b>CARTE DE LOS SANTOS</b>
       <span>Clic : placer un point de destination · Molette : zoom · Glisser : déplacer</span>
       <span>M ou Échap pour fermer</span>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------------- aide -->
+  <div id="help">
+    <div class="help-panel">
+      <div class="help-head"><b>COMMENT ON JOUE</b><button id="help-close">×</button></div>
+      <div class="help-body"></div>
+      <div class="help-foot">H ou Échap pour fermer</div>
     </div>
   </div>
 
@@ -141,7 +165,8 @@
             <div><kbd>1</kbd>–<kbd>9</kbd><span>Armes</span></div>
             <div><kbd>M</kbd><span>Carte</span></div>
             <div><kbd>V</kbd><span>Vue caméra</span></div>
-            <div><kbd>H</kbd><span>Klaxon</span></div>
+            <div><kbd>H</kbd><span>Aide à pied · klaxon en voiture</span></div>
+            <div><kbd>Alt</kbd><span>Rendre le curseur (maintenir)</span></div>
             <div><kbd>,</kbd><kbd>.</kbd><span>Station de radio</span></div>
             <div><kbd>C</kbd><span>Caméra libre en voiture</span></div>
             <div><kbd>Échap</kbd><span>Pause</span></div>
@@ -160,7 +185,7 @@
         <label>Ombres <input type="checkbox" id="opt-shadows" checked></label>
         <label>Qualité <input type="range" id="opt-scale" min="50" max="100" value="100"></label>
         <label>Sensibilité <input type="range" id="opt-sens" min="5" max="60" value="22"></label>
-        <label>Capturer la souris <input type="checkbox" id="opt-lock"></label>
+        <label>Capturer la souris <input type="checkbox" id="opt-lock" checked></label>
         <label>Volume <input type="range" id="opt-vol" min="0" max="100" value="85"></label>
         <label>Musique <input type="range" id="opt-music" min="0" max="100" value="50"></label>
       </div>
@@ -184,7 +209,7 @@
   <div id="loading">
     <div class="load-inner">
       <div class="load-logo">LOS<span>SANTOS</span></div>
-      <div class="load-sub">Un bac à sable façon Grand Theft Auto V, écrit en WebGL sans aucune dépendance</div>
+      <div class="load-sub">Un bac à sable façon Grand Theft Auto V, écrit en WebGL sans aucune dépendance.<br><b>Z Q S D</b> pour marcher, la <b>souris</b> pour regarder, <b>F</b> pour monter dans une voiture, <b>H</b> pour l’aide. Un tutoriel vous guide au départ.</div>
       <div class="load-bar"><i id="load-fill"></i></div>
       <div class="load-step" id="load-step">Initialisation…</div>
       <div class="load-tip" id="load-tip"></div>
