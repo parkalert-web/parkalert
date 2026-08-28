@@ -318,6 +318,22 @@ export const MOBS = {
       box([0.09, 0.12, 0], [0.08, 0.24, 0.08], '#f0a52a', 'leg1'),
     ],
   },
+  villager: {
+    label: 'Villageois', hostile: false, hp: 20, speed: 1.1, width: 0.6, height: 1.95, eye: 1.7,
+    xp: [0, 0], drops: [], sedentaire: true,
+    parts: [
+      box([0, 1.05, 0], [0.5, 0.85, 0.3], '#7d5539'),
+      box([0, 1.45, 0], [0.52, 0.12, 0.32], '#b0483a'),
+      box([0, 1.68, 0], [0.5, 0.5, 0.5], '#c8956a'),
+      box([0, 1.62, 0.3], [0.12, 0.26, 0.12], '#b07a52'),
+      box([0, 1.84, 0.27], [0.5, 0.06, 0.03], '#3f2f22'),
+      box([-0.14, 1.74, 0.26], [0.09, 0.09, 0.02], '#241a1a'),
+      box([0.14, 1.74, 0.26], [0.09, 0.09, 0.02], '#241a1a'),
+      box([0, 1.2, 0.24], [0.62, 0.28, 0.18], '#6b472f'),
+      box([-0.13, 0.34, 0], [0.25, 0.68, 0.25], '#4a3a2a', 'leg0'),
+      box([0.13, 0.34, 0], [0.25, 0.68, 0.25], '#4a3a2a', 'leg1'),
+    ],
+  },
   zombie: {
     label: 'Zombie', hostile: true, hp: 20, speed: 1.9, width: 0.6, height: 1.95, eye: 1.7,
     damage: 3, xp: [5, 5], burnsInSun: true,
@@ -427,7 +443,8 @@ export class Mob extends Entity {
 
     // Disparition des créatures trop lointaines (comme dans le jeu).
     if (dist > 110) { this.dead = true; return; }
-    if (dist > 40 && this.age > 30 && Math.random() < dt * 0.02) { this.dead = true; return; }
+    // Les villageois ne disparaissent pas : leur village serait vide au retour.
+    if (!this.def.sedentaire && dist > 40 && this.age > 30 && Math.random() < dt * 0.02) { this.dead = true; return; }
 
     this.think(dt, ctx, player, dist);
     this.applyMovement(dt, ctx);
@@ -663,6 +680,22 @@ export class Mob extends Entity {
 /* ────────────────────────── Apparition naturelle ────────────────────────── */
 
 /**
+ * L'emplacement convient-il à une créature terrestre ?
+ * Il faut un sol solide et sec, et deux blocs libres au-dessus : sans le test
+ * des fluides, les monstres apparaissaient au fond de l'eau, la mer étant
+ * « non solide » pour le calcul de hauteur.
+ */
+function placeLibre(world, x, y, z) {
+  const sol = BLOCKS[world.getBlock(x, y - 1, z)];
+  if (!sol.solid || sol.fluid) return false;
+  for (const dy of [0, 1]) {
+    const b = BLOCKS[world.getBlock(x, y + dy, z)];
+    if (b.solid || b.fluid) return false;
+  }
+  return true;
+}
+
+/**
  * Fait apparaître des créatures autour du joueur, avec les règles du jeu :
  * les hostiles dans le noir, les paisibles sur l'herbe en pleine lumière.
  */
@@ -689,9 +722,8 @@ export function spawnCycle(ctx) {
     const y = world.topSolidY(x, z);
     if (y < 2 || y > WORLD_H - 4) continue;
 
+    if (!placeLibre(world, x, y, z)) continue;
     const ground = BLOCKS[world.getBlock(x, y - 1, z)];
-    if (!ground.solid || ground.fluid) continue;
-    if (BLOCKS[world.getBlock(x, y, z)].solid || BLOCKS[world.getBlock(x, y + 1, z)].solid) continue;
 
     const lightHere = Math.max(world.getBlockLight(x, y, z), Math.round(world.getSkyLight(x, y, z) * world.skyBrightness()));
     let type;
@@ -711,6 +743,7 @@ export function spawnCycle(ctx) {
       const gz = z + (Math.random() * 5 - 2.5);
       const gy = world.topSolidY(Math.floor(gx), Math.floor(gz));
       if (Math.abs(gy - y) > 2) continue;
+      if (!placeLibre(world, Math.floor(gx), gy, Math.floor(gz))) continue;
       ctx.spawn(new Mob(type, gx + 0.5, gy, gz + 0.5));
       if (hostile) hostiles++; else passives++;
     }

@@ -677,7 +677,10 @@ export class Game {
     this.spawnTimer += dt;
     if (this.spawnTimer > 2) {
       this.spawnTimer = 0;
-      if (this.settings.mobs !== false) spawnCycle(this.ctx);
+      if (this.settings.mobs !== false) {
+        spawnCycle(this.ctx);
+        this.spawnStructureMobs();
+      }
     }
 
     // Sauvegarde automatique toutes les 90 secondes.
@@ -764,6 +767,27 @@ export class Game {
     this.entities.push(...alive);
     this.ctx.entities = this.entities;
     if (this.entities.length > 400) this.entities.splice(0, this.entities.length - 400);
+  }
+
+  /** Les habitants nés avec un village prennent vie quand le joueur approche. */
+  spawnStructureMobs() {
+    const p = this.player;
+    const ccx = Math.floor(p.x) >> 4, ccz = Math.floor(p.z) >> 4;
+    for (let dz = -2; dz <= 2; dz++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const c = this.world.chunkAt(ccx + dx, ccz + dz);
+        if (!c || !c.mobs || !c.mobs.length) continue;
+        for (const m of c.mobs) {
+          // On garde la hauteur prévue par la structure — sur le sol de la
+          // maison — et on ne remonte que si elle est murée.
+          const fx = Math.floor(m.x), fz = Math.floor(m.z);
+          const bloque = BLOCKS[this.world.getBlock(fx, m.y, fz)].solid;
+          const y = bloque ? this.world.topSolidY(fx, fz) : m.y;
+          this.entities.push(new Mob(m.type, m.x, y, m.z));
+        }
+        c.mobs.length = 0;
+      }
+    }
   }
 
   weatherParticles(dt) {

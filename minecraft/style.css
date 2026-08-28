@@ -41,6 +41,16 @@ html, body {
 
 #ui { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
 #ui > * { pointer-events: auto; }
+
+/* Ces couches recouvrent l'écran : elles doivent laisser passer la souris,
+   sinon elles avalent les clics destinés au monde ou aux inventaires.
+   La règle ci-dessus porte un identifiant : il faut la même force pour
+   la contredire, d'où les sélecteurs préfixés par #ui. */
+#ui > .hud,
+#ui > .cursor-stack,
+#ui > .vignette { pointer-events: none; }
+/* …sauf la barre d'action, où l'on choisit son objet au clic. */
+#ui .hotbar { pointer-events: auto; }
 .hidden { display: none !important; }
 
 /* ─────────────────────────────── ATH ─────────────────────────────── */

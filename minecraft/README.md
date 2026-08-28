@@ -7,7 +7,7 @@ démarrage et les bruitages sont synthétisés par Web Audio.
 
 ```
 minecraft/
-  minecraft.html      LE JEU EN UN SEUL FICHIER (engendré) — 380 Ko
+  minecraft.html      LE JEU EN UN SEUL FICHIER (engendré) — 400 Ko
   index.html          version modulaire, pour développer
   style.css           habillage (menus, ATH, inventaires)
   src/                21 modules ES, sans dépendance
@@ -83,6 +83,13 @@ vide. Armure en cuir, or, fer ou diamant (chaque point retire 4 % de dégâts),
 outils avec durabilité et paliers (le diamant seul entame l'obsidienne),
 expérience et niveaux, mort avec perte de l'inventaire et réapparition.
 
+**Structures** — villages (maisons aux styles régionaux, puits, champs de blé
+irrigués, coffres garnis et villageois qui y vivent), temples du désert avec
+chambre au trésor piégée sous la pyramide, tours de guet en ruine, et donjons
+moussus perdus sous terre. Chaque type occupe une « région » de tronçons : la
+graine décide s'il y a quelque chose et où, si bien qu'un village à cheval sur
+six tronçons est dessiné en entier quel que soit l'ordre d'exploration.
+
 **Artisanat** — 79 recettes façonnées et informes, cinq essences de bois
 (chêne, bouleau, sapin, acajou, acacia) interchangeables dans toutes les
 recettes, grille 2 × 2 portable et 3 × 3
@@ -148,12 +155,12 @@ cubes pleins, des croix et des panneaux plats).
 npm run test:minecraft
 ```
 
-36 tests couvrent la reproductibilité du monde, la répartition des minerais, les
+41 tests couvrent la reproductibilité du monde, la répartition des minerais, les
 durées de cassage, les paliers d'outils, les recettes, les inventaires, la
 propagation et le retrait de la lumière, les collisions, l'écoulement de l'eau,
 la gravité du sable, le four, la pousse du blé, l'élagage des faces, la
-sauvegarde différentielle, le décor des biomes et **l'accord entre la caméra et
-le viseur** — la matrice de vue et le vecteur de visée s'étaient un jour
+sauvegarde différentielle, le décor des biomes, les structures et leur butin, l'absence
+d'apparitions dans l'eau, et **l'accord entre la caméra et le viseur** — la matrice de vue et le vecteur de visée s'étaient un jour
 retrouvés opposés, et le viseur désignait alors un bloc dans le dos du joueur.
 
 ---

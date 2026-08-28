@@ -23,6 +23,7 @@ import { buildChunkMesh } from '../src/mesher.js';
 import { buildAtlas, tileNames, T } from '../src/textures.js';
 import { chunkDiff, seedFromString } from '../src/save.js';
 import { mat4, viewMatrix } from '../src/math.js';
+import { spawnCycle } from '../src/entities.js';
 
 /** Monde de test : tronçons générés et éclairés autour de l'origine. */
 function makeWorld(seed = 4242, radius = 2) {
@@ -535,4 +536,116 @@ test('les lianes et la canne à sucre se comportent comme des plantes', () => {
   assert.equal(canne.render, 'cross');
   assert.equal(canne.solid, false);
   assert.ok(canne.plantOn.includes('sand'), 'la canne doit pousser sur le sable');
+});
+
+/* ─────────────────────────── Structures ─────────────────────────── */
+
+test('villages, temples, tours et donjons apparaissent dans le monde', () => {
+  const g = new WorldGen(12345);
+  const compte = { village: 0, temple: 0, tour: 0, donjon: 0 };
+  const vus = new Set();
+  for (let cx = -40; cx < 40; cx += 1) {
+    for (let cz = -40; cz < 40; cz += 1) {
+      for (const type of Object.keys(compte)) {
+        for (const o of g.origines(type, cx, cz)) {
+          const cle = `${type}:${o.cx},${o.cz}`;
+          if (vus.has(cle)) continue;
+          vus.add(cle);
+          compte[type]++;
+        }
+      }
+    }
+  }
+  for (const [type, n] of Object.entries(compte)) {
+    assert.ok(n > 0, `aucune origine de ${type} sur 80×80 tronçons`);
+  }
+  // Un donjon est fréquent, un village rare : c'est ce qui rend la trouvaille bonne.
+  assert.ok(compte.donjon > compte.village * 4, 'les villages devraient être bien plus rares que les donjons');
+});
+
+test('un village contient maisons, champs, coffres garnis et habitants', () => {
+  const g = new WorldGen(12345);
+  // Le village connu de cette graine, à l'ouest.
+  const [CX, CZ] = [-36, 25];
+  const noms = new Set();
+  let coffres = 0, villageois = 0, objets = 0;
+  for (let dx = -3; dx <= 3; dx++) {
+    for (let dz = -3; dz <= 3; dz++) {
+      const c = new Chunk(CX + dx, CZ + dz);
+      g.generate(c);
+      g.populate(null, c);
+      for (const id of c.blocks) if (id) noms.add(BLOCKS[id].name);
+      for (const [, e] of c.blockEntities) {
+        if (e.type !== 'chest') continue;
+        coffres++;
+        objets += e.slots.filter(Boolean).length;
+      }
+      villageois += (c.mobs || []).length;
+    }
+  }
+  for (const attendu of ['oak_planks', 'cobblestone', 'farmland', 'wheat', 'glass', 'torch']) {
+    assert.ok(noms.has(attendu), `village : ${attendu} absent`);
+  }
+  assert.ok(coffres >= 1, 'aucun coffre dans le village');
+  assert.ok(objets >= coffres, 'les coffres du village sont vides');
+  assert.ok(villageois >= 3, `village presque désert (${villageois} habitants)`);
+});
+
+test('une structure à cheval sur deux tronçons est dessinée en entier', () => {
+  // Le tronçon doit sortir identique qu'on le génère seul ou après ses voisins :
+  // c'est la garantie qu'une maison n'est jamais tronquée.
+  const g = new WorldGen(12345);
+  const seul = new Chunk(-36, 25);
+  g.generate(seul);
+  g.populate(null, seul);
+
+  const g2 = new WorldGen(12345);
+  for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+    const voisin = new Chunk(-36 + dx, 25 + dz);
+    g2.generate(voisin);
+    g2.populate(null, voisin);
+  }
+  const apres = new Chunk(-36, 25);
+  g2.generate(apres);
+  g2.populate(null, apres);
+  assert.deepEqual([...seul.blocks], [...apres.blocks], 'le tronçon dépend de l’ordre de génération');
+});
+
+test('le butin des coffres est tiré une fois pour toutes', () => {
+  const contenu = (graine) => {
+    const g = new WorldGen(graine);
+    const c = new Chunk(-36, 25);
+    g.generate(c);
+    g.populate(null, c);
+    return [...c.blockEntities.values()]
+      .filter((e) => e.type === 'chest')
+      .map((e) => e.slots.map((s) => (s ? `${s.count}×${s.item}` : '.')).join('|'));
+  };
+  assert.deepEqual(contenu(12345), contenu(12345), 'deux visites donnent des coffres différents');
+});
+
+test('aucune créature n’apparaît dans l’eau', () => {
+  const w = makeWorld(99, 4);
+  w.time = 16000;
+  // Bassin large et profond, à la place du terrain.
+  const water = idByName('water'), stone = idByName('stone');
+  for (let x = -20; x < 20; x++) {
+    for (let z = -20; z < 20; z++) {
+      for (let y = 60; y < 76; y++) w.setBlock(x, y, z, 0, 0, { noLight: true });
+      w.setBlock(x, 59, z, stone, 0, { noLight: true });
+      for (let y = 60; y < 68; y++) w.setBlock(x, y, z, water, 0, { noLight: true });
+    }
+  }
+  w.light.update(0);
+  const joueur = { x: 0.5, y: 68, z: 0.5, width: 0.6, height: 1.8, dead: false, mode: 'survival' };
+  const entities = [];
+  const ctx = { world: w, player: joueur, entities, spawn: (e) => entities.push(e) };
+  for (let i = 0; i < 300; i++) spawnCycle(ctx);
+  let mouillees = 0;
+  for (const e of entities) {
+    const sous = BLOCKS[w.getBlock(Math.floor(e.x), Math.floor(e.y) - 1, Math.floor(e.z))];
+    const dedans = BLOCKS[w.getBlock(Math.floor(e.x), Math.floor(e.y), Math.floor(e.z))];
+    if (sous.fluid || dedans.fluid) mouillees++;
+  }
+  assert.equal(mouillees, 0, `${mouillees} créatures apparues dans l’eau`);
 });
