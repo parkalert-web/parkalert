@@ -117,13 +117,56 @@ dégâts qu'on met des heures à comprendre.
 Il n'emporte pas les vidéos importées, et le dit : un fichier vidéo pèse mille
 fois ce qu'un code peut porter.
 
+### Le temps passe pendant qu'on regarde
+
+Première version : la projection mettait le cinéma en pause. C'était faux, et la
+preuve était à l'écran — **la barre de progression de la séance restait figée**.
+On s'assoit dans son cinéma, on n'en sort pas : l'horloge tourne, la séance
+avance, la salle se remplit et se vide, et l'en-tête annonce l'heure qu'il est et
+ce que fait la salle. Quand la séance se termine, **la suivante s'enchaîne toute
+seule** ; et si la journée se termine pendant qu'on regarde, la salle se referme
+sur le bilan du soir.
+
+### Agrandir le local, sans limite
+
+Les agréments agrandissent le bail cinq fois, puis plus rien : on finissait par
+n'avoir plus un mètre libre alors qu'on avait de quoi payer. On peut désormais
+**acheter des mètres** — +4 de large et +3 de long à chaque fois, autant de fois
+qu'on veut. Le prix part de 90 000 € et **monte de 60 % à chaque agrandissement** :
+il n'y a pas de limite, mais il y a un moment où ça ne vaut plus le coup, ce qui
+est une meilleure limite qu'un mur.
+
+La grille du jeu n'était pas prévue pour ça : elle **grandit maintenant avec le
+local**, en emportant tout ce qu'elle contenait. Les bâtis ne bougent pas d'un
+pouce par rapport aux murs, l'index de chaque case retrouve le bon bâti, et le
+tour du local reste étanche.
+
+Un agrandissement ne se fait que **rideau baissé**. Ce n'est pas une pudeur de
+décor : pendant la séance le hall est plein de gens qui suivent un chemin calculé
+sur l'ancien plan, et les décaler proprement est impossible.
+
+### Gagner, puis continuer si on veut
+
+Atteindre le **douzième agrément**, c'est avoir gagné : la salle n'est plus en
+sursis. Un écran le dit, et laisse le choix :
+
+- **s'arrêter là** referme la partie sur la victoire, avec les points de carrière
+  et les jetons ;
+- **continuer** ouvre la **partie libre** : la dixième semaine n'arrête plus
+  rien, le loyer continue de tomber chaque dimanche, et on pousse les murs aussi
+  loin que la caisse le permet. Un bouton « s'arrêter là » reste sur le bilan du
+  soir : rien n'oblige à jouer jusqu'à la faillite pour encaisser sa victoire.
+
+Forcer la fin aurait été le plus simple. Mais quelqu'un qui vient de rendre son
+cinéma imbattable n'a pas envie qu'on lui retire le clavier.
+
 ---
 
 ## Publicité et données
 
 Le site est prévu pour être éligible au programme Google AdSense.
 
-- **Domaine** : `https://cinematycoon.netlify.app/`. Il n'apparaît qu'à **deux
+- **Domaine** : `https://cinetycoon.netlify.app/`. Il n'apparaît qu'à **deux
   endroits**, côte à côte en haut du fichier (`link rel="canonical"` et
   `og:url`), sous un commentaire qui le signale.
 - **Consent Mode v2** : tous les signaux publicitaires sur `denied` par défaut,
@@ -153,10 +196,12 @@ Le site est prévu pour être éligible au programme Google AdSense.
 | `video.js` | Le trajet complet d'une vidéo importée : un vrai fichier est **fabriqué dans le navigateur** (MediaRecorder), passé par le code d'import du jeu, la page est **rechargée**, et on relit les pixels au centre de l'écran pour prouver que ce sont bien ceux de la vidéo et pas ceux de la bobine dessinée. Retirer la vidéo l'efface vraiment de la base. **12/12.** |
 | `meta.js` | Les packs sur 2 800 cartes tirées : raretés respectées, garanties toujours tenues, jamais un rang au-delà du maximum, jetons rendus quand tout est acquis. Le code de sauvegarde : aller-retour complet, et **six codes abîmés tous refusés sans abîmer la carrière**. **21/21.** |
 | `pub.js` | Conformité publicitaire : canonique, consentement refusé par défaut, **délai de chargement du script d'annonces mesuré**, aucun bloc manuel, commandes protégées, pages légales complètes. **18/18.** |
-| `partie.js` | Le jeu tourne toujours : une soirée entière jouée en accéléré, des billets vendus, de la recette encaissée, et la projection qui met le jeu en pause puis le rend comme il était. **9/9.** |
+| `partie.js` | Le jeu tourne toujours : une soirée entière jouée en accéléré, des billets vendus, de la recette encaissée — et la projection ouverte **au milieu d'une séance**, où l'on vérifie que l'heure avance et que la barre de progression bouge vraiment. **11/11.** |
+| `agrandir.js` | Six agrandissements d'affilée : la grille grandit, les bâtis restent à la même place par rapport aux murs, le tour du local reste étanche, chaque case retrouve le bon bâti, la sauvegarde porte la nouvelle taille — et agrandir est refusé rideau levé ou sans argent, sans rien débiter. **17/17.** |
+| `sacre.js` | Le douzième agrément arme la victoire, l'écran s'ouvre après le bilan, continuer ouvre la partie libre où la dixième semaine n'arrête plus rien, s'arrêter referme sur une victoire, et tout survit à la sauvegarde. **12/12.** |
 | `sonde.js` · `planche.js` | Les onze bobines rendues et jugées côte à côte sur une planche-contact. |
 
-**60 contrôles**, zéro erreur console du jeu.
+**91 contrôles**, zéro erreur console du jeu.
 
 ### Ce que les tests ont trouvé
 

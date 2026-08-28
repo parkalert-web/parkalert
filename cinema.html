@@ -12,8 +12,8 @@
      juste en dessous : le lien canonique et og:url. Rien d'autre dans le
      fichier ne contient le domaine.
      =========================================================================== -->
-<link rel="canonical" href="https://cinematycoon.netlify.app/">
-<meta property="og:url" content="https://cinematycoon.netlify.app/">
+<link rel="canonical" href="https://cinetycoon.netlify.app/">
+<meta property="og:url" content="https://cinetycoon.netlify.app/">
 
 <meta name="author" content="VanNDM Creations">
 <meta name="keywords" content="jeu de gestion gratuit, tycoon cinéma, jeu de navigateur, simulation cinéma, jeu html5 sans installation">
@@ -973,7 +973,8 @@ body:not(.enJeu) #flash{display:none !important}
   <div class="carte"><div class="sur">CE QUI A COÛTÉ DES ENTRÉES</div><div id="sManque"></div></div>
   <div class="carte" id="sAvisCarte"><div class="sur">CE QU'ILS EN ONT DIT</div>
     <div id="sAvis"></div></div>
-  <div class="relance"><button class="btn" id="sSuite">PRÉPARER DEMAIN</button></div>
+  <div class="relance"><button class="btn" id="sSuite">PRÉPARER DEMAIN</button>
+    <button class="btn ghost" id="sArret" style="display:none">S'ARRÊTER LÀ</button></div>
 </div>
 
 <div class="screen" id="commande">
@@ -1096,6 +1097,19 @@ body:not(.enJeu) #flash{display:none !important}
     <span id="pkJet">🪙 0</span>
     <button id="pkSuite">RETOURNER LA SUIVANTE</button>
     <button id="pkTout" style="background:transparent;color:#d8cfe8">TOUT RETOURNER</button>
+  </div>
+</div>
+
+<!-- le sacre : le dernier agrément est atteint -->
+<div class="screen" id="sacre">
+  <div class="eyebrow" id="sacEye">LE DERNIER AGRÉMENT EST ACCORDÉ</div>
+  <h1 style="font-size:var(--t2)" class="plat" id="sacTitre">LE CINÉMA EST SAUVÉ</h1>
+  <div class="grille" style="max-width:640px" id="sacGrille"></div>
+  <div class="carte zone"><div class="sur">ET MAINTENANT ?</div>
+    <div class="txt" id="sacTxt"></div></div>
+  <div class="relance">
+    <button class="btn" id="sacContinuer">CONTINUER EN PARTIE LIBRE</button>
+    <button class="btn ghost" id="sacArreter">S'ARRÊTER LÀ ET ENCAISSER</button>
   </div>
 </div>
 
@@ -1279,7 +1293,11 @@ const cts=n=>(n<10?n.toFixed(2).replace('.',','):Math.round(n*10)/10+'').replace
    Une grille de cases. Le cinéma n'occupe pas tout l'immeuble : on loue un
    rectangle qui grandit avec l'agrément. Les murs sont déduits du rectangle,
    pas posés à la main — une salle, ça s'agrandit, ça ne se maçonne pas. */
-const GX=58, GY=42, TUILE=26;
+/* La grille n'est plus une constante : le local s'agrandit à l'argent, sans
+   limite annoncée, et la grille grandit avec lui. GX0/GY0 sont la taille de
+   départ, celle à laquelle chaque nouvelle partie revient. */
+const GX0=58, GY0=42, TUILE=26;
+let GX=GX0, GY=GY0;
 const CH=20;                        // côté d'un morceau de sol, en cases
 const CHX=Math.ceil(GX/CH), CHY=Math.ceil(GY/CH);
 const DEHORS=0, SOL=1, MEUBLE=2, MUR=3, PORTE=4;
@@ -1880,6 +1898,9 @@ function catalogue(cat,k){
 function coutJour(b){ return b.d.ent||0; }
 
 function nouvellePartie(){
+  /* la grille repart de sa taille d'origine : sans ça, une partie neuve
+     héritait du local agrandi de la précédente */
+  GX=GX0; GY=GY0;
   P={
     sem:1, jour:1, jourNum:1, t:0, heure:OUVERTURE, ouvert:false, phase:'prepa',
     argent:52000+9000*AM('tresorerie'),
@@ -1887,6 +1908,7 @@ function nouvellePartie(){
     sol:new Uint8Array(GX*GY), occ:new Int16Array(GX*GY).fill(-1),
     salete:new Float32Array(GX*GY),
     meubles:[], employes:[], clients:[], parts:[], flottants:[],
+    agrandi:{n:0, dw:0, dh:0}, sacre:0, libre:0, aSacrer:0,
     stock:{}, commande:{}, prix:{}, cours:{}, marcheJour:{bas:[],haut:[],raison:null},
     films:{}, catalogue:[], affiche:[], produits:0, achatsMalins:0,
     champs:{}, champSortie:null, sale:true, saleT:0,
@@ -1900,7 +1922,7 @@ function nouvellePartie(){
     patron:null, dechets:[]
   };
   for(const k in CONFS) P.prix[k]=CONFS[k].ref;
-  appliquerBail(bailDe(1),true);
+  appliquerBail(tailleLocal(),true);
   placerPatron();
   P.contrats=tirerContrats();
   tirerCours();
@@ -1931,7 +1953,89 @@ function bailDe(n){
   for(const x of BAILS) if(n>=x.niv) b=x;
   return b;
 }
+
+/* ==========================================================================
+   AGRANDIR LE LOCAL
+   ==========================================================================
+   Les agréments agrandissent le bail cinq fois, puis plus rien : on finit par
+   n'avoir plus un mètre de libre alors qu'on a de quoi payer. On peut donc
+   acheter des mètres, autant de fois qu'on veut. Le prix monte de soixante
+   pour cent à chaque fois : il n'y a pas de limite, mais il y a un moment où
+   ça ne vaut plus le coup — ce qui est une meilleure limite qu'un mur.
+
+   Un agrandissement ne se fait que rideau baissé. Ce n'est pas une pudeur de
+   décor : pendant la séance le hall est plein de gens en train de suivre un
+   chemin calculé sur l'ancien plan, et les décaler proprement est impossible.
+   Rideau baissé, le cinéma se décrit entièrement — c'est déjà pour ça qu'on
+   y enregistre la partie.
+   ========================================================================== */
+const AGRANDIR_DW=4, AGRANDIR_DH=3;
+function nAgrandi(){ return (P&&P.agrandi&&P.agrandi.n)|0; }
+function tailleLocal(){
+  const b=bailDe(P.niveau), a=P.agrandi||{dw:0,dh:0};
+  return {w:b.w+(a.dw|0), h:b.h+(a.dh|0), niv:b.niv};
+}
+function prixAgrandir(){ return Math.round(90000*Math.pow(1.6,nAgrandi())); }
+
+/* Fait grandir la grille si le local n'y tient plus, en emportant tout ce
+   qu'elle contenait. Le local reste centré et calé en bas : on décale donc
+   tout du même écart, et rien ne bouge par rapport aux murs. */
+function assurerGrille(w,h){
+  const nGX=Math.max(GX,w+4), nGY=Math.max(GY,h+6);
+  if(nGX===GX&&nGY===GY) return;
+  const ox0=P.zone?P.zone.x0:Math.floor((GX-w)/2);
+  const oy0=P.zone?P.zone.y0:(GY-2-h);
+  const sx=Math.floor((nGX-w)/2)-ox0, sy=(nGY-2-h)-oy0;
+  const sol=new Uint8Array(nGX*nGY);
+  const occ=new Int16Array(nGX*nGY).fill(-1);
+  const sale=new Float32Array(nGX*nGY);
+  for(let y=0;y<GY;y++) for(let x=0;x<GX;x++){
+    const nx=x+sx, ny=y+sy;
+    if(nx<0||nx>=nGX||ny<0||ny>=nGY) continue;
+    const a=x+y*GX, b=nx+ny*nGX;
+    sol[b]=P.sol[a]; occ[b]=P.occ[a]; sale[b]=P.salete[a];
+  }
+  GX=nGX; GY=nGY;
+  P.sol=sol; P.occ=occ; P.salete=sale;
+  for(const m of P.meubles){ m.x+=sx; m.y+=sy; }
+  for(const d of P.dechets){ d.x+=sx*TUILE; d.y+=sy*TUILE; }
+  cam.x+=sx*TUILE; cam.y+=sy*TUILE;
+  CHUNKS=null;
+}
+
+function agrandirLocal(){
+  if(!P) return false;
+  if(P.phase!=='prepa'){
+    flash('On ne casse pas un mur pendant la séance','mal'); SND.erreur(); return false;
+  }
+  const p=prixAgrandir();
+  if(P.argent<p){ flash('Il manque '+eur(p-P.argent),'mal'); SND.erreur(); return false; }
+  P.argent-=p;
+  P.jt.construction=(P.jt.construction||0)+p;
+  P.agrandi=P.agrandi||{n:0,dw:0,dh:0};
+  P.agrandi.n++; P.agrandi.dw+=AGRANDIR_DW; P.agrandi.dh+=AGRANDIR_DH;
+  const t=tailleLocal();
+  appliquerBail(t);
+  /* le personnel se retrouve au seuil, sans tâche : leurs trajets étaient
+     calculés sur un plan qui n'existe plus */
+  for(const e of P.employes){
+    const c=P.porte.length?pick(P.porte):idx(Math.floor(GX/2),GY-3);
+    e.x=(c%GX+.5)*TUILE; e.y=((c/GX|0)+.5)*TUILE;
+    e.tx=c%GX; e.ty=(c/GX|0);
+    e.cible=null; e.champ=null; e.poste=null;
+  }
+  placerPatron();
+  majPostes();
+  refaireChamps();
+  SND.cloche();
+  flash('LE LOCAL S\'AGRANDIT · '+t.w+' × '+t.h+' MÈTRES','bon');
+  decrocher('batisseur');
+  if(nAgrandi()>=5) decrocher('empire');
+  enregistrerPrepa();
+  return true;
+}
 function appliquerBail(b,premier){
+  assurerGrille(b.w,b.h);
   const x0=Math.floor((GX-b.w)/2), y0=GY-2-b.h, x1=x0+b.w-1, y1=y0+b.h-1;
   P.bail={w:b.w, h:b.h, niv:b.niv};
   P.zone={x0,y0,x1,y1};
@@ -3910,9 +4014,12 @@ function fermerJournee(){
   verifierContrats(resultat);
   while(P.niveau<NIV_MAX && P.xp>=xpPour(P.niveau+1)){
     P.niveau++;
+    /* le douzième agrément, c'est gagné : on le retient pour le proposer une
+       fois le bilan du soir refermé, plutôt que d'interrompre le compte */
+    if(P.niveau>=NIV_MAX && !P.sacre) P.aSacrer=1;
     const sub=subventionDe(P.niveau);
     P.argent+=sub;
-    const b=bailDe(P.niveau);
+    const b=tailleLocal();
     const agrandi=(!P.bail||b.w!==P.bail.w);
     if(agrandi) appliquerBail(b);
     P.jt.niveaux.push({n:P.niveau, sub, ouvre:(DEBLOCAGES[P.niveau]||[]).slice(), agrandi});
@@ -3941,8 +4048,59 @@ function fermerJournee(){
   montrerSoir();
 }
 
+/* ==========================================================================
+   LE SACRE
+   ==========================================================================
+   Atteindre le douzième agrément, c'est avoir gagné : la salle n'est plus en
+   sursis, elle est une institution. On le dit, on paie ce que ça vaut — et on
+   laisse le choix. S'arrêter là referme la partie sur une victoire. Continuer
+   ouvre la PARTIE LIBRE : le compte à rebours des dix semaines ne s'applique
+   plus, le loyer continue de tomber, et rien n'empêche plus d'agrandir.
+
+   Forcer la fin aurait été le plus simple. Mais quelqu'un qui vient de rendre
+   son cinéma imbattable n'a pas envie qu'on lui retire le clavier. */
+function montrerSacre(){
+  ecranActif='sacre';
+  SND.bien();
+  const c=(t,v,col)=>'<div class="cell"><span>'+t+'</span><b'
+    +(col?' style="color:'+col+'"':'')+'>'+v+'</b></div>';
+  $('sacEye').textContent='AGRÉMENT '+NIV_MAX+' · SEMAINE '+P.sem+' · JOUR '+P.jourNum;
+  $('sacGrille').innerHTML=
+     c('AGRÉMENT',NIV_MAX+' / '+NIV_MAX,'#1f7a3d')
+    +c('SEMAINES TENUES',P.sem+' / '+SEMAINES,'#8257bd')
+    +c('SPECTATEURS',nb(P.total.clients),'#3d8fd1')
+    +c('RECETTE TOTALE',eur(P.total.ca),'#1f7a3d')
+    +c('RÉPUTATION',etoilesDe(P.rep)+' ★','#c9930f')
+    +c('EN CAISSE',eur(P.argent),P.argent<0?'#c0233c':'#1f7a3d');
+  $('sacTxt').innerHTML='Tu as mené la salle jusqu\'au dernier agrément : tout est '
+    +'ouvert, tous les genres, toutes les salles, tous les postes. <b>La partie est '
+    +'gagnée.</b><br><br>'
+    +'<b>S\'arrêter là</b> referme la partie sur cette victoire : tu encaisses les '
+    +'points de carrière et les jetons, comme au bout des dix semaines.<br><br>'
+    +'<b>Continuer</b> ouvre la <b>partie libre</b> : plus de dixième semaine qui '
+    +'arrête tout, le loyer continue de tomber chaque dimanche, et tu peux pousser '
+    +'les murs aussi loin que la caisse le permet. Tu pourras toujours t\'arrêter '
+    +'plus tard depuis le bilan du soir.';
+  ecrans('sacre');
+}
+
+function accepterSacre(continuer){
+  P.aSacrer=0; P.sacre=1;
+  decrocher('sacre');
+  if(!continuer){
+    finPartie(true,'Douze agréments. La salle de quartier est devenue une institution.');
+    return;
+  }
+  P.libre=1;
+  flash('PARTIE LIBRE — le cinéma est à toi, joue jusqu\'où tu veux','bon');
+  /* et on reprend le cours normal de la soirée : loyer, jour suivant */
+  apresSoir();
+}
+
 /* le bouton du bilan : on paie le loyer si c'est dimanche, puis on repart */
 function apresSoir(){
+  /* le douzième agrément vient de tomber : on propose avant de continuer */
+  if(P.aSacrer){ montrerSacre(); return; }
   if(P.jour>=JOURS){
     const loyer=loyerProchain();
     P.argent-=loyer;
@@ -3951,7 +4109,9 @@ function apresSoir(){
         +' n\'a pas pu être payé.');
       return;
     }
-    if(P.sem>=SEMAINES){
+    /* en partie libre, la dixième semaine n'arrête plus rien : on a déjà gagné,
+       on joue pour voir jusqu'où ça monte */
+    if(P.sem>=SEMAINES && !P.libre){
       finPartie(true,'Dix semaines, dix loyers payés. Le cinéma est à toi.');
       return;
     }
@@ -5140,7 +5300,7 @@ const souris={x:0,y:0,g:[0,0],down:false,bouge:false,pan:false,px:0,py:0};
 
 function ecrans(id){
   ['menu','soir','commande','fin','reglages','profil','boutique','succes','code',
-   'legal'].forEach(k=>{
+   'legal','sacre'].forEach(k=>{
     const e=$(k); if(e) e.classList.toggle('on',k===id);
   });
 }
@@ -5375,6 +5535,46 @@ function ficheEquipe(){
 /* ---- les fiches ---- */
 function fermerFiche(){ selection=null; $('panneau').classList.remove('on'); }
 
+/* Combien de cases libres il reste dans le local. C'est le chiffre qui manque
+   quand on ne comprend pas pourquoi on n'arrive plus à rien poser. */
+function placeLibre(){
+  const z=P.zone;
+  let n=0, tot=0;
+  for(let y=z.y0+1;y<z.y1;y++) for(let x=z.x0+1;x<z.x1;x++){
+    tot++;
+    if(P.occ[idx(x,y)]<0&&P.sol[idx(x,y)]===SOL) n++;
+  }
+  return {libre:n, total:tot};
+}
+
+function blocAgrandir(){
+  const t=tailleLocal(), pl=placeLibre();
+  const p=prixAgrandir();
+  const prepa=(P.phase==='prepa');
+  const assez=P.argent>=p;
+  const serre=pl.libre<pl.total*.12;
+  return '<div class="sous" style="margin-top:12px">LE LOCAL</div>'
+    +'<div class="ligne"><span>Surface</span><b>'+t.w+' × '+t.h+' mètres</b></div>'
+    +'<div class="ligne"><span>Cases libres</span><b'
+      +(serre?' style="color:#c0233c"':'')+'>'+nb(pl.libre)+' / '+nb(pl.total)+'</b></div>'
+    +'<div class="barre'+(serre?' ba':(pl.libre<pl.total*.3?' us':''))+'">'
+      +'<i style="width:'+Math.round((1-pl.libre/Math.max(1,pl.total))*100)+'%"></i></div>'
+    +(nAgrandi()?'<div class="ligne" style="border:0"><span>Murs déjà poussés</span><b>'
+      +nAgrandi()+' fois</b></div>':'')
+    +'<div class="txt">Les agréments agrandissent le bail cinq fois. Ensuite, et '
+    +'autant de fois que tu veux, tu peux <b>acheter des mètres</b> : +'+AGRANDIR_DW
+    +' de large et +'+AGRANDIR_DH+' de long à chaque coup. Le prix monte de 60 % à '
+    +'chaque agrandissement — il n\'y a pas de limite, mais il y a un moment où ça '
+    +'ne vaut plus le coup.'
+    +(prepa?'':'<br><b class="danger">Rideau baissé uniquement</b> — on ne casse pas '
+      +'un mur pendant la séance.')+'</div>'
+    +'<button class="bt'+(assez&&prepa?' or':'')+'" id="bAgrandir"'
+    +((!assez||!prepa)?' disabled':'')+'>'
+    +(!prepa?'AGRANDIR — RIDEAU BAISSÉ UNIQUEMENT'
+      :(assez?'POUSSER LES MURS · '+eur(p):'IL MANQUE '+eur(p-P.argent)))
+    +'</button>';
+}
+
 function ficheCinema(){
   selection=null;
   const el=$('panneau'); el.classList.add('on');
@@ -5410,6 +5610,7 @@ function ficheCinema(){
     +'<div class="barre'+(occupationStock()/capaciteStock()>.9?' ba'
       :(occupationStock()/capaciteStock()>.7?' us':''))+'"><i style="width:'
       +Math.round(clamp(occupationStock()/capaciteStock(),0,1)*100)+'%"></i></div>'
+    +blocAgrandir()
     +'<div class="sous" style="margin-top:12px">LE TARIF DE BASE</div>'
     +'<div class="txt">Le plein tarif de la maison. Les salles premium le majorent, '
       +'le mardi le réduit d\'un cinquième.</div>'
@@ -5430,6 +5631,8 @@ function ficheCinema(){
             +d.ico+' '+d.nom+' · '+(bl?'AGRÉMENT '+d.niv:eur(d.prix))+'</button>'; }).join(''))
     +'<button class="bt" id="mFer">FERMER</button>';
   el.innerHTML=h;
+  const ag=$('bAgrandir');
+  if(ag) ag.onclick=()=>{ if(agrandirLocal()){ majCats(); ficheCinema(); } };
   Array.prototype.forEach.call(el.querySelectorAll('[data-pub]'),x=>{
     x.onclick=()=>lancerPub(x.getAttribute('data-pub'));
   });
@@ -6342,8 +6545,12 @@ function montrerSoir(){
 
   dessinerHistoire($('sGraph'));
   $('sSuite').textContent=P.jour>=JOURS
-    ? (P.sem>=SEMAINES?'DERNIER COMPTE':'PAYER LE LOYER · '+eur(loy))
+    ? ((P.sem>=SEMAINES&&!P.libre)?'DERNIER COMPTE':'PAYER LE LOYER · '+eur(loy))
     : 'PRÉPARER DEMAIN';
+  /* en partie libre, on peut refermer quand on veut : rien ne force à jouer
+     jusqu'à la faillite pour encaisser sa victoire */
+  const ar=$('sArret');
+  if(ar) ar.style.display=P.libre?'':'none';
   ecrans('soir');
 }
 
@@ -6919,7 +7126,10 @@ const SUCCES=[
  {id:'gagnedur', nom:'MULTIPLEXE BATTU',d:'Gagner en difficulté MULTIPLEXE EN FACE',       j:60},
  {id:'spectateur',nom:'DE L\'AUTRE CÔTÉ',d:'S\'asseoir dans une de tes salles et regarder',j:5},
  {id:'projectionniste',nom:'TA PROPRE BOBINE',d:'Attacher ta vidéo à un film maison',      j:10},
- {id:'collectionneur',nom:'COLLECTIONNEUR',   d:'Ouvrir cinq packs',                       j:8}
+ {id:'collectionneur',nom:'COLLECTIONNEUR',   d:'Ouvrir cinq packs',                       j:8},
+ {id:'batisseur', nom:'ON POUSSE LES MURS',d:'Agrandir le local à ses frais',            j:9},
+ {id:'empire',    nom:'EMPIRE',            d:'Agrandir le local cinq fois',              j:24},
+ {id:'sacre',     nom:'DOUZE AGRÉMENTS',   d:'Atteindre le dernier agrément',            j:40}
 ];
 function succesFait(id){ return !!(SAVE.succes&&SAVE.succes[id]); }
 function decrocher(id){
@@ -7081,6 +7291,7 @@ function serialiserPartie(){
     licences:P.licences, livraisons:P.livraisons,
     stock:P.stock, sal,
     films, catalogue:P.catalogue, affiche:P.affiche, idFilm, idVideo,
+    agrandi:P.agrandi, sacre:P.sacre?1:0, libre:P.libre?1:0, aSacrer:P.aSacrer?1:0,
     produits:P.produits|0,
     meubles:P.meubles.map(b=>[b.cat,b.k,b.x,b.y,(b.grille||[]).slice(),
       b.entrees|0, Math.round(b.recette||0), +(b.proprete||1).toFixed(3)]),
@@ -7117,7 +7328,11 @@ function restaurerPartie(d){
     P.licences={};
     for(const g in (d.licences||{})) if(GENRES[g]) P.licences[g]=1;
     if(!Object.keys(P.licences).length) P.licences={action:1, comedie:1};
-    appliquerBail(bailDe(P.niveau),true);
+    P.agrandi=(d.agrandi&&d.agrandi.n>=0)
+      ? {n:clamp(d.agrandi.n|0,0,999), dw:clamp(d.agrandi.dw|0,0,9999),
+         dh:clamp(d.agrandi.dh|0,0,9999)}
+      : {n:0, dw:0, dh:0};
+    appliquerBail(tailleLocal(),true);
     /* les films d'abord : les grilles des salles y renvoient */
     P.films={};
     idFilm=Math.max(1,d.idFilm|0);
@@ -7140,6 +7355,7 @@ function restaurerPartie(d){
     P.catalogue=(d.catalogue||[]).filter(id=>P.films[id]);
     P.affiche=(d.affiche||[]).filter(id=>P.films[id]);
     P.produits=d.produits|0;
+    P.sacre=d.sacre?1:0; P.libre=d.libre?1:0; P.aSacrer=d.aSacrer?1:0;
     P.meubles=[]; P.idBati=1;
     for(const a of d.meubles){
       const [cat,k,x,y,grille,entrees,recette,proprete]=a;
@@ -7548,9 +7764,8 @@ function ouvrirProjection(film,b){
   PJ.t=0; PJ.dernier=performance.now();
   PJ.echecVideo=false; PJ.pretVideo=false;
   if(!PJ.ouvert){
-    PJ.pauseAvant=enPause;
-    enPause=true;
     PJ.ouvert=true;
+    PJ.libre=false;              // on suit le programme de la salle
     $('projo').classList.add('on');
     redimProjo();
     PJ.raf=requestAnimationFrame(boucleProjo);
@@ -7569,12 +7784,11 @@ function fermerProjection(){
   const v=$('pjVid');
   try{ v.pause(); v.removeAttribute('src'); v.load(); }catch(e){}
   PJ.cleChargee=null;
-  enPause=PJ.pauseAvant;
-  majVitesse&&majVitesse();
 }
 
 function filmSuivantProjection(d){
   if(!PJ.liste.length) return;
+  PJ.libre=true;                 // le joueur a choisi : on ne suit plus la salle
   let i=PJ.liste.indexOf(PJ.film);
   if(i<0) i=0;
   i=(i+d+PJ.liste.length)%PJ.liste.length;
@@ -7623,8 +7837,17 @@ function majEnteteProjection(){
   const bits=[G.ico+' '+G.nom, f.duree+' min', ageTxt(f.age)];
   if(PJ.salle) bits.push(PJ.salle.d.nom);
   if(f.perso) bits.push('FILM MAISON');
-  if(f.video&&!PJ.echecVideo) bits.push('TA VIDÉO');
-  else bits.push('BOBINE DESSINÉE');
+  bits.push(f.video&&!PJ.echecVideo?'TA VIDÉO':'BOBINE DESSINÉE');
+  /* l'heure du cinéma, et ce que fait la salle en ce moment : c'est ce qui
+     montre que la soirée continue de tourner pendant qu'on regarde */
+  if(P&&P.phase!=='prepa') bits.push('IL EST '+heureTxt(P.heure));
+  if(PJ.salle){
+    const e=etatSalle(PJ.salle);
+    const nom={entree:'LES PORTES SONT OUVERTES', projection:'EN COURS',
+      sortie:'LA SALLE SE VIDE', menage:'À NETTOYER', attente:'SALLE AU REPOS'};
+    if(e&&nom[e.etat]) bits.push(nom[e.etat]);
+    bits.push((PJ.salle.dedans||0)+' dans la salle');
+  }
   $('pjSous').textContent=bits.join(' · ');
   $('pjCote').textContent=f.cote;
   $('pjCote').style.color=G.col;
@@ -7649,8 +7872,23 @@ function boucleProjo(now){
   const dt=Math.min(.06,(now-PJ.dernier)/1000);
   PJ.dernier=now;
   PJ.t+=dt;
+  /* la journée peut se terminer pendant qu'on regarde : on ne laisse pas la
+     salle de projection couvrir le bilan du soir */
+  if(ecranActif!=='jeu'){ fermerProjection(); return; }
+  /* et on suit le programme de la salle, tant que le joueur n'a pas choisi
+     lui-même un autre film : la séance suivante s'enchaîne toute seule */
+  PJ.suivi=(PJ.suivi||0)+dt;
+  if(PJ.salle&&!PJ.libre&&PJ.suivi>.5){
+    PJ.suivi=0;
+    const f=filmDeLaSalle(PJ.salle);
+    if(f&&f!==PJ.film){
+      PJ.film=f; PJ.t=0; PJ.echecVideo=0;
+      chargerVideoProjection(); majEnteteProjection();
+    }
+  }
   if(pjW!==$('pjCv').clientWidth||pjH!==$('pjCv').clientHeight) redimProjo();
   dessinerProjection(dt);
+  if((PJ.majT=(PJ.majT||0)+dt)>.4){ PJ.majT=0; majEnteteProjection(); }
   PJ.raf=requestAnimationFrame(boucleProjo);
 }
 
@@ -9144,6 +9382,15 @@ function cablerPacksEtCode(){
   };
   $('ouvrirCode').onclick=()=>{ SND.clic(); montrerCode(); };
   $('ouvrirLegal').onclick=()=>{ SND.clic(); montrerLegal(); };
+  $('sacContinuer').onclick=()=>{ SND.clic(); accepterSacre(true); };
+  $('sacArreter').onclick=()=>{ SND.clic(); accepterSacre(false); };
+  $('sArret').onclick=()=>{
+    if(!confirm('Refermer la partie sur ta victoire ?\n\nTu encaisses les points de '
+      +'carrière et les jetons, et tu repars d\'une salle neuve.')) return;
+    SND.clic();
+    finPartie(true,'Partie libre refermée après '+(P.sem)+' semaines. '
+      +'Le cinéma tourne toujours.');
+  };
   $('fermerLegal').onclick=()=>{ SND.clic(); ecrans('menu'); };
   $('lgConsent').onclick=()=>{ SND.clic(); gererConsentement(); };
   protegerCommandes();
