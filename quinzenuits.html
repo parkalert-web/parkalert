@@ -1,0 +1,2735 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Quinze Nuits — survie contre les morts, gratuit dans le navigateur</title>
+<meta name="description" content="Un immeuble, quatre survivants, quinze nuits à tenir. Le jour tu décides qui sort fouiller et qui dort ; la nuit tu tiens la barricade. Jeu gratuit, sans installation, au clavier ou au doigt.">
+<meta name="theme-color" content="#080b14">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Quinze Nuits — tiendras-tu jusqu'aux secours ?">
+<meta property="og:description" content="Le jour tu choisis qui sort. La nuit tu tiens la barricade. Quinze nuits, quatre survivants, aucune deuxième chance.">
+<meta property="og:locale" content="fr_FR">
+<style>
+:root{
+  --nuit:#080b14; --bleu:#141d2e; --bleu2:#1e2a40; --bord:#2b374d;
+  --lune:#c6d6ef; --feu:#ff7a2e; --or:#ffcb5c;
+  --sang:#e0334a; --sang2:#ff5568; --vert:#7fd46a; --violet:#b08ce8;
+  --os:#eef1f6; --gris:#8892a6; --gris2:#5b6478;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
+  --titre:"Arial Black","Arial Bold",Impact,system-ui,sans-serif;
+  --t1:clamp(40px,12vw,84px); --t2:clamp(24px,7vw,46px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--nuit)}
+body{font-family:var(--mono);color:var(--os);
+  -webkit-user-select:none;user-select:none;touch-action:none}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+#sang{position:fixed;inset:0;pointer-events:none;z-index:20;opacity:0;transition:opacity .3s;
+  background:radial-gradient(58% 48% at 50% 50%,rgba(160,10,25,0) 42%,rgba(150,8,22,.72) 100%)}
+#grain{position:fixed;inset:0;pointer-events:none;z-index:21;opacity:.045;
+  background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.6) 0 1px,transparent 1px 3px)}
+kbd{font-family:var(--mono);background:rgba(255,255,255,.09);border:1px solid var(--bord);
+  border-radius:3px;padding:1px 5px;font-size:.9em}
+
+/* ================= HUD DE NUIT ================= */
+#hud{position:fixed;inset:0;z-index:30;pointer-events:none;display:none;
+  padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 12px)}
+#hud.on{display:block}
+.hHaut{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.lect span{display:block;font-size:9px;letter-spacing:.26em;color:var(--gris)}
+.lect b{display:block;font-family:var(--titre);font-size:clamp(19px,4.6vw,28px);line-height:1.05;
+  font-variant-numeric:tabular-nums;text-shadow:0 2px 0 rgba(0,0,0,.7)}
+.lect.r{text-align:right}
+.lect.n b{color:var(--lune)} .lect.v b{color:var(--sang2)}
+#vague{position:absolute;left:50%;transform:translateX(-50%);
+  top:calc(env(safe-area-inset-top) + 8px);width:min(320px,52vw);text-align:center}
+#vague .lab{font-size:9px;letter-spacing:.26em;color:var(--gris);font-weight:700;margin-bottom:4px}
+#vague .bar{height:5px;border-radius:3px;background:rgba(0,0,0,.6);overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+#vague .bar i{display:block;height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--sang),var(--feu));transition:width .3s}
+#barr{position:absolute;left:16px;bottom:calc(env(safe-area-inset-bottom) + 76px);width:min(230px,42vw)}
+#barr .lab{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.16em;
+  color:var(--gris);font-weight:700;margin-bottom:4px}
+#barr .bar{height:9px;border-radius:5px;background:rgba(0,0,0,.62);overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+#barr .bar i{display:block;height:100%;border-radius:5px;
+  background:linear-gradient(180deg,#9fb4d8,#4a6690);transition:width .16s}
+#barr.bas .bar i{background:linear-gradient(180deg,#ff8a94,#c01f34)}
+#barr.bas .lab{color:var(--sang2)}
+#souffle{position:absolute;left:16px;bottom:calc(env(safe-area-inset-bottom) + 56px);width:min(230px,42vw)}
+#souffle .lab{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.16em;
+  color:var(--gris);font-weight:700;margin-bottom:3px}
+#souffle .bar{height:5px;border-radius:3px;background:rgba(0,0,0,.62);overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
+#souffle .bar i{display:block;height:100%;border-radius:3px;
+  background:linear-gradient(180deg,#d8c79f,#8a7550)}
+#souffle.vide .bar i{background:linear-gradient(180deg,#7a5a5a,#4a2c2c)}
+#souffle.vide .lab{color:var(--sang2)}
+#arme{position:absolute;right:16px;bottom:calc(env(safe-area-inset-bottom) + 72px);text-align:right}
+#arme .n{font-family:var(--titre);font-size:clamp(30px,7vw,46px);line-height:1;
+  font-variant-numeric:tabular-nums;text-shadow:0 2px 0 rgba(0,0,0,.7)}
+#arme .n small{font-size:.45em;color:var(--gris2)}
+#arme .w{font-size:9.5px;letter-spacing:.18em;color:var(--gris);font-weight:700}
+#arme .r{font-size:10px;letter-spacing:.2em;color:var(--or);height:14px;font-weight:700}
+#arme.vide .n{color:var(--sang2)}
+#armes{position:absolute;right:16px;bottom:calc(env(safe-area-inset-bottom) + 12px);
+  display:flex;gap:5px;pointer-events:auto}
+.aB{padding:6px 9px;border-radius:6px;border:1px solid var(--bord);background:rgba(10,14,22,.7);
+  color:var(--gris);font:700 9px/1 var(--mono);letter-spacing:.08em;cursor:pointer;text-align:center}
+.aB b{display:block;font-size:13px;font-weight:400;margin-bottom:2px}
+.aB.on{border-color:var(--or);color:var(--or);background:rgba(255,203,92,.14)}
+.aB.vide{opacity:.4}
+.aB i{display:block;font-style:normal;font-size:8px;color:var(--gris2);margin-top:2px}
+#equipeN{position:absolute;left:16px;top:calc(env(safe-area-inset-top) + 84px);
+  display:flex;flex-direction:column;gap:4px;max-width:190px}
+.eN{display:flex;align-items:center;gap:6px;padding:4px 7px;border-radius:5px;
+  border:1px solid var(--bord);background:rgba(10,14,22,.6);font:700 9px/1 var(--mono)}
+.eN b{flex:1;color:var(--os);font-size:9px;letter-spacing:.06em}
+.eN .j{width:24px;height:3.5px;border-radius:2px;background:rgba(0,0,0,.6);overflow:hidden}
+.eN .j i{display:block;height:100%;background:var(--vert)}
+.eN.mal .j i{background:var(--sang)}
+.eN.ko{opacity:.42}
+#combo{position:absolute;left:50%;transform:translateX(-50%);top:22%;text-align:center;
+  font-family:var(--titre);font-size:clamp(26px,7vw,44px);color:var(--or);opacity:0;
+  text-shadow:0 0 26px rgba(255,203,92,.6),0 3px 0 rgba(0,0,0,.7)}
+#combo span{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.3em;
+  color:var(--gris);margin-top:6px;font-weight:700}
+#combo.on{animation:comboA 1.1s ease-out}
+@keyframes comboA{0%{opacity:0;transform:translateX(-50%) scale(.7)}
+  18%{opacity:1;transform:translateX(-50%) scale(1.06)}70%{opacity:1}100%{opacity:0}}
+#annonce{position:fixed;top:34%;left:0;right:0;z-index:35;text-align:center;pointer-events:none;
+  font-family:var(--titre);font-size:clamp(24px,7vw,46px);color:var(--os);opacity:0;padding:0 16px;
+  text-shadow:0 0 30px rgba(224,51,74,.7),0 3px 0 rgba(0,0,0,.75)}
+#annonce span{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.28em;
+  color:var(--sang2);margin-top:10px;font-weight:700}
+#annonce.on{animation:annA 2.8s ease-out}
+@keyframes annA{0%{opacity:0;transform:scale(.92)}12%{opacity:1;transform:scale(1)}
+  72%{opacity:1}100%{opacity:0}}
+#ctrls{position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:50%;
+  transform:translateX(-50%);margin-top:34px;display:flex;gap:6px;pointer-events:auto}
+#ctrls button{background:rgba(10,14,22,.65);border:1px solid var(--bord);color:var(--gris);
+  font:700 9px/1 var(--mono);letter-spacing:.16em;padding:9px 12px;cursor:pointer;border-radius:5px}
+
+/* ================= ÉCRANS ================= */
+.screen{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;
+  padding:22px 16px 32px;overflow-y:auto;
+  background:radial-gradient(120% 75% at 50% 6%,rgba(24,32,50,.97),rgba(5,7,12,.99))}
+.screen.on{display:flex}
+/* le menu et la pause laissent passer la rue : c'est elle qui donne envie */
+/* le menu laisse voir la rue ; l'écran de fin a trop de texte pour ça */
+#menu,#pause{background:linear-gradient(180deg,rgba(5,7,12,.90) 0%,rgba(5,7,12,.74) 34%,
+  rgba(5,7,12,.40) 72%,rgba(5,7,12,.30) 100%)}
+.screen>*{flex-shrink:0}
+h1{font-family:var(--titre);font-size:var(--t1);line-height:.88;color:var(--os);text-align:center;
+  text-shadow:0 0 44px rgba(224,51,74,.32),0 4px 0 rgba(0,0,0,.6)}
+h1 u{text-decoration:none;color:var(--sang)}
+.eyebrow{font-size:10px;letter-spacing:.4em;color:var(--sang2);margin-bottom:10px;
+  text-align:center;font-weight:700}
+.note{font-size:11.5px;line-height:1.9;color:var(--gris);max-width:640px;text-align:center;margin-top:14px}
+.btn{margin-top:18px;padding:16px 40px;background:var(--sang);color:#fff;border:0;border-radius:4px;
+  font-family:var(--titre);font-size:17px;letter-spacing:.05em;cursor:pointer;
+  transition:transform .12s,background .12s}
+.btn:hover{transform:scale(1.04);background:var(--sang2)}
+.btn.ghost{background:transparent;color:var(--gris);border:1px solid var(--bord);padding:12px 26px;
+  font-size:13px;margin-top:10px}
+.btn.ghost:hover{color:var(--os);background:rgba(255,255,255,.05)}
+.btn.gros{font-size:clamp(21px,6vw,30px);padding:19px 58px;letter-spacing:.07em}
+.btn:disabled{opacity:.4;cursor:default;transform:none}
+.lien{background:none;border:0;color:var(--or);font:700 11px/1 var(--mono);letter-spacing:.16em;
+  cursor:pointer;padding:9px 4px;text-decoration:underline;text-underline-offset:4px}
+.btnHaut{position:sticky;top:-22px;align-self:flex-start;z-index:3;padding:6px 0 10px}
+.btnHaut button{background:rgba(10,14,22,.75);border:1px solid var(--bord);color:var(--gris);
+  font:700 10px/1 var(--mono);letter-spacing:.2em;padding:11px 16px;cursor:pointer;border-radius:4px}
+
+/* ---- la journée ---- */
+#jTete{width:100%;max-width:880px;display:flex;justify-content:space-between;align-items:center;
+  gap:12px;padding:12px 15px;border:1px solid var(--bord);border-radius:9px;
+  background:linear-gradient(140deg,rgba(30,42,64,.75),rgba(10,14,22,.75))}
+#jTete .jn{font-family:var(--titre);font-size:clamp(20px,5.4vw,30px);line-height:1;color:var(--os)}
+#jTete .js{font-size:9.5px;letter-spacing:.24em;color:var(--gris);margin-top:5px;font-weight:700}
+#stock{display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.st{text-align:right;min-width:52px}
+.st span{display:block;font-size:8.5px;letter-spacing:.16em;color:var(--gris)}
+.st b{display:block;font-family:var(--titre);font-size:19px;line-height:1.1}
+.st.v b{color:var(--vert)} .st.m b{color:var(--or)}
+.st.mat b{color:var(--lune)} .st.med b{color:var(--sang2)}
+.st.manque b{color:var(--sang2);animation:clig .8s infinite}
+@keyframes clig{0%,100%{opacity:1}50%{opacity:.45}}
+
+#jTexte{width:100%;max-width:880px;margin-top:12px;padding:13px 16px;border-radius:9px;
+  border:1px solid var(--bord);border-left:4px solid var(--sang);
+  background:rgba(14,20,32,.7);font-size:12.5px;line-height:1.85;color:#d3d9e4}
+#jTexte b{color:var(--or)}
+
+.titreSec{width:100%;max-width:880px;display:flex;align-items:center;gap:12px;margin-top:20px}
+.titreSec b{font-family:var(--titre);font-size:14px;letter-spacing:.06em;color:var(--c,var(--sang2))}
+.titreSec i{flex:1;height:1px;background:var(--bord)}
+.titreSec em{font-style:normal;font-size:9.5px;letter-spacing:.16em;color:var(--gris2)}
+
+#survies{width:100%;max-width:880px;display:flex;flex-direction:column;gap:9px;margin-top:11px}
+.sv{border:1px solid var(--bord);border-radius:9px;background:rgba(14,20,32,.66);overflow:hidden}
+.sv.mort{opacity:.45}
+.svH{display:flex;align-items:center;gap:11px;padding:10px 12px}
+.svP{width:44px;height:44px;border-radius:7px;flex:0 0 auto;border:1px solid var(--bord);
+  background:#0d1420}
+.svI{flex:1;min-width:0}
+.svI b{display:block;font-family:var(--titre);font-size:16px;line-height:1.1;color:var(--os)}
+.svI span{display:block;font-size:9.5px;letter-spacing:.14em;color:var(--gris);margin-top:3px}
+.svJ{display:flex;flex-direction:column;gap:3px;width:96px;flex:0 0 auto}
+.jL{display:flex;align-items:center;gap:5px;font-size:8px;letter-spacing:.1em;color:var(--gris2)}
+.jL i{flex:1;height:4px;border-radius:2px;background:rgba(0,0,0,.6);overflow:hidden;display:block}
+.jL i b{display:block;height:100%;border-radius:2px}
+.jsante b{background:linear-gradient(90deg,#c03040,#7fd46a)}
+.jfat b{background:linear-gradient(90deg,#4a6690,#9fb4d8)}
+.jmoral b{background:linear-gradient(90deg,#8a5ac0,#b08ce8)}
+.svE{display:flex;gap:5px;padding:0 12px 10px;flex-wrap:wrap}
+.svE .tg{font-size:8.5px;letter-spacing:.1em;font-weight:700;padding:3px 6px;border-radius:4px;
+  border:1px solid currentColor}
+.tg.bl{color:var(--sang2)} .tg.inf{color:var(--vert)} .tg.epu{color:var(--lune)}
+.tg.dep{color:var(--violet)} .tg.comp{color:var(--or)}
+.svA{display:flex;gap:5px;padding:0 10px 10px;flex-wrap:wrap}
+.ta{flex:1;min-width:88px;padding:8px 7px;border-radius:6px;border:1px solid var(--bord);
+  background:rgba(8,11,18,.6);color:var(--gris);font:700 9px/1.35 var(--mono);letter-spacing:.06em;
+  cursor:pointer;text-align:center}
+.ta b{display:block;font-size:14px;font-weight:400;margin-bottom:3px}
+.ta:hover{border-color:var(--c)}
+.ta.on{border-color:var(--c);color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
+.ta.no{opacity:.35;cursor:default}
+.ta em{display:block;font-style:normal;font-size:8px;color:var(--gris2);margin-top:3px}
+
+#lieux{width:100%;max-width:880px;display:grid;gap:8px;margin-top:11px;
+  grid-template-columns:repeat(auto-fill,minmax(152px,1fr))}
+.li{width:auto;padding:10px 11px;border-radius:8px;cursor:pointer;text-align:left;
+  border:1px solid var(--bord);background:rgba(14,20,32,.66);color:var(--os);font-family:var(--mono)}
+.li b{display:block;font-family:var(--titre);font-size:14px;line-height:1.15}
+.li span{display:block;font-size:9.5px;color:var(--gris);margin-top:4px;line-height:1.5;min-height:42px}
+.li .ri{display:flex;justify-content:space-between;margin-top:7px;font-size:8.5px;
+  letter-spacing:.1em;font-weight:700}
+.li .ri .r1{color:var(--sang2)} .li .ri .r2{color:var(--or)}
+.li.on{border-color:var(--or);background:rgba(255,203,92,.12)}
+.li.vide{opacity:.45;cursor:default}
+
+/* ---- rapport du matin ---- */
+#rapport{width:100%;max-width:620px;display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.rl{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:7px;
+  border:1px solid var(--bord);border-left:4px solid var(--c);background:rgba(255,255,255,.03);
+  animation:surgit .4s var(--d) both;text-align:left}
+.rl .re{font-size:19px;flex:0 0 auto}
+.rl .rt{flex:1;min-width:0}
+.rl .rt b{display:block;font-size:11px;letter-spacing:.14em;color:var(--c);font-weight:700}
+.rl .rt span{display:block;font-size:10.5px;color:var(--gris);line-height:1.55;margin-top:2px}
+.rl .rv{font-family:var(--titre);font-size:17px;flex:0 0 auto}
+
+/* ---- fin de partie ---- */
+.grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;
+  width:100%;max-width:560px;margin-top:14px}
+.cell{padding:10px 12px;border:1px solid var(--bord);border-radius:6px;background:rgba(255,255,255,.03)}
+.cell span{display:block;font-size:9px;letter-spacing:.2em;color:var(--gris)}
+.cell b{display:block;font-family:var(--titre);font-size:19px;margin-top:3px;
+  font-variant-numeric:tabular-nums}
+.relance{position:sticky;bottom:-4px;z-index:2;width:100%;display:flex;justify-content:center;
+  padding:22px 0 6px;background:linear-gradient(180deg,rgba(5,7,12,0),rgba(5,7,12,.92) 46%,rgba(5,7,12,.98))}
+.relance .btn{margin-top:0}
+#tombe{width:100%;max-width:560px;display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.tb{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:6px;
+  border:1px solid var(--bord);background:rgba(224,51,74,.07);font-size:11px}
+.tb b{color:var(--os);font-size:11.5px;letter-spacing:.1em}
+.tb span{color:var(--gris);font-size:10.5px}
+
+/* ---- réglages ---- */
+.regs{width:100%;max-width:600px;display:flex;flex-direction:column;gap:9px;margin-top:14px}
+.reg{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 14px;
+  border:1px solid var(--bord);border-radius:7px;background:rgba(14,20,32,.6)}
+.reg h4{font-size:11.5px;letter-spacing:.16em;color:var(--os)}
+.reg p{font-size:11px;color:var(--gris);margin-top:5px;line-height:1.65;max-width:340px}
+.reg.bloc{display:block}
+.champ{background:rgba(0,0,0,.45);border:1px solid var(--bord);border-radius:5px;color:var(--os);
+  font:700 13px/1 var(--mono);letter-spacing:.1em;padding:11px 12px;width:150px;outline:none}
+.curseur{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:var(--bord);
+  outline:none;width:126px}
+.curseur::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+  background:var(--sang);cursor:pointer}
+.curseur::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--sang);
+  border:0;cursor:pointer}
+.danger{color:var(--sang2)}
+@keyframes surgit{0%{opacity:0;transform:scale(.92) translateY(10px)}100%{opacity:1;transform:none}}
+
+@media (max-width:560px){
+  .svJ{width:74px}
+  .li{width:auto}
+  #stock{gap:8px}
+  .st b{font-size:16px}
+  #equipeN{display:none}
+}
+@media (orientation:landscape) and (max-height:500px){
+  #equipeN{top:calc(env(safe-area-inset-top) + 62px);max-width:150px}
+  #barr{bottom:calc(env(safe-area-inset-bottom) + 54px);width:min(200px,34vw)}
+  #souffle{bottom:calc(env(safe-area-inset-bottom) + 30px);width:min(200px,34vw)}
+  #arme{bottom:calc(env(safe-area-inset-bottom) + 62px)}
+}
+@media (max-width:700px), (max-height:520px){
+  #souffle .lab span:last-child{display:none}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="sang"></div>
+<div id="grain"></div>
+
+<div id="hud">
+  <div class="hHaut">
+    <div class="lect n"><span>NUIT</span><b id="hNuit">1 / 15</b></div>
+    <div class="lect r v"><span>ABATTUS</span><b id="hTues">0</b></div>
+  </div>
+  <div id="vague"><div class="lab" id="hVague">LA HORDE APPROCHE</div>
+    <div class="bar"><i id="hVagueBar" style="width:0%"></i></div></div>
+  <div id="ctrls"><button id="pauseBtn">PAUSE</button></div>
+  <div id="equipeN"></div>
+  <div id="combo"></div>
+  <div id="barr"><div class="lab"><span>BARRICADE</span><span id="hBarrN">100</span></div>
+    <div class="bar"><i id="hBarrFill" style="width:100%"></i></div></div>
+  <div id="souffle"><div class="lab"><span>SOUFFLE</span><span id="hSouffleN">CLIC DROIT</span></div>
+    <div class="bar"><i id="hSouffleFill" style="width:100%"></i></div></div>
+  <div id="arme">
+    <div class="w" id="aNom">REVOLVER</div>
+    <div class="n"><span id="aMag">6</span><small id="aRes">/48</small></div>
+    <div class="r" id="aRech"></div>
+  </div>
+  <div id="armes"></div>
+</div>
+
+<div id="annonce"></div>
+
+<div class="screen" id="pause">
+  <div class="eyebrow">ILS N'ATTENDENT PAS</div>
+  <h1 style="font-size:var(--t2)">PAUSE</h1>
+  <div class="note" id="pauseInfo"></div>
+  <button class="btn" id="resume">REPRENDRE</button>
+  <button class="btn ghost" id="quit">ABANDONNER</button>
+</div>
+
+<div class="screen on" id="menu">
+  <h1 style="margin-top:8px">QUINZE <u>NUITS</u></h1>
+  <div class="eyebrow" style="margin-top:10px">LE JOUR ON DÉCIDE — LA NUIT ON TIENT</div>
+  <div id="menuRec"></div>
+  <div id="menuTxt" class="note" style="max-width:560px">
+    Un immeuble éventré, quatre survivants, et quinze nuits avant que la colonne passe.<br>
+    Le jour, tu choisis qui sort fouiller, qui répare la barricade, qui dort.<br>
+    La nuit, tu es à la fenêtre. Ce que tu n'as pas ramené le jour te manquera.
+  </div>
+  <button class="btn gros" id="jouer">COMMENCER</button>
+  <div id="menuDeblo"></div>
+  <button class="lien" id="ouvrirRegl" style="margin-top:16px">RÉGLAGES ET COMMANDES</button>
+</div>
+
+<div class="screen" id="jour">
+  <div id="jTete">
+    <div><div class="jn" id="jTitre">JOUR 1</div>
+      <div class="js" id="jSous">QUATORZE NUITS À TENIR</div></div>
+    <div id="stock"></div>
+  </div>
+  <div id="jTexte"></div>
+  <div class="titreSec" style="--c:var(--or)"><b>QUI SORT ?</b><i></i><em id="jRestant"></em></div>
+  <div id="lieux"></div>
+  <div class="titreSec" style="--c:var(--lune)"><b>L'ÉQUIPE</b><i></i>
+    <em>une tâche par personne</em></div>
+  <div id="survies"></div>
+  <div class="relance"><button class="btn gros" id="passerNuit">PASSER LA NUIT</button></div>
+  <div id="jAvert" class="note"></div>
+</div>
+
+<div class="screen" id="matin">
+  <div class="eyebrow" id="mEye">AU LEVER DU JOUR</div>
+  <h1 style="font-size:var(--t2)" id="mTitre">LA NUIT EST PASSÉE</h1>
+  <div class="grille" id="mGrille"></div>
+  <div id="rapport"></div>
+  <div class="relance"><button class="btn" id="mSuite">JOURNÉE SUIVANTE</button></div>
+</div>
+
+<div class="screen" id="fin">
+  <div class="eyebrow" id="fEye"></div>
+  <h1 style="font-size:var(--t2)" id="fTitre">FIN</h1>
+  <div class="grille" id="fGrille"></div>
+  <div id="tombe"></div>
+  <div id="fRapport"></div>
+  <div class="relance"><button class="btn" id="fRejouer">RECOMMENCER</button></div>
+  <button class="btn ghost" id="fMenu">RETOUR AU MENU</button>
+</div>
+
+<div class="screen" id="reglages">
+  <div class="btnHaut"><button id="fermerRegl">RETOUR</button></div>
+  <div class="eyebrow">CONFORT DE JEU</div>
+  <h1 style="font-size:var(--t2)">RÉGLAGES</h1>
+  <div class="regs">
+    <div class="reg"><div><h4>TON NOM</h4><p>Celui qui restera sur le mur.</p></div>
+      <input class="champ" id="nomIn" maxlength="14" placeholder="SURVIVANT" autocomplete="off"></div>
+    <div class="reg"><div><h4>DIFFICULTÉ</h4><p id="diffTxt"></p></div>
+      <button class="lien" id="diffBtn">NORMALE</button></div>
+    <div class="reg"><div><h4>VISÉE ASSISTÉE</h4>
+      <p>Élargit la zone touchée. Recommandé au doigt.</p></div>
+      <button class="lien" id="aideBtn">ASSISTANCE : OUI</button></div>
+    <div class="reg"><div><h4>SON</h4><p>Détonations, cris, vent, radio.</p></div>
+      <button class="lien" id="sonBtn">SON : ACTIVÉ</button></div>
+    <div class="reg"><div><h4>VOLUME</h4><p>Si ça sature, baisse-le ici.</p></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="range" id="volIn" min="0" max="100" step="5" class="curseur">
+        <span id="volVal" style="font:700 12px var(--mono);color:var(--sang2);width:44px;text-align:right">60 %</span>
+      </div></div>
+    <div class="reg bloc"><h4>COMMENT ON JOUE</h4>
+      <p style="max-width:none;margin-top:8px;line-height:2.1">
+      <b style="color:var(--or)">La nuit</b> — la souris vise, <kbd>clic</kbd> tire.
+      <kbd>R</kbd> recharge. <kbd>1</kbd> à <kbd>4</kbd> changent d'arme.
+      <kbd>Espace</kbd> répare la barricade tant que tu le tiens.<br>
+      <b style="color:var(--or)">Le clic droit</b> (ou <kbd>E</kbd>) donne un coup de
+      crosse : ça ne coûte pas une cartouche, ça repousse tout ce qui est sur les
+      planches, et ça vide le souffle. Quand la réserve est à sec, il ne reste que ça.<br>
+      Au doigt : touche l'écran pour viser et tirer, les boutons en bas à droite
+      pour les armes, CROSSE et RÉPARER.<br>
+      <b style="color:var(--sang2)">Vise la tête</b> : deux fois moins de balles.
+      Vise les jambes : ils rampent, et un rampant met trois fois plus longtemps à
+      atteindre la barricade.<br>
+      <b style="color:var(--lune)">Le jour</b> — chaque survivant reçoit une tâche.
+      Fouiller rapporte mais fatigue et blesse ; dormir ne rapporte rien mais rend
+      la nuit tenable.</p></div>
+    <div class="reg"><div><h4 class="danger">EFFACER</h4>
+      <p>Records, déblocages, tout.</p></div>
+      <button class="lien danger" id="effacer">TOUT EFFACER</button></div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   QUINZE NUITS — tenir un immeuble quinze nuits
+   ==========================================================================
+   Un seul fichier, aucune dépendance, aucune image téléchargée.
+   Le jeu alterne deux choses qui n'ont rien à voir :
+     — LE JOUR, on décide. Qui sort fouiller, qui répare, qui dort. Aucun
+       geste d'adresse, que des arbitrages : ce qu'on ne ramène pas
+       aujourd'hui manquera cette nuit.
+     — LA NUIT, on tient. Vue de côté, position fixe à la fenêtre, la horde
+       remonte la rue. Là c'est la main qui parle.
+   ========================================================================== */
+
+const cv=document.getElementById('c'), ctx=cv.getContext('2d',{alpha:false});
+let VW=0, VH=0, DPR=1;
+function redim(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  VW=window.innerWidth; VH=window.innerHeight;
+  cv.width=Math.round(VW*DPR); cv.height=Math.round(VH*DPR);
+  cv.style.width=VW+'px'; cv.style.height=VH+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  calculerScene();
+}
+const TAU=Math.PI*2;
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rnd(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const FONT='ui-monospace,"SF Mono",Menlo,Consolas,monospace';
+const $=id=>document.getElementById(id);
+const nb=v=>Math.round(v||0).toLocaleString('fr-FR');
+function hash2(x,y,g){
+  let n=x*374761393+y*668265263+(g||0)*1442695040;
+  n=(n^(n>>13))*1274126177;
+  return ((n^(n>>16))>>>0)/4294967296;
+}
+function echapper(t){ return String(t).replace(/[&<>"']/g,
+  c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* --- la scène de nuit : tout est calé sur la hauteur de l'écran ---
+   La rue occupe le bas, la fenêtre du tireur est à gauche au-dessus de la
+   barricade, et la horde arrive par la droite. */
+const SC={};
+function calculerScene(){
+  SC.solY=VH*0.80;                    // ligne de la rue
+  SC.cielH=SC.solY;
+  SC.barX=VW*0.20;                    // la barricade
+  SC.fenX=VW*0.115;                   // la fenêtre du tireur
+  SC.fenY=SC.solY-VH*0.235;
+  SC.droite=VW+90;                    // là où ils entrent en scène
+  /* Une silhouette doit remplir un cinquième de la hauteur, sinon la rue est
+     une maquette et on ne lit plus ni la tête ni les jambes. Mais sur un écran
+     étroit, des silhouettes de cette taille ne laissent la place à personne :
+     l'échelle suit donc aussi la largeur. */
+  SC.ech=clamp(Math.min(VH/430,VW/540),.82,2.05);
+  /* Combien de rue on voit. Sur un téléphone en portrait il y en a trois fois
+     moins : à vitesse égale ils seraient sur la barricade avant qu'on ait visé.
+     Tout ce qui traverse la rue est donc mis à cette échelle-là. */
+  SC.larg=clamp(VW/1200,.42,1.35);
+  SC.porteeGarde=VW*.47;
+  SC.porteeCrosse=Math.max(96,VW*.11);
+}
+redim();
+addEventListener('resize',redim);
+/* ==========================================================================
+   1. SON — tout est synthétisé
+   ========================================================================== */
+const SND={
+  ac:null, pret:false, on:true, _t:{}, vFin:[], nappe:null,
+  peut(k,ms){ const t=performance.now(); if(this._t[k]&&t-this._t[k]<ms) return false;
+              this._t[k]=t; return true; },
+  init(){
+    if(this.pret) return;
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    this.ac=new AC();
+    this.master=this.ac.createGain(); this.master.gain.value=(SAVE&&SAVE.volume!=null)?SAVE.volume:.6;
+    const comp=this.ac.createDynamicsCompressor();
+    comp.threshold.value=-4; comp.ratio.value=18; comp.knee.value=3;
+    comp.attack.value=.003; comp.release.value=.2;
+    const secu=this.ac.createGain(); secu.gain.value=.85;
+    this.master.connect(comp); comp.connect(secu); secu.connect(this.ac.destination);
+    this.fx=this.ac.createGain();  this.fx.gain.value=1;  this.fx.connect(this.master);
+    this.amb=this.ac.createGain(); this.amb.gain.value=.6; this.amb.connect(this.master);
+    const n=this.ac.sampleRate*2, b=this.ac.createBuffer(1,n,this.ac.sampleRate), d=b.getChannelData(0);
+    for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
+    this.noise=b;
+    this.pret=true;
+  },
+  reprendre(){ if(this.ac&&this.ac.state==='suspended') this.ac.resume(); },
+  vol(v){ if(this.master) this.master.gain.value=v; },
+  place(dur,prio){
+    const t=performance.now(), f=this.vFin;
+    while(f.length && f[0]<=t) f.shift();
+    if(f.length>=(prio?24:14)) return false;
+    const fin=t+(dur+.1)*1000;
+    let i=f.length; while(i>0 && f[i-1]>fin) i--;
+    f.splice(i,0,fin);
+    return true;
+  },
+  bruit(o){
+    if(!this.on||!this.pret) return;
+    if(!this.place(o.dur,o.prio)) return;
+    const t=this.ac.currentTime, s=this.ac.createBufferSource(); s.buffer=this.noise;
+    s.playbackRate.value=o.rate||1;
+    const f=this.ac.createBiquadFilter(); f.type=o.filtre||'lowpass';
+    f.frequency.setValueAtTime(o.f0,t);
+    f.frequency.exponentialRampToValueAtTime(Math.max(60,o.f1||o.f0),t+o.dur);
+    f.Q.value=o.q||1;
+    const g=this.ac.createGain();
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(o.gain,t+(o.att||.004));
+    g.gain.exponentialRampToValueAtTime(.0008,t+o.dur);
+    let last=g;
+    if(o.pan!==undefined&&this.ac.createStereoPanner){
+      const p=this.ac.createStereoPanner(); p.pan.value=clamp(o.pan,-1,1); g.connect(p); last=p;
+    }
+    s.connect(f); f.connect(g); last.connect(this.fx);
+    s.start(t); s.stop(t+o.dur+.05);
+  },
+  ton(o){
+    if(!this.on||!this.pret) return;
+    if(!this.place(o.dur+(o.delai||0),o.prio)) return;
+    const t=this.ac.currentTime+(o.delai||0), s=this.ac.createOscillator();
+    s.type=o.type||'sine';
+    s.frequency.setValueAtTime(o.f0,t);
+    if(o.f1) s.frequency.exponentialRampToValueAtTime(Math.max(20,o.f1),t+o.dur);
+    const g=this.ac.createGain();
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(o.gain,t+(o.att||.01));
+    g.gain.exponentialRampToValueAtTime(.0008,t+o.dur);
+    let last=g;
+    if(o.pan!==undefined&&this.ac.createStereoPanner){
+      const p=this.ac.createStereoPanner(); p.pan.value=clamp(o.pan,-1,1); g.connect(p); last=p;
+    }
+    s.connect(g); last.connect(this.fx);
+    s.start(t); s.stop(t+o.dur+.06);
+  },
+  /* --- détonations : chaque arme a sa signature --- */
+  tir(k,pan){
+    const A={
+      revolver:{f0:2600,f1:180,dur:.20,gain:.42,rate:.9,q:1.1,b:[130,40,.18,.26]},
+      pompe   :{f0:1700,f1:120,dur:.34,gain:.52,rate:.65,q:.7,b:[95,28,.28,.32]},
+      carabine:{f0:3600,f1:220,dur:.17,gain:.44,rate:1.25,q:1.4,b:[165,48,.14,.22]},
+      smg     :{f0:2900,f1:340,dur:.09,gain:.24,rate:1.5,q:.9,b:[180,60,.06,.11]}
+    }[k]||{f0:2600,f1:200,dur:.2,gain:.4,rate:1,q:1,b:[130,40,.18,.26]};
+    this.bruit({f0:A.f0,f1:A.f1,dur:A.dur,gain:A.gain,rate:A.rate,q:A.q,prio:1,pan});
+    this.ton({type:'sawtooth',f0:A.b[0],f1:A.b[1],dur:A.b[2],gain:A.b[3],pan});
+    /* la rue renvoie l'écho contre les façades */
+    this.bruit({f0:900,f1:300,dur:.5,gain:A.gain*.16,rate:.5,delai:.05,pan});
+  },
+  impact(pan){ if(!this.peut('imp',55)) return;
+    this.bruit({f0:800,f1:180,dur:.10,gain:.20,rate:.8,q:1.5,pan}); },
+  tete(pan){ this.bruit({f0:1500,f1:220,dur:.16,gain:.30,rate:.7,q:1.2,prio:1,pan});
+             this.ton({type:'square',f0:320,f1:70,dur:.12,gain:.14,pan}); },
+  chute(pan){ if(!this.peut('ch',80)) return;
+    this.bruit({f0:420,f1:90,dur:.24,gain:.16,rate:.5,q:1,pan}); },
+  bois(pan){ if(!this.peut('bo',90)) return;
+    this.bruit({f0:1100,f1:260,dur:.13,gain:.22,rate:.8,q:2.2,pan});
+    this.ton({type:'square',f0:150,f1:60,dur:.1,gain:.09,pan}); },
+  clic(){ this.bruit({f0:3200,f1:1600,dur:.04,gain:.13,rate:2,q:3}); },
+  recharge(){ this.bruit({f0:2000,f1:900,dur:.07,gain:.2,rate:1.4,q:2});
+              this.bruit({f0:1500,f1:520,dur:.09,gain:.2,rate:1.1,q:2.4,delai:.22}); },
+  sec(){ if(!this.peut('sec',260)) return;
+    this.bruit({f0:2800,f1:1500,dur:.04,gain:.12,rate:2.2,q:4}); },
+  reparer(){ if(!this.peut('rep',180)) return;
+    this.bruit({f0:900,f1:220,dur:.13,gain:.18,rate:.7,q:1.8});
+    this.ton({type:'triangle',f0:190,f1:110,dur:.09,gain:.07}); },
+  grogne(pan){ if(!this.peut('gr',420)) return;
+    const f=rnd(72,124);
+    this.ton({type:'sawtooth',f0:f,f1:f*.6,dur:rnd(.45,.85),gain:.075,att:.09,pan});
+    this.bruit({f0:600,f1:230,dur:.45,gain:.045,rate:.34,pan}); },
+  cri(pan){ this.ton({type:'sawtooth',f0:400,f1:860,dur:.45,gain:.15,att:.05,pan});
+            this.bruit({f0:2200,f1:640,dur:.45,gain:.09,rate:1.1,pan}); },
+  rugir(){ this.ton({type:'sawtooth',f0:92,f1:40,dur:1.4,gain:.32,att:.14,prio:1});
+           this.ton({type:'square',f0:50,f1:25,dur:1.6,gain:.2,att:.2});
+           this.bruit({f0:500,f1:105,dur:1.4,gain:.16,rate:.3}); },
+  degat(){ this.bruit({f0:420,f1:70,dur:.32,gain:.34,rate:.45,q:1.1,prio:1});
+           this.ton({type:'sine',f0:180,f1:56,dur:.28,gain:.18}); },
+  bien(){ [523,659,784,1046].forEach((f,i)=>
+    this.ton({type:'triangle',f0:f,dur:.3,gain:.12,delai:i*.07,prio:1})); },
+  mal(){ this.ton({type:'sawtooth',f0:190,f1:48,dur:1,gain:.22,att:.03,prio:1});
+         this.bruit({f0:480,f1:70,dur:1,gain:.15,rate:.38}); },
+  radio(){ if(!this.peut('rad',300)) return;
+    this.ton({type:'square',f0:1180,dur:.05,gain:.05});
+    this.ton({type:'square',f0:1560,dur:.05,gain:.05,delai:.07}); },
+  aube(){ [392,494,587,784].forEach((f,i)=>
+    this.ton({type:'sine',f0:f,dur:1.4,gain:.10,att:.3,delai:i*.14,prio:1})); },
+  /* --- nappe : le vent dans la rue, et la rumeur de la horde --- */
+  nappes(){
+    if(!this.pret||this.nappe) return;
+    const mk=(type,freq,q)=>{
+      const s=this.ac.createBufferSource(); s.buffer=this.noise; s.loop=true;
+      const f=this.ac.createBiquadFilter(); f.type=type; f.frequency.value=freq; f.Q.value=q;
+      const g=this.ac.createGain(); g.gain.value=0;
+      s.connect(f); f.connect(g); g.connect(this.amb); s.start();
+      return {g,f};
+    };
+    this.nappe=mk('bandpass',420,.6);
+    this.horde=mk('lowpass',260,.8);
+    const lfo=this.ac.createOscillator(); lfo.type='sine'; lfo.frequency.value=.08;
+    const lg=this.ac.createGain(); lg.gain.value=150;
+    lfo.connect(lg); lg.connect(this.nappe.f.frequency); lfo.start();
+  },
+  ambiance(vent,horde){
+    if(!this.nappe||!this.ac) return;
+    const t=this.ac.currentTime;
+    try{
+      this.nappe.g.gain.setTargetAtTime(this.on?(.028+vent*.09):0,t,.5);
+      this.horde.g.gain.setTargetAtTime(this.on?Math.min(.30,horde*.30):0,t,.4);
+      this.horde.f.frequency.setTargetAtTime(180+horde*320,t,.5);
+    }catch(e){}
+  },
+  silence(){
+    if(!this.ac) return;
+    [this.nappe,this.horde].forEach(n=>{ if(n) try{
+      n.g.gain.setTargetAtTime(0,this.ac.currentTime,.35); }catch(e){} });
+  }
+};
+['pointerdown','keydown','touchstart'].forEach(ev=>
+  addEventListener(ev,()=>{ SND.init(); SND.reprendre(); SND.nappes(); },{passive:true}));
+/* ==========================================================================
+   2. DONNÉES
+   ========================================================================== */
+const NUITS=15;
+
+/* --- les armes. Une seule réserve de munitions pour tout le monde : c'est
+   elle qui fait le lien entre la journée et la nuit. Chaque coup en prend une,
+   donc la mitraillette n'est pas « gratuite » parce qu'elle tire vite. --- */
+const ARMES={
+ revolver:{nom:'REVOLVER', em:'\u{1F52B}', mag:6,  cad:.30, deg:38, disp:.020, rech:1.7,
+   plombs:1, port:1e9, d:'Sûr, lent, économe. Il ne pardonne pas l\'à-peu-près.'},
+ pompe:   {nom:'FUSIL À POMPE', em:'\u{1F4A5}', mag:5, cad:.78, deg:15, disp:.085, rech:2.6,
+   plombs:7, port:VW=>VW*.55, d:'Sept plombs en gerbe. Dévastateur de près, inutile au loin.'},
+ carabine:{nom:'CARABINE', em:'\u{1F3AF}', mag:8, cad:.62, deg:76, disp:.004, rech:2.1,
+   plombs:1, port:1e9, perce:2, d:'Traverse deux corps. Chaque balle compte.'},
+ smg:     {nom:'PISTOLET-MITRAILLEUR', em:'\u{1F4A2}', mag:30, cad:.085, deg:16, disp:.045, rech:2.2,
+   plombs:1, port:1e9, d:'Trente coups, et la réserve qui fond à vue d\'œil.'}
+};
+const ORDRE_ARMES=['revolver','pompe','carabine','smg'];
+
+/* --- ce qui remonte la rue --- */
+const MORTS={
+ /* pen = de combien il se casse en avant · ep = largeur d'épaules · tet = taille
+    du crâne · bra = jusqu'où les bras partent devant. C'est là que se joue la
+    lisibilité : on doit reconnaître un coureur d'un gros à la silhouette seule. */
+ marcheur:{nom:'marcheur', pv:52,  vit:15, deg:7,  h:1,    l:.9,  col:'#79856f', poids:10, n:1,
+   pen:.12, ep:.94, tet:1,   bra:.86},
+ coureur :{nom:'coureur',  pv:34,  vit:44, deg:6,  h:.96,  l:.82, col:'#a48c58', poids:0,  n:3,
+   pen:.34, ep:.80, tet:.94, bra:.55},
+ rampant :{nom:'rampant',  pv:40,  vit:12, deg:5,  h:.42,  l:1.15,col:'#6d7a66', poids:0,  n:4, bas:true,
+   pen:0,   ep:1,   tet:1,   bra:1},
+ gros    :{nom:'gros',     pv:210, vit:10, deg:22, h:1.32, l:1.35,col:'#8e775e', poids:0,  n:5,
+   pen:.06, ep:1.34, tet:.72, bra:.70},
+ cracheur:{nom:'cracheur', pv:58,  vit:13, deg:9,  h:1.02, l:.95, col:'#86a457', poids:0,  n:6, crache:true,
+   pen:-.10,ep:.86, tet:1.24,bra:.60},
+ hurleur :{nom:'hurleur',  pv:70,  vit:18, deg:8,  h:1.06, l:.92, col:'#a97686', poids:0,  n:7, hurle:true,
+   pen:-.16,ep:.88, tet:1.12,bra:.72},
+ colosse :{nom:'LE COLOSSE',pv:1500,vit:9, deg:46, h:2.1,  l:1.9, col:'#c2564a', poids:0,  n:99, boss:true,
+   pen:.05, ep:1.42, tet:.80, bra:.78}
+};
+/* la composition de la horde change de nuit en nuit */
+function urneNuit(n){
+  const u=[];
+  for(const k in MORTS){
+    const d=MORTS[k];
+    if(d.boss || d.n>n) continue;
+    let w=d.poids||0;
+    if(k==='coureur')  w=n<4?2:(n<8?5:7);
+    if(k==='rampant')  w=n<5?0:(n<9?3:5);
+    if(k==='gros')     w=n<6?0:(n<10?2:4);
+    if(k==='cracheur') w=n<7?0:3;
+    if(k==='hurleur')  w=n<8?0:2;
+    if(k==='marcheur') w=Math.max(3,12-n);
+    for(let i=0;i<w;i++) u.push(k);
+  }
+  return u.length?u:['marcheur'];
+}
+
+/* --- les gens. Quatre au départ, tirés dans ce vivier. --- */
+const PRENOMS=['MARTA','JOSEPH','LINA','ANDRÉ','SOFIA','PIERRE','NOÉMIE','KARIM','ODILE',
+  'LUCAS','AÏCHA','RENÉ','CLARA','VINCENT','SAMI','FANNY','OMAR','THÉO','ANNA','BRUNO',
+  'ÉLISE','YANN','NADIA','PAUL','JULIA','MARCO'];
+const METIERS=[
+ {t:'infirmière', soin:4, fouille:2, tir:1, brico:2, d:'Elle recoud, et elle sait quand ça tourne mal.'},
+ {t:'infirmier',  soin:4, fouille:2, tir:1, brico:2, d:'Il recoud, et il sait quand ça tourne mal.'},
+ {t:'menuisier',  soin:1, fouille:2, tir:1, brico:4, d:'Deux planches et trois clous lui suffisent.'},
+ {t:'chasseur',   soin:1, fouille:3, tir:4, brico:2, d:'Il vise la tête sans y penser.'},
+ {t:'chasseuse',  soin:1, fouille:3, tir:4, brico:2, d:'Elle vise la tête sans y penser.'},
+ {t:'gendarme',   soin:2, fouille:2, tir:4, brico:1, d:'Formé au tir, pas au reste.'},
+ {t:'coursier',   soin:1, fouille:4, tir:2, brico:1, d:'Il connaît chaque ruelle du quartier.'},
+ {t:'coursière',  soin:1, fouille:4, tir:2, brico:1, d:'Elle connaît chaque ruelle du quartier.'},
+ {t:'plombière',  soin:1, fouille:2, tir:1, brico:4, d:'Tout ce qui se visse la regarde.'},
+ {t:'cuisinier',  soin:2, fouille:3, tir:1, brico:2, d:'Il fait tenir un repas avec rien.'},
+ {t:'étudiante',  soin:2, fouille:3, tir:2, brico:2, d:'Elle apprend vite. C\'est déjà ça.'},
+ {t:'retraité',   soin:2, fouille:1, tir:3, brico:3, d:'Il a fait l\'armée, il y a longtemps.'},
+ {t:'vigile',     soin:1, fouille:2, tir:3, brico:2, d:'Il a tenu des portes toute sa vie.'},
+ {t:'vétérinaire',soin:4, fouille:2, tir:2, brico:1, d:'Un corps est un corps.'}
+];
+
+/* --- les tâches du jour --- */
+const TACHES={
+ fouiller:{nom:'FOUILLER', em:'\u{1F50E}', col:'#ffcb5c',
+   d:'Sortir chercher. C\'est la seule façon de remplir les caisses.'},
+ barricade:{nom:'BARRICADE', em:'\u{1F528}', col:'#c6d6ef',
+   d:'Renforcer et réparer. Consomme des matériaux.'},
+ soigner:{nom:'SOIGNER', em:'\u{1FA79}', col:'#e0334a',
+   d:'S\'occuper des blessés. Consomme des médicaments.'},
+ dormir:{nom:'DORMIR', em:'\u{1F634}', col:'#b08ce8',
+   d:'Ne rapporte rien. Rend la nuit tenable.'},
+ garde:{nom:'MONTER LA GARDE', em:'\u{1F441}', col:'#7fd46a',
+   d:'Repos léger. Cette nuit il tirera plus vite et plus juste.'}
+};
+
+/* --- où l'on va fouiller. Chaque adresse s'épuise. --- */
+const LIEUX=[
+ {id:'superette', nom:'LA SUPÉRETTE', risque:.10, stock:5,
+  d:'Rayons retournés, mais il reste toujours des conserves au fond.',
+  gain:{vivres:[5,9], materiaux:[0,2]}},
+ {id:'quincaillerie', nom:'LA QUINCAILLERIE', risque:.14, stock:5,
+  d:'Planches, clous, tôle. Tout ce qui tient une barricade debout.',
+  gain:{materiaux:[5,9], munitions:[2,9]}},
+ {id:'pharmacie', nom:'LA PHARMACIE', risque:.26, stock:4,
+  d:'La grille est tordue. Quelqu\'un est passé avant, mais pas partout.',
+  gain:{medicaments:[3,6], vivres:[0,2]}},
+ {id:'ecole', nom:'L\'ÉCOLE', risque:.18, stock:5,
+  d:'La cantine et l\'atelier. Personne n\'aime y retourner.',
+  gain:{vivres:[3,6], materiaux:[2,5], munitions:[0,4]}},
+ {id:'armurerie', nom:'L\'ARMURERIE', risque:.42, stock:4,
+  d:'Le rideau est baissé depuis le premier jour. Ça veut dire qu\'elle est pleine.',
+  gain:{munitions:[40,66], materiaux:[0,2]}},
+ {id:'commissariat', nom:'LE COMMISSARIAT', risque:.52, stock:3,
+  d:'Ils s\'y sont retranchés. Aucun n\'en est ressorti debout.',
+  gain:{munitions:[52,86], medicaments:[1,3]}},
+ {id:'hopital', nom:'L\'HÔPITAL', risque:.62, stock:2,
+  d:'Six étages, et ce qui bouge encore dedans n\'a plus de nom.',
+  gain:{medicaments:[7,13], vivres:[1,4]}},
+ {id:'entrepot', nom:'L\'ENTREPÔT', risque:.34, stock:3,
+  d:'Loin, de l\'autre côté du pont. Une journée entière rien que pour y aller.',
+  gain:{vivres:[6,11], materiaux:[5,10], munitions:[6,22]}}
+];
+
+/* --- ce qu'on peut trouver, en plus, en fouillant --- */
+const TROUVAILLES=[
+ {t:'arme', d:'une carabine sous une bâche', k:'carabine'},
+ {t:'arme', d:'un fusil à pompe dans un coffre', k:'pompe'},
+ {t:'arme', d:'un pistolet-mitrailleur et deux chargeurs', k:'smg'},
+ {t:'survivant', d:'quelqu\'un de vivant, terré depuis des jours'},
+ {t:'stock', d:'une réserve intacte derrière une cloison'}
+];
+
+/* --- difficultés --- */
+const DIFFS={
+ tranquille:{nom:'TRANQUILLE', horde:.78, risque:.75, vivres:.8,
+   d:'Moins de monde dans la rue, moins de casse en fouillant. Pour découvrir.'},
+ normale:{nom:'NORMALE', horde:1, risque:1, vivres:1,
+   d:'Le jeu tel qu\'il est pensé. Quinze nuits, c\'est long.'},
+ dure:{nom:'SANS PITIÉ', horde:1.28, risque:1.3, vivres:1.25,
+   d:'Ils sont plus nombreux, la rue est plus dangereuse, et on mange plus.'}
+};
+function DIF(){ return DIFFS[SAVE.diff]||DIFFS.normale; }
+/* ==========================================================================
+   3. SAUVEGARDE ET PARTIE
+   ==========================================================================
+   La sauvegarde ne garde que le méta : records, déblocages, réglages. Une
+   partie, elle, se joue d'un bloc — quinze nuits, et ce qui est perdu l'est. */
+const CLE='quinzenuits:v1';
+const Store={
+  mem:{},
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return this.mem[k]||null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){ this.mem[k]=v; } }
+};
+const SAVE_DEF={
+  nom:'', volume:.6, son:true, diff:'normale', aide:true,
+  parties:0, victoires:0, meilleureNuit:0, totalTues:0, totalTetes:0,
+  vues:{}, debloques:[]
+};
+let SAVE=Object.assign({},SAVE_DEF);
+function charger(){
+  try{
+    const b=Store.get(CLE);
+    if(b){ const o=JSON.parse(b); for(const k in SAVE_DEF) SAVE[k]=(o[k]!==undefined)?o[k]:SAVE_DEF[k]; }
+  }catch(e){}
+  if(!DIFFS[SAVE.diff]) SAVE.diff='normale';
+  if(!SAVE.debloques) SAVE.debloques=[];
+}
+let _sT=0;
+function sauver(){
+  const t=performance.now();
+  if(t-_sT<200) return;
+  _sT=t;
+  try{ Store.set(CLE,JSON.stringify(SAVE)); }catch(e){}
+}
+
+let P=null;            // la partie en cours
+let ecran='menu';
+
+/* --- fabrication d'un survivant --- */
+let seqId=1;
+function creerSurvivant(){
+  const m=pick(METIERS);
+  return {
+    id:seqId++, nom:pick(PRENOMS), metier:m.t, d:m.d,
+    soin:m.soin, fouille:m.fouille, tir:m.tir, brico:m.brico,
+    sante:100, fatigue:ri(0,14), moral:ri(66,86),
+    blesse:0, infecte:0, mort:false, tache:'dormir', lieu:null,
+    graine:ri(1,99999), tues:0, sorties:0
+  };
+}
+function nouvellePartie(){
+  const noms=new Set();
+  const eq=[];
+  while(eq.length<4){
+    const s=creerSurvivant();
+    if(noms.has(s.nom)) continue;
+    noms.add(s.nom); eq.push(s);
+  }
+  P={
+    nuit:1, survivants:eq, morts:[],
+    res:{vivres:12, munitions:56, materiaux:8, medicaments:3},
+    barr:{pv:100, max:100},
+    armes:['revolver'], arme:'revolver',
+    lieux:LIEUX.map(l=>Object.assign({},l)),
+    stats:{tues:0, tetes:0, tirs:0, touches:0, reparations:0, sorties:0, mange:0, crosses:0},
+    rapport:[], fini:false, gagne:false
+  };
+  SAVE.parties=(SAVE.parties||0)+1; sauver();
+}
+const vivants=()=>P.survivants.filter(s=>!s.mort);
+
+/* --- portrait : un visage dessiné, pas une image ---
+   Quatre traits suffisent à ce qu'on reconnaisse quelqu'un d'un coup d'œil,
+   et à ce qu'on ait mal quand il ne revient pas. */
+function portrait(cvs,s){
+  const g=cvs.getContext('2d'), W=cvs.width, H=cvs.height;
+  const h=(n)=>hash2(s.graine,n,7);
+  g.clearRect(0,0,W,H);
+  g.fillStyle='#0d1420'; g.fillRect(0,0,W,H);
+  const cx=W/2, cy=H*.56, r=W*.30;
+  /* épaules */
+  g.fillStyle=['#2c3648','#33404f','#3a3a46','#2f4038'][(h(1)*4)|0];
+  g.beginPath(); g.ellipse(cx,H*1.06,W*.46,H*.38,0,0,TAU); g.fill();
+  /* tête */
+  const peau=['#c89a72','#a87a52','#7d5a3c','#e0b48c','#8d6244','#dcae86'][(h(2)*6)|0];
+  g.fillStyle=peau;
+  g.beginPath(); g.ellipse(cx,cy,r*.86,r,0,0,TAU); g.fill();
+  /* cheveux */
+  const chev=['#20180f','#3a2a1a','#5a4a34','#7a6a54','#161616','#8a6a3a'][(h(3)*6)|0];
+  g.fillStyle=chev;
+  const st=(h(4)*3)|0;
+  g.beginPath();
+  if(st===0){ g.ellipse(cx,cy-r*.42,r*.92,r*.62,0,Math.PI,TAU); }
+  else if(st===1){ g.ellipse(cx,cy-r*.30,r*.98,r*.86,0,Math.PI*.92,TAU*1.04); }
+  else { g.ellipse(cx,cy-r*.52,r*.80,r*.44,0,Math.PI,TAU); }
+  g.fill();
+  /* yeux : deux traits, ça suffit */
+  g.strokeStyle='rgba(16,14,12,.85)'; g.lineWidth=Math.max(1.2,W*.028); g.lineCap='round';
+  const ey=cy-r*.06, ex=r*.34;
+  g.beginPath(); g.moveTo(cx-ex-r*.12,ey); g.lineTo(cx-ex+r*.12,ey);
+  g.moveTo(cx+ex-r*.12,ey); g.lineTo(cx+ex+r*.12,ey); g.stroke();
+  /* bouche : elle dit l'état moral */
+  const mo=s.moral;
+  g.beginPath();
+  const my=cy+r*.42;
+  if(mo>65) g.arc(cx,my-r*.12,r*.26,.35,Math.PI-.35);
+  else if(mo>35){ g.moveTo(cx-r*.22,my); g.lineTo(cx+r*.22,my); }
+  else g.arc(cx,my+r*.22,r*.26,Math.PI+.35,TAU-.35);
+  g.stroke();
+  /* barbe pour certains */
+  if(h(5)>.62){ g.fillStyle='rgba(30,22,14,.42)';
+    g.beginPath(); g.ellipse(cx,cy+r*.48,r*.62,r*.36,0,0,Math.PI); g.fill(); }
+  /* bandage si blessé, sueur si infecté */
+  if(s.blesse>0){
+    g.fillStyle='#d8d2c4';
+    g.save(); g.translate(cx,cy-r*.2); g.rotate(-.24);
+    g.fillRect(-r*1.0,-r*.14,r*2.0,r*.28); g.restore();
+    g.fillStyle='rgba(190,20,30,.7)';
+    g.beginPath(); g.arc(cx+r*.34,cy-r*.30,r*.13,0,TAU); g.fill();
+  }
+  if(s.infecte){
+    g.fillStyle='rgba(120,190,90,.20)';
+    g.beginPath(); g.ellipse(cx,cy,r*.86,r,0,0,TAU); g.fill();
+  }
+  if(s.mort){
+    g.fillStyle='rgba(6,8,12,.62)'; g.fillRect(0,0,W,H);
+    g.strokeStyle='rgba(224,51,74,.8)'; g.lineWidth=Math.max(2,W*.05);
+    g.beginPath(); g.moveTo(W*.2,H*.2); g.lineTo(W*.8,H*.8);
+    g.moveTo(W*.8,H*.2); g.lineTo(W*.2,H*.8); g.stroke();
+  }
+}
+
+/* ==========================================================================
+   4. LA JOURNÉE — c'est ici qu'on décide
+   ========================================================================== */
+/* le rendement d'une fouille dépend d'abord de la personne qu'on envoie */
+function tirerGain(l,s){
+  const f=.55+s.fouille*.16;                      // un coursier ramène le double
+  /* Plus la partie avance, plus on pousse loin dans le quartier : les caisses
+     sont plus grosses, et c'est la seule raison pour laquelle la quinzième nuit
+     est tenable. Une adresse vidée rend quand même des miettes. */
+  const loin=1+(P.nuit-1)*.055;
+  const g={};
+  for(const k in l.gain){
+    const [a,b]=l.gain[k];
+    const v=Math.round(rnd(a,b)*f*loin*(l.stock>0?1:.25));
+    if(v>0) g[k]=v;
+  }
+  return g;
+}
+function resoudreJournee(){
+  const R=[];
+  const ligne=(em,t,s,v,c)=>R.push({em,t,s:s||'',v:v||'',c:c||'#8892a6'});
+  const res=P.res, D=DIF();
+
+  /* --- les sorties --- */
+  for(const s of vivants()){
+    if(s.tache!=='fouiller') continue;
+    const l=P.lieux.find(x=>x.id===s.lieu);
+    if(!l) continue;
+    s.sorties++; P.stats.sorties++;
+    const g=tirerGain(l,s);
+    for(const k in g) res[k]+=g[k];
+    l.stock=Math.max(0,l.stock-1);
+    s.fatigue=clamp(s.fatigue+ri(24,34),0,100);
+    const detail=Object.keys(g).map(k=>'+'+g[k]+' '+({vivres:'vivres',munitions:'munitions',
+      materiaux:'matériaux',medicaments:'médicaments'}[k])).join(', ')||'les mains vides';
+
+    /* le risque : c'est là que la partie se joue vraiment */
+    const risque=clamp(l.risque*D.risque*(1-s.fouille*.055)*(1+s.fatigue/240),0,.92);
+    if(Math.random()<risque){
+      const d=Math.random();
+      if(d<.10 && vivants().length>1){
+        s.mort=true; s.cause='n\'est jamais revenu de '+l.nom.toLowerCase();
+        P.morts.push(s);
+        ligne('⚰',s.nom+' N\'EST PAS RENTRÉ','Parti à '+l.nom.toLowerCase()+'. On a attendu jusqu\'à la nuit.','','#e0334a');
+        SND.mal();
+        continue;
+      } else if(d<.45){
+        s.infecte=1; s.sante=clamp(s.sante-ri(6,14),1,100); s.moral=clamp(s.moral-14,0,100);
+        ligne('\u{1F9A0}',s.nom+' A ÉTÉ MORDU','Il dit que ce n\'est rien. '+detail,'','#7fd46a');
+      } else {
+        s.blesse=Math.min(3,s.blesse+1);
+        s.sante=clamp(s.sante-ri(14,28),1,100); s.moral=clamp(s.moral-9,0,100);
+        ligne('\u{1FA79}',s.nom+' EST RENTRÉ BLESSÉ','À '+l.nom.toLowerCase()+'. '+detail,'','#e0334a');
+      }
+    } else {
+      s.moral=clamp(s.moral+4,0,100);
+      ligne('\u{1F50E}',s.nom+' A FOUILLÉ '+l.nom, detail,'','#ffcb5c');
+      /* une chance de tomber sur mieux qu'un carton de conserves */
+      if(Math.random()<.13+s.fouille*.02){
+        const t=pick(TROUVAILLES);
+        if(t.t==='arme' && P.armes.indexOf(t.k)<0){
+          P.armes.push(t.k);
+          ligne('\u{1F52B}','UNE ARME',s.nom+' a trouvé '+t.d+'.','','#ffcb5c');
+          if(!SAVE.debloques.includes(t.k)){ SAVE.debloques.push(t.k); sauver(); }
+        } else if(t.t==='survivant' && P.survivants.length<6){
+          const n=creerSurvivant();
+          P.survivants.push(n);
+          ligne('\u{1F464}',n.nom+' SE JOINT À VOUS',
+            n.metier+'. '+s.nom+' l\'a trouvé '+t.d+'.','','#7fd46a');
+          SND.bien();
+        } else {
+          res.vivres+=ri(3,6); res.materiaux+=ri(2,4);
+          ligne('\u{1F4E6}','UNE RÉSERVE INTACTE',s.nom+' a trouvé '+t.d+'.','','#ffcb5c');
+        }
+      }
+    }
+  }
+
+  /* --- la barricade --- */
+  let renfort=0, coutMat=0;
+  for(const s of vivants()){
+    if(s.tache!=='barricade') continue;
+    const cout=Math.min(res.materiaux, 2+s.brico);
+    if(cout<=0){
+      ligne('\u{1F528}',s.nom+' N\'A RIEN POUR RÉPARER','Plus une planche dans l\'immeuble.','','#8892a6');
+      continue;
+    }
+    res.materiaux-=cout; coutMat+=cout;
+    const g=Math.round(cout*(3.4+s.brico*1.5));
+    P.barr.max=Math.min(320,P.barr.max+Math.round(g*.32));
+    P.barr.pv=Math.min(P.barr.max,P.barr.pv+g);
+    renfort+=g;
+    s.fatigue=clamp(s.fatigue+16,0,100);
+    P.stats.reparations++;
+  }
+  if(renfort) ligne('\u{1F528}','LA BARRICADE TIENT MIEUX',
+    '+'+renfort+' points, '+coutMat+' matériaux dépensés.','','#c6d6ef');
+
+  /* --- les soins --- */
+  for(const s of vivants()){
+    if(s.tache!=='soigner') continue;
+    const patients=vivants().filter(x=>x.blesse>0||x.infecte||x.sante<80)
+                            .sort((a,b)=>a.sante-b.sante);
+    if(!patients.length){ s.moral=clamp(s.moral+3,0,100);
+      ligne('\u{1FA79}',s.nom+' N\'A PERSONNE À SOIGNER','Il en profite pour ranger.','','#8892a6');
+      continue; }
+    let soignes=0;
+    for(const p of patients.slice(0,2)){
+      if(res.medicaments<=0) break;
+      res.medicaments--;
+      p.sante=clamp(p.sante+16+s.soin*7,0,100);
+      if(p.blesse>0) p.blesse--;
+      if(p.infecte && Math.random()<.30+s.soin*.12){ p.infecte=0;
+        ligne('\u{1F489}','L\'INFECTION RECULE',s.nom+' a sauvé '+p.nom+'.','','#7fd46a'); }
+      p.moral=clamp(p.moral+7,0,100);
+      soignes++;
+    }
+    s.fatigue=clamp(s.fatigue+11,0,100);
+    if(soignes) ligne('\u{1FA79}',s.nom+' A SOIGNÉ LES BLESSÉS',
+      soignes+' personne'+(soignes>1?'s':'')+' remise'+(soignes>1?'s':'')+' d\'aplomb.','','#e0334a');
+    else ligne('\u{1FA79}','PLUS DE MÉDICAMENTS',s.nom+' n\'a rien pu faire.','','#e0334a');
+  }
+
+  /* --- repos --- */
+  for(const s of vivants()){
+    if(s.tache==='dormir'){ s.fatigue=clamp(s.fatigue-56,0,100); s.sante=clamp(s.sante+7,0,100);
+      s.moral=clamp(s.moral+5,0,100); }
+    else if(s.tache==='garde'){ s.fatigue=clamp(s.fatigue-20,0,100); }
+  }
+
+  /* --- le repas. C'est là qu'on comprend pourquoi il fallait sortir. --- */
+  const n=vivants().length;
+  const besoin=Math.ceil(n*D.vivres);
+  if(res.vivres>=besoin){
+    res.vivres-=besoin; P.stats.mange+=besoin;
+    ligne('\u{1F35E}','ON A MANGÉ',besoin+' vivres pour '+n+' personne'+(n>1?'s':'')+'.','','#7fd46a');
+  } else {
+    const manque=besoin-res.vivres;
+    P.stats.mange+=res.vivres; res.vivres=0;
+    for(const s of vivants()){ s.sante=clamp(s.sante-10,1,100); s.moral=clamp(s.moral-20,0,100); }
+    ligne('\u{1F35D}','LA FAIM','Il manquait '+manque+' part'+(manque>1?'s':'')
+      +'. Tout le monde a faim, et ça se voit.','','#e0334a');
+  }
+
+  /* --- l'infection avance --- */
+  for(const s of vivants()){
+    if(!s.infecte) continue;
+    s.sante=clamp(s.sante-ri(8,15),0,100);
+    s.moral=clamp(s.moral-6,0,100);
+    if(s.sante<=0){
+      s.mort=true; s.cause='a succombé à l\'infection'; P.morts.push(s);
+      ligne('⚰',s.nom+' N\'A PAS TENU','L\'infection l\'a emporté avant l\'aube.','','#e0334a');
+      SND.mal();
+    }
+  }
+  /* --- le moral s'use tout seul --- */
+  for(const s of vivants()) s.moral=clamp(s.moral-3,0,100);
+
+  P.rapport=R;
+  return R;
+}
+/* ==========================================================================
+   5. LA NUIT
+   ==========================================================================
+   On ne gagne pas la nuit en tuant tout le monde : on la gagne en tenant
+   jusqu'à l'aube. Cette différence change tout — elle rend les munitions
+   dépensables plutôt que comptées coup par coup, et elle autorise à laisser
+   passer trois marcheurs pour aller clouer une planche. */
+let N=null, running=false, last=0, secousse=0;
+function shake(a){ secousse=Math.min(24,secousse+a); }
+
+function dureeNuit(n){ return 54+n*3.2; }
+function nombreNuit(n){
+  return Math.round((8+n*3.6+n*n*.34)*DIF().horde*(.74+.26*(SC.larg||1)));
+}
+
+function lancerNuit(){
+  const n=P.nuit;
+  const gardes=vivants().filter(s=>s.tache==='garde');
+  N={
+    nuit:n, t:0, duree:dureeNuit(n), aube:false,
+    morts:[], balles:[], crachats:[], parts:[], douilles:[], flot:[], corps:[], eclats:[],
+    reste:nombreNuit(n), total:nombreNuit(n), spawnT:1.6,
+    mag:{}, rech:0, tirT:0, feu:false, recul:0, muzz:0,
+    combo:0, comboT:0, comboMax:0, tues:0, tetes:0, tirs:0, touches:0,
+    souffle:1, crosseT:0, crosse:0, crosses:0,
+    tireurs:gardes.map(s=>({s, cd:rnd(.6,2), flash:0, balles:12+s.tir*2})),
+    entres:[], brecheT:0, repare:false, reparT:0,
+    fini:false, perdu:false, ciel:ri(0,999), vent:rnd(-1,1)
+  };
+  for(const k of P.armes) N.mag[k]=ARMES[k].mag;
+  if(P.armes.indexOf(P.arme)<0) P.arme=P.armes[0];
+  N.mag[P.arme]=Math.min(ARMES[P.arme].mag,P.res.munitions);
+  majArmesHud(); majHudNuit();
+  $('hud').classList.add('on');
+  ecran='nuit'; running=true; last=performance.now();
+  annonce('NUIT '+n,(n===NUITS)?'LA DERNIÈRE — TENEZ JUSQU\'AU JOUR':'tenir jusqu\'à l\'aube');
+  SND.rugir();
+}
+
+/* --- apparition --- */
+function apparaitre(k){
+  const d=MORTS[k];
+  const z={k, d, x:SC.droite+rnd(0,220), z:rnd(-1,1), graine:Math.random(),
+    pv:d.pv*(1+N.nuit*.045), pvMax:d.pv*(1+N.nuit*.045),
+    vit:d.vit*rnd(.86,1.16), h:d.h, l:d.l, marche:rnd(0,TAU),
+    flash:0, jambe:0, cd:rnd(1,3), boost:0, frappe:0};
+  N.morts.push(z);
+  return z;
+}
+/* géométrie à l'écran : un peu de profondeur pour que la foule se lise */
+function boite(z){
+  const e=SC.ech*(1+z.z*.13);
+  const H=86*z.h*e, L=34*z.l*e;
+  const y=SC.solY+z.z*VH*.045;
+  return {x:z.x-L/2, y:y-H, w:L, h:H, sy:y, e};
+}
+
+/* Ce qu'un garde à l'étage accepte de dépenser, et jusqu'où il tire. Au-delà,
+   il garde son doigt sur la détente : la rue est longue et la réserve est courte. */
+const RESERVE_FENETRE=8;
+/* La crosse : la seule arme qui ne coûte pas une cartouche. */
+const COUT_CROSSE=.34, REGEN_SOUFFLE=.235;
+
+/* --- le tir du joueur : un rayon, et la zone touchée décide de tout --- */
+function rayon(ox,oy,ax,ay,port,deg,perce,src){
+  const dx=ax-ox, dy=ay-oy, d=Math.hypot(dx,dy)||1;
+  const ux=dx/d, uy=dy/d;
+  const marge=SAVE.aide?9:2;
+  const touches=[];
+  for(const z of N.morts){
+    if(z.pv<=0) continue;
+    const b=boite(z);
+    /* intersection segment / boîte, méthode des dalles */
+    let t0=0, t1=port;
+    for(let a=0;a<2;a++){
+      const p=a?uy:ux, q0=(a?b.y-marge:b.x-marge), q1=(a?b.y+b.h+marge:b.x+b.w+marge);
+      const o=a?oy:ox;
+      if(Math.abs(p)<1e-6){ if(o<q0||o>q1){ t0=1e9; break; } continue; }
+      let ta=(q0-o)/p, tb=(q1-o)/p;
+      if(ta>tb){ const s=ta; ta=tb; tb=s; }
+      t0=Math.max(t0,ta); t1=Math.min(t1,tb);
+      if(t0>t1){ t0=1e9; break; }
+    }
+    if(t0<1e8 && t0>=0) touches.push({z,t:t0,b});
+  }
+  touches.sort((a,b)=>a.t-b.t);
+  let reste=1+(perce||0), impact=null;
+  for(const h of touches){
+    if(reste<=0) break;
+    const py=oy+uy*h.t;
+    const f=clamp((py-h.b.y)/h.b.h,0,1);          // 0 = sommet du crâne
+    let mult=1, zone='corps';
+    if(f<.24){ mult=3; zone='tete'; }
+    else if(f>.70){ mult=.62; zone='jambe'; }
+    blesser(h.z,deg*mult,zone,src);
+    impact=impact||{x:ox+ux*h.t, y:py, zone};
+    reste--;
+  }
+  return impact||{x:ox+ux*port, y:oy+uy*port, zone:null};
+}
+
+function blesser(z,deg,zone,src){
+  z.pv-=deg; z.flash=.10;
+  if(src==='joueur'){ N.touches++; }
+  if(zone==='jambe' && !z.jambe && !z.d.bas && !z.d.boss){
+    z.jambe=1; z.vit*=.32;
+    flot(z.x,boite(z).y+boite(z).h*.5,'AUX JAMBES','#c6d6ef',12);
+  }
+  const b=boite(z);
+  gicle(b.x+b.w/2, b.y+b.h*(zone==='tete'?.16:(zone==='jambe'?.82:.46)),
+        zone==='tete'?12:6, zone==='tete'?200:130);
+  if(zone==='tete') SND.tete(pan(z.x)); else SND.impact(pan(z.x));
+  if(z.pv<=0) abattre(z,zone,src);
+}
+function abattre(z,zone,src){
+  const i=N.morts.indexOf(z); if(i<0) return;
+  N.morts.splice(i,1);
+  const b=boite(z);
+  N.corps.push({x:z.x, y:b.sy, z:z.z, k:z.k, a:rnd(-.3,.3), vie:9, e:b.e, tete:zone==='tete'});
+  if(N.corps.length>30) N.corps.shift();
+  gicle(b.x+b.w/2,b.y+b.h*.5,z.d.boss?36:14,z.d.boss?300:180);
+  N.tues++; P.stats.tues++;
+  if(zone==='tete'){ N.tetes++; P.stats.tetes++; }
+  if(src==='joueur'){
+    N.combo++; N.comboT=2.2;
+    N.comboMax=Math.max(N.comboMax,N.combo);
+    if(N.combo>=3 && N.combo%3===0) montrerCombo();
+  }
+  SND.chute(pan(z.x));
+  if(z.d.boss){ shake(20); SND.rugir(); annonce('LE COLOSSE EST TOMBÉ','la rue respire'); }
+}
+
+/* --- la barricade --- */
+function taperBarricade(z,dt){
+  z.frappe-=dt;
+  if(z.frappe>0) return;
+  z.frappe=.85;
+  const d=z.d.deg*(1+N.nuit*.05);
+  P.barr.pv=Math.max(0,P.barr.pv-d);
+  SND.bois(pan(z.x));
+  for(let i=0;i<5;i++) eclat(SC.barX+rnd(-6,18), SC.solY-rnd(6,52));
+  shake(2.2);
+  if(P.barr.pv<=0 && !N.brecheT){
+    N.brecheT=1;
+    annonce('LA BARRICADE CÈDE','ils entrent');
+    SND.mal(); shake(14);
+  }
+}
+function reparerBarricade(dt){
+  if(P.res.materiaux<=0||P.barr.pv>=P.barr.max) return false;
+  N.reparT+=dt;
+  P.barr.pv=Math.min(P.barr.max,P.barr.pv+dt*16);
+  if(N.reparT>=1){ N.reparT-=1; P.res.materiaux--; P.stats.reparations++; }
+  if(Math.random()<dt*7) eclat(SC.barX+rnd(-4,16),SC.solY-rnd(8,46));
+  SND.reparer();
+  return true;
+}
+
+/* --- effets --- */
+function gicle(x,y,n,f){
+  for(let i=0;i<n;i++){
+    if(N.parts.length>460) break;
+    const a=rnd(0,TAU);
+    N.parts.push({x,y,vx:Math.cos(a)*rnd(20,f),vy:Math.sin(a)*rnd(20,f)-40,
+      vie:rnd(.35,.8),max:.8,r:rnd(1.2,3),col:i%5?'#8e1220':'#c62435',g:520});
+  }
+}
+function eclat(x,y){
+  if(N.eclats.length>120) return;
+  const a=rnd(-2.4,-.6);
+  N.eclats.push({x,y,vx:Math.cos(a)*rnd(60,190),vy:Math.sin(a)*rnd(60,190),
+    vie:rnd(.5,1.1),max:1.1,rot:rnd(0,TAU),vr:rnd(-9,9)});
+}
+function douille(x,y){
+  if(N.douilles.length>70) return;
+  N.douilles.push({x,y,vx:rnd(60,150),vy:rnd(-190,-90),vie:1.6,rot:rnd(0,TAU),vr:rnd(-16,16)});
+}
+function flot(x,y,t,col,taille){
+  if(N.flot.length>22) return;
+  N.flot.push({x,y,t,col,vie:.95,max:.95,taille:taille||13});
+}
+const pan=x=>clamp((x/VW)*2-1,-1,1);
+function annonce(t,s){
+  const el=$('annonce'); if(!el) return;
+  el.innerHTML=t+(s?'<span>'+s+'</span>':'');
+  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+}
+function montrerCombo(){
+  const el=$('combo');
+  el.innerHTML=N.combo+'<span>D\'AFFILÉE</span>';
+  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+}
+
+/* ==========================================================================
+   6. LE PAS DE NUIT
+   ========================================================================== */
+function pasNuit(dt){
+  N.t+=dt;
+  if(secousse>0) secousse=Math.max(0,secousse-dt*46);
+  if(N.combo&&(N.comboT-=dt)<=0) N.combo=0;
+  if(N.muzz>0) N.muzz-=dt;
+  if(N.recul>0) N.recul=Math.max(0,N.recul-dt*30);
+
+  /* --- l'aube --- */
+  if(N.t>=N.duree && !N.aube){
+    N.aube=true;
+    annonce('LE JOUR SE LÈVE','ils refluent');
+    SND.aube();
+  }
+  if(N.aube){
+    /* ils s'en vont : on ne les tue pas, on leur survit */
+    for(let i=N.morts.length-1;i>=0;i--){
+      const z=N.morts[i];
+      z.x+=(z.vit*2.4)*dt;
+      if(z.x>SC.droite+300) N.morts.splice(i,1);
+    }
+    if(N.t>N.duree+3.4 && !N.fini) finirNuit(true);
+  } else {
+    /* --- arrivées --- */
+    N.spawnT-=dt;
+    if(N.spawnT<=0 && N.reste>0){
+      const pression=.55+N.t/N.duree*.9;
+      N.spawnT=clamp(rnd(1.5,3.1)/pression/(1+N.nuit*.05),.16,3.2);
+      const u=urneNuit(N.nuit);
+      let n=1+(Math.random()<N.nuit/22?1:0);
+      while(n-->0 && N.reste>0 && N.morts.length<190){ apparaitre(pick(u)); N.reste--; }
+    }
+    /* le colosse arrive au milieu des nuits marquées */
+    if((N.nuit===5||N.nuit===10||N.nuit===15) && !N.bossFait && N.t>N.duree*.45){
+      N.bossFait=true;
+      const b=apparaitre('colosse');
+      b.pv*= N.nuit===5?.55:(N.nuit===10?.85:1.25); b.pvMax=b.pv;
+      annonce('QUELQUE CHOSE DE PLUS GROS','au bout de la rue');
+      SND.rugir(); shake(16);
+    }
+  }
+
+  /* --- les morts --- */
+  const limite=SC.barX+16;
+  for(let i=N.morts.length-1;i>=0;i--){
+    const z=N.morts[i];
+    if(z.flash>0) z.flash-=dt;
+    if(z.boost>0) z.boost-=dt;
+    if(N.aube) continue;
+    /* sonné par un coup de crosse : il recule, il titube, il ne frappe plus */
+    if(z.sonne>0){
+      z.sonne-=dt;
+      if(z.pousse){ const p=Math.min(z.pousse,dt*260*SC.larg); z.x+=p; z.pousse-=p; }
+      z.marche+=dt*6;
+      continue;
+    }
+    const v=z.vit*(z.boost>0?1.7:1)*(1+N.nuit*.012)*SC.larg;
+    z.marche+=dt*v*.09;
+
+    if(z.d.crache){
+      /* il s'arrête au milieu de la rue et vise la fenêtre */
+      const stop=SC.barX+VW*.30;
+      if(z.x>stop){ z.x-=v*dt; }
+      else{
+        z.cd-=dt;
+        if(z.cd<=0){ z.cd=rnd(3.4,5.6);
+          const b=boite(z);
+          N.crachats.push({x:z.x, y:b.y+b.h*.4, vx:-rnd(240,320)*SC.larg,
+            vy:-rnd(60,130), vie:4,
+            d:z.d.deg});
+          SND.cri(pan(z.x));
+        }
+      }
+      continue;
+    }
+    if(z.d.hurle){
+      z.cd-=dt;
+      if(z.cd<=0 && z.x<SC.droite-60){
+        z.cd=rnd(8,13);
+        SND.cri(pan(z.x)); shake(3);
+        for(const o of N.morts) if(Math.abs(o.x-z.x)<420) o.boost=3;
+        for(let k=0;k<2 && N.morts.length<190;k++){ apparaitre('marcheur'); }
+        flot(z.x,boite(z).y-14,'IL APPELLE','#b08ce8',13);
+      }
+    }
+    if(z.x>limite+ (z.d.boss?26:0)){ z.x-=v*dt; }
+    else if(P.barr.pv>0 && !z.d.boss){ taperBarricade(z,dt); }
+    else if(P.barr.pv>0 && z.d.boss){ taperBarricade(z,dt); }
+    else {
+      /* la barricade est tombée : ils remontent vers les gens */
+      z.x-=v*.7*dt;
+      if(z.x<SC.fenX+10){
+        /* il attrape quelqu'un */
+        const cibles=vivants();
+        if(cibles.length){
+          const c=pick(cibles);
+          c.sante=clamp(c.sante-ri(14,26),0,100);
+          c.blesse=Math.min(3,c.blesse+1);
+          flot(SC.fenX+40,SC.solY-70,c.nom+' EST TOUCHÉ','#e0334a',14);
+          SND.degat(); shake(10); flashSang();
+          if(c.sante<=0){
+            c.mort=true; c.cause='a été pris quand la barricade a cédé';
+            P.morts.push(c);
+            annonce(c.nom+' EST TOMBÉ','ils sont dans l\'immeuble');
+            SND.mal();
+            N.tireurs=N.tireurs.filter(t=>t.s!==c);
+            majEquipeNuit();
+          }
+        }
+        N.morts.splice(i,1);
+        if(!vivants().length){ finirNuit(false); return; }
+      }
+    }
+  }
+
+  /* --- les crachats --- */
+  for(let i=N.crachats.length-1;i>=0;i--){
+    const c=N.crachats[i];
+    c.x+=c.vx*dt; c.y+=c.vy*dt; c.vy+=340*dt; c.vie-=dt;
+    if(Math.random()<dt*16) N.parts.push({x:c.x,y:c.y,vx:rnd(-20,20),vy:rnd(-20,20),
+      vie:.3,max:.3,r:2,col:'#7f9a5e',g:0});
+    if(c.x<SC.fenX+30 && c.y>SC.fenY-40 && c.y<SC.fenY+50){
+      const cible=vivants()[0];
+      if(cible){ cible.sante=clamp(cible.sante-c.d,1,100); }
+      flashSang(); shake(6); SND.degat();
+      flot(SC.fenX+50,SC.fenY,'-'+c.d,'#7f9a5e',13);
+      N.crachats.splice(i,1); continue;
+    }
+    if(c.vie<=0||c.y>SC.solY) N.crachats.splice(i,1);
+  }
+
+  /* --- rechargement --- */
+  if(N.rech>0){
+    N.rech-=dt;
+    if(N.rech<=0){
+      const a=ARMES[P.arme];
+      const veut=a.mag-N.mag[P.arme];
+      const pris=Math.min(veut,P.res.munitions);
+      N.mag[P.arme]+=pris; P.res.munitions-=pris;
+      SND.recharge(); majArmesHud();
+    }
+  }
+  /* --- le tir du joueur --- */
+  N.tirT-=dt;
+  if(N.feu && N.rech<=0) tirer();
+
+  /* --- le souffle : il revient vite quand on ne s'en sert pas --- */
+  N.crosseT-=dt;
+  if(N.crosse>0) N.crosse-=dt;
+  N.souffle=clamp(N.souffle+dt*REGEN_SOUFFLE,0,1);
+  if(N.crosseMaintenu && N.crosseT<=0) crosser();
+
+  /* --- les gardes tirent ---
+     Ils ne gaspillent pas : ils attendent que la cible soit à portée utile, et
+     ils laissent toujours de quoi recharger à la fenêtre. Sans ça, deux gardes
+     vident la réserve de la maison en trois nuits — mesuré. */
+  for(const t of N.tireurs){
+    if(t.s.mort) continue;
+    if(t.flash>0) t.flash-=dt;
+    t.cd-=dt;
+    if(t.cd>0) continue;
+    const fatigue=t.s.fatigue/100;
+    t.cd=(3.6-t.s.tir*.30)*(1+fatigue*.9);
+    if(P.res.munitions<=RESERVE_FENETRE) continue;
+    if(t.balles<=0) continue;
+    const c=plusProche();
+    if(!c || c.x>SC.barX+SC.porteeGarde) continue;
+    P.res.munitions--; t.balles--;
+    t.flash=.09;
+    const b=boite(c);
+    /* leur adresse décide de la zone touchée */
+    const r=Math.random()*(t.s.tir+(t.s.fatigue>70?-1:0));
+    const zone=r>3.1?'tete':(r>.7?'corps':'jambe');
+    blesser(c,(24+t.s.tir*10)*(zone==='tete'?3:(zone==='jambe'?.62:1)),zone,'garde');
+    N.balles.push({x:SC.fenX+14,y:SC.fenY+rnd(10,26),
+      tx:b.x+b.w/2, ty:b.y+b.h*(zone==='tete'?.16:.5), vie:.06, max:.06, allie:true});
+    SND.tir('revolver',pan(SC.fenX));
+  }
+
+  /* --- réparer sous le feu --- */
+  N.repare=false;
+  if(N.reparer && !N.aube) N.repare=reparerBarricade(dt);
+
+  /* --- effets --- */
+  for(let i=N.balles.length-1;i>=0;i--){ const b=N.balles[i]; b.vie-=dt; if(b.vie<=0) N.balles.splice(i,1); }
+  for(let i=N.parts.length-1;i>=0;i--){
+    const q=N.parts[i]; q.vie-=dt;
+    if(q.vie<=0){ N.parts.splice(i,1); continue; }
+    q.x+=q.vx*dt; q.y+=q.vy*dt; q.vy+=(q.g||0)*dt;
+    q.vx*=Math.pow(.3,dt);
+  }
+  for(let i=N.eclats.length-1;i>=0;i--){
+    const e=N.eclats[i]; e.vie-=dt;
+    if(e.vie<=0){ N.eclats.splice(i,1); continue; }
+    e.x+=e.vx*dt; e.y+=e.vy*dt; e.vy+=700*dt; e.rot+=e.vr*dt;
+  }
+  for(let i=N.douilles.length-1;i>=0;i--){
+    const d=N.douilles[i]; d.vie-=dt;
+    if(d.vie<=0){ N.douilles.splice(i,1); continue; }
+    d.x+=d.vx*dt; d.y+=d.vy*dt; d.vy+=900*dt; d.rot+=d.vr*dt;
+  }
+  for(let i=N.flot.length-1;i>=0;i--){ const f=N.flot[i]; f.vie-=dt; f.y-=dt*26;
+    if(f.vie<=0) N.flot.splice(i,1); }
+  for(let i=N.corps.length-1;i>=0;i--){ const c=N.corps[i]; c.vie-=dt;
+    if(c.vie<=0) N.corps.splice(i,1); }
+
+  SND.ambiance(.4, clamp(N.morts.length/26,0,1));
+  majHudNuit();
+}
+
+function plusProche(){
+  let b=null, bx=1e9;
+  for(const z of N.morts){ if(z.pv>0 && z.x<bx){ bx=z.x; b=z; } }
+  return b;
+}
+function flashSang(){
+  const e=$('sang'); if(!e) return;
+  e.style.opacity='.9'; setTimeout(()=>e.style.opacity='0',80);
+}
+
+/* --- le tir --- */
+function tirer(){
+  const a=ARMES[P.arme];
+  if(N.tirT>0) return;
+  if(N.mag[P.arme]<=0){
+    if(P.res.munitions>0){ recharger(); }
+    else { SND.sec(); flot(SC.fenX+60,SC.fenY-16,'PLUS RIEN','#e0334a',13); N.tirT=.5; }
+    return;
+  }
+  N.tirT=a.cad;
+  N.mag[P.arme]--; N.tirs++; P.stats.tirs++;
+  const ox=SC.fenX+18, oy=SC.fenY+18;
+  const port=typeof a.port==='function'?a.port(VW):a.port;
+  const base=Math.atan2(vise.y-oy, vise.x-ox);
+  for(let k=0;k<a.plombs;k++){
+    const ang=base+rnd(-a.disp,a.disp)*(k?1.6:1);
+    const im=rayon(ox,oy,ox+Math.cos(ang)*2000,oy+Math.sin(ang)*2000,port,a.deg,a.perce,'joueur');
+    N.balles.push({x:ox,y:oy,tx:im.x,ty:im.y,vie:.05,max:.05});
+  }
+  N.muzz=.06; N.recul=a.plombs>1?9:5;
+  douille(ox,oy);
+  SND.tir(P.arme,pan(ox));
+  shake(a.plombs>1?5:2.2);
+  if(N.mag[P.arme]<=0 && P.res.munitions>0) recharger();
+  majArmesHud();
+}
+/* --- la crosse ---
+   Quand ils sont sur les planches, la carabine ne sert plus à rien : on frappe
+   au canon, on les repousse, on regagne la seconde qui manquait. Ça ne tue
+   presque jamais, ça ne coûte rien, et c'est limité par le souffle — c'est ce
+   qui rend une réserve vide jouable au lieu d'être une fin de partie muette. */
+function crosser(){
+  if(!N||N.fini||!running||N.crosseT>0) return;
+  if(N.souffle<COUT_CROSSE){
+    N.crosseT=.42; SND.sec();
+    flot(SC.fenX+58,SC.fenY-22,'PLUS DE SOUFFLE','#e0334a',12);
+    return;
+  }
+  N.crosseT=.52; N.souffle-=COUT_CROSSE; N.crosse=.20; N.crosses++; P.stats.crosses++;
+  N.recul=8; shake(3.4);
+  const zone=SC.barX+SC.porteeCrosse;
+  let n=0;
+  for(let i=N.morts.length-1;i>=0;i--){
+    const z=N.morts[i];
+    if(z.x>zone || z.pv<=0) continue;
+    n++;
+    const lourd=z.k==='gros'||z.d.boss;
+    z.pousse=(lourd?18:82)*(z.d.bas?1.3:1)*SC.larg;
+    z.sonne=lourd?.30:.85;
+    z.frappe=Math.max(z.frappe,.5);
+    blesser(z, lourd?8:24, 'corps','joueur');
+  }
+  if(n){ SND.bois(pan(SC.barX+30)); SND.impact(pan(SC.barX+40));
+    if(n>2) flot(SC.barX+70,SC.solY-90,'REPOUSSÉS','#d8c79f',13); }
+  else SND.bois(pan(SC.barX));
+}
+
+function recharger(){
+  const a=ARMES[P.arme];
+  if(N.rech>0||N.mag[P.arme]>=a.mag) return;
+  if(P.res.munitions<=0){ SND.sec(); return; }
+  N.rech=a.rech;
+  SND.clic();
+}
+function changerArme(k){
+  if(!P.armes.includes(k)||P.arme===k) return;
+  P.arme=k; N.rech=0; N.tirT=.15;
+  if(N.mag[k]===undefined) N.mag[k]=0;
+  SND.clic();
+  majArmesHud();
+}
+
+function finirNuit(survecu){
+  if(N.fini) return;
+  N.fini=true; running=false;
+  $('hud').classList.remove('on');
+  SND.silence();
+  if(!survecu){ finPartie(false,'La barricade a cédé, et il ne restait plus personne pour la relever.'); return; }
+  /* la nuit passée coûte à tout le monde */
+  for(const s of vivants()){
+    s.fatigue=clamp(s.fatigue+(s.tache==='garde'?26:14),0,100);
+    if(s.tache==='garde') s.moral=clamp(s.moral+3,0,100);
+  }
+  P.nuit++;
+  if(P.nuit>NUITS){ finPartie(true,'La colonne est passée à l\'aube. Vous êtes montés dedans.'); return; }
+  montrerMatin();
+}
+/* ==========================================================================
+   7. ENTRÉES DE NUIT
+   ========================================================================== */
+const vise={x:0,y:0};
+let tactile=false;
+try{ tactile=matchMedia('(pointer:coarse)').matches; }catch(e){}
+addEventListener('mousemove',e=>{ vise.x=e.clientX; vise.y=e.clientY; });
+cv.addEventListener('mousedown',e=>{ if(e.button!==0||ecran!=='nuit') return;
+  vise.x=e.clientX; vise.y=e.clientY; if(N) N.feu=true; });
+addEventListener('mouseup',e=>{ if(e.button===0&&N) N.feu=false; });
+addEventListener('mousedown',e=>{ if(e.button===2&&ecran==='nuit'&&N){ N.crosseMaintenu=true; crosser(); } });
+addEventListener('mouseup',e=>{ if(e.button===2&&N) N.crosseMaintenu=false; });
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+cv.addEventListener('touchstart',e=>{
+  tactile=true;
+  if(ecran!=='nuit'||!N) return;
+  const t=e.changedTouches[0];
+  vise.x=t.clientX; vise.y=t.clientY; N.feu=true;
+  if(e.cancelable) e.preventDefault();
+},{passive:false});
+cv.addEventListener('touchmove',e=>{
+  if(ecran!=='nuit'||!N) return;
+  const t=e.changedTouches[0]; vise.x=t.clientX; vise.y=t.clientY;
+  if(e.cancelable) e.preventDefault();
+},{passive:false});
+const finTouche=()=>{ if(N) N.feu=false; };
+cv.addEventListener('touchend',finTouche); cv.addEventListener('touchcancel',finTouche);
+addEventListener('blur',()=>{ if(N){ N.feu=false; N.reparer=false; N.crosseMaintenu=false; } });
+
+addEventListener('keydown',e=>{
+  if(e.code==='Escape'||e.code==='KeyP'){ if(ecran==='nuit') basculerPause(); return; }
+  if(ecran!=='nuit'||!N||!running) return;
+  if(['Space','KeyE','Digit1','Digit2','Digit3','Digit4'].includes(e.code)) e.preventDefault();
+  if(e.code==='KeyR') recharger();
+  else if(e.code==='KeyE'){ if(!e.repeat) N.crosseMaintenu=true; crosser(); }
+  else if(e.code==='Space') N.reparer=true;
+  else if(e.code.startsWith('Digit')){
+    const i=+e.code.slice(5)-1;
+    if(ORDRE_ARMES[i]) changerArme(ORDRE_ARMES[i]);
+  }
+});
+addEventListener('keyup',e=>{ if(!N) return;
+  if(e.code==='Space') N.reparer=false;
+  if(e.code==='KeyE') N.crosseMaintenu=false; });
+
+/* ==========================================================================
+   8. RENDU DE NUIT
+   ==========================================================================
+   Vue de côté, caméra fixe. Tout est en silhouette : c'est ce qui rend une
+   rue nocturne lisible, et ça évite d'avoir à dessiner des visages qu'on ne
+   verrait pas. La lumière vient de trois endroits seulement — la lune, les
+   incendies au fond, et le canon quand il crache. */
+let etoiles=null, rimSeuil=1e9;
+function dessinerNuit(){
+  const sx=secousse?rnd(-secousse,secousse):0, sy=secousse?rnd(-secousse,secousse)*.6:0;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.save();
+  ctx.translate(sx,sy);
+
+  const jour=N&&N.aube? clamp((N.t-N.duree)/3.4,0,1) : 0;
+
+  /* ---------- ciel ---------- */
+  const g=ctx.createLinearGradient(0,0,0,SC.solY);
+  if(jour>0){
+    g.addColorStop(0,mix('#0a1020','#2a3b58',jour));
+    g.addColorStop(.62,mix('#16233a','#8a6a58',jour));
+    g.addColorStop(1,mix('#2a2438','#e0a070',jour));
+  } else {
+    g.addColorStop(0,'#070c18'); g.addColorStop(.6,'#101a2c'); g.addColorStop(1,'#1e2438');
+  }
+  ctx.fillStyle=g; ctx.fillRect(-40,-40,VW+80,SC.solY+40);
+
+  /* étoiles et lune */
+  if(!etoiles){
+    etoiles=[];
+    for(let i=0;i<90;i++) etoiles.push({x:hash2(i,1,3)*VW, y:hash2(i,2,3)*SC.cielH*.7,
+      r:hash2(i,3,3)*1.1+.3, s:hash2(i,4,3)});
+  }
+  ctx.fillStyle='#cfe0ff';
+  for(const e of etoiles){
+    ctx.globalAlpha=(1-jour)*(.25+.45*Math.abs(Math.sin((N?N.t:0)*.6+e.s*9)))*e.s;
+    ctx.fillRect(e.x,e.y,e.r,e.r);
+  }
+  ctx.globalAlpha=1;
+  const lx=VW*.80, ly=SC.cielH*.13;
+  ctx.globalAlpha=1-jour*.85;
+  let lg2=ctx.createRadialGradient(lx,ly,0,lx,ly,VH*.11);
+  lg2.addColorStop(0,'rgba(198,214,239,.22)'); lg2.addColorStop(1,'rgba(198,214,239,0)');
+  ctx.fillStyle=lg2; ctx.beginPath(); ctx.arc(lx,ly,VH*.11,0,TAU); ctx.fill();
+  /* le croissant : on redécoupe avec le ciel lui-même, sinon le disque d'ombre
+     se voit comme une tache plus claire que la nuit */
+  ctx.fillStyle='#e8eef8';
+  ctx.beginPath(); ctx.arc(lx,ly,VH*.030,0,TAU); ctx.fill();
+  ctx.save(); ctx.beginPath(); ctx.arc(lx,ly,VH*.031,0,TAU); ctx.clip();
+  ctx.fillStyle=g;
+  ctx.beginPath(); ctx.arc(lx-VH*.013,ly-VH*.009,VH*.029,0,TAU); ctx.fill();
+  ctx.restore();
+  ctx.globalAlpha=1;
+
+  /* ---------- la ville au loin, et ce qui y brûle ---------- */
+  villeLointaine(jour);
+  /* ---------- la rue ---------- */
+  rue(jour);
+  /* ---------- cadavres ---------- */
+  for(const c of N.corps){
+    ctx.save(); ctx.globalAlpha=clamp(c.vie/3,0,1)*.85;
+    ctx.translate(c.x,c.y); ctx.rotate(c.a);
+    ctx.fillStyle='#0d1016';
+    ctx.beginPath(); ctx.ellipse(0,-4*c.e,26*c.e,7*c.e,0,0,TAU); ctx.fill();
+    if(c.tete){ ctx.fillStyle='rgba(120,16,26,.5)';
+      ctx.beginPath(); ctx.ellipse(-18*c.e,-2*c.e,13*c.e,5*c.e,0,0,TAU); ctx.fill(); }
+    ctx.restore();
+  }
+  ctx.globalAlpha=1;
+
+  /* ---------- les morts, du fond vers l'avant ----------
+     Le liseré double le coût d'une silhouette. Passé une certaine foule — la
+     quinzième nuit en lâche cent quarante — on le réserve à ceux qui sont
+     assez près pour qu'on le voie. Mesuré : 135 images au-dessus de 20 ms
+     sans ce garde-fou, une poignée avec. */
+  rimSeuil = N.morts.length>28 ? SC.barX+VW*.52 : 1e9;
+  const tri=N.morts.slice().sort((a,b)=>a.z-b.z);
+  /* ceux qui attendent leur tour hors cadre, à droite, ne sont pas peints :
+     une nuit tardive en garde plusieurs dizaines en réserve derrière le bord */
+  for(const z of tri){ if(z.x>VW+70 || z.x<-90) continue; dessinerMort(z); }
+
+  /* ---------- la barricade ---------- */
+  barricade();
+
+  /* ---------- l'immeuble et les gens ---------- */
+  immeuble(jour);
+
+  /* ---------- projectiles et éclats ---------- */
+  ctx.save(); ctx.globalCompositeOperation='lighter';
+  for(const b of N.balles){
+    const a=clamp(b.vie/b.max,0,1);
+    ctx.strokeStyle=b.allie?'rgba(160,200,255,'+(a*.7)+')':'rgba(255,228,170,'+(a*.95)+')';
+    ctx.lineWidth=b.allie?1.4:2.2;
+    ctx.beginPath(); ctx.moveTo(b.x,b.y); ctx.lineTo(b.tx,b.ty); ctx.stroke();
+  }
+  if(N.muzz>0){
+    const ox=SC.fenX+18, oy=SC.fenY+18;
+    const a=Math.atan2(vise.y-oy,vise.x-ox);
+    ctx.save(); ctx.translate(ox,oy); ctx.rotate(a);
+    ctx.globalAlpha=clamp(N.muzz*15,0,1);
+    ctx.fillStyle='#fff0c0';
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(30,-11); ctx.lineTo(46,0); ctx.lineTo(30,11);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(255,176,46,.5)';
+    ctx.beginPath(); ctx.arc(8,0,18,0,TAU); ctx.fill();
+    ctx.restore();
+    const fg=ctx.createRadialGradient(ox,oy,0,ox,oy,VW*.32);
+    fg.addColorStop(0,'rgba(255,190,110,.22)'); fg.addColorStop(1,'rgba(255,170,90,0)');
+    ctx.fillStyle=fg; ctx.fillRect(0,0,VW,VH);
+  }
+  ctx.restore();
+
+  for(const c of N.crachats){
+    ctx.fillStyle='rgba(140,180,90,.9)';
+    ctx.beginPath(); ctx.arc(c.x,c.y,5,0,TAU); ctx.fill();
+  }
+  for(const q of N.parts){
+    ctx.globalAlpha=clamp(q.vie/q.max,0,1)*.95;
+    ctx.fillStyle=q.col;
+    ctx.fillRect(q.x-q.r/2,q.y-q.r/2,q.r,q.r);
+  }
+  ctx.globalAlpha=1;
+  ctx.fillStyle='#6b5a3c';
+  for(const e of N.eclats){
+    ctx.save(); ctx.translate(e.x,e.y); ctx.rotate(e.rot);
+    ctx.globalAlpha=clamp(e.vie/e.max,0,1);
+    ctx.fillRect(-3,-1.2,6,2.4); ctx.restore();
+  }
+  ctx.fillStyle='#c9a24a';
+  for(const d of N.douilles){
+    ctx.save(); ctx.translate(d.x,d.y); ctx.rotate(d.rot);
+    ctx.globalAlpha=clamp(d.vie/1.6,0,1);
+    ctx.fillRect(-2,-.9,4,1.8); ctx.restore();
+  }
+  ctx.globalAlpha=1;
+
+  /* ---------- chiffres ---------- */
+  ctx.textAlign='center';
+  for(const f of N.flot){
+    ctx.globalAlpha=clamp(f.vie/.4,0,1);
+    ctx.font='700 '+f.taille+'px '+FONT;
+    ctx.fillStyle='rgba(0,0,0,.7)'; ctx.fillText(f.t,f.x+1,f.y+1);
+    ctx.fillStyle=f.col; ctx.fillText(f.t,f.x,f.y);
+  }
+  ctx.globalAlpha=1;
+  ctx.restore();
+
+  /* ---------- voile et réticule ---------- */
+  const vg=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*.30,VW/2,VH/2,Math.max(VW,VH)*.72);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,'+(.34-jour*.24)+')');
+  ctx.fillStyle=vg; ctx.fillRect(0,0,VW,VH);
+  if(N.repare){
+    ctx.fillStyle='rgba(198,214,239,.07)'; ctx.fillRect(0,0,VW,VH);
+  }
+  reticule();
+}
+function mix(a,b,t){
+  const pa=parseInt(a.slice(1),16), pb=parseInt(b.slice(1),16);
+  const r=Math.round(lerp((pa>>16)&255,(pb>>16)&255,t));
+  const v=Math.round(lerp((pa>>8)&255,(pb>>8)&255,t));
+  const u=Math.round(lerp(pa&255,pb&255,t));
+  return 'rgb('+r+','+v+','+u+')';
+}
+
+/* --- la ville derrière la rue ---
+   Trois plans, du plus loin au plus proche, et le plus proche monte presque
+   jusqu'en haut du cadre : dans une rue on ne voit pas le ciel, on voit des
+   murs. Sans ça, la moitié de l'écran est vide et la scène ressemble à une
+   maquette posée sur une table. Les trois plans ne bougent jamais : on les
+   peint une fois dans un calque, en deux versions (nuit / petit matin), et on
+   fond de l'une à l'autre à l'aube. */
+let SKY=null;
+const PLANS=[
+ {h:.58, w0:42, w1:96,  ecart:7,  nuit:'#0a101c', aube:'#2c3446', fen:.10, dec:.030, dens:.74},
+ {h:.86, w0:56, w1:124, ecart:9,  nuit:'#070c16', aube:'#222a3a', fen:.14, dec:.012, dens:.68},
+ {h:1.02,w0:74, w1:158, ecart:12, nuit:'#04070e', aube:'#151b27', fen:.09, dec:.000, dens:.80}
+];
+function peindreVille(){
+  SKY=[0,1].map(mode=>{
+    const cv2=document.createElement('canvas');
+    cv2.width=Math.max(1,Math.round(VW)); cv2.height=Math.max(1,Math.round(SC.solY+2));
+    const c2=cv2.getContext('2d');
+    const base=SC.solY;
+    PLANS.forEach((p,c)=>{
+      const h0=SC.cielH*p.h, dec=VW*p.dec;
+      const mur=mode?p.aube:p.nuit;
+      let x=-40, i=0;
+      while(x<VW+40){
+        const w=p.w0+hash2(i,c,11)*(p.w1-p.w0);
+        const h=h0*(.34+hash2(i,c+5,11)*.78);
+        c2.fillStyle=mur;
+        c2.fillRect(x+dec,base-h,w,h);
+        /* un toit qui dépasse, une cage d'escalier : ça casse les créneaux */
+        if(hash2(i,c+2,19)>.72){
+          const bw=w*.30, bh=h0*.07;
+          c2.fillRect(x+dec+w*.2,base-h-bh,bw,bh);
+        }
+        /* fenêtres encore allumées — de plus en plus rares vers l'avant */
+        c2.fillStyle='rgba(255,190,120,'+(mode?p.fen*.28:p.fen).toFixed(3)+')';
+        const cols=Math.max(2,Math.floor(w/17)), rangs=Math.max(3,Math.floor(h/26));
+        for(let a=0;a<cols;a++) for(let b=0;b<rangs;b++){
+          if(hash2(i*31+a*7+b,c,13)<p.dens) continue;
+          c2.fillRect(x+dec+7+a*(w-12)/cols, base-h+11+b*(h-16)/rangs, 3.6,5);
+        }
+        x+=w+p.ecart; i++;
+      }
+      /* le plan s'assombrit vers le bas : la rue est un puits */
+      const og=c2.createLinearGradient(0,base-h0,0,base);
+      og.addColorStop(0,'rgba(0,0,0,0)'); og.addColorStop(1,'rgba(0,0,0,'+(.30+c*.12)+')');
+      c2.fillStyle=og; c2.fillRect(0,base-h0,VW,h0);
+    });
+    return cv2;
+  });
+}
+function villeLointaine(jour){
+  const base=SC.solY;
+  if(!SKY||SKY[0].width!==Math.round(VW)||SKY[0].height!==Math.round(SC.solY+2)) peindreVille();
+  ctx.globalAlpha=1;      ctx.drawImage(SKY[0],0,0);
+  if(jour>0){ ctx.globalAlpha=jour; ctx.drawImage(SKY[1],0,0); ctx.globalAlpha=1; }
+  /* câbles en travers de la rue : ils donnent la profondeur d'un coup */
+  ctx.strokeStyle='rgba(0,0,0,'+(.55-jour*.25)+')'; ctx.lineWidth=1.6;
+  for(let k=0;k<3;k++){
+    const y0=SC.cielH*(.30+k*.085);
+    ctx.beginPath(); ctx.moveTo(-20,y0);
+    ctx.quadraticCurveTo(VW*.5,y0+VH*(.035+k*.012),VW+20,y0-VH*.01);
+    ctx.stroke();
+  }
+  /* incendies au loin : deux ou trois lueurs qui montent */
+  const t=N?N.t:0;
+  for(let k=0;k<3;k++){
+    const fx=VW*(.24+k*.29)+Math.sin(t*.1+k)*8;
+    const fy=base-SC.cielH*(.18+hash2(k,9,17)*.12);
+    const R=VH*(.10+hash2(k,3,17)*.09)*(.9+.1*Math.sin(t*2.2+k*2));
+    const fg=ctx.createRadialGradient(fx,fy,0,fx,fy,R);
+    const al=(.30-jour*.2)*(0.7+0.3*Math.sin(t*3+k));
+    fg.addColorStop(0,'rgba(255,140,50,'+al.toFixed(3)+')');
+    fg.addColorStop(.5,'rgba(220,80,30,'+(al*.4).toFixed(3)+')');
+    fg.addColorStop(1,'rgba(180,50,20,0)');
+    ctx.fillStyle=fg;
+    ctx.beginPath(); ctx.arc(fx,fy,R,0,TAU); ctx.fill();
+  }
+}
+
+/* --- la rue ---
+   Elle porte les silhouettes : il lui faut un trottoir, des épaves et deux
+   sources de lumière basse, sinon on ne sait plus où se pose un pied. */
+function rue(jour){
+  const y=SC.solY, E=SC.ech, t=N?N.t:fondT;
+  /* l'autre trottoir, juste derrière la ligne de sol */
+  ctx.fillStyle=mix('#0f1118','#332f2a',jour);
+  ctx.fillRect(-40,y-8*E,VW+80,8*E);
+  ctx.fillStyle='rgba(255,255,255,.05)'; ctx.fillRect(-40,y-8*E,VW+80,1.5);
+
+  /* une carcasse de bus en travers, de l'autre côté */
+  const bx=VW*.60, bw=250*E, bh=64*E, by=y-8*E;
+  ctx.fillStyle=mix('#0a0e15','#2a2724',jour);
+  ctx.fillRect(bx,by-bh,bw,bh);
+  ctx.fillRect(bx+bw*.06,by-bh-14*E,bw*.5,14*E);
+  ctx.fillStyle='rgba(140,170,210,'+(.07*(1-jour)+.04)+')';
+  for(let k=0;k<6;k++) ctx.fillRect(bx+bw*(.07+k*.145),by-bh*.78,bw*.10,bh*.34);
+  ctx.fillStyle='rgba(0,0,0,.65)';
+  ctx.beginPath(); ctx.arc(bx+bw*.2,by,11*E,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(bx+bw*.82,by,11*E,0,TAU); ctx.fill();
+
+  /* la chaussée */
+  const g=ctx.createLinearGradient(0,y,0,VH);
+  g.addColorStop(0,mix('#15161d','#3a3630',jour));
+  g.addColorStop(1,mix('#08090d','#201b18',jour));
+  ctx.fillStyle=g; ctx.fillRect(-40,y,VW+80,VH-y+40);
+  ctx.fillStyle='rgba(255,255,255,.05)'; ctx.fillRect(-40,y,VW+80,2);
+  ctx.fillStyle='rgba(220,200,150,.075)';
+  for(let x=-((t*4)%92);x<VW+40;x+=92) ctx.fillRect(x,y+(VH-y)*.42,40,3);
+  /* débris fixes */
+  for(let i=0;i<9;i++){
+    const x=hash2(i,21,23)*VW, w=(26+hash2(i,22,23)*60)*E;
+    ctx.fillStyle='rgba(6,8,12,.6)';
+    ctx.fillRect(x,y+(VH-y)*(.16+hash2(i,23,23)*.55),w,3.5*E);
+  }
+  /* le bidon qui brûle : la seule lumière chaude au niveau du sol */
+  const dx=VW*.40, dy=y-6*E, vac=.86+.14*Math.sin(t*7.3)+.06*Math.sin(t*17);
+  const dg=ctx.createRadialGradient(dx,dy-26*E,0,dx,dy-26*E,VH*.30*vac);
+  dg.addColorStop(0,'rgba(255,150,60,'+(.26*(1-jour)*vac).toFixed(3)+')');
+  dg.addColorStop(.45,'rgba(220,90,34,'+(.10*(1-jour)*vac).toFixed(3)+')');
+  dg.addColorStop(1,'rgba(180,60,20,0)');
+  ctx.fillStyle=dg; ctx.beginPath(); ctx.arc(dx,dy-26*E,VH*.30*vac,0,TAU); ctx.fill();
+  ctx.fillStyle=mix('#100d0a','#2c231b',jour);
+  ctx.fillRect(dx-10*E,dy-26*E,20*E,26*E);
+  ctx.fillStyle='rgba(255,150,60,'+(.22*vac*(1-jour)).toFixed(3)+')';
+  ctx.fillRect(dx-10*E,dy-26*E,20*E,2*E);
+  ctx.save(); ctx.globalCompositeOperation='lighter';
+  /* deux langues, l'une dans l'autre : une flamme pleine fait une borne */
+  ctx.fillStyle='rgba(230,120,40,'+(.34*vac*(1-jour)).toFixed(3)+')';
+  ctx.beginPath();
+  ctx.moveTo(dx-7*E,dy-26*E);
+  ctx.quadraticCurveTo(dx-4*E,dy-(38+6*Math.sin(t*9))*E,dx-1*E,dy-(44+7*Math.sin(t*6))*E);
+  ctx.quadraticCurveTo(dx+4*E,dy-(36+6*Math.cos(t*8))*E,dx+7*E,dy-26*E);
+  ctx.fill();
+  ctx.fillStyle='rgba(255,206,120,'+(.40*vac*(1-jour)).toFixed(3)+')';
+  ctx.beginPath();
+  ctx.moveTo(dx-4*E,dy-26*E);
+  ctx.quadraticCurveTo(dx-2*E,dy-(33+5*Math.cos(t*11))*E,dx,dy-(37+6*Math.sin(t*13))*E);
+  ctx.quadraticCurveTo(dx+3*E,dy-(31+4*Math.sin(t*10))*E,dx+4*E,dy-26*E);
+  ctx.fill();
+  ctx.restore();
+
+  /* lampadaire encore allumé, à droite */
+  const px=VW*.80;
+  ctx.fillStyle=mix('#0a0d14','#2a2622',jour);
+  ctx.fillRect(px-3,y-VH*.42,6,VH*.42);
+  ctx.fillRect(px-3,y-VH*.42,46,5);
+  const pg=ctx.createRadialGradient(px+38,y-VH*.41,0,px+38,y-VH*.41,VH*.34);
+  pg.addColorStop(0,'rgba(255,214,140,'+(.19*(1-jour))+')');
+  pg.addColorStop(1,'rgba(255,214,140,0)');
+  ctx.fillStyle=pg; ctx.beginPath(); ctx.arc(px+38,y-VH*.41,VH*.34,0,TAU); ctx.fill();
+}
+
+/* --- un mort, en silhouette ---
+   Un noir plein, et un seul liseré à droite : la lumière vient du bidon et du
+   lampadaire, tous deux à droite. Pas de contour complet — un trait tout autour
+   donne un bonhomme de dessin animé, un liseré d'un seul côté donne un corps.
+   La posture fait le reste : ils sont cassés en avant, les bras devant, la tête
+   rentrée dans les épaules. */
+function dessinerMort(z){
+  const b=boite(z), e=b.e;
+  const cx=b.x+b.w/2, base=b.sy;
+  const t=z.marche, d=z.d, gr=z.graine||0;
+  const rampe=d.bas||z.jambe;
+  const clair=z.flash>0;
+  const noir=clair?'#efe4de':(d.boss?'#191114':'#080b10');
+  const liser=clair?'#ffffff':d.col;
+
+  ctx.save();
+  ctx.lineJoin='round'; ctx.lineCap='round';
+  /* ombre portée, écrasée */
+  ctx.fillStyle='rgba(0,0,0,.42)';
+  ctx.beginPath(); ctx.ellipse(cx,base,b.w*.62,4.5*e,0,0,TAU); ctx.fill();
+
+  /* Le corps est tracé deux fois : une fois décalé vers la droite dans la
+     couleur du liseré, une fois par-dessus en noir. Ce qui dépasse à droite et
+     en haut fait la lumière du bidon et du lampadaire. Un contour tracé à la
+     main finit toujours par se décoller du corps — celui-ci ne peut pas. */
+  const H=b.h, L=b.w;
+  const pen=(d.pen||.1)+(gr-.5)*.06;
+  const ep=(d.ep||1), tet=(d.tet||1), bra=(d.bra||.85);
+  const pas=Math.sin(t*3+gr*6), pas2=Math.sin(t*3+gr*6+Math.PI);
+  const respire=Math.sin(t*1.7+gr*9)*H*.012;
+  const hanche=base-H*.44;
+  const epauleY=base-H*.76-respire;
+  const epauleX=cx-H*pen;
+  const teteX=epauleX-H*pen*.75, teteY=epauleY-H*.085*tet;
+  const rt=L*.30*tet, incl=(gr-.5)*.45+pen*1.1;
+  const g1=L*.34*ep, g2=L*.40*ep;
+  const osc=Math.sin(t*2.4+gr*4)*H*.030;
+  const h=b.h*(d.bas?1:.52), ond=Math.sin(t*2.6)*3*e;
+  const traine=Math.sin(t*3)*4*e;
+
+  function tracer(col){
+    ctx.fillStyle=col; ctx.strokeStyle=col;
+    if(rampe){
+      /* Il rampe. Sans jambes traînées derrière ni tête relevée, la forme se
+         lit comme un tas sur la chaussée — il faut qu'on voie ce qui tire. */
+      ctx.lineWidth=Math.max(1.8,3*e);
+      /* les jambes mortes, derrière, écartées */
+      ctx.beginPath();
+      ctx.moveTo(cx+L*.35,base-h*.30);
+      ctx.quadraticCurveTo(cx+L*1.0,base-h*.16,cx+L*1.5,base-h*.02);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx+L*.35,base-h*.26);
+      ctx.quadraticCurveTo(cx+L*.95,base-h*.30,cx+L*1.35,base-h*.26+ond*.6);
+      ctx.stroke();
+      /* le tronc : épais devant, effilé derrière */
+      ctx.beginPath();
+      ctx.moveTo(cx+L*.50,base-h*.10);
+      ctx.quadraticCurveTo(cx+L*.10,base-h*.62+ond,cx-L*.30,base-h*.70);
+      ctx.quadraticCurveTo(cx-L*.62,base-h*.74,cx-L*.72,base-h*.44);
+      ctx.quadraticCurveTo(cx-L*.30,base-h*.06,cx+L*.50,base-h*.10);
+      ctx.closePath(); ctx.fill();
+      /* le bras qui accroche le bitume, et l'autre replié sous la poitrine */
+      ctx.lineWidth=Math.max(2,3.4*e);
+      ctx.beginPath();
+      ctx.moveTo(cx-L*.35,base-h*.56);
+      ctx.quadraticCurveTo(cx-L*.95,base-h*.62,cx-L*1.30,base-h*.05-traine);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx-L*.20,base-h*.46);
+      ctx.quadraticCurveTo(cx-L*.62,base-h*.30,cx-L*.86,base-h*.06+traine*.4);
+      ctx.stroke();
+      /* la tête relevée : elle regarde la barricade */
+      ctx.save();
+      ctx.translate(cx-L*.72,base-h*.72); ctx.rotate(-.42);
+      ctx.beginPath(); ctx.ellipse(0,0,L*.27,h*.24,0,0,TAU); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-L*.24,h*.02); ctx.lineTo(-L*.10,h*.26); ctx.lineTo(L*.10,h*.06);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+      return;
+    }
+    /* jambes : elles partent d'un bassin, pas d'un point */
+    ctx.lineWidth=Math.max(2,4.8*e);
+    ctx.beginPath();
+    ctx.moveTo(cx-L*.14,hanche);
+    ctx.quadraticCurveTo(cx-L*.14+pas*L*.18,base-H*.20,cx+pas*L*.32,base);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx+L*.14,hanche);
+    ctx.quadraticCurveTo(cx+L*.14+pas2*L*.18,base-H*.20,cx+pas2*L*.32,base);
+    ctx.stroke();
+    /* torse : épaules tombantes, ourlet en lambeaux */
+    ctx.beginPath();
+    ctx.moveTo(cx-L*.30,hanche+H*.03);
+    ctx.lineTo(epauleX-g2,epauleY+H*.04);
+    ctx.quadraticCurveTo(epauleX-g2*.55,epauleY-H*.050,epauleX,epauleY-H*.032);
+    ctx.quadraticCurveTo(epauleX+g1*.7,epauleY-H*.055,epauleX+g1,epauleY+H*.05);
+    ctx.lineTo(cx+L*.32,hanche+H*.03);
+    ctx.lineTo(cx+L*.19,hanche-H*.025);
+    ctx.lineTo(cx+L*.07,hanche+H*.045);
+    ctx.lineTo(cx-L*.07,hanche-H*.018);
+    ctx.lineTo(cx-L*.19,hanche+H*.040);
+    ctx.closePath(); ctx.fill();
+    /* bras devant, l'un plus haut que l'autre */
+    ctx.lineWidth=Math.max(1.8,4*e);
+    ctx.beginPath();
+    ctx.moveTo(epauleX-g2*.7,epauleY+H*.03);
+    ctx.quadraticCurveTo(epauleX-L*.55*bra,epauleY+H*.11,epauleX-L*.98*bra,epauleY+H*.10+osc);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(epauleX-g2*.25,epauleY+H*.06);
+    ctx.quadraticCurveTo(epauleX-L*.50*bra,epauleY+H*.19,epauleX-L*.88*bra,epauleY+H*.05-osc);
+    ctx.stroke();
+    /* cou et tête, rentrée dans les épaules */
+    ctx.lineWidth=Math.max(2,4.4*e);
+    ctx.beginPath(); ctx.moveTo(epauleX,epauleY-H*.01); ctx.lineTo(teteX,teteY+rt*.5); ctx.stroke();
+    ctx.save(); ctx.translate(teteX,teteY); ctx.rotate(-incl);
+    ctx.beginPath(); ctx.ellipse(0,0,rt*.90,rt*1.04,0,0,TAU); ctx.fill();
+    /* la mâchoire décrochée : c'est elle qui dit que ce n'est plus quelqu'un */
+    if(d.hurle||d.crache||gr>.5){
+      ctx.beginPath();
+      ctx.moveTo(-rt*.58,rt*.28); ctx.lineTo(-rt*.22,rt*(d.hurle?1.55:1.10));
+      ctx.lineTo(rt*.34,rt*.40); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  if(clair || z.x<rimSeuil){
+    ctx.save();
+    ctx.translate(1.4*e,-1.0*e);
+    ctx.globalAlpha=clair?1:.30;
+    tracer(liser);
+    ctx.restore();
+    ctx.globalAlpha=1;
+  }
+  tracer(noir);
+
+  /* les yeux : un reflet, pas des phares. Seulement quand ils sont sur nous. */
+  const prox=clamp(1-(z.x-SC.barX)/(VW*.34),0,1);
+  if(prox>.04 && !rampe){
+    ctx.globalAlpha=prox*(d.boss?.7:.34);
+    ctx.fillStyle=d.boss?'#ff7a5a':'#cdd6b2';
+    ctx.save(); ctx.translate(teteX,teteY); ctx.rotate(-incl);
+    ctx.fillRect(-rt*.44,-rt*.18,1.5*e,1.5*e);
+    ctx.fillRect(-rt*.04,-rt*.22,1.5*e,1.5*e);
+    ctx.restore();
+    ctx.globalAlpha=1;
+  }
+  ctx.restore();
+  barreVie(z,b,e,cx);
+}
+/* seuls ceux qui encaissent vraiment méritent une jauge */
+function barreVie(z,b,e,cx){
+  if(!(z.d.boss||z.d.pv>150)) return;
+  const p=clamp(z.pv/z.pvMax,0,1);
+  if(p>=1) return;
+  const w=Math.min(b.w*1.25,VW*.16), h=Math.max(2.5,3*e);
+  const y=b.y-9*e;
+  ctx.fillStyle='rgba(0,0,0,.65)'; ctx.fillRect(cx-w/2,y,w,h);
+  ctx.fillStyle=z.d.boss?'#e0334a':'#b06a2b';
+  ctx.fillRect(cx-w/2,y,w*p,h);
+}
+
+/* --- la barricade --- */
+function barricade(){
+  const x=SC.barX, y=SC.solY, h=98*SC.ech, w=28*SC.ech;
+  const p=clamp(P.barr.pv/P.barr.max,0,1);
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,.4)';
+  ctx.fillRect(x-w*.6,y-4,w*1.4,5);
+  /* planches : elles tombent au fur et à mesure */
+  const n=7;
+  for(let i=0;i<n;i++){
+    const f=i/(n-1);
+    if(f>p+.14) continue;
+    const yy=y-h*(.10+f*.92);
+    const dec=(hash2(i,4,29)-.5)*10;
+    const ang=(hash2(i,5,29)-.5)*.34;
+    ctx.save(); ctx.translate(x+dec,yy); ctx.rotate(ang);
+    ctx.fillStyle= f>p-.10 ? '#3a2c1e' : '#4a3826';
+    ctx.fillRect(-w*.85,-5,w*1.7,9);
+    ctx.fillStyle='rgba(255,220,160,.08)';
+    ctx.fillRect(-w*.85,-5,w*1.7,2);
+    ctx.restore();
+  }
+  /* meubles et tôles en bas */
+  ctx.fillStyle='#2a2118';
+  ctx.fillRect(x-w*.8,y-h*.22,w*1.6,h*.22);
+  ctx.fillStyle='rgba(255,255,255,.05)';
+  ctx.fillRect(x-w*.8,y-h*.22,w*1.6,2);
+  if(P.barr.pv<=0){
+    ctx.fillStyle='rgba(224,51,74,'+(.18+.12*Math.sin(N.t*7))+')';
+    ctx.fillRect(x-w,y-h,w*2,h);
+  }
+  ctx.restore();
+}
+
+/* --- l'immeuble, la fenêtre, et ceux qui sont dedans --- */
+function immeuble(jour){
+  const w=SC.fenX+VW*.055;
+  ctx.fillStyle=mix('#0d1119','#2e2a28',jour);
+  ctx.fillRect(-40,-40,w+40,SC.solY+42);
+  ctx.fillStyle='rgba(255,255,255,.04)';
+  ctx.fillRect(w-2,-40,2,SC.solY+42);
+  /* quelques fenêtres barricadées */
+  for(let i=0;i<6;i++){
+    const fy=SC.solY-VH*.13-i*VH*.145;
+    if(fy<-VH*.08) break;
+    const fx=VW*.026+ (i%2)*VW*.050;
+    ctx.fillStyle='rgba(0,0,0,.55)';
+    ctx.fillRect(fx,fy,VW*.040,VH*.082);
+    ctx.strokeStyle='rgba(90,72,52,.7)'; ctx.lineWidth=3;
+    for(let k=0;k<2;k++){
+      ctx.beginPath();
+      ctx.moveTo(fx-2,fy+VH*.022+k*VH*.032);
+      ctx.lineTo(fx+VW*.042,fy+VH*.017+k*VH*.032+ (k?4:-3));
+      ctx.stroke();
+    }
+  }
+  /* la fenêtre du tireur */
+  const E=SC.ech;
+  const fx=SC.fenX-34*E, fy=SC.fenY-38*E, fw=84*E, fh=92*E;
+  ctx.fillStyle=mix('#1a1408','#3a3020',jour);
+  ctx.fillRect(fx,fy,fw,fh);
+  ctx.fillStyle='rgba(0,0,0,.55)';
+  ctx.fillRect(fx,fy,fw,6*E); ctx.fillRect(fx,fy+fh-5*E,fw,5*E);
+  const lg=ctx.createRadialGradient(SC.fenX,SC.fenY,0,SC.fenX,SC.fenY,VH*.15);
+  lg.addColorStop(0,'rgba(255,196,110,.17)'); lg.addColorStop(1,'rgba(255,196,110,0)');
+  ctx.fillStyle=lg; ctx.beginPath(); ctx.arc(SC.fenX,SC.fenY,VH*.15,0,TAU); ctx.fill();
+
+  /* le tireur */
+  const ox=SC.fenX+18, oy=SC.fenY+18;
+  const a=Math.atan2(vise.y-oy,vise.x-ox);
+  ctx.save();
+  ctx.translate(SC.fenX-N.recul*Math.cos(a)*.4, SC.fenY-N.recul*Math.sin(a)*.4);
+  ctx.scale(E,E);
+  ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.fillStyle='#080b10';
+  /* buste : les épaules montent vers l'arme */
+  ctx.beginPath();
+  ctx.moveTo(-13,26); ctx.lineTo(-9,-4);
+  ctx.quadraticCurveTo(-2,-13,9,-9);
+  ctx.lineTo(13,26); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.arc(3,-17,8.5,0,TAU); ctx.fill();
+  /* les deux bras tiennent la ligne de tir */
+  ctx.strokeStyle='#080b10'; ctx.lineWidth=6.5;
+  ctx.beginPath(); ctx.moveTo(2,-4); ctx.lineTo(2+Math.cos(a)*17,-4+Math.sin(a)*17); ctx.stroke();
+  ctx.lineWidth=5;
+  ctx.beginPath(); ctx.moveTo(-4,2); ctx.lineTo(-4+Math.cos(a)*26,2+Math.sin(a)*26); ctx.stroke();
+  /* le canon */
+  ctx.strokeStyle='#1d2430'; ctx.lineWidth=3.6;
+  ctx.beginPath(); ctx.moveTo(2+Math.cos(a)*10,-2+Math.sin(a)*10);
+  ctx.lineTo(2+Math.cos(a)*38,-2+Math.sin(a)*38); ctx.stroke();
+  ctx.restore();
+  /* le coup de crosse : le bras part vers le bas, vers les planches */
+  if(N.crosse>0){
+    const u=1-N.crosse/.20;
+    const ang=-.5+u*2.1;
+    ctx.save();
+    ctx.translate(SC.fenX+10*E,SC.fenY+4*E);
+    ctx.rotate(ang); ctx.scale(E,E);
+    ctx.strokeStyle='#141922'; ctx.lineWidth=8; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(44,0); ctx.stroke();
+    ctx.strokeStyle='#2a3240'; ctx.lineWidth=5;
+    ctx.beginPath(); ctx.moveTo(28,0); ctx.lineTo(52,0); ctx.stroke();
+    ctx.restore();
+  }
+
+  /* les gardes aux fenêtres du dessus */
+  N.tireurs.forEach((t,i)=>{
+    if(t.s.mort) return;
+    const E2=SC.ech;
+    const gx=VW*(.026+ (i%2)*.050)+VW*.020;
+    const gy=SC.solY-VH*.13-Math.floor(i/2)*VH*.145+VH*.055;
+    /* une lueur derrière eux, sinon la silhouette se perd dans le mur */
+    const bg=ctx.createRadialGradient(gx,gy-4*E2,0,gx,gy-4*E2,34*E2);
+    bg.addColorStop(0,'rgba(255,190,120,.13)'); bg.addColorStop(1,'rgba(255,190,120,0)');
+    ctx.fillStyle=bg;
+    ctx.beginPath(); ctx.arc(gx,gy-4*E2,34*E2,0,TAU); ctx.fill();
+    ctx.save(); ctx.translate(gx,gy); ctx.scale(E2,E2);
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.fillStyle='#0a0d12';
+    ctx.beginPath();
+    ctx.moveTo(-8,20); ctx.lineTo(-6,-2);
+    ctx.quadraticCurveTo(-1,-9,6,-6); ctx.lineTo(8,20); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.arc(2,-12,5.6,0,TAU); ctx.fill();
+    ctx.strokeStyle='#0a0d12'; ctx.lineWidth=4;
+    ctx.beginPath(); ctx.moveTo(0,-2); ctx.lineTo(13,1); ctx.stroke();
+    ctx.strokeStyle='#1d2430'; ctx.lineWidth=2.4;
+    ctx.beginPath(); ctx.moveTo(4,-1); ctx.lineTo(22,2); ctx.stroke();
+    ctx.restore();
+    if(t.flash>0){
+      ctx.save(); ctx.globalCompositeOperation='lighter';
+      ctx.globalAlpha=clamp(t.flash*9,0,1)*.8;
+      const fx2=gx+16*E2, fy2=gy-3*E2;
+      const fgr=ctx.createRadialGradient(fx2,fy2,0,fx2,fy2,17*E2);
+      fgr.addColorStop(0,'rgba(255,226,164,.95)');
+      fgr.addColorStop(.35,'rgba(255,170,70,.35)');
+      fgr.addColorStop(1,'rgba(255,150,50,0)');
+      ctx.fillStyle=fgr;
+      ctx.beginPath(); ctx.arc(fx2,fy2,17*E2,0,TAU); ctx.fill();
+      ctx.fillStyle='rgba(255,240,200,.9)';
+      ctx.beginPath();
+      ctx.moveTo(fx2-2*E2,fy2-2.4*E2); ctx.lineTo(fx2+11*E2,fy2);
+      ctx.lineTo(fx2-2*E2,fy2+2.4*E2); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+  });
+}
+
+function reticule(){
+  const x=vise.x, y=vise.y;
+  const c=N&&N.mag[P.arme]<=0?'rgba(224,51,74,.95)':'rgba(255,203,92,.9)';
+  ctx.strokeStyle=c; ctx.lineWidth=1.6;
+  ctx.beginPath();
+  ctx.moveTo(x-13,y); ctx.lineTo(x-5,y); ctx.moveTo(x+5,y); ctx.lineTo(x+13,y);
+  ctx.moveTo(x,y-13); ctx.lineTo(x,y-5); ctx.moveTo(x,y+5); ctx.lineTo(x,y+13);
+  ctx.stroke();
+  ctx.fillStyle=c;
+  ctx.beginPath(); ctx.arc(x,y,1.6,0,TAU); ctx.fill();
+  /* la zone visée s'annonce : c'est ce qui apprend à viser la tête */
+  if(SAVE.aide&&N){
+    for(const z of N.morts){
+      const b=boite(z);
+      if(x<b.x-8||x>b.x+b.w+8||y<b.y-8||y>b.y+b.h+8) continue;
+      const f=clamp((y-b.y)/b.h,0,1);
+      const zone=f<.24?'TÊTE':(f>.70?'JAMBES':'');
+      if(!zone) break;
+      ctx.font='700 9px '+FONT; ctx.textAlign='center';
+      ctx.fillStyle=f<.24?'rgba(255,203,92,.95)':'rgba(198,214,239,.9)';
+      ctx.fillText(zone,x,y-19);
+      break;
+    }
+  }
+}
+
+let fondT=0;
+/* --- fond animé du menu ---
+   C'est la même rue que la nuit, le même décor, mais personne à la fenêtre et
+   deux ou trois ombres qui remontent au loin. Montrer le jeu plutôt que le
+   décrire : le menu est la première chose qu'on voit. */
+let figurants=null;
+function dessinerFond(dt){
+  fondT+=dt; rimSeuil=1e9;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  const g=ctx.createLinearGradient(0,0,0,SC.solY);
+  g.addColorStop(0,'#070c18'); g.addColorStop(.6,'#101a2c'); g.addColorStop(1,'#1e2438');
+  ctx.fillStyle=g; ctx.fillRect(0,0,VW,SC.solY+2);
+
+  if(!etoiles){
+    etoiles=[];
+    for(let i=0;i<90;i++) etoiles.push({x:hash2(i,1,3)*VW, y:hash2(i,2,3)*SC.cielH*.7,
+      r:hash2(i,3,3)*1.1+.3, s:hash2(i,4,3)});
+  }
+  ctx.fillStyle='#cfe0ff';
+  for(const e of etoiles){
+    ctx.globalAlpha=(.25+.45*Math.abs(Math.sin(fondT*.6+e.s*9)))*e.s;
+    ctx.fillRect(e.x,e.y,e.r,e.r);
+  }
+  ctx.globalAlpha=1;
+  /* la lune du menu se range à droite : le titre occupe le milieu */
+  const lx=VW*.90, ly=SC.cielH*.34;
+  let lg2=ctx.createRadialGradient(lx,ly,0,lx,ly,VH*.11);
+  lg2.addColorStop(0,'rgba(198,214,239,.20)'); lg2.addColorStop(1,'rgba(198,214,239,0)');
+  ctx.fillStyle=lg2; ctx.beginPath(); ctx.arc(lx,ly,VH*.11,0,TAU); ctx.fill();
+  ctx.fillStyle='#e8eef8';
+  ctx.beginPath(); ctx.arc(lx,ly,VH*.028,0,TAU); ctx.fill();
+  ctx.save(); ctx.beginPath(); ctx.arc(lx,ly,VH*.029,0,TAU); ctx.clip();
+  ctx.fillStyle=g;
+  ctx.beginPath(); ctx.arc(lx-VH*.012,ly-VH*.008,VH*.027,0,TAU); ctx.fill();
+  ctx.restore();
+
+  villeLointaine(0);
+  rue(0);
+
+  /* les figurants : ils remontent la rue et repartent de la droite */
+  if(!figurants||figurants.larg!==Math.round(VW)){
+    figurants=[];
+    figurants.larg=Math.round(VW);
+    for(let i=0;i<5;i++){
+      const k=i===3?'gros':(i===4?'rampant':'marcheur');
+      figurants.push({k, d:MORTS[k], x:VW*(.28+i*.17)+hash2(i,3,41)*90,
+        z:hash2(i,5,41)*2-1, graine:hash2(i,7,41), marche:hash2(i,9,41)*TAU,
+        flash:0, pv:1, pvMax:1, h:MORTS[k].h, l:MORTS[k].l});
+    }
+  }
+  for(const f of figurants){
+    f.x-=f.d.vit*.42*SC.larg*dt;
+    f.marche+=dt*f.d.vit*.09;
+    if(f.x<SC.barX-60) f.x=SC.droite+rnd(0,260);
+    dessinerMort(f);
+  }
+
+  /* l'immeuble, sans personne à la fenêtre */
+  const w=SC.fenX+VW*.055;
+  ctx.fillStyle='#0d1119';
+  ctx.fillRect(-40,-40,w+40,SC.solY+42);
+  ctx.fillStyle='rgba(255,255,255,.04)';
+  ctx.fillRect(w-2,-40,2,SC.solY+42);
+  for(let i=0;i<6;i++){
+    const fy=SC.solY-VH*.13-i*VH*.145;
+    if(fy<-VH*.08) break;
+    const fx=VW*.026+ (i%2)*VW*.050;
+    ctx.fillStyle='rgba(0,0,0,.55)';
+    ctx.fillRect(fx,fy,VW*.040,VH*.082);
+    ctx.strokeStyle='rgba(90,72,52,.7)'; ctx.lineWidth=3;
+    for(let k=0;k<2;k++){
+      ctx.beginPath();
+      ctx.moveTo(fx-2,fy+VH*.022+k*VH*.032);
+      ctx.lineTo(fx+VW*.042,fy+VH*.017+k*VH*.032+ (k?4:-3));
+      ctx.stroke();
+    }
+  }
+  const vg=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*.30,VW/2,VH/2,Math.max(VW,VH)*.74);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.30)');
+  ctx.fillStyle=vg; ctx.fillRect(0,0,VW,VH);
+}
+/* ==========================================================================
+   9. INTERFACE
+   ========================================================================== */
+let hudC={};
+function majHudNuit(){
+  if(!N) return;
+  const set=(id,v)=>{ const e=$(id); if(e&&hudC[id]!==v){ hudC[id]=v; e.textContent=v; } };
+  set('hNuit',N.nuit+' / '+NUITS);
+  set('hTues',nb(N.tues));
+  const u=clamp(N.t/N.duree,0,1);
+  $('hVagueBar').style.width=Math.round(u*100)+'%';
+  const rest=Math.max(0,Math.ceil(N.duree-N.t));
+  set('hVague', N.aube?'LE JOUR SE LÈVE':(rest>0?('AUBE DANS '+rest+' s'):'LE JOUR SE LÈVE'));
+  const p=clamp(P.barr.pv/P.barr.max,0,1);
+  $('hBarrFill').style.width=Math.round(p*100)+'%';
+  set('hBarrN',Math.round(P.barr.pv)+' / '+Math.round(P.barr.max));
+  $('barr').classList.toggle('bas',p<.34);
+  set('aMag',N.mag[P.arme]||0);
+  set('aRes','/'+P.res.munitions);
+  set('aNom',ARMES[P.arme].nom);
+  set('aRech',N.rech>0?'RECHARGE…':(P.res.munitions<=0&&!N.mag[P.arme]?'PLUS DE MUNITIONS':''));
+  $('arme').classList.toggle('vide',(N.mag[P.arme]||0)<=0);
+  $('hSouffleFill').style.width=Math.round(N.souffle*100)+'%';
+  $('souffle').classList.toggle('vide',N.souffle<COUT_CROSSE);
+  set('hSouffleN', N.souffle<COUT_CROSSE?'À BOUT':(tactile?'CROSSE':'CLIC DROIT'));
+}
+function majArmesHud(){
+  const box=$('armes'); if(!box||!N) return;
+  box.innerHTML=ORDRE_ARMES.filter(k=>P.armes.includes(k)).map((k,i)=>{
+    const a=ARMES[k];
+    return '<button class="aB'+(P.arme===k?' on':'')+((N.mag[k]||0)<=0?' vide':'')+'" data-a="'+k+'">'
+      +'<b>'+a.em+'</b>'+(i+1)+'<i>'+(N.mag[k]||0)+'</i></button>';
+  }).join('')
+   +'<button class="aB" id="btnCrosse"><b>\u{1F94A}</b>CROSSE<i>E</i></button>'
+   +'<button class="aB" id="btnRep"><b>\u{1F528}</b>RÉPARER<i>'+P.res.materiaux+'</i></button>';
+  Array.prototype.forEach.call(box.querySelectorAll('.aB[data-a]'),b=>{
+    const f=e=>{ e.preventDefault(); e.stopPropagation(); changerArme(b.getAttribute('data-a')); };
+    b.addEventListener('click',f); b.addEventListener('touchstart',f,{passive:false});
+  });
+  const cr=$('btnCrosse');
+  if(cr){
+    const on=e=>{ e.preventDefault(); e.stopPropagation(); if(N){ N.crosseMaintenu=true; crosser(); }
+      cr.classList.add('on'); };
+    const off=e=>{ if(N) N.crosseMaintenu=false; cr.classList.remove('on'); };
+    cr.addEventListener('touchstart',on,{passive:false});
+    cr.addEventListener('mousedown',on);
+    ['touchend','touchcancel','mouseup','mouseleave'].forEach(ev=>cr.addEventListener(ev,off));
+  }
+  const r=$('btnRep');
+  if(r){
+    const on=e=>{ e.preventDefault(); e.stopPropagation(); if(N) N.reparer=true; r.classList.add('on'); };
+    const off=e=>{ if(N) N.reparer=false; r.classList.remove('on'); };
+    r.addEventListener('touchstart',on,{passive:false});
+    r.addEventListener('mousedown',on);
+    ['touchend','touchcancel','mouseup','mouseleave'].forEach(ev=>r.addEventListener(ev,off));
+  }
+}
+function majEquipeNuit(){
+  const el=$('equipeN'); if(!el||!P) return;
+  el.innerHTML=P.survivants.map(s=>{
+    const g=N&&N.tireurs.some(t=>t.s===s);
+    return '<div class="eN'+(s.mort?' ko':'')+(s.sante<40?' mal':'')+'">'
+      +'<b>'+s.nom+'</b>'+(g?'<span style="color:var(--vert);font-size:8px">TIR</span>':'')
+      +'<span class="j"><i style="width:'+Math.round(clamp(s.sante,0,100))+'%"></i></span></div>';
+  }).join('');
+}
+
+/* ==========================================================================
+   10. L'ÉCRAN DE JOURNÉE
+   ========================================================================== */
+const TXT_JOUR=[
+ 'La rue est vide au petit matin. Ça ne dure jamais.',
+ 'On entend la radio grésiller deux étages plus bas. Personne ne répond.',
+ 'Il a plu cette nuit. L\'eau qui coule du toit est buvable, c\'est déjà ça.',
+ 'Quelqu\'un a écrit un nom sur le mur de la cage d\'escalier. On ne sait pas qui.',
+ 'Le bruit vient du nord maintenant. Ils sont plus nombreux de ce côté.',
+ 'On a compté les boîtes ce matin. Il faut que quelqu\'un sorte.',
+ 'Le froid s\'installe. La nuit sera longue.',
+ 'Un chien a aboyé au loin, longtemps. Puis plus rien.'
+];
+function montrerJour(){
+  ecran='jour'; running=false;
+  $('hud').classList.remove('on');
+  ecrans('jour');
+  P.selId=null;
+  construireJour();
+}
+function ecrans(id){
+  ['menu','jour','matin','fin','reglages','pause'].forEach(k=>$(k).classList.toggle('on',k===id));
+}
+function construireJour(){
+  const n=P.nuit, reste=NUITS-n+1;
+  $('jTitre').textContent='JOUR '+n;
+  $('jSous').textContent= reste===1? 'LA DERNIÈRE NUIT' : (reste+' NUITS À TENIR');
+  const D=DIF(), besoin=Math.ceil(vivants().length*D.vivres);
+  const st=(cl,nom,v,alerte)=>'<div class="st '+cl+(alerte?' manque':'')+'"><span>'+nom+'</span><b>'+v+'</b></div>';
+  $('stock').innerHTML=
+     st('v','VIVRES',P.res.vivres,P.res.vivres<besoin)
+    +st('m','MUNITIONS',P.res.munitions,P.res.munitions<24)
+    +st('mat','MATÉRIAUX',P.res.materiaux,P.res.materiaux<3)
+    +st('med','MÉDICAMENTS',P.res.medicaments,0);
+  const bp=Math.round(P.barr.pv), bm=Math.round(P.barr.max);
+  $('jTexte').innerHTML=TXT_JOUR[(n-1)%TXT_JOUR.length]
+    +'<br>La barricade tient à <b>'+bp+' / '+bm+'</b>. Il faut <b>'+besoin+' vivres</b> ce soir'
+    +' pour '+vivants().length+' personne'+(vivants().length>1?'s':'')+'.';
+
+  /* --- les lieux --- */
+  const lb=$('lieux');
+  lb.innerHTML=P.lieux.map(l=>{
+    const pris=vivants().some(s=>s.tache==='fouiller'&&s.lieu===l.id);
+    const gains=Object.keys(l.gain).map(k=>({vivres:'vivres',munitions:'munitions',
+      materiaux:'matériaux',medicaments:'médicaments'}[k])).join(' · ');
+    const r=l.risque<.2?'faible':(l.risque<.36?'réel':(l.risque<.5?'élevé':'très élevé'));
+    return '<button class="li'+(pris?' on':'')+(l.stock<=0?' vide':'')+'" data-l="'+l.id+'">'
+      +'<b>'+l.nom+'</b><span>'+l.d+'</span>'
+      +'<div class="ri"><span class="r1">RISQUE '+r.toUpperCase()+'</span>'
+      +'<span class="r2">'+(l.stock>0?l.stock+' PASSAGE'+(l.stock>1?'S':''):'ÉPUISÉ')+'</span></div>'
+      +'<div style="font-size:9px;color:var(--gris2);margin-top:4px">'+gains+'</div></button>';
+  }).join('');
+  Array.prototype.forEach.call(lb.querySelectorAll('.li'),b=>{
+    b.onclick=()=>{
+      const id=b.getAttribute('data-l');
+      let s=P.survivants.find(x=>x.id===P.selId&&!x.mort);
+      if(!s) s=vivants().find(x=>x.tache==='fouiller'&&!x.lieu)||vivants()[0];
+      if(!s) return;
+      s.tache='fouiller'; s.lieu=id; P.selId=s.id;
+      SND.clic(); construireJour();
+    };
+  });
+
+  /* --- l'équipe --- */
+  const box=$('survies'); box.innerHTML='';
+  P.survivants.forEach(s=>{
+    const el=document.createElement('div');
+    el.className='sv'+(s.mort?' mort':'');
+    const jauge=(cl,nom,v)=>'<div class="jL '+cl+'"><span>'+nom+'</span><i><b style="width:'
+      +Math.round(clamp(v,0,100))+'%"></b></i></div>';
+    const tags=[];
+    if(s.blesse>0) tags.push('<span class="tg bl">BLESSÉ'+(s.blesse>1?' ×'+s.blesse:'')+'</span>');
+    if(s.infecte) tags.push('<span class="tg inf">MORDU</span>');
+    if(s.fatigue>70) tags.push('<span class="tg epu">ÉPUISÉ</span>');
+    if(s.moral<35) tags.push('<span class="tg dep">À BOUT</span>');
+    const meilleur=['soin','fouille','tir','brico'].reduce((a,b)=>s[b]>s[a]?b:a,'soin');
+    tags.push('<span class="tg comp">'+({soin:'SOIGNE BIEN',fouille:'BON FOUILLEUR',
+      tir:'BON TIREUR',brico:'BRICOLEUR'}[meilleur])+'</span>');
+    el.innerHTML='<div class="svH">'
+      +'<canvas class="svP" width="88" height="88"></canvas>'
+      +'<div class="svI"><b>'+s.nom+'</b><span>'+s.metier.toUpperCase()
+      + (s.mort?' — '+(s.cause||'mort'):'')+'</span></div>'
+      +'<div class="svJ">'+jauge('jsante','SANTÉ',s.sante)
+      +jauge('jfat','FORME',100-s.fatigue)+jauge('jmoral','MORAL',s.moral)+'</div></div>'
+      +'<div class="svE">'+tags.join('')+'</div>'
+      +(s.mort?'':'<div class="svA"></div>');
+    box.appendChild(el);
+    portrait(el.querySelector('.svP'),s);
+    if(s.mort) return;
+    const av=el.querySelector('.svA');
+    for(const k in TACHES){
+      const T=TACHES[k];
+      const b=document.createElement('button');
+      b.className='ta'+(s.tache===k?' on':'');
+      b.style.setProperty('--c',T.col);
+      let sous='';
+      if(k==='fouiller') sous=s.lieu?(P.lieux.find(l=>l.id===s.lieu)||{}).nom:'choisis un lieu';
+      if(k==='barricade') sous=(2+s.brico)+' matériaux';
+      if(k==='soigner') sous='2 médicaments';
+      if(k==='garde') sous='tirera cette nuit';
+      if(k==='dormir') sous='récupère';
+      b.innerHTML='<b>'+T.em+'</b>'+T.nom+'<em>'+sous+'</em>';
+      b.onclick=()=>{
+        s.tache=k; P.selId=k==='fouiller'?s.id:null;
+        if(k==='fouiller'&&!s.lieu){
+          const libre=P.lieux.find(l=>l.stock>0&&!vivants().some(x=>x!==s&&x.lieu===l.id));
+          s.lieu=(libre||P.lieux[0]).id;
+        }
+        SND.clic(); construireJour();
+      };
+      av.appendChild(b);
+    }
+  });
+
+  const sorties=vivants().filter(s=>s.tache==='fouiller').length;
+  $('jRestant').textContent=sorties? sorties+' dehors aujourd\'hui' : 'personne ne sort';
+  const gardes=vivants().filter(s=>s.tache==='garde').length;
+  const av=[];
+  if(P.res.vivres<besoin) av.push('Il manque des vivres pour ce soir.');
+  if(!gardes) av.push('Personne ne monte la garde : tu seras seul à tirer.');
+  /* le seuil monte avec la nuit : vingt cartouches suffisent le premier soir,
+     pas le douzième */
+  if(P.res.munitions<26+P.nuit*7) av.push('La réserve de munitions ne tiendra pas la nuit.');
+  if(P.barr.pv<P.barr.max*.5) av.push('La barricade est en mauvais état.');
+  $('jAvert').innerHTML=av.length? '<span style="color:var(--sang2)">'+av.join(' ')+'</span>' : '';
+}
+
+/* ==========================================================================
+   11. RAPPORTS
+   ========================================================================== */
+function montrerRapport(mode,lignes,titre,eye,cases){
+  ecran='rapport'; running=false;
+  $('mEye').textContent=eye;
+  $('mTitre').textContent=titre;
+  $('mGrille').innerHTML=(cases||[]).map(c=>
+    '<div class="cell"><span>'+c[0]+'</span><b'+(c[2]?' style="color:'+c[2]+'"':'')+'>'+c[1]+'</b></div>').join('');
+  $('rapport').innerHTML=lignes.map((x,i)=>
+    '<div class="rl" style="--c:'+x.c+';--d:'+(.15+i*.09)+'s"><span class="re">'+x.em+'</span>'
+    +'<div class="rt"><b>'+x.t+'</b>'+(x.s?'<span>'+x.s+'</span>':'')+'</div>'
+    +(x.v?'<span class="rv">'+x.v+'</span>':'')+'</div>').join('');
+  $('mSuite').textContent= mode==='soir'?'PRENDRE POSITION':'JOURNÉE SUIVANTE';
+  $('mSuite').onclick=()=>{
+    SND.clic();
+    if(mode==='soir'){ ecrans(''); majEquipeNuit(); lancerNuit(); }
+    else montrerJour();
+  };
+  ecrans('matin');
+}
+function passerLaNuit(){
+  const manquants=vivants().filter(s=>s.tache==='fouiller'&&!s.lieu);
+  if(manquants.length){ $('jAvert').innerHTML='<span style="color:var(--sang2)">'
+    +manquants[0].nom+' n\'a pas d\'adresse où aller.</span>'; return; }
+  SND.clic();
+  const R=resoudreJournee();
+  if(!vivants().length){ finPartie(false,'Il ne restait plus personne à l\'immeuble.'); return; }
+  montrerRapport('soir',R,'LA JOURNÉE EST PASSÉE','AVANT LA NUIT',[
+    ['VIVRES',nb(P.res.vivres),'#7fd46a'],
+    ['MUNITIONS',nb(P.res.munitions),'#ffcb5c'],
+    ['MATÉRIAUX',nb(P.res.materiaux),'#c6d6ef'],
+    ['BARRICADE',Math.round(P.barr.pv)+' / '+Math.round(P.barr.max)]
+  ]);
+}
+function montrerMatin(){
+  const R=[];
+  const li=(em,t,s,v,c)=>R.push({em,t,s:s||'',v:v||'',c:c||'#8892a6'});
+  li('\u{1F52B}','LA NUIT EST PASSÉE',
+     N.tues+' abattus, dont '+N.tetes+' à la tête.','+'+N.tues,'#e0334a');
+  if(N.comboMax>=3) li('\u{1F3AF}','MEILLEURE SÉRIE',
+     N.comboMax+' d\'affilée sans manquer.','','#ffcb5c');
+  const prec=N.tirs?Math.round(N.touches/Math.max(1,N.tirs*(ARMES[P.arme].plombs>1?3:1))*100):0;
+  li('\u{1F3AF}','MUNITIONS BRÛLÉES',N.tirs+' coups tirés cette nuit.','','#ffcb5c');
+  if(P.barr.pv<=0) li('\u{1FA93}','LA BARRICADE EST À TERRE',
+     'Il faudra tout remonter demain.','','#e0334a');
+  else li('\u{1FA93}','LA BARRICADE A TENU',
+     Math.round(P.barr.pv)+' points sur '+Math.round(P.barr.max)+'.','','#c6d6ef');
+  const blesses=vivants().filter(s=>s.sante<60);
+  if(blesses.length) li('\u{1FA79}','AU MATIN',
+     blesses.map(s=>s.nom).join(', ')+' ne tien'+(blesses.length>1?'nent':'t')+' plus debout.','','#e0334a');
+  if(P.nuit-1===Math.floor(NUITS/2)) li('\u{1F4FB}','LA RADIO',
+     'Une voix, très loin : « colonne en approche, tenez encore ». Puis plus rien.','','#b08ce8');
+  SND.aube();
+  montrerRapport('matin',R,'NUIT '+(P.nuit-1)+' — VOUS ÊTES VIVANTS','AU LEVER DU JOUR',[
+    ['ABATTUS',nb(N.tues),'#e0334a'],
+    ['À LA TÊTE',nb(N.tetes),'#ffcb5c'],
+    ['MUNITIONS',nb(P.res.munitions),'#ffcb5c'],
+    ['SURVIVANTS',vivants().length+' / '+P.survivants.length,'#7fd46a']
+  ]);
+}
+
+/* ==========================================================================
+   12. FIN DE PARTIE
+   ========================================================================== */
+function finPartie(gagne,txt){
+  ecran='fin'; running=false; if(P) P.fini=true, P.gagne=gagne;
+  $('hud').classList.remove('on');
+  SND.silence();
+  gagne?SND.bien():SND.mal();
+  const nuitsTenues=Math.min(NUITS,P.nuit-(gagne?0:1)+(gagne?0:0));
+  if(P.nuit-1>(SAVE.meilleureNuit||0)) SAVE.meilleureNuit=P.nuit-1;
+  SAVE.totalTues=(SAVE.totalTues||0)+P.stats.tues;
+  SAVE.totalTetes=(SAVE.totalTetes||0)+P.stats.tetes;
+  if(gagne) SAVE.victoires=(SAVE.victoires||0)+1;
+  sauver();
+
+  $('fEye').textContent=txt;
+  $('fTitre').textContent=gagne?'VOUS AVEZ TENU':'FIN';
+  $('fTitre').style.color=gagne?'#7fd46a':'#e0334a';
+  const c=(t,v,col)=>'<div class="cell"><span>'+t+'</span><b'+(col?' style="color:'+col+'"':'')+'>'+v+'</b></div>';
+  $('fGrille').innerHTML=
+     c('NUITS TENUES',(P.nuit-1)+' / '+NUITS, gagne?'#7fd46a':'#ffcb5c')
+    +c('ABATTUS',nb(P.stats.tues),'#e0334a')
+    +c('À LA TÊTE',nb(P.stats.tetes),'#ffcb5c')
+    +c('SURVIVANTS',vivants().length+' / '+P.survivants.length,'#7fd46a')
+    +c('SORTIES',nb(P.stats.sorties))
+    +c('RÉPARATIONS',nb(P.stats.reparations))
+    +c('COUPS DE CROSSE',nb(P.stats.crosses||0),'#d8c79f');
+  $('tombe').innerHTML=P.morts.length
+    ? P.morts.map(m=>'<div class="tb"><b>'+m.nom+'</b><span>'+m.metier+' — '
+        +(m.cause||'mort dans la nuit')+'</span></div>').join('')
+    : '<div class="tb"><b>Personne n\'est tombé.</b></div>';
+  const R=[];
+  if(gagne) R.push({em:'\u{1F31E}',t:'LA COLONNE EST PASSÉE',
+    s:vivants().map(s=>s.nom).join(', ')+' '+(vivants().length>1?'sont montés':'est monté')+' dedans.',
+    v:'',c:'#7fd46a'});
+  if(P.nuit-1>=(SAVE.meilleureNuit||0)) R.push({em:'⭐',t:'MEILLEURE TENUE',
+    s:'Ton record est maintenant de '+(P.nuit-1)+' nuit'+((P.nuit-1)>1?'s':'')+'.',v:'',c:'#ffcb5c'});
+  R.push({em:'\u{1F52B}',t:'AU TOTAL',
+    s:nb(SAVE.totalTues)+' abattus depuis le début, sur '+nb(SAVE.parties)+' parties.',v:'',c:'#8892a6'});
+  $('fRapport').innerHTML=R.map((x,i)=>
+    '<div class="rl" style="--c:'+x.c+';--d:'+(.2+i*.1)+'s"><span class="re">'+x.em+'</span>'
+    +'<div class="rt"><b>'+x.t+'</b>'+(x.s?'<span>'+x.s+'</span>':'')+'</div></div>').join('');
+  ecrans('fin');
+}
+
+/* --- pause --- */
+let enPause=false;
+function basculerPause(v){
+  if(ecran!=='nuit'||!N||N.fini) return;
+  const c=v===undefined?!enPause:v;
+  if(c===enPause) return;
+  enPause=c;
+  if(enPause){
+    running=false; N.feu=false; N.reparer=false;
+    $('pauseInfo').textContent='NUIT '+N.nuit+' · '+Math.max(0,Math.ceil(N.duree-N.t))
+      +' s avant l\'aube · '+N.tues+' abattus';
+    $('pause').classList.add('on');
+  } else { $('pause').classList.remove('on'); running=true; last=performance.now(); }
+}
+/* ==========================================================================
+   13. BOUCLE ET DÉMARRAGE
+   ========================================================================== */
+function boucle(now){
+  requestAnimationFrame(boucle);
+  let dt=(now-last)/1000; last=now;
+  if(!(dt>0)) dt=0; if(dt>.05) dt=.05;
+  if(ecran==='nuit' && N && !N.fini){
+    if(running){
+      let garde=0, acc=dt;
+      while(acc>0 && garde++<4){ const d=Math.min(1/60,acc); pasNuit(d); acc-=d;
+        if(!running||N.fini) break; }
+    }
+    dessinerNuit();
+  } else {
+    dessinerFond(dt);
+  }
+}
+
+function majMenu(){
+  const r=[];
+  if(SAVE.meilleureNuit) r.push('MEILLEURE TENUE : <b style="color:var(--or)">'
+    +SAVE.meilleureNuit+' nuit'+(SAVE.meilleureNuit>1?'s':'')+'</b>');
+  if(SAVE.victoires) r.push('<b style="color:var(--vert)">'+SAVE.victoires
+    +' fois jusqu\'au bout</b>');
+  if(SAVE.parties) r.push(nb(SAVE.totalTues)+' abattus en '+SAVE.parties+' parties');
+  $('menuRec').innerHTML=r.length
+    ? '<div class="note" style="margin-top:14px;letter-spacing:.1em">'+r.join(' &nbsp;·&nbsp; ')+'</div>'
+    : '';
+  const d=(SAVE.debloques||[]).filter(k=>ARMES[k]);
+  $('menuDeblo').innerHTML=d.length
+    ? '<div class="note" style="margin-top:10px;font-size:10.5px">Déjà trouvées dehors : '
+      +d.map(k=>ARMES[k].nom).join(' · ')+'</div>'
+    : '';
+}
+function majReglages(){
+  $('diffBtn').textContent=DIF().nom;
+  $('diffTxt').textContent=DIF().d;
+  $('aideBtn').textContent=SAVE.aide?'ASSISTANCE : OUI':'ASSISTANCE : NON';
+  $('sonBtn').textContent=SAVE.son?'SON : ACTIVÉ':'SON : COUPÉ';
+  $('volIn').value=Math.round((SAVE.volume||.6)*100);
+  $('volVal').textContent=Math.round((SAVE.volume||.6)*100)+' %';
+  $('nomIn').value=SAVE.nom||'';
+}
+function cabler(){
+  $('jouer').onclick=()=>{ SND.init(); SND.reprendre(); SND.nappes(); SND.clic();
+    nouvellePartie(); montrerJour(); };
+  $('passerNuit').onclick=passerLaNuit;
+  $('resume').onclick=()=>basculerPause(false);
+  $('quit').onclick=()=>{ enPause=false; $('pause').classList.remove('on');
+    finPartie(false,'Tu as lâché la fenêtre.'); };
+  $('pauseBtn').onclick=()=>basculerPause();
+  $('fRejouer').onclick=()=>{ SND.clic(); nouvellePartie(); montrerJour(); };
+  $('fMenu').onclick=()=>{ P=null; ecran='menu'; majMenu(); ecrans('menu'); };
+  $('ouvrirRegl').onclick=()=>{ majReglages(); ecrans('reglages'); ecran='reglages'; };
+  $('fermerRegl').onclick=()=>{ ecrans(P&&!P.fini?'jour':'menu'); ecran=P&&!P.fini?'jour':'menu';
+    if(!P||P.fini) majMenu(); };
+  $('diffBtn').onclick=()=>{
+    const l=Object.keys(DIFFS);
+    SAVE.diff=l[(l.indexOf(SAVE.diff)+1)%l.length]; sauver(); majReglages(); SND.clic();
+  };
+  $('aideBtn').onclick=()=>{ SAVE.aide=!SAVE.aide; sauver(); majReglages(); SND.clic(); };
+  $('sonBtn').onclick=()=>{ SAVE.son=!SAVE.son; SND.on=SAVE.son;
+    if(!SAVE.son) SND.silence(); sauver(); majReglages(); };
+  $('volIn').oninput=e=>{ SAVE.volume=+e.target.value/100; SND.vol(SAVE.volume);
+    $('volVal').textContent=Math.round(SAVE.volume*100)+' %'; sauver(); };
+  $('nomIn').oninput=e=>{ SAVE.nom=e.target.value.toUpperCase().slice(0,14); sauver(); };
+  $('effacer').onclick=()=>{
+    if(!confirm('Effacer records et déblocages ?')) return;
+    SAVE=Object.assign({},SAVE_DEF); sauver(); majMenu(); majReglages();
+  };
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden && ecran==='nuit' && running) basculerPause(true);
+  });
+}
+
+charger();
+SND.on=SAVE.son!==false;
+vise.x=VW*.62; vise.y=VH*.62;
+cabler(); majMenu(); majReglages();
+requestAnimationFrame(boucle);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,4056 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Brasier — jeu de lutte contre les feux de forêt, gratuit dans le navigateur</title>
+<meta name="description" content="Brasier est un jeu gratuit et sans installation où l'on combat un feu de forêt qui se propage vraiment : vent, pente, humidité, sautes de feu. Huit secteurs, lance, coupure, contre-feu et largages.">
+<meta name="theme-color" content="#0b0d10">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Brasier — combattre un feu de forêt">
+<meta property="og:description" content="Le feu suit le vent, court plus vite en montée et saute par-dessus les coupures. On ne l'abat pas : on l'encercle.">
+<meta property="og:locale" content="fr_FR">
+<style>
+:root{
+  --nuit:#0b0d10; --sombre:#14120f; --bord:#2a2620;
+  --braise:#ff6a1e; --flamme:#ffb02e; --or:#ffd45c;
+  --vert:#8fd14f; --eau:#5fb0d8; --sang:#ff3d4f;
+  --os:#f0ece2; --gris:#8e948a; --gris2:#5d635a;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
+  --titre:"Arial Black","Arial Bold",Impact,system-ui,sans-serif;
+  --t1:clamp(42px,13vw,92px); --t2:clamp(26px,7.5vw,50px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--nuit)}
+body{font-family:var(--mono);color:var(--os);
+  -webkit-user-select:none;user-select:none;touch-action:none}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+#brule{position:fixed;inset:0;pointer-events:none;z-index:20;opacity:0;
+  transition:opacity .3s;background:radial-gradient(60% 50% at 50% 50%,
+  rgba(255,90,20,0) 40%,rgba(200,40,10,.6) 100%)}
+#grain{position:fixed;inset:0;pointer-events:none;z-index:21;opacity:.05;
+  background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.5) 0 1px,transparent 1px 3px)}
+kbd{font-family:var(--mono);background:rgba(255,255,255,.09);border:1px solid var(--bord);
+  border-radius:3px;padding:1px 5px;font-size:.9em}
+
+/* ================= HUD ================= */
+#hud{position:fixed;inset:0;z-index:30;pointer-events:none;display:none;
+  padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 12px)}
+#hud.on{display:block}
+.haut{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.lect span{display:block;font-size:9.5px;letter-spacing:.24em;color:var(--gris)}
+.lect b{display:block;font-family:var(--titre);font-size:clamp(20px,5vw,30px);line-height:1.05;
+  color:var(--os);font-variant-numeric:tabular-nums;text-shadow:0 2px 0 rgba(0,0,0,.6)}
+.lect.v b{color:var(--vert)} .lect.f b{color:var(--braise)}
+.lect.r{text-align:right}
+#front{position:absolute;left:50%;transform:translateX(-50%);
+  top:calc(env(safe-area-inset-top) + 62px);width:min(280px,44vw);text-align:center}
+#front .lab{font-size:9px;letter-spacing:.26em;color:var(--gris);margin-bottom:4px;font-weight:700}
+#front .bar{height:5px;border-radius:3px;background:rgba(0,0,0,.55);overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+#front .bar i{display:block;height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--flamme),var(--braise));transition:width .25s}
+#ctrls{position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:50%;
+  transform:translateX(-50%);display:flex;gap:6px;pointer-events:auto}
+#ctrls button{background:rgba(10,12,10,.6);border:1px solid var(--bord);color:var(--gris);
+  font:700 10px/1 var(--mono);letter-spacing:.16em;padding:10px 13px;cursor:pointer;border-radius:5px}
+#ctrls button:hover{color:var(--os);border-color:var(--flamme)}
+
+.bas{position:absolute;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom) + 12px);
+  display:flex;flex-direction:column;gap:7px;max-width:340px}
+.jauge{display:flex;align-items:center;gap:8px}
+.jauge .jl{font-size:8.5px;letter-spacing:.14em;color:var(--gris);font-weight:700;width:44px}
+.jauge .jb{flex:1;height:9px;border-radius:5px;background:rgba(0,0,0,.6);overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.jauge .jb i{display:block;height:100%;border-radius:5px;transition:width .14s}
+.jauge .jn{font-size:10px;font-weight:700;color:var(--os);width:46px;text-align:right;
+  font-variant-numeric:tabular-nums}
+#vieFill{background:linear-gradient(180deg,#ff8a6a,#c8321a)}
+#eauFill{background:linear-gradient(180deg,#8fd0ee,#2f78a8)}
+#soufFill{background:linear-gradient(180deg,#c8e88a,#5c8a2a)}
+#chalFill{background:linear-gradient(180deg,#ffd08a,#c8421a)}
+#chalBloc{transition:opacity .3s}
+#chalBloc.froid{opacity:.3}
+#chalBloc.brule .jl{color:var(--sang)}
+#chalBloc.brule{animation:pulseV .5s infinite}
+#vieBloc.bas .jl{color:var(--sang)}
+#vieBloc.crit{animation:pulseV .7s infinite}
+@keyframes pulseV{0%,100%{opacity:1}50%{opacity:.55}}
+#eauBloc.bas .jl{color:var(--flamme)}
+#hSource{font-size:9.5px;letter-spacing:.16em;color:var(--vert);font-weight:700;height:12px}
+#etats{display:flex;gap:5px;flex-wrap:wrap}
+.et{font-size:9px;letter-spacing:.12em;font-weight:700;padding:3px 7px;border-radius:4px;
+  border:1px solid currentColor;background:rgba(0,0,0,.5)}
+.et.chaud{color:var(--braise);animation:pulseV .9s infinite}
+.et.fum{color:var(--gris)} .et.souf{color:var(--flamme)} .et.ok{color:var(--vert)}
+
+#outils{position:absolute;right:16px;bottom:calc(env(safe-area-inset-bottom) + 12px);
+  display:flex;flex-direction:column;gap:5px;align-items:flex-end;pointer-events:auto}
+.ou{display:flex;align-items:center;gap:7px;padding:6px 10px;border-radius:7px;
+  border:1px solid var(--bord);background:rgba(10,12,10,.62);color:var(--gris);
+  font:700 9.5px/1 var(--mono);letter-spacing:.1em;cursor:pointer}
+.ou b{font-size:14px;font-weight:400}
+.ou i{font-style:normal;color:var(--os);font-family:var(--titre);font-size:13px}
+.ou .ouK{color:var(--gris2);font-size:8px}
+.ou.on{border-color:var(--c);color:var(--c);background:color-mix(in srgb,var(--c) 16%,rgba(10,12,10,.7))}
+.ou.vide{opacity:.42}
+#outilAide{position:absolute;right:16px;bottom:calc(env(safe-area-inset-bottom) + 196px);
+  max-width:min(280px,42vw);text-align:right;font-size:10px;line-height:1.6;color:var(--gris);
+  opacity:0;transition:opacity .5s;text-shadow:0 1px 4px rgba(0,0,0,.9)}
+#cptOutil{display:none}
+
+#equipe{position:absolute;left:16px;top:calc(env(safe-area-inset-top) + 96px);
+  display:flex;flex-direction:column;gap:4px;pointer-events:auto;max-width:210px}
+.eqL{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:6px;
+  border:1px solid var(--bord);background:rgba(10,12,10,.6);color:var(--gris);
+  font:700 9px/1 var(--mono);letter-spacing:.06em;cursor:pointer;text-align:left;width:100%}
+.eqL.sel{border-color:var(--c,var(--flamme));background:rgba(255,176,46,.13)}
+.eqL.danger{border-color:var(--sang);animation:pulseV .6s infinite}
+.eqEm{font-size:13px;flex:0 0 auto}
+.eqT{flex:1;min-width:0}
+.eqT b{display:block;font-size:9.5px;color:var(--os);letter-spacing:.08em}
+.eqT span{display:block;font-size:8.5px;color:var(--gris2);margin-top:2px}
+.eqJ{width:26px;height:4px;border-radius:2px;background:rgba(0,0,0,.55);overflow:hidden;flex:0 0 auto}
+.eqJ i{display:block;height:100%;background:#8fd14f}
+.eqJ.eau i{background:#5fb0d8}
+.eqL.tous .eqT b{color:var(--c,#c9a4ea)}
+.eqL.tous{--c:#c9a4ea}
+#actions{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom) + 208px);
+  z-index:40;display:none;flex-direction:column;gap:9px;pointer-events:auto}
+#actions.on{display:flex}
+.act{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;
+  border:2px solid rgba(240,236,226,.3);background:rgba(10,12,10,.6);color:var(--os);
+  font:700 8px/1.3 var(--mono);letter-spacing:.06em;text-align:center;cursor:pointer}
+.act b{display:block;font-size:19px;margin-bottom:1px}
+.act.on{border-color:var(--flamme);color:var(--flamme)}
+
+#alerte{position:fixed;top:22%;left:0;right:0;z-index:35;text-align:center;pointer-events:none;
+  font-family:var(--titre);font-size:clamp(24px,7vw,46px);color:var(--os);opacity:0;padding:0 16px;
+  text-shadow:0 0 30px rgba(255,106,30,.7),0 3px 0 rgba(0,0,0,.7)}
+#alerte span{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.28em;
+  color:var(--flamme);margin-top:10px;font-weight:700}
+#alerte.on{animation:alerteA 3s ease-out}
+@keyframes alerteA{0%{opacity:0;transform:scale(.92)}12%{opacity:1;transform:scale(1)}
+  74%{opacity:1}100%{opacity:0}}
+
+#tuto{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top) + 100px);z-index:36;
+  display:none;flex-direction:column;align-items:center;padding:0 18px;pointer-events:none;text-align:center}
+#tuto.on{display:flex}
+#tuto .cadre{background:rgba(10,12,10,.9);border:2px solid var(--flamme);border-left:6px solid var(--flamme);
+  padding:15px 20px;max-width:600px;box-shadow:0 10px 40px rgba(0,0,0,.7);
+  animation:surgit .4s ease-out both;border-radius:4px}
+#tuto .num{font-size:9.5px;letter-spacing:.3em;color:var(--gris)}
+#tuto b{display:block;font-family:var(--titre);font-size:clamp(18px,5vw,27px);color:var(--flamme);
+  margin:6px 0 7px;line-height:1.1}
+#tuto span.txt{display:block;font-size:12.5px;color:var(--os);line-height:1.75}
+#tuto .passer{pointer-events:auto;margin-top:11px;background:none;border:1px solid var(--bord);
+  color:var(--gris);font:700 10px/1 var(--mono);letter-spacing:.18em;padding:10px 15px;
+  cursor:pointer;border-radius:4px}
+
+#brief{position:fixed;inset:0;z-index:38;display:none;flex-direction:column;align-items:center;
+  justify-content:center;pointer-events:none;padding:24px;
+  background:radial-gradient(70% 60% at 50% 45%,rgba(10,8,6,.86),rgba(4,4,3,.95))}
+#brief.on{display:flex;animation:briefF 5.6s ease-out forwards}
+@keyframes briefF{0%{opacity:0}6%{opacity:1}82%{opacity:1}100%{opacity:0}}
+#brief .bT{font-family:var(--titre);font-size:clamp(26px,8vw,50px);color:var(--flamme);text-align:center;line-height:1}
+#brief .bS{font-size:11px;letter-spacing:.3em;color:var(--gris);margin-top:9px;font-weight:700}
+#brief .bL{display:flex;align-items:center;gap:13px;padding:12px 15px;margin-top:11px;
+  border:1px solid var(--bord);border-left:4px solid var(--flamme);background:rgba(255,255,255,.05);
+  width:100%;max-width:430px;animation:surgit .5s both}
+#brief .bE{font-size:26px;line-height:1}
+#brief .bL b{display:block;font-family:var(--titre);font-size:15px;color:var(--os);margin-bottom:3px}
+#brief .bL div{font-size:11.5px;color:var(--gris);line-height:1.5}
+#brief .bV{margin-top:18px;font-size:11.5px;letter-spacing:.16em;color:var(--sang);font-weight:700;
+  text-align:center;max-width:460px;line-height:1.7}
+
+/* ================= ÉCRANS ================= */
+.screen{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;
+  padding:24px 18px 36px;overflow-y:auto;
+  background:radial-gradient(110% 70% at 50% 8%,rgba(30,20,14,.96),rgba(6,6,5,.99))}
+.screen.on{display:flex}
+.screen>*{flex-shrink:0}
+h1{font-family:var(--titre);font-size:var(--t1);line-height:.88;color:var(--os);text-align:center;
+  text-shadow:0 0 46px rgba(255,106,30,.35),0 4px 0 rgba(0,0,0,.6)}
+h1 u{text-decoration:none;color:var(--braise)}
+.eyebrow{font-size:10px;letter-spacing:.4em;color:var(--braise);margin-bottom:11px;
+  text-align:center;font-weight:700}
+.note{font-size:11.5px;line-height:1.9;color:var(--gris);max-width:620px;text-align:center;margin-top:14px}
+.btn{margin-top:20px;padding:17px 44px;background:var(--braise);color:#180b04;border:0;border-radius:4px;
+  font-family:var(--titre);font-size:17px;letter-spacing:.05em;cursor:pointer;
+  transition:transform .12s,background .12s}
+.btn:hover{transform:scale(1.04);background:var(--flamme)}
+.btn.ghost{background:transparent;color:var(--gris);border:1px solid var(--bord);padding:13px 28px;
+  font-size:13px;margin-top:10px}
+.btn.ghost:hover{color:var(--os);background:rgba(255,255,255,.05)}
+.btn.gros{font-size:clamp(22px,6vw,32px);padding:20px 64px;letter-spacing:.08em}
+.lien{background:none;border:0;color:var(--flamme);font:700 11px/1 var(--mono);letter-spacing:.16em;
+  cursor:pointer;padding:9px 4px;text-decoration:underline;text-underline-offset:4px}
+.btnHaut{position:sticky;top:-24px;align-self:flex-start;z-index:3;padding:6px 0 10px}
+.btnHaut button{background:rgba(10,12,10,.7);border:1px solid var(--bord);color:var(--gris);
+  font:700 10px/1 var(--mono);letter-spacing:.2em;padding:11px 16px;cursor:pointer;border-radius:4px}
+
+/* --- barre du haut du menu --- */
+#topbar{width:100%;max-width:820px;display:flex;justify-content:space-between;align-items:center;
+  gap:12px;padding:11px 14px;border:1px solid var(--bord);border-radius:8px;
+  background:rgba(12,10,8,.6)}
+#topbar .who{display:flex;align-items:center;gap:10px;min-width:0}
+#topbar .av{width:36px;height:36px;border:2px solid var(--flamme);border-radius:5px;display:grid;
+  place-items:center;font-family:var(--titre);font-size:17px;color:var(--flamme);flex:0 0 auto}
+#topbar .nom{font-family:var(--titre);font-size:17px;line-height:1.1}
+#topbar .sous{font-size:9.5px;letter-spacing:.16em;color:var(--gris);margin-top:2px;font-weight:700}
+#topbar .tbBar{height:3px;border-radius:2px;background:rgba(0,0,0,.5);margin-top:5px;
+  overflow:hidden;max-width:180px}
+#topbar .tbBar i{display:block;height:100%;background:var(--flamme);transition:width .5s}
+#topbar .por{display:flex;gap:14px;text-align:right}
+#topbar .por span{display:block;font-size:8.5px;letter-spacing:.2em;color:var(--gris)}
+#topbar .por b{display:block;font-family:var(--titre);font-size:19px;color:var(--or)}
+#topbar .por .s b{color:var(--braise)}
+
+#modeBan{width:100%;max-width:820px;display:flex;gap:8px;margin-top:16px}
+.mo{flex:1;padding:11px 13px;border-radius:8px;cursor:pointer;text-align:left;
+  border:1px solid var(--bord);background:rgba(14,12,10,.6);color:var(--gris);
+  font-family:var(--mono)}
+.mo b{display:block;font-family:var(--titre);font-size:14px;color:var(--os);letter-spacing:.04em}
+.mo span{display:block;font-size:10px;color:var(--gris);margin-top:3px}
+.mo.on{border-color:var(--flamme);background:rgba(255,176,46,.13)}
+.mo.on b{color:var(--flamme)}
+#campBan{width:100%;max-width:820px;margin-top:12px;padding:14px 16px;border-radius:8px;
+  border:1px solid var(--bord);border-left:4px solid var(--flamme);
+  background:linear-gradient(150deg,rgba(50,26,10,.7),rgba(12,10,8,.7))}
+.cbHaut{display:flex;justify-content:space-between;align-items:baseline}
+.cbJ{font-size:9.5px;letter-spacing:.3em;color:var(--gris);font-weight:700}
+.cbE{font-size:9.5px;letter-spacing:.24em;color:var(--or);font-weight:700}
+.cbT{font-family:var(--titre);font-size:clamp(19px,5vw,28px);color:var(--flamme);
+  margin-top:7px;line-height:1.05}
+.cbX{font-size:12px;line-height:1.8;color:#d8d3c8;margin-top:7px}
+.cbS{display:flex;align-items:center;gap:9px;margin-top:11px}
+.cbS span{font-size:8.5px;letter-spacing:.2em;color:var(--gris);font-weight:700}
+.cbBar{flex:1;height:6px;border-radius:3px;background:rgba(0,0,0,.55);overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+.cbBar i{display:block;height:100%;border-radius:3px;
+  background:linear-gradient(90deg,#8fd14f,#ffb02e 55%,#ff3d4f)}
+.cbL{display:flex;flex-wrap:wrap;gap:4px;margin-top:11px}
+.cbD{width:26px;height:26px;border-radius:5px;display:grid;place-items:center;cursor:pointer;
+  border:1px solid var(--bord);background:rgba(0,0,0,.35);color:var(--gris2);
+  font:700 10px/1 var(--mono)}
+.cbD.fait{color:var(--or);border-color:rgba(255,212,92,.5)}
+.cbD.now{border-color:var(--flamme);color:var(--flamme);animation:pulseV 1.4s infinite}
+.cbD.futur{opacity:.4;cursor:default}
+#caserne{width:100%;max-width:820px;display:flex;flex-direction:column;gap:7px;margin-top:12px}
+.eqC{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:7px;
+  border:1px solid var(--bord);background:rgba(14,12,10,.6);color:var(--os);
+  font-family:var(--mono);text-align:left}
+.eqC.rec{cursor:pointer}
+.eqC.rec:hover{border-color:var(--c)}
+.eqC.cher{opacity:.66}
+.eqC.blesse{border-color:rgba(255,61,79,.5)}
+.eqCe{font-size:22px;flex:0 0 auto}
+.eqCt{flex:1;min-width:0}
+.eqCt b{display:block;font-size:11.5px;letter-spacing:.12em;color:var(--c,var(--os))}
+.eqCt span{display:block;font-size:10.5px;color:var(--gris);margin-top:3px;line-height:1.5}
+.eqCn{flex:0 0 auto;text-align:right;font-size:10px;letter-spacing:.1em;color:var(--or);font-weight:700}
+#modeBan{width:100%;max-width:820px;display:flex;gap:8px;margin-top:16px}
+.mo{flex:1;padding:11px 13px;border-radius:8px;cursor:pointer;text-align:left;
+  border:1px solid var(--bord);background:rgba(14,12,10,.6);color:var(--gris);
+  font-family:var(--mono)}
+.mo b{display:block;font-family:var(--titre);font-size:14px;color:var(--os);letter-spacing:.04em}
+.mo span{display:block;font-size:10px;color:var(--gris);margin-top:3px}
+.mo.on{border-color:var(--flamme);background:rgba(255,176,46,.13)}
+.mo.on b{color:var(--flamme)}
+#campBan{width:100%;max-width:820px;margin-top:12px;padding:14px 16px;border-radius:8px;
+  border:1px solid var(--bord);border-left:4px solid var(--flamme);
+  background:linear-gradient(150deg,rgba(50,26,10,.7),rgba(12,10,8,.7))}
+.cbHaut{display:flex;justify-content:space-between;align-items:baseline}
+.cbJ{font-size:9.5px;letter-spacing:.3em;color:var(--gris);font-weight:700}
+.cbE{font-size:9.5px;letter-spacing:.24em;color:var(--or);font-weight:700}
+.cbT{font-family:var(--titre);font-size:clamp(19px,5vw,28px);color:var(--flamme);
+  margin-top:7px;line-height:1.05}
+.cbX{font-size:12px;line-height:1.8;color:#d8d3c8;margin-top:7px}
+.cbS{display:flex;align-items:center;gap:9px;margin-top:11px}
+.cbS span{font-size:8.5px;letter-spacing:.2em;color:var(--gris);font-weight:700}
+.cbBar{flex:1;height:6px;border-radius:3px;background:rgba(0,0,0,.55);overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+.cbBar i{display:block;height:100%;border-radius:3px;
+  background:linear-gradient(90deg,#8fd14f,#ffb02e 55%,#ff3d4f)}
+.cbL{display:flex;flex-wrap:wrap;gap:4px;margin-top:11px}
+.cbD{width:26px;height:26px;border-radius:5px;display:grid;place-items:center;cursor:pointer;
+  border:1px solid var(--bord);background:rgba(0,0,0,.35);color:var(--gris2);
+  font:700 10px/1 var(--mono)}
+.cbD.fait{color:var(--or);border-color:rgba(255,212,92,.5)}
+.cbD.now{border-color:var(--flamme);color:var(--flamme);animation:pulseV 1.4s infinite}
+.cbD.futur{opacity:.4;cursor:default}
+#caserne{width:100%;max-width:820px;display:flex;flex-direction:column;gap:7px;margin-top:12px}
+.eqC{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:7px;
+  border:1px solid var(--bord);background:rgba(14,12,10,.6);color:var(--os);
+  font-family:var(--mono);text-align:left}
+.eqC.rec{cursor:pointer}
+.eqC.rec:hover{border-color:var(--c)}
+.eqC.cher{opacity:.66}
+.eqC.blesse{border-color:rgba(255,61,79,.5)}
+.eqCe{font-size:22px;flex:0 0 auto}
+.eqCt{flex:1;min-width:0}
+.eqCt b{display:block;font-size:11.5px;letter-spacing:.12em;color:var(--c,var(--os))}
+.eqCt span{display:block;font-size:10.5px;color:var(--gris);margin-top:3px;line-height:1.5}
+.eqCn{flex:0 0 auto;text-align:right;font-size:10px;letter-spacing:.1em;color:var(--or);font-weight:700}
+#objBan{width:100%;max-width:820px;margin-top:12px;padding:12px 14px;border:1px solid var(--bord);
+  border-radius:8px;background:rgba(12,10,8,.5)}
+#objBan .oT{font-size:9.5px;letter-spacing:.32em;color:var(--gris);font-weight:700;margin-bottom:9px}
+#objJour{display:flex;flex-direction:column;gap:7px}
+.obj{display:flex;gap:10px;align-items:flex-start;font-size:11.5px}
+.obj span{color:var(--gris2);font-weight:700}
+.obj.fait span{color:var(--vert)}
+.obj b{display:block;font-weight:700;color:var(--os);font-size:11.5px;line-height:1.5}
+.obj.fait b{color:var(--vert);text-decoration:line-through;opacity:.75}
+.obj em{font-style:normal;font-size:10px;color:var(--or);letter-spacing:.1em}
+#objPied{margin-top:10px;font-size:10.5px;color:var(--gris2);letter-spacing:.08em;line-height:1.7}
+#objPied b{color:var(--gris)}
+
+#secteurs{display:flex;gap:9px;overflow-x:auto;width:100%;max-width:820px;margin-top:16px;
+  padding-bottom:6px;scrollbar-width:thin}
+.sec{flex:0 0 auto;width:170px;text-align:left;padding:11px 12px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--bord);background:rgba(14,12,10,.66);color:var(--os);font-family:var(--mono)}
+.sec b{display:block;font-family:var(--titre);font-size:15px;line-height:1.15}
+.sec span{display:block;font-size:10px;color:var(--gris);margin-top:4px;line-height:1.5;min-height:30px}
+.sec.on{border-color:var(--flamme);background:rgba(255,176,46,.12)}
+.sec.verrou{opacity:.62}
+.secEt{margin-top:6px;display:flex;gap:2px}
+.secEt i{font-style:normal;color:var(--gris2);font-size:12px}
+.secEt i.on{color:var(--or)}
+.secPrix{margin-top:5px;font-size:10px;color:var(--or);letter-spacing:.1em;font-weight:700}
+
+#fiche{width:100%;max-width:820px;margin-top:14px;padding:16px;border:1px solid var(--bord);
+  border-radius:8px;background:linear-gradient(160deg,rgba(40,24,14,.7),rgba(12,10,8,.7))}
+#fiche h3{font-family:var(--titre);font-size:clamp(22px,6vw,34px);color:var(--flamme);line-height:1}
+#sSous{font-size:10.5px;letter-spacing:.22em;color:var(--gris);margin-top:6px;font-weight:700}
+#sEtoiles{margin-top:8px}
+.etoile{font-size:20px;color:var(--gris2)}
+.etoile.on{color:var(--or);text-shadow:0 0 14px rgba(255,212,92,.6);
+  animation:surgit .5s var(--d,0s) both}
+#sBrief{margin-top:11px;font-size:12.5px;line-height:1.85;color:#d8d3c8}
+#sVice{margin-top:9px;font-size:11px;letter-spacing:.14em;color:var(--sang);font-weight:700}
+#sRecord{margin-top:8px;font-size:10.5px;letter-spacing:.12em;color:var(--gris)}
+
+#matos{width:100%;max-width:820px;display:flex;flex-direction:column;gap:7px;margin-top:12px}
+.mat{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:7px;cursor:pointer;
+  border:1px solid var(--bord);background:rgba(14,12,10,.6);color:var(--os);
+  font-family:var(--mono);text-align:left}
+.mat:hover{border-color:var(--flamme)}
+.mat.max{opacity:.6;cursor:default} .mat.cher{opacity:.72}
+.matEm{font-size:22px;flex:0 0 auto}
+.matT{flex:1;min-width:0}
+.matT b{display:block;font-size:11.5px;letter-spacing:.12em;color:var(--os)}
+.matT span{display:block;font-size:10.5px;color:var(--gris);margin-top:3px;line-height:1.5}
+.matN{flex:0 0 auto;text-align:right}
+.matN i{display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(255,255,255,.12);
+  margin-left:3px}
+.matN i.on{background:var(--flamme)}
+.matN em{display:block;font-style:normal;font-size:10px;color:var(--or);margin-top:5px;
+  letter-spacing:.1em;font-weight:700}
+.titreSec{width:100%;max-width:820px;display:flex;align-items:center;gap:12px;margin-top:22px}
+.titreSec b{font-family:var(--titre);font-size:15px;letter-spacing:.06em;color:var(--c,var(--flamme))}
+.titreSec i{flex:1;height:1px;background:var(--bord)}
+#mMsg{margin-top:10px;font-size:11px;letter-spacing:.14em;color:var(--or);min-height:16px;font-weight:700}
+
+/* --- fin d'intervention --- */
+#finEtoiles{margin:10px 0 4px}
+.grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;
+  width:100%;max-width:560px;margin-top:16px}
+.cell{padding:10px 12px;border:1px solid var(--bord);border-radius:6px;background:rgba(255,255,255,.03)}
+.cell span{display:block;font-size:9px;letter-spacing:.2em;color:var(--gris)}
+.cell b{display:block;font-family:var(--titre);font-size:19px;margin-top:3px;
+  font-variant-numeric:tabular-nums}
+.presque{width:100%;max-width:560px;margin-top:20px}
+.pqT{font-size:9.5px;letter-spacing:.32em;color:var(--gris);font-weight:700;text-align:center;
+  margin-bottom:10px}
+.pq{margin-bottom:10px;animation:surgit .45s var(--d) both}
+.pqL{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.pqL span{font-size:10px;letter-spacing:.16em;color:var(--gris);font-weight:700}
+.pqL b{font-family:var(--titre);font-size:16px;color:var(--c)}
+.pqBar{height:6px;border-radius:3px;background:rgba(0,0,0,.5);overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+.pqBar i{display:block;height:100%;border-radius:3px;background:var(--c);box-shadow:0 0 12px var(--c)}
+#finGrade{width:100%;max-width:560px;margin-top:18px;padding:13px 15px;border:1px solid var(--bord);
+  border-left:4px solid var(--c);border-radius:7px;background:rgba(255,255,255,.04);
+  animation:surgit .5s .25s both}
+.grHaut{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.grT{font-family:var(--titre);font-size:18px;color:var(--c)}
+.grX{font-size:11px;letter-spacing:.14em;font-weight:700}
+.grBar{height:8px;border-radius:4px;background:rgba(0,0,0,.55);overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+.grBar i{display:block;height:100%;border-radius:4px;background:var(--c);box-shadow:0 0 14px var(--c);
+  transition:width 1.1s cubic-bezier(.2,.8,.3,1)}
+.grBas{margin-top:7px;font-size:10.5px;letter-spacing:.12em;color:var(--gris);font-weight:700}
+#finPalmares{width:100%;max-width:560px;margin-top:14px;display:flex;flex-direction:column;gap:7px}
+.pal{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:7px;
+  border:1px solid var(--bord);border-left:4px solid var(--c);background:rgba(255,255,255,.03);
+  animation:surgit .4s var(--d) both;text-align:left}
+.palIc{font-size:19px;flex:0 0 auto}
+.palT{flex:1;min-width:0}
+.palT b{display:block;font-size:11px;letter-spacing:.15em;color:var(--c);font-weight:700}
+.palT span{display:block;font-size:10.5px;color:var(--gris);line-height:1.55;margin-top:2px}
+.palV{font-family:var(--titre);font-size:17px;flex:0 0 auto}
+.relance{position:sticky;bottom:-4px;z-index:2;width:100%;display:flex;justify-content:center;
+  padding:10px 0 4px;background:linear-gradient(180deg,rgba(6,6,5,0),rgba(6,6,5,.94) 42%)}
+.relance .btn{margin-top:0}
+
+/* --- réglages --- */
+.regs{width:100%;max-width:620px;display:flex;flex-direction:column;gap:9px;margin-top:16px}
+.reg{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:13px 14px;
+  border:1px solid var(--bord);border-radius:7px;background:rgba(14,12,10,.55)}
+.reg h4{font-size:11.5px;letter-spacing:.16em;color:var(--os)}
+.reg p{font-size:11px;color:var(--gris);margin-top:5px;line-height:1.65;max-width:360px}
+.reg.bloc{display:block}
+.champ{background:rgba(0,0,0,.4);border:1px solid var(--bord);border-radius:5px;color:var(--os);
+  font:700 13px/1 var(--mono);letter-spacing:.1em;padding:11px 12px;width:160px;outline:none}
+.champ:focus{border-color:var(--flamme)}
+.curseur{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;
+  background:var(--bord);outline:none;width:130px}
+.curseur::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+  background:var(--flamme);cursor:pointer}
+.curseur::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--flamme);
+  border:0;cursor:pointer}
+.danger{color:var(--sang)}
+
+@keyframes surgit{0%{opacity:0;transform:scale(.9) translateY(12px)}100%{opacity:1;transform:none}}
+
+@media (max-width:520px){
+  #topbar .por{gap:9px}
+  #topbar .por b{font-size:16px}
+  #outilAide{display:none}
+  .sec{width:148px}
+}
+@media (orientation:landscape) and (max-height:520px){
+  #outils{bottom:calc(env(safe-area-inset-bottom) + 8px);flex-direction:row}
+  .ou{padding:5px 8px;font-size:8.5px}
+  #actions{bottom:calc(env(safe-area-inset-bottom) + 76px);flex-direction:row}
+  .act{width:52px;height:52px}
+  #outilAide{display:none}
+  .bas{max-width:230px}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="brule"></div>
+<div id="grain"></div>
+
+<div id="hud">
+  <div class="haut">
+    <div class="lect"><span>SUR LE FEU</span><b id="hTemps">0:00</b></div>
+    <div class="lect r v"><span>MASSIF SAUVÉ</span><b id="hSauve">0 ha</b></div>
+  </div>
+  <div id="front"><div class="lab" id="hFront">0 foyers</div>
+    <div class="bar"><i id="hFrontBar" style="width:0%"></i></div>
+    <div class="lab" style="margin-top:4px;color:var(--braise)" id="hBrule">0 ha</div></div>
+  <div id="ctrls"><button id="pauseBtn">PAUSE</button></div>
+  <div class="bas">
+    <div id="etats"></div>
+    <div id="hSource"></div>
+    <div class="jauge" id="vieBloc"><span class="jl">TENUE</span>
+      <span class="jb"><i id="vieFill" style="width:100%"></i></span>
+      <span class="jn" id="hVie"></span></div>
+    <div class="jauge" id="eauBloc"><span class="jl">EAU</span>
+      <span class="jb"><i id="eauFill" style="width:100%"></i></span>
+      <span class="jn" id="hEau">100 L</span></div>
+    <div class="jauge"><span class="jl">SOUFFLE</span>
+      <span class="jb"><i id="soufFill" style="width:100%"></i></span>
+      <span class="jn"></span></div>
+    <div class="jauge" id="chalBloc"><span class="jl">CHALEUR</span>
+      <span class="jb"><i id="chalFill" style="width:0%"></i></span>
+      <span class="jn" id="hChal"></span></div>
+  </div>
+  <div id="outilAide"></div>
+  <div id="equipe"></div>
+  <div id="outils"></div>
+  <span id="cptOutil"></span>
+</div>
+
+<div id="actions">
+  <button class="act" id="btnAction"><b>◉</b>AGIR</button>
+  <button class="act" id="btnCourir"><b>»</b>COURIR</button>
+  <button class="act" id="btnPoster"><b>⌖</b>POSTER</button>
+  <button class="act" id="btnEquipe"><b>&#x1F465;</b>ÉQUIPE</button>
+  <button class="act" id="btnPlan"><b>▦</b>PLAN</button>
+</div>
+
+<div id="alerte"></div>
+<div id="brief"></div>
+<div id="tuto"><div class="cadre">
+  <div class="num" id="tutoN">ÉTAPE 1 / 7</div>
+  <b id="tutoT"></b><span class="txt" id="tutoS"></span>
+  <button class="passer" id="tutoSkip">PASSER L'ENTRAÎNEMENT</button>
+</div></div>
+
+<div class="screen" id="pause">
+  <div class="eyebrow">LE FEU N'ATTEND PAS</div>
+  <h1 style="font-size:var(--t2)">PAUSE</h1>
+  <div class="note" id="pauseInfo"></div>
+  <button class="btn" id="resume">REPRENDRE</button>
+  <button class="btn ghost" id="quit">ABANDONNER L'INTERVENTION</button>
+</div>
+
+<div class="screen on" id="menu">
+  <div id="topbar">
+    <div class="who">
+      <div class="av" id="mAv">S</div>
+      <div style="min-width:0">
+        <div class="nom" id="mNom">SAPEUR</div>
+        <div class="sous" id="mGrade">SAPEUR · GRADE 1</div>
+        <div class="tbBar"><i id="mGradeFill" style="width:0%"></i></div>
+      </div>
+    </div>
+    <div class="por">
+      <div><span>POINTS</span><b id="mPts">0</b></div>
+      <div class="s"><span>SÉRIE</span><b id="mSerie">0 j</b></div>
+    </div>
+  </div>
+
+  <h1 style="margin-top:18px">BRA<u>SIER</u></h1>
+  <div class="eyebrow" style="margin-top:10px">ON N'ABAT PAS UN FEU — ON L'ENCERCLE</div>
+
+  <div id="modeBan">
+    <button class="mo" data-m="campagne"><b>CAMPAGNE</b><span>L'été, journée après journée</span></button>
+    <button class="mo" data-m="libre"><b>SECTEUR LIBRE</b><span>Rejouer ce que tu veux</span></button>
+  </div>
+
+  <div id="campBan">
+    <div class="cbHaut"><span class="cbJ" id="cbJour">JOURNÉE 1 / 12</span>
+      <span class="cbE" id="cbEte">ÉTÉ 1</span></div>
+    <div class="cbT" id="cbTitre"></div>
+    <div class="cbX" id="cbTexte"></div>
+    <div class="cbS"><span>SÉCHERESSE</span>
+      <div class="cbBar"><i id="cbSech" style="width:0%"></i></div></div>
+    <div class="cbL" id="cbListe"></div>
+  </div>
+
+  <div id="objBan"><div class="oT">OBJECTIFS DU JOUR</div>
+    <div id="objJour"></div><div id="objPied"></div></div>
+
+  <div class="titreSec" id="titreSecteur" style="--c:var(--flamme)"><b>SECTEUR</b><i></i></div>
+  <div id="secteurs"></div>
+  <div id="fiche">
+    <h3 id="sNom">LES RESTANQUES</h3>
+    <div id="sSous"></div>
+    <div id="sEtoiles"></div>
+    <div id="sBrief"></div>
+    <div id="sVice"></div>
+    <div id="sRecord"></div>
+  </div>
+  <button class="btn gros" id="jouer">INTERVENIR</button>
+  <div id="mMsg"></div>
+
+  <div class="titreSec" style="--c:#c9a4ea"><b>LA CASERNE</b><i></i></div>
+  <div id="caserne"></div>
+  <div class="note" style="margin-top:4px">Seul, on ne tient pas une ligne : on court
+    d'un flanc à l'autre pendant que le feu passe derrière. Trois hommes postés au bon
+    endroit valent mieux que dix minutes de lance.</div>
+
+  <div class="titreSec" style="--c:#c9a4ea"><b>LA CASERNE</b><i></i></div>
+  <div id="caserne"></div>
+  <div class="note" style="margin-top:4px">Seul, on ne tient pas une ligne : on court
+    d'un flanc à l'autre pendant que le feu passe derrière. Trois hommes postés au bon
+    endroit valent mieux que dix minutes de lance.</div>
+
+  <div class="titreSec" style="--c:var(--vert)"><b>MATÉRIEL</b><i></i></div>
+  <div id="matos"></div>
+  <button class="lien" id="ouvrirRegl" style="margin-top:22px">RÉGLAGES ET COMMANDES</button>
+  <div class="note">Le feu se propage vraiment : il suit le vent, court quatre fois plus vite
+    en montée, et jette des brandons loin devant son front. Ta lance ne suffira jamais —
+    c'est la coupure, le contre-feu et le terrain qui l'arrêtent.</div>
+</div>
+
+<div class="screen" id="fin">
+  <div class="eyebrow" id="finEye"></div>
+  <h1 id="finTitre" style="font-size:var(--t2)">FEU MAÎTRISÉ</h1>
+  <div id="finEtoiles"></div>
+  <div class="grille" id="finGrille"></div>
+  <div class="presque" id="finPresque"></div>
+  <div id="finGrade"></div>
+  <div id="finPalmares"></div>
+  <div class="relance"><button class="btn" id="finRejouer">REPARTIR</button></div>
+  <button class="btn ghost" id="finMenu">RETOUR AU CENTRE</button>
+</div>
+
+<div class="screen" id="reglages">
+  <div class="btnHaut"><button id="fermerRegl">RETOUR</button></div>
+  <div class="eyebrow">CONFORT DE JEU</div>
+  <h1 style="font-size:var(--t2)">RÉGLAGES</h1>
+  <div class="regs">
+    <div class="reg"><div><h4>TON NOM</h4><p>Il apparaît sur ta fiche.</p></div>
+      <input class="champ" id="nomIn" maxlength="14" placeholder="SAPEUR" autocomplete="off"></div>
+    <div class="reg"><div><h4>ALLURE DU FEU</h4><p id="assisteTxt"></p></div>
+      <button class="lien" id="assisteBtn">ALLURE : RÉELLE</button></div>
+    <div class="reg"><div><h4>SON</h4><p>Vent, rugissement du front, radio et sirène.</p></div>
+      <button class="lien" id="sonBtn">SON : ACTIVÉ</button></div>
+    <div class="reg"><div><h4>VOLUME</h4><p>Si ça sature, baisse-le ici.</p></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="range" id="volIn" min="0" max="100" step="5" class="curseur">
+        <span id="volVal" style="font:700 12px var(--mono);color:var(--flamme);width:44px;text-align:right">60 %</span>
+      </div></div>
+    <div class="reg bloc"><h4>COMMANDES</h4>
+      <p style="max-width:none;margin-top:8px;line-height:2.1">
+      <kbd>ZQSD</kbd> se déplacer · <kbd>Maj</kbd> courir · la souris oriente la lance<br>
+      <kbd>clic</kbd> ou <kbd>Espace</kbd> utiliser l'outil · <kbd>1</kbd> lance ·
+      <kbd>2</kbd> coupure · <kbd>3</kbd> contre-feu · <kbd>4</kbd> largage<br>
+      <kbd>Tab</kbd> ou la molette change d'outil · <kbd>R</kbd> affiche le plan ·
+      <kbd>Échap</kbd> met en pause<br>
+      <b style="color:var(--flamme)">L'équipe</b> — <kbd>Q</kbd> choisit qui,
+      <kbd>E</kbd> le poste là où tu regardes, <kbd>F</kbd> rappelle tout le monde.<br>
+      Au doigt : pouce gauche pour marcher, pouce droit pour viser et agir,
+      les boutons à droite pour le reste.</p></div>
+    <div class="reg"><div><h4>ENTRAÎNEMENT</h4><p>Revoir les sept étapes.</p></div>
+      <button class="lien" id="revoirTuto">REVOIR</button></div>
+    <div class="reg"><div><h4 class="danger">REPARTIR DE ZÉRO</h4>
+      <p>Efface points, grades, secteurs et records. Sans retour.</p></div>
+      <button class="lien danger" id="effacer">TOUT EFFACER</button></div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   BRASIER — lutte contre les feux de forêt
+   Un seul fichier, aucune dépendance. Sons synthétisés, décor généré.
+   ==========================================================================
+   Le feu n'est pas un ennemi qu'on abat : c'est un système qui respire.
+   Il suit le vent, il court plus vite en montée, il saute par-dessus les
+   coupures. On ne le tue pas — on l'encercle. Tout le jeu tient là-dedans.
+   ========================================================================== */
+
+const cv=document.getElementById('c'), ctx=cv.getContext('2d',{alpha:false});
+let VW=0, VH=0, DPR=1;
+const lightCv=document.createElement('canvas'), lg=lightCv.getContext('2d');
+function redim(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  VW=window.innerWidth; VH=window.innerHeight;
+  cv.width=Math.round(VW*DPR); cv.height=Math.round(VH*DPR);
+  cv.style.width=VW+'px'; cv.style.height=VH+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.imageSmoothingEnabled=true;
+  /* la couche de lumière est volontairement grossière : elle ne porte que des
+     dégradés, et la moitié de la résolution suffit largement */
+  /* un tiers de la résolution : cette couche ne porte que des dégradés, et
+     son recopiage à l'échelle est le poste le plus cher des missions de nuit */
+  lightCv.width=Math.max(2,Math.round(VW*.32)); lightCv.height=Math.max(2,Math.round(VH*.32));
+}
+addEventListener('resize',redim); redim();
+
+const TAU=Math.PI*2;
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rnd(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const d2=(a,b)=>{const x=a.x-b.x,y=a.y-b.y;return x*x+y*y;};
+const FONT='ui-monospace,"SF Mono",Menlo,Consolas,monospace';
+const $=id=>document.getElementById(id);
+
+/* bruit de valeur : c'est lui qui donne son relief et sa végétation au terrain.
+   Déterministe, pour qu'une même mission soit toujours le même paysage. */
+function hash2(x,y,g){
+  let n=x*374761393+y*668265263+g*1442695040;
+  n=(n^(n>>13))*1274126177;
+  return ((n^(n>>16))>>>0)/4294967296;
+}
+function bruit(x,y,g){
+  const x0=Math.floor(x), y0=Math.floor(y), fx=x-x0, fy=y-y0;
+  const u=fx*fx*(3-2*fx), v=fy*fy*(3-2*fy);
+  return lerp(lerp(hash2(x0,y0,g),hash2(x0+1,y0,g),u),
+              lerp(hash2(x0,y0+1,g),hash2(x0+1,y0+1,g),u),v);
+}
+/* plusieurs octaves : les grandes formes du relief, puis le détail */
+function bruitFractal(x,y,g,oct,pers){
+  let s=0,a=1,f=1,tot=0;
+  for(let i=0;i<(oct||4);i++){ s+=bruit(x*f,y*f,g+i*17)*a; tot+=a; a*=(pers||.5); f*=2; }
+  return s/tot;
+}
+
+/* mise en forme */
+function nb(v){ return Math.round(v||0).toLocaleString('fr-FR'); }
+function fmt(t){ const m=Math.floor(t/60), s=Math.floor(t%60);
+  return m+':'+String(s).padStart(2,'0'); }
+function ha(n){ return n<10? n.toFixed(1).replace('.',',') : nb(n); }
+/* les points cardinaux : plus parlants qu'un angle pour annoncer le vent */
+const CARD=['N','NE','E','SE','S','SO','O','NO'];
+function cardinal(a){
+  /* 0 rad = vers l'est en repère écran ; on ramène à la rose des vents */
+  const d=((a*180/Math.PI)+90+360)%360;
+  return CARD[Math.round(d/45)%8];
+}
+function echapper(t){ return String(t).replace(/[&<>"']/g,
+  c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+/* ==========================================================================
+   1. SON — tout est synthétisé, rien n'est téléchargé
+   ==========================================================================
+   Deux nappes continues portent l'ambiance : le vent, et le rugissement du
+   feu dont le volume suit l'intensité du front. Le reste est ponctuel. */
+const SND={
+  ac:null, pret:false, on:true, _t:{}, vFin:[],
+  peut(k,ms){ const t=performance.now(); if(this._t[k]&&t-this._t[k]<ms) return false;
+              this._t[k]=t; return true; },
+  init(){
+    if(this.pret) return;
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    this.ac=new AC();
+    this.master=this.ac.createGain(); this.master.gain.value=(SAVE&&SAVE.volume!=null)?SAVE.volume:.6;
+    const comp=this.ac.createDynamicsCompressor();
+    comp.threshold.value=-4; comp.ratio.value=18; comp.knee.value=3;
+    comp.attack.value=.003; comp.release.value=.2;
+    const secu=this.ac.createGain(); secu.gain.value=.85;
+    this.master.connect(comp); comp.connect(secu); secu.connect(this.ac.destination);
+    this.busFx=this.ac.createGain();  this.busFx.gain.value=1;  this.busFx.connect(this.master);
+    this.busAmb=this.ac.createGain(); this.busAmb.gain.value=.7; this.busAmb.connect(this.master);
+    const n=this.ac.sampleRate*2, b=this.ac.createBuffer(1,n,this.ac.sampleRate), d=b.getChannelData(0);
+    for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
+    this.noiseBuf=b;
+    this.pret=true;
+  },
+  reprendre(){ if(this.ac&&this.ac.state==='suspended') this.ac.resume(); },
+  vol(v){ if(this.master) this.master.gain.value=v; },
+  /* limiteur : au-delà d'une vingtaine de sons simultanés le rendu sature */
+  place(dur,prio){
+    const t=performance.now(), f=this.vFin;
+    while(f.length && f[0]<=t) f.shift();
+    if(f.length>=(prio?22:12)) return false;
+    const fin=t+(dur+.12)*1000;
+    let i=f.length; while(i>0 && f[i-1]>fin) i--;
+    f.splice(i,0,fin);
+    return true;
+  },
+  bruit(o){
+    if(!this.on||!this.pret) return;
+    if(!this.place(o.dur,o.prio)) return;
+    const t=this.ac.currentTime, s=this.ac.createBufferSource(); s.buffer=this.noiseBuf;
+    s.playbackRate.value=o.rate||1;
+    const f=this.ac.createBiquadFilter(); f.type=o.filtre||'lowpass';
+    f.frequency.setValueAtTime(o.f0,t);
+    f.frequency.exponentialRampToValueAtTime(Math.max(60,o.f1||o.f0),t+o.dur);
+    f.Q.value=o.q||1;
+    const g=this.ac.createGain();
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(o.gain,t+(o.att||.005));
+    g.gain.exponentialRampToValueAtTime(.0008,t+o.dur);
+    let last=g;
+    if(o.pan!==undefined&&this.ac.createStereoPanner){
+      const p=this.ac.createStereoPanner(); p.pan.value=clamp(o.pan,-1,1); g.connect(p); last=p;
+    }
+    s.connect(f); f.connect(g); last.connect(this.busFx);
+    s.start(t); s.stop(t+o.dur+.05);
+  },
+  ton(o){
+    if(!this.on||!this.pret) return;
+    if(!this.place(o.dur+(o.delai||0),o.prio)) return;
+    const t=this.ac.currentTime+(o.delai||0), s=this.ac.createOscillator();
+    s.type=o.type||'sine';
+    s.frequency.setValueAtTime(o.f0,t);
+    if(o.f1) s.frequency.exponentialRampToValueAtTime(Math.max(20,o.f1),t+o.dur);
+    const g=this.ac.createGain();
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(o.gain,t+(o.att||.01));
+    g.gain.exponentialRampToValueAtTime(.0008,t+o.dur);
+    let last=g;
+    if(o.pan!==undefined&&this.ac.createStereoPanner){
+      const p=this.ac.createStereoPanner(); p.pan.value=clamp(o.pan,-1,1); g.connect(p); last=p;
+    }
+    s.connect(g); last.connect(this.busFx);
+    s.start(t); s.stop(t+o.dur+.06);
+  },
+  /* --- effets --- */
+  jet(pan){ if(!this.peut('jet',85)) return;
+    this.bruit({f0:5200,f1:3400,dur:.16,gain:.055,rate:1.5,q:.7,filtre:'bandpass',pan}); },
+  vapeur(pan){ if(!this.peut('vap',130)) return;
+    this.bruit({f0:7000,f1:1800,dur:.34,gain:.10,rate:1.7,q:.6,filtre:'bandpass',pan}); },
+  outil(pan){ if(!this.peut('out',150)) return;
+    this.bruit({f0:1400,f1:340,dur:.13,gain:.11,rate:.8,q:1.6,pan});
+    this.ton({type:'triangle',f0:220,f1:90,dur:.09,gain:.05,pan}); },
+  craque(pan){ if(!this.peut('cra',70)) return;
+    this.bruit({f0:2600,f1:700,dur:.07,gain:.06,rate:1.4,q:2.4,filtre:'bandpass',pan}); },
+  allume(){ this.bruit({f0:900,f1:2600,dur:.4,gain:.16,rate:.7,q:.8});
+            this.ton({type:'sawtooth',f0:80,f1:220,dur:.4,gain:.08,att:.1}); },
+  brulure(){ this.bruit({f0:700,f1:120,dur:.4,gain:.3,rate:.5,q:1.1,prio:1});
+             this.ton({type:'sine',f0:170,f1:52,dur:.34,gain:.18}); },
+  avion(){ this.bruit({f0:340,f1:180,dur:2.6,gain:.16,rate:.35,q:.8,prio:1});
+           this.ton({type:'sawtooth',f0:64,f1:52,dur:2.6,gain:.09,att:.5}); },
+  largage(){ this.bruit({f0:2400,f1:300,dur:1.1,gain:.34,rate:.7,q:.5,prio:1});
+             this.ton({type:'sine',f0:130,f1:44,dur:.9,gain:.16}); },
+  radio(){ if(!this.peut('rad',400)) return;
+    this.ton({type:'square',f0:1250,dur:.05,gain:.05});
+    this.ton({type:'square',f0:1650,dur:.05,gain:.05,delai:.07}); },
+  bien(){ [523,659,784,1046].forEach((f,i)=>
+    this.ton({type:'triangle',f0:f,dur:.3,gain:.13,delai:i*.07,prio:1})); },
+  mal(){ this.ton({type:'sawtooth',f0:200,f1:52,dur:.9,gain:.22,att:.03,prio:1});
+         this.bruit({f0:500,f1:80,dur:.9,gain:.16,rate:.4}); },
+  sauve(){ this.ton({type:'triangle',f0:700,f1:1200,dur:.16,gain:.11});
+           this.ton({type:'triangle',f0:1050,f1:1500,dur:.2,gain:.09,delai:.11}); },
+  clic(){ this.ton({type:'triangle',f0:840,f1:1300,dur:.07,gain:.05}); },
+  sirene(){ for(let i=0;i<3;i++){
+    this.ton({type:'square',f0:540,f1:820,dur:.34,gain:.10,delai:i*.42,prio:1});
+    this.ton({type:'square',f0:820,f1:540,dur:.34,gain:.10,delai:i*.42+.34,prio:1}); } },
+
+  /* --- nappes continues : vent et rugissement du feu --- */
+  nappes(){
+    if(!this.pret||this.ventN) return;
+    const mk=(type,freq,q,gain)=>{
+      const s=this.ac.createBufferSource(); s.buffer=this.noiseBuf; s.loop=true;
+      const f=this.ac.createBiquadFilter(); f.type=type; f.frequency.value=freq; f.Q.value=q;
+      const g=this.ac.createGain(); g.gain.value=0;
+      s.connect(f); f.connect(g); g.connect(this.busAmb);
+      s.start();
+      return {g,f};
+    };
+    this.ventN=mk('bandpass',480,.7);
+    this.feuN=mk('lowpass',380,.9);
+    /* un souffle lent module le vent : sans lui la nappe sonne comme une fuite de gaz */
+    const lfo=this.ac.createOscillator(); lfo.type='sine'; lfo.frequency.value=.09;
+    const lg2=this.ac.createGain(); lg2.gain.value=180;
+    lfo.connect(lg2); lg2.connect(this.ventN.f.frequency); lfo.start();
+  },
+  nappesOff(){
+    if(!this.ac) return;
+    [this.ventN,this.feuN].forEach(n=>{ if(n) try{
+      n.g.gain.setTargetAtTime(0,this.ac.currentTime,.4); }catch(e){} });
+  },
+  ambiance(force,feu){
+    if(!this.ventN||!this.ac) return;
+    const t=this.ac.currentTime;
+    try{
+      this.ventN.g.gain.setTargetAtTime(this.on?(.03+force*.13):0,t,.5);
+      this.ventN.f.frequency.setTargetAtTime(380+force*900,t,.6);
+      this.feuN.g.gain.setTargetAtTime(this.on?Math.min(.42,feu*.42):0,t,.35);
+      this.feuN.f.frequency.setTargetAtTime(220+feu*700,t,.5);
+    }catch(e){}
+  }
+};
+['pointerdown','keydown','touchstart'].forEach(ev=>
+  addEventListener(ev,()=>{ SND.init(); SND.reprendre(); SND.nappes(); },{passive:true}));
+/* ==========================================================================
+   2. DONNÉES — végétation, secteurs, matériel, grades
+   ==========================================================================
+   « infl » est la facilité d'inflammation, « ard » l'ardeur une fois pris
+   (un pin résineux part vite ET brûle fort ; un chêne part mal mais tient
+   longtemps), « duree » le temps que la parcelle met à se consumer. */
+const VEG=[
+ {id:'roche',  nom:'rocaille',      fuel:0,   infl:0,    ard:0,   duree:1,  col:'#8a8175', col2:'#79705f', dur:true},
+ {id:'eau',    nom:'eau',           fuel:0,   infl:0,    ard:0,   duree:1,  col:'#264e68', col2:'#2e5c78', eau:true},
+ {id:'piste',  nom:'piste',         fuel:0,   infl:0,    ard:0,   duree:1,  col:'#a08d6b', col2:'#93805f', dur:true},
+ {id:'herbe',  nom:'herbe sèche',   fuel:.34, infl:1.85, ard:.82, duree:5,  col:'#cdb96e', col2:'#c0ac62', sec:true},
+ {id:'vigne',  nom:'vigne',         fuel:.16, infl:.34,  ard:.4,  duree:9,  col:'#43613a', col2:'#3b5733', rang:true},
+ {id:'garrig', nom:'garrigue',      fuel:.72, infl:1.25, ard:1,   duree:13, col:'#77794c', col2:'#6b6e44', buis:true},
+ {id:'chene',  nom:'chêne-liège',   fuel:.9,  infl:.52,  ard:1.15,duree:26, col:'#2f4a2a', col2:'#284223', arbre:'chene'},
+ {id:'pin',    nom:'pinède',        fuel:1,   infl:1.4,  ard:1.5, duree:20, col:'#1e3527', col2:'#1a2e22', arbre:'pin'},
+ {id:'bati',   nom:'bâti',          fuel:.55, infl:.30,  ard:.9,  duree:34, col:'#a89880', col2:'#9d8d76', bati:true},
+ {id:'nu',     nom:'terre nue',     fuel:0,   infl:0,    ard:0,   duree:1,  col:'#6b5638', col2:'#5f4c31', dur:true}
+];
+const V={}; VEG.forEach((v,i)=>V[v.id]=i);
+const CEL=11;                       // côté d'une parcelle, en unités d'affichage
+const METRE=5;                      // ...soit cinq mètres de terrain
+const HECT=METRE*METRE/10000;       // une parcelle = 25 m² = 0,0025 ha
+const enM=c=>Math.round(c*METRE);   // parcelles → mètres
+
+/* --- états d'une parcelle --- */
+const INTACT=0, FLAMMES=1, BRAISES=2, CENDRES=3;
+
+/* --- le matériel : améliorations définitives, achetées avec les points --- */
+const MATOS={
+ cuve:   {nom:'CUVE RENFORCÉE',  max:5, prix:n=>320+n*280,  em:'\u{1F6E2}',
+   d:n=>'+'+(n*22)+' % de capacité en eau'},
+ lance:  {nom:'LANCE HAUTE PRESSION', max:5, prix:n=>380+n*300, em:'\u{1F6BF}',
+   d:n=>'+'+(n*16)+' % de portée et de débit'},
+ outil:  {nom:'OUTILS DE COUPE', max:5, prix:n=>300+n*260, em:'\u{1FA93}',
+   d:n=>'Coupure '+(n*24)+' % plus rapide'},
+ tenue:  {nom:'TENUE D\'APPROCHE', max:5, prix:n=>420+n*340, em:'\u{1F9E5}',
+   d:n=>'-'+(n*15)+' % de dégâts de chaleur'},
+ souffle:{nom:'APPAREIL RESPIRATOIRE', max:4, prix:n=>360+n*300, em:'\u{1F634}',
+   d:n=>'+'+(n*25)+' % de souffle, la fumée gêne moins'},
+ radio:  {nom:'RADIO TACTIQUE', max:3, prix:n=>700+n*600, em:'\u{1F4FB}',
+   d:n=>'+'+n+' largage'+(n>1?'s':'')+' par intervention'},
+ bottes: {nom:'RANGERS LÉGÈRES', max:4, prix:n=>280+n*240, em:'\u{1F97E}',
+   d:n=>'+'+(n*9)+' % de vitesse'},
+ flair:  {nom:'LECTURE DU TERRAIN', max:3, prix:n=>500+n*450, em:'\u{1F441}',
+   d:n=>'Montre les parcelles qui chauffent avant qu\'elles ne prennent'}
+};
+const niv=k=>(SAVE.matos&&SAVE.matos[k])||0;
+
+/* --- grades : la progression qui ne recule jamais --- */
+const GRADES=[
+ {n:1,  t:'SAPEUR',      c:'#9aa094'},
+ {n:5,  t:'CAPORAL',     c:'#8fd14f'},
+ {n:10, t:'SERGENT',     c:'#6fc4e8'},
+ {n:17, t:'ADJUDANT',    c:'#c9a4ea'},
+ {n:26, t:'LIEUTENANT',  c:'#ffb02e'},
+ {n:38, t:'CAPITAINE',   c:'#ff6a1e'}
+];
+function titreGrade(n){ let g=GRADES[0]; for(const x of GRADES) if(n>=x.n) g=x; return g; }
+function gradeSeuil(n){ return Math.round(400+n*260+n*n*18); }
+function gradeDe(xp){
+  let n=1, r=Math.max(0,xp|0);
+  while(n<200 && r>=gradeSeuil(n)){ r-=gradeSeuil(n); n++; }
+  return {n, reste:r, seuil:gradeSeuil(n), titre:titreGrade(n)};
+}
+function gradeActuel(){ return gradeDe(SAVE.xp||0); }
+
+/* --- les secteurs : chacun a son relief, sa végétation et son vice ---
+   « vent » donne la force de départ et l'amplitude des sautes d'humeur ;
+   « pente » l'ampleur du relief, qui est le vrai accélérateur du feu. */
+const SECTEURS=[
+ {id:'restanques', nom:'LES RESTANQUES', prix:0, duree:0,
+  sous:'Collines en terrasses, vieilles vignes',
+  brief:'Un départ de feu en contrebas des restanques. Les vignes en terrasses '
+       +'coupent la pente : sers-t\'en. Le mas et sa grange ne doivent pas partir.',
+  vice:'Les murets de pierre sèche arrêtent le feu — repère-les.',
+  L:118, H:86, pente:.55, vent:{f:.32,var:.25,a:-.6}, hum:.34, nuit:0,
+  mix:{herbe:.30,vigne:.24,garrig:.24,chene:.14,pin:.08},
+  bati:1, camp:0, gens:2, depart:1, largages:2, seuil:.20},
+
+ {id:'pinede', nom:'LA PINÈDE', prix:900, duree:0,
+  sous:'Pins d\'Alep, sous-bois non débroussaillé',
+  brief:'Le pin d\'Alep est de la résine sur pied. Le feu y prend en quelques '
+       +'secondes et monte dans les houppiers. Le camping est plein.',
+  vice:'La pinède s\'enflamme presque instantanément.',
+  L:130, H:96, pente:.35, vent:{f:.40,var:.3,a:-.3}, hum:.26, nuit:0,
+  mix:{herbe:.12,garrig:.20,chene:.12,pin:.56},
+  bati:0, camp:1, gens:4, depart:1, largages:3, seuil:.18},
+
+ {id:'vallon', nom:'LE VALLON', prix:1800, duree:0,
+  sous:'Ravin encaissé, forte pente',
+  brief:'Le feu est au fond du vallon. Un feu qui monte va quatre fois plus '
+       +'vite qu\'un feu qui descend : ne te fais pas prendre au-dessus de lui.',
+  vice:'La pente double la vitesse du front à chaque palier.',
+  L:112, H:112, pente:1.35, vent:{f:.28,var:.35,a:-1.5}, hum:.30, nuit:0,
+  mix:{herbe:.16,garrig:.30,chene:.26,pin:.22,roche:.06},
+  bati:1, camp:0, gens:3, depart:1, largages:3, seuil:.20},
+
+ {id:'mistral', nom:'LE MISTRAL', prix:3200, duree:0,
+  sous:'Plateau nu, vent de nord-ouest',
+  brief:'Soixante-dix kilomètres-heure et des rafales. Le vent jette des '
+       +'brandons à cent mètres devant le front : tu auras des départs '
+       +'secondaires dans ton dos.',
+  vice:'Vent violent et instable, sautes de feu fréquentes.',
+  L:150, H:92, pente:.30, vent:{f:.86,var:.55,a:-2.4}, hum:.20, nuit:0,
+  mix:{herbe:.34,garrig:.38,pin:.20,roche:.08},
+  bati:1, camp:1, gens:4, depart:2, largages:4, seuil:.22},
+
+ {id:'garrigue', nom:'LA GARRIGUE', prix:5200, duree:0,
+  sous:'Étendue de chênes kermès et de cistes',
+  brief:'Rien pour arrêter le feu sur des kilomètres. Le front va s\'étaler '
+       +'sur toute la largeur du plateau. Choisis où tu tiens la ligne.',
+  vice:'Front très large, presque aucune coupure naturelle.',
+  L:170, H:100, pente:.28, vent:{f:.48,var:.35,a:.4}, hum:.22, nuit:0,
+  mix:{herbe:.26,garrig:.56,chene:.10,pin:.08},
+  bati:1, camp:1, gens:5, depart:2, largages:4, seuil:.24},
+
+ {id:'hameau', nom:'LE HAMEAU', prix:8000, duree:0,
+  sous:'Village accroché à la colline',
+  brief:'Vingt maisons, une seule route. La défense du bâti passe avant tout : '
+       +'mouille les abords, dégage les abords, sors les gens.',
+  vice:'Beaucoup de bâti à défendre, et des gens partout.',
+  L:126, H:106, pente:.75, vent:{f:.45,var:.4,a:-1.1}, hum:.28, nuit:0,
+  mix:{herbe:.22,vigne:.10,garrig:.26,chene:.16,pin:.20},
+  bati:3, camp:0, gens:7, depart:2, largages:4, seuil:.16},
+
+ {id:'nuit', nom:'LA NUIT', prix:11000, duree:0,
+  sous:'Reprise nocturne, aucun moyen aérien',
+  brief:'Les avions sont cloués au sol jusqu\'au jour. Tu es seul avec ta '
+       +'lance et ta pelle. La nuit, l\'humidité remonte : le feu faiblit, '
+       +'mais tu n\'y vois plus rien.',
+  vice:'Nuit noire, aucun largage — mais l\'air est plus humide.',
+  L:140, H:100, pente:.60, vent:{f:.34,var:.3,a:1.9}, hum:.46, nuit:1,
+  mix:{herbe:.20,garrig:.32,chene:.22,pin:.26},
+  bati:2, camp:0, gens:4, depart:2, largages:0, seuil:.20},
+
+ {id:'oliveraie', nom:'L\'OLIVERAIE', prix:1300, duree:0,
+  sous:'Vieux oliviers en terrasses, mas isolés',
+  brief:'L\'olivier ne brûle pas volontiers et les terrasses coupent la pente. '
+       +'Mais l\'herbe entre les rangs est sèche comme de l\'amadou, et elle '
+       +'court d\'un mas à l\'autre.',
+  vice:'Peu de combustible, mais tout se tient par l\'herbe.',
+  L:124, H:92, pente:.5, vent:{f:.36,var:.28,a:.9}, hum:.32, nuit:0,
+  mix:{herbe:.40,vigne:.26,garrig:.18,chene:.12,roche:.04},
+  bati:2, camp:0, gens:4, depart:1, largages:3, seuil:.18},
+
+ {id:'calanques', nom:'LES CALANQUES', prix:4200, duree:0,
+  sous:'Falaises blanches, pins accrochés au calcaire',
+  brief:'La mer est derrière toi : elle arrête le feu, mais elle ne te laisse '
+       +'aucun repli. Les pins poussent dans les vires, la roche fait le reste '
+       +'des coupures — à toi de trouver lesquelles se rejoignent.',
+  vice:'Beaucoup de roche nue : les coupures existent déjà, encore faut-il les relier.',
+  L:132, H:98, pente:1.1, vent:{f:.52,var:.4,a:-2.1}, hum:.20, nuit:0,
+  mix:{roche:.16,herbe:.20,garrig:.32,pin:.28,eau:.04},
+  bati:1, camp:1, gens:5, depart:2, largages:4, seuil:.20},
+
+ {id:'gorges', nom:'LES GORGES', prix:9500, duree:0,
+  sous:'Canyon étroit, versants à pic',
+  brief:'Deux parois, une rivière au fond. Le feu qui prend au fond monte comme '
+       +'dans une cheminée. Tu n\'auras jamais le temps de redescendre : reste '
+       +'en haut, ou ne monte pas du tout.',
+  vice:'Pente extrême : le feu monte plus vite que tu ne cours.',
+  L:104, H:130, pente:1.9, vent:{f:.34,var:.42,a:-1.5}, hum:.24, nuit:0,
+  mix:{roche:.10,herbe:.22,garrig:.30,chene:.18,pin:.20},
+  bati:1, camp:0, gens:4, depart:1, largages:3, seuil:.22},
+
+ {id:'reserve', nom:'LA RÉSERVE', prix:19000, duree:0,
+  sous:'Forêt protégée, cent ans de chênes-lièges',
+  brief:'Ici on ne compte pas en euros. Le peuplement a mis un siècle à venir, '
+       +'et il n\'y a pas de deuxième chance. Aucun bâti à défendre : rien que '
+       +'des arbres, et l\'obligation de ne pas les perdre.',
+  vice:'Chaque hectare compte double. Le feu, lui, ne le sait pas.',
+  L:150, H:114, pente:.85, vent:{f:.50,var:.45,a:.7}, hum:.26, nuit:0,
+  mix:{herbe:.12,garrig:.20,chene:.44,pin:.22,eau:.02},
+  bati:1, camp:0, gens:3, depart:2, largages:4, seuil:.24},
+
+ {id:'crete', nom:'LA CRÊTE', prix:15000, duree:0,
+  sous:'Ligne de crête, deux versants',
+  brief:'Le feu est passé de l\'autre côté. Deux fronts, deux versants, un '
+       +'seul homme. La crête est ta dernière ligne — au-delà, c\'est le parc.',
+  vice:'Deux fronts qui progressent en sens inverse.',
+  L:156, H:110, pente:1.55, vent:{f:.62,var:.5,a:-.2}, hum:.24, nuit:0,
+  mix:{herbe:.18,garrig:.30,chene:.20,pin:.26,roche:.06},
+  bati:2, camp:1, gens:6, depart:3, largages:4, seuil:.22}
+];
+const secteurDe=id=>SECTEURS.find(s=>s.id===id)||SECTEURS[0];
+
+/* --- La campagne : un été.
+   La sécheresse monte de journée en journée — l'humidité baisse, le vent
+   forcit, et la même colline qu'on tenait en juin devient intenable en août.
+   C'est le seul fil narratif dont ce jeu a besoin. --- */
+const SAISON=[
+ {sec:'restanques', sech:0,   t:'LE PREMIER DÉPART',
+  txt:'Mi-juin. Un feu de broussailles derrière les restanques. On y va pour se faire la main.'},
+ {sec:'oliveraie',  sech:.08, t:'ENTRE LES RANGS',
+  txt:'L\'herbe entre les oliviers n\'a pas vu d\'eau depuis trois semaines.'},
+ {sec:'pinede',     sech:.16, t:'LE CAMPING',
+  txt:'Fin juin. Quatre-vingts emplacements sous les pins, et un départ à trois cents mètres.'},
+ {sec:'vallon',     sech:.26, t:'LA CHEMINÉE',
+  txt:'Le feu est au fond du vallon. Tout le monde sait ce que ça veut dire.'},
+ {sec:'calanques',  sech:.34, t:'LE VENT DE MER',
+  txt:'Juillet. La mer derrière, le vent de travers, et pas de route pour se replier.'},
+ {sec:'garrigue',   sech:.45, t:'LE PLATEAU',
+  txt:'Rien pour arrêter le front sur des kilomètres. On choisit où l\'on tient.'},
+ {sec:'mistral',    sech:.56, t:'SOIXANTE-DIX À L\'HEURE',
+  txt:'Le mistral s\'est levé cette nuit. Les brandons partent à cent mètres.'},
+ {sec:'hameau',     sech:.66, t:'VINGT MAISONS',
+  txt:'Mi-août. Le village est prévenu depuis une heure. Certains n\'ont pas voulu partir.'},
+ {sec:'gorges',     sech:.75, t:'LES DEUX PAROIS',
+  txt:'Un canyon, une rivière, et un feu au fond. Reste en haut.'},
+ {sec:'nuit',       sech:.82, t:'LA REPRISE',
+  txt:'Les avions sont cloués au sol jusqu\'au jour. C\'est ta nuit.'},
+ {sec:'reserve',    sech:.9,  t:'CENT ANS DE CHÊNES',
+  txt:'On ne compte plus en euros. Il n\'y a pas de deuxième chance pour ce peuplement.'},
+ {sec:'crete',      sech:1,   t:'LE GRAND FEU',
+  txt:'Fin août. Deux fronts, deux versants. Si ça passe la crête, tout le massif y passe.'}
+];
+function saisonEtat(){
+  if(!SAVE.saison) SAVE.saison={num:1, jour:0, etoiles:[]};
+  return SAVE.saison;
+}
+/* la sécheresse du jour : elle assèche le terrain et pousse le vent */
+function secheresse(){
+  const S=saisonEtat();
+  if(SAVE.mode!=='campagne') return 0;
+  const j=SAISON[Math.min(S.jour,SAISON.length-1)];
+  return clamp(j.sech + (S.num-1)*.18, 0, 1.5);
+}
+function jourCampagne(){
+  const S=saisonEtat();
+  return SAISON[Math.min(S.jour,SAISON.length-1)];
+}
+
+/* --- objectifs du jour : trois, tirés au sort, identiques pour la journée --- */
+const OBJETS_JOUR=[
+ {id:'hect',  prime:260, obj:r=>Math.round(9+r*13),   txt:n=>'Sauver '+n+' hectares sur une intervention', val:g=>g.sauves},
+ {id:'bati',  prime:300, obj:r=>1+Math.round(r*3),    txt:n=>'Sauver '+n+' bâtiment'+(n>1?'s':''),         val:g=>g.batiSaufs},
+ {id:'gens',  prime:280, obj:r=>2+Math.round(r*4),    txt:n=>'Évacuer '+n+' personnes',                    val:g=>g.evacues},
+ {id:'coupe', prime:240, obj:r=>Math.round(50+r*90),  txt:n=>'Ouvrir '+n+' mètres de coupure',             val:g=>enM(g.coupees)},
+ {id:'eteint',prime:250, obj:r=>Math.round(120+r*220),txt:n=>'Noyer '+n+' foyers à la lance',              val:g=>g.eteintes},
+ {id:'vite',  prime:320, obj:r=>Math.round(150+r*120),txt:n=>'Maîtriser un feu en moins de '+n+' s',       val:g=>g.gagne?Math.round(9999-g.t):0, inv:true},
+ {id:'contre',prime:290, obj:r=>2+Math.round(r*4),    txt:n=>'Allumer '+n+' contre-feux utiles',           val:g=>g.contres},
+ {id:'sec',   prime:340, obj:r=>1,                    txt:()=>'Terminer sans jamais être brûlé',           val:g=>(g.gagne&&!g.brule)?1:0}
+];
+const jourISO=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const AUJ=()=>jourISO(new Date());
+function srand(h,i){ let n=(h*2654435761+i*40503)|0; n=(n^(n>>13))*1274126177; return ((n^(n>>16))>>>0)/4294967296; }
+function objectifsDuJour(){
+  const j=AUJ();
+  if(!SAVE.objJour || SAVE.objJour.jour!==j){
+    let h=0; for(let k=0;k<j.length;k++) h=(h*31+j.charCodeAt(k))|0;
+    const dispo=OBJETS_JOUR.slice(), liste=[];
+    for(let i=0;i<3;i++){
+      const c=dispo.splice(Math.floor(srand(h,i*3)*dispo.length),1)[0];
+      liste.push({id:c.id,obj:c.obj(srand(h,i*3+1)),fait:false});
+    }
+    SAVE.objJour={jour:j,liste}; sauver();
+  }
+  return SAVE.objJour;
+}
+const defObj=id=>OBJETS_JOUR.find(o=>o.id===id);
+/* ==========================================================================
+   3. SAUVEGARDE
+   ========================================================================== */
+const CLE='brasier:v1';
+const Store={
+  mem:{},
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return this.mem[k]||null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){ this.mem[k]=v; } }
+};
+const SAVE_DEF={
+  nom:'', pts:0, xp:0, matos:{}, secteurs:['restanques'], secteur:'restanques',
+  finis:{}, meilleur:{}, tuto:false, volume:.6, son:true, interventions:0,
+  totalSauves:0, totalBrules:0, totalGens:0, totalBati:0, objJour:null,
+  session:null, serie:0, dernier:'', assiste:false, records:{},
+  equipe:[], eqSeq:0, saison:null, mode:'campagne'
+};
+let SAVE=Object.assign({},SAVE_DEF);
+function charger(){
+  try{
+    const b=Store.get(CLE);
+    if(b){ const o=JSON.parse(b); for(const k in SAVE_DEF) SAVE[k]=(o[k]!==undefined)?o[k]:SAVE_DEF[k]; }
+  }catch(e){}
+  if(!SAVE.matos) SAVE.matos={};
+  if(!SAVE.equipe) SAVE.equipe=[];
+  if(!SAVE.saison) SAVE.saison={num:1, jour:0, etoiles:[]};
+  if(SAVE.mode!=='libre') SAVE.mode='campagne';
+  if(!SAVE.secteurs||!SAVE.secteurs.length) SAVE.secteurs=['restanques'];
+  if(SAVE.secteurs.indexOf(SAVE.secteur)<0) SAVE.secteur=SAVE.secteurs[0];
+}
+let _sauveT=0;
+function sauver(){
+  const t=performance.now();
+  if(t-_sauveT<180) return;             // on n'écrit pas le stockage à chaque image
+  _sauveT=t;
+  try{ Store.set(CLE,JSON.stringify(SAVE)); }catch(e){}
+}
+
+/* ==========================================================================
+   4. LE TERRAIN — relief, végétation, pistes, bâti
+   ==========================================================================
+   Tout est engendré à partir d'une graine : un même secteur donne toujours
+   le même paysage, mais chaque secteur a le sien. */
+const M={};        // la carte courante
+
+function genererCarte(S,graine){
+  const L=S.L, H=S.H, N=L*H;
+  M.S=S; M.L=L; M.H=H; M.N=N; M.g=graine;
+  M.veg=new Uint8Array(N);
+  M.fuel=new Float32Array(N);
+  M.fuel0=new Float32Array(N);
+  M.hum=new Float32Array(N);
+  M.alt=new Float32Array(N);
+  M.etat=new Uint8Array(N);
+  M.inten=new Float32Array(N);
+  M.chaud=new Float32Array(N);
+  M.reste=new Float32Array(N);     // temps de combustion restant
+  M.actifs=new Set();
+  M.batiments=[]; M.points=[];     // bâtiments à défendre, points d'eau
+
+  /* --- relief : deux échelles, les grandes formes puis les plis --- */
+  let amin=9, amax=-9;
+  for(let y=0;y<H;y++) for(let x=0;x<L;x++){
+    const a=bruitFractal(x/38,y/38,graine,4,.52)*.75 + bruitFractal(x/11,y/11,graine+91,3,.5)*.25;
+    M.alt[y*L+x]=a; if(a<amin) amin=a; if(a>amax) amax=a;
+  }
+  let ech=(S.pente||.5)*260;                      // amplitude du relief, en unités monde
+  for(let i=0;i<N;i++) M.alt[i]=(M.alt[i]-amin)/Math.max(.001,amax-amin)*ech;
+
+  /* pente locale : c'est elle qui accélère le feu, on la calcule une fois */
+  M.pente=new Float32Array(N*2);                  // composantes x et y du gradient
+  const calculerPentes=()=>{
+    for(let y=0;y<H;y++) for(let x=0;x<L;x++){
+      const i=y*L+x;
+      const xa=Math.max(0,x-1), xb=Math.min(L-1,x+1);
+      const ya=Math.max(0,y-1), yb=Math.min(H-1,y+1);
+      M.pente[i*2]  =(M.alt[y*L+xb]-M.alt[y*L+xa])/((xb-xa)*CEL);
+      M.pente[i*2+1]=(M.alt[yb*L+x]-M.alt[ya*L+x])/((yb-ya)*CEL);
+    }
+  };
+  calculerPentes();
+  /* On recale l'amplitude pour que le neuvième décile des pentes vaille la
+     raideur annoncée par le secteur. Sans cela le gradient sortait à 0,06 :
+     le relief ne se voyait pas, et surtout le feu ne montait pas plus vite. */
+  {
+    const ech2=[];
+    for(let i=0;i<N;i+=3) ech2.push(Math.hypot(M.pente[i*2],M.pente[i*2+1]));
+    ech2.sort((a,b)=>a-b);
+    const p90=ech2[Math.floor(ech2.length*.9)]||.01;
+    const vise=.26+(S.pente||.5)*.34;
+    const k=clamp(vise/p90,.2,14);
+    for(let i=0;i<N;i++) M.alt[i]*=k;
+    ech*=k;
+    calculerPentes();
+  }
+  M.ech=ech;
+
+  /* --- végétation : des taches larges et cohérentes, pas du bruit poivre --- */
+  const mix=[], cum=[];
+  let tot=0;
+  for(const k in S.mix){ tot+=S.mix[k]; }
+  let acc=0;
+  for(const k in S.mix){ acc+=S.mix[k]/tot; mix.push(V[k]); cum.push(acc); }
+  for(let y=0;y<H;y++) for(let x=0;x<L;x++){
+    const i=y*L+x;
+    const t=clamp(bruitFractal(x/21,y/21,graine+311,3,.55)*.82
+                 +bruitFractal(x/6.5,y/6.5,graine+733,2,.5)*.18,0,.999);
+    let v=mix[mix.length-1];
+    for(let k=0;k<cum.length;k++) if(t<cum[k]){ v=mix[k]; break; }
+    /* les crêtes rocheuses et les creux humides ne suivent pas le tirage */
+    const px=M.pente[i*2], py=M.pente[i*2+1], p=Math.hypot(px,py);
+    if(p>.62 && bruitFractal(x/9,y/9,graine+55,2,.5)>.52) v=V.roche;
+    M.veg[i]=v;
+  }
+
+  /* --- une piste traverse toujours le secteur : c'est la coupure offerte --- */
+  tracerPiste(graine);
+  /* --- un point d'eau : lac de colline ou citerne. Sans lui, pas de remplissage --- */
+  poserEau(graine);
+  /* --- vignes en terrasses là où la pente est douce --- */
+  if(S.mix.vigne) for(let y=1;y<H-1;y++) for(let x=1;x<L-1;x++){
+    const i=y*L+x;
+    if(M.veg[i]!==V.vigne) continue;
+    const p=Math.hypot(M.pente[i*2],M.pente[i*2+1]);
+    if(p>.5) M.veg[i]=V.garrig;         // trop raide pour une vigne
+  }
+
+  /* --- humidité et combustible de départ --- */
+  for(let i=0;i<N;i++){
+    const v=VEG[M.veg[i]];
+    M.fuel[i]=M.fuel0[i]=v.fuel;
+    /* les fonds de vallon et le nord des versants restent plus humides */
+    const y=(i/L)|0, x=i%L;
+    const creux=1-clamp(M.alt[i]/Math.max(1,ech),0,1);
+    M.hum[i]=clamp(S.hum*(1-secheresse()*.42) + creux*.20
+      + bruitFractal(x/16,y/16,graine+404,2,.5)*.14 - .07,0,1);
+    M.etat[i]=INTACT;
+  }
+  poserBati(S,graine);
+  M.compte=new Uint8Array(N);
+  M.sol=null;                            // la couche de sol sera peinte au premier rendu
+  M.total=0;
+  for(let i=0;i<N;i++) if(M.fuel0[i]>0) M.total++;
+  M.brulees=0;
+}
+
+/* la piste : une polyligne molle d'un bord à l'autre, large de deux parcelles */
+function tracerPiste(graine){
+  const L=M.L, H=M.H;
+  const vert=hash2(graine,7,3)>.5;
+  const n=6, pts=[];
+  for(let k=0;k<=n;k++){
+    const t=k/n;
+    if(vert) pts.push({x:(.15+bruitFractal(t*3,0,graine+12,2,.5)*.7)*L, y:t*H});
+    else     pts.push({x:t*L, y:(.15+bruitFractal(t*3,0,graine+12,2,.5)*.7)*H});
+  }
+  for(let k=0;k<n;k++){
+    const a=pts[k], b=pts[k+1];
+    const pas=Math.max(1,Math.round(Math.hypot(b.x-a.x,b.y-a.y)*2));
+    for(let s=0;s<=pas;s++){
+      const t=s/pas, cx=Math.round(lerp(a.x,b.x,t)), cy=Math.round(lerp(a.y,b.y,t));
+      for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+        const x=cx+dx, y=cy+dy;
+        if(x<0||y<0||x>=L||y>=H) continue;
+        if(Math.abs(dx)+Math.abs(dy)>1) continue;
+        M.veg[y*L+x]=V.piste;
+      }
+    }
+  }
+}
+/* un plan d'eau : on creuse une tache là où le terrain est bas */
+function poserEau(graine){
+  const L=M.L, H=M.H;
+  let best=-1, bx=0, by=0;
+  for(let k=0;k<40;k++){
+    const x=ri(8,L-9), y=ri(8,H-9), i=y*L+x;
+    const s=-M.alt[i];
+    if(s>best){ best=s; bx=x; by=y; }
+  }
+  const r=Math.max(3,Math.round(Math.min(L,H)*.055));
+  for(let y=by-r-2;y<=by+r+2;y++) for(let x=bx-r-2;x<=bx+r+2;x++){
+    if(x<0||y<0||x>=L||y>=H) continue;
+    const d=Math.hypot(x-bx,y-by)/r + bruitFractal(x/4,y/4,graine+88,2,.5)*.5-.25;
+    if(d<1) M.veg[y*L+x]=V.eau;
+  }
+  M.points.push({x:(bx+.5)*CEL, y:(by+.5)*CEL, r:r*CEL});
+}
+/* hameaux et campings : des groupes de parcelles bâties, à défendre */
+function poserBati(S,graine){
+  const L=M.L, H=M.H;
+  const groupes=(S.bati||0)+(S.camp||0);
+  for(let k=0;k<groupes;k++){
+    const camp=k>=(S.bati||0);
+    let x=0,y=0,ok=false;
+    for(let essai=0;essai<160 && !ok;essai++){
+      x=ri(10,L-11); y=ri(10,H-11);
+      const i=y*L+x;
+      if(M.veg[i]===V.eau) continue;
+      const p=Math.hypot(M.pente[i*2],M.pente[i*2+1]);
+      if(p>.55) continue;
+      ok=M.batiments.every(b=>Math.hypot(b.cx-x,b.cy-y)>Math.min(L,H)*.34);
+    }
+    const r=camp?3:ri(2,4);
+    const cells=[];
+    for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){
+      const px=x+dx, py=y+dy;
+      if(px<1||py<1||px>=L-1||py>=H-1) continue;
+      if(Math.hypot(dx,dy)>r+.4) continue;
+      const i=py*L+px;
+      if(M.veg[i]===V.eau) continue;
+      /* Un hameau n'est pas un damier : des cours, des jardins, des ruelles.
+         On ne bâtit qu'une parcelle sur deux, et les abords restent en herbe. */
+      const d=Math.hypot(dx,dy)/(r+.4);
+      const trou=hash2(px*3,py*3,graine+13);
+      if(camp){
+        if(trou<.55){ M.veg[i]=V.herbe; continue; }
+      } else {
+        if(trou<.30+d*.34){ M.veg[i]=(trou<.16?V.nu:V.herbe); continue; }
+      }
+      M.veg[i]=V.bati; cells.push(i);
+    }
+    M.batiments.push({cx:x, cy:y, x:(x+.5)*CEL, y:(y+.5)*CEL, r:(r+1)*CEL,
+      camp, cells, total:cells.length, perdues:0,
+      nom:camp?'CAMPING':'HAMEAU'});
+  }
+}
+
+/* --- accès --- */
+const idx=(cx,cy)=>cy*M.L+cx;
+const dedans=(cx,cy)=>cx>=0&&cy>=0&&cx<M.L&&cy<M.H;
+const celX=wx=>Math.floor(wx/CEL);
+const celY=wy=>Math.floor(wy/CEL);
+function celleAu(wx,wy){
+  const cx=celX(wx), cy=celY(wy);
+  return dedans(cx,cy)? idx(cx,cy) : -1;
+}
+/* altitude interpolée : sert au rendu des ombres et au déplacement */
+function altAu(wx,wy){
+  const i=celleAu(wx,wy);
+  return i<0?0:M.alt[i];
+}
+/* ==========================================================================
+   5. LE FEU
+   ==========================================================================
+   Une parcelle en flammes chauffe ses voisines. Ce qu'elle leur transmet
+   dépend de quatre choses, et ce sont ces quatre choses que le joueur passe
+   sa partie à manipuler :
+     — le vent, qui pousse la chaleur devant lui,
+     — la pente, parce qu'un feu qui monte se chauffe lui-même,
+     — l'humidité, qu'on peut ajouter à la lance,
+     — le combustible, qu'on peut retirer à la pelle.
+   Quand la chaleur accumulée dépasse le seuil d'inflammation, ça part. */
+
+const SEUIL=1.0;           // chaleur nécessaire pour qu'une parcelle s'enflamme
+const TAUX=.42;            // vitesse générale de propagation.
+   /* Calibré pour qu'un front de tête sous vent fort avance autour de
+      8 km/h — l'ordre de grandeur d'un vrai feu de pinède. À 1,5, il
+      filait à 30 km/h : la carte entière partait en vingt secondes. */
+const K_VENT=2.6;          // ce que le vent ajoute sous le vent
+const K_PENTE=3.4;         // ce que la pente ajoute en montée
+const REFROID=.42;         // vitesse à laquelle une parcelle chaude se calme
+
+/* voisinage : les huit directions, avec leur longueur (les diagonales sont
+   plus loin, donc reçoivent moins) */
+const VOIS=[[1,0,1],[-1,0,1],[0,1,1],[0,-1,1],
+            [1,1,.707],[1,-1,.707],[-1,1,.707],[-1,-1,.707]];
+
+function enflammer(i,force){
+  if(M.etat[i]!==INTACT || M.fuel[i]<=0) return false;
+  const v=VEG[M.veg[i]];
+  M.etat[i]=FLAMMES;
+  M.inten[i]=.18;
+  M.reste[i]=v.duree*(.7+M.fuel[i]*.5);
+  M.chaud[i]=SEUIL;
+  M.actifs.add(i);
+  M.sales.add(i);
+  if(force===undefined||force) SND.craque(panDe((i%M.L)*CEL));
+  return true;
+}
+function eteindre(i,complet){
+  const e=M.etat[i];
+  if(e===FLAMMES||e===BRAISES){
+    G.eteintes++;
+    /* s'il reste du combustible, la parcelle est simplement noyée et
+       redevient inflammable plus tard ; sinon elle est consumée */
+    if(complet && M.fuel[i]>.05){ M.etat[i]=INTACT; M.inten[i]=0; }
+    else { M.etat[i]=CENDRES; M.inten[i]=0; compterBrulee(i); }
+    M.chaud[i]=0;
+    M.sales.add(i);
+    SND.vapeur(panDe((i%M.L)*CEL));
+  }
+}
+function compterBrulee(i){
+  if(M.compte&&M.compte[i]) return;
+  if(!M.compte) M.compte=new Uint8Array(M.N);
+  M.compte[i]=1;
+  if(M.fuel0[i]>0) M.brulees++;
+  if(M.veg[i]===V.bati){
+    for(const b of M.batiments) if(b.cells.indexOf(i)>=0){ b.perdues++; break; }
+  }
+}
+
+/* --- un pas de simulation. Appelé à cadence fixe, indépendamment du rendu --- */
+function pasFeu(dt){
+  const L=M.L, H=M.H;
+  const vx=Math.cos(G.vent.a), vy=Math.sin(G.vent.a), vf=G.vent.f;
+  const fini=[];
+  let intenTot=0, nFlammes=0;
+
+  for(const i of M.actifs){
+    const e=M.etat[i];
+
+    if(e===INTACT){
+      /* parcelle qui chauffe sans avoir pris : elle refroidit si on la laisse */
+      M.chaud[i]-=dt*REFROID;
+      if(M.chaud[i]<=0){ M.chaud[i]=0; fini.push(i); }
+      continue;
+    }
+    if(e===BRAISES){
+      M.reste[i]-=dt;
+      M.inten[i]*=Math.pow(.35,dt);
+      if(M.reste[i]<=0){ M.etat[i]=CENDRES; M.inten[i]=0; M.sales.add(i); fini.push(i); }
+      else intenTot+=M.inten[i];
+      continue;
+    }
+    if(e!==FLAMMES){ fini.push(i); continue; }
+
+    const v=VEG[M.veg[i]];
+    const cx=i%L, cy=(i/L)|0;
+    /* l'intensité monte vite puis retombe quand il ne reste plus grand-chose */
+    const part=clamp(M.reste[i]/Math.max(.5,v.duree),0,1);
+    const cible=v.ard*(.45+part*.55)*(1-M.hum[i]*.45);
+    M.inten[i]+=(cible-M.inten[i])*Math.min(1,dt*1.9);
+    M.reste[i]-=dt*(1+vf*.55);            // le vent attise et consume plus vite
+    M.fuel[i]=Math.max(0,M.fuel0[i]*part);
+    intenTot+=M.inten[i]; nFlammes++;
+
+    /* l'humidité s'évapore sous la flamme */
+    M.hum[i]=Math.max(0,M.hum[i]-dt*.5);
+
+    const base=M.inten[i]*dt*TAUX*(SAVE.assiste?.72:1);
+    for(let k=0;k<8;k++){
+      const d=VOIS[k], nx=cx+d[0], ny=cy+d[1];
+      if(nx<0||ny<0||nx>=L||ny>=H) continue;
+      const n=ny*L+nx;
+      if(M.etat[n]!==INTACT || M.fuel[n]<=0) continue;
+      const vn=VEG[M.veg[n]];
+      if(vn.infl<=0) continue;
+
+      /* --- vent : produit scalaire entre la direction du transfert et le vent.
+         Sous le vent, la chaleur est projetée ; au vent, elle peine à remonter. */
+      const dl=Math.hypot(d[0],d[1]);
+      const ux=d[0]/dl, uy=d[1]/dl;
+      const dot=ux*vx+uy*vy;
+      const fVent=Math.max(.18, 1+dot*vf*K_VENT);
+
+      /* --- pente : la flamme lèche la végétation au-dessus d'elle --- */
+      const gx=M.pente[n*2], gy=M.pente[n*2+1];
+      const mont=Math.max(0, ux*gx+uy*gy);
+      const fPente=1+mont*K_PENTE;
+
+      /* --- réceptivité de la parcelle visée --- */
+      const fRec=vn.infl*(1-M.hum[n]);
+
+      M.chaud[n]+=base*d[2]*fVent*fPente*fRec;
+      if(M.chaud[n]>0){
+        if(M.chaud[n]>=SEUIL) enflammer(n,false);
+        else M.actifs.add(n);
+      }
+    }
+    if(M.reste[i]<=0){
+      M.etat[i]=BRAISES; M.reste[i]=rnd(5,11); M.sales.add(i);
+      compterBrulee(i);
+    }
+  }
+  for(const i of fini) M.actifs.delete(i);
+
+  G.intensite=intenTot;
+  G.nFlammes=nFlammes;
+
+  /* --- sautes de feu : le vent arrache des brandons au front et les jette
+     loin devant. C'est ce qui rend une coupure insuffisante, et c'est le
+     comportement qui surprend le plus les gens qui découvrent le sujet. --- */
+  if(nFlammes>3 && vf>.22){
+    G.brandonT-=dt;
+    if(G.brandonT<=0){
+      G.brandonT=rnd(.7,2.4)/(vf*vf*2.2);
+      let n=0, choisi=-1;
+      for(const i of M.actifs){        // tirage au vol, sans construire de liste
+        if(M.etat[i]!==FLAMMES||M.inten[i]<.55) continue;
+        n++; if(Math.random()<1/n) choisi=i;
+      }
+      if(choisi>=0){
+        const d=(2.5+Math.random()*7)*(.6+vf*3.1)*(SAVE.assiste?.7:1);
+        const a=G.vent.a+rnd(-.34,.34);
+        const bx=(choisi%L+.5)*CEL, by=((choisi/L|0)+.5)*CEL;
+        G.brandons.push({x0:bx, y0:by, x:bx, y:by,
+          tx:bx+Math.cos(a)*d*CEL, ty:by+Math.sin(a)*d*CEL,
+          t:0, dur:.6+d*.055, ph:rnd(0,TAU)});
+      }
+    }
+  }
+  /* les brandons en vol */
+  for(let k=G.brandons.length-1;k>=0;k--){
+    const b=G.brandons[k];
+    b.t+=dt;
+    const u=Math.min(1,b.t/b.dur);
+    if(u>=1){
+      const i=celleAu(b.tx,b.ty);
+      G.brandons.splice(k,1);
+      if(i>=0 && M.etat[i]===INTACT && M.fuel[i]>0){
+        const vn=VEG[M.veg[i]];
+        /* un brandon n'allume pas à tous les coups : il faut du sec et du fin */
+        if(Math.random() < vn.infl*(1-M.hum[i])*.75){
+          enflammer(i,false);
+          G.sautes++;
+          if(G.sautes<40) alerte('SAUTE DE FEU','un brandon a pris '+
+            nb(enM(Math.hypot(b.tx-b.x0,b.ty-b.y0)/CEL))+' m devant le front');
+        }
+      }
+    }
+  }
+
+  /* --- la nuit, l'air se recharge en humidité et le feu mollit --- */
+  if(M.S.nuit && G.t>10){
+    G.rosee=(G.rosee||0)+dt;
+    if(G.rosee>3){
+      G.rosee=0;
+      for(const i of M.actifs) if(M.etat[i]===INTACT) M.hum[i]=Math.min(1,M.hum[i]+.02);
+    }
+  }
+}
+
+/* --- le vent : il tourne, il forcit, il retombe. Les changements sont
+   annoncés, parce qu'un pompier les voit venir et le joueur doit pouvoir
+   réagir avant que son flanc ne devienne un front. --- */
+function pasVent(dt){
+  const W=G.vent, S=M.S;
+  W.t-=dt;
+  if(W.t<=0){
+    W.t=rnd(22,45);
+    const amp=S.vent.var;
+    W.cibleA=W.a+rnd(-1,1)*amp*1.6;
+    W.cibleF=clamp(S.vent.f+rnd(-1,1)*amp*.7,.08,1);
+    const tourne=Math.abs(((W.cibleA-W.a+Math.PI*3)%TAU)-Math.PI);
+    if(tourne>.8) alerte('LE VENT TOURNE','il vient maintenant du '+cardinal(W.cibleA+Math.PI));
+    else if(W.cibleF>W.f+.2) alerte('LE VENT FORCIT','le front va s\'allonger');
+  }
+  W.a+=(((W.cibleA-W.a+Math.PI*3)%TAU)-Math.PI)*Math.min(1,dt*.20);
+  W.f+=(W.cibleF-W.f)*Math.min(1,dt*.22);
+  /* rafales : de courtes bouffées qui font sursauter le front */
+  W.rafT-=dt;
+  if(W.rafT<=0){ W.rafT=rnd(4,11); W.raf=rnd(.12,.34)*S.vent.var*2.4; }
+  W.raf*=Math.pow(.28,dt);
+  W.fEff=clamp(W.f+W.raf,0,1.25);
+}
+
+/* --- outils du joueur --- */
+/* la lance : elle mouille un cône, éteint ce qui brûle et protège le reste */
+function arroser(x,y,a,dt,porteur){
+  /* le même geste sert au joueur et aux porte-lance de l'équipe : seule
+     change la cuve dans laquelle on puise, et la portée du matériel. */
+  const p=porteur||G.p;
+  if(p.eau<=0) return false;
+  const eq=!!porteur;
+  const port=eq? (EQUIPIERS[porteur.t].portee||52) : (52+niv('lance')*9);
+  const ouv=.42;
+  const debit=(eq?11:(16+niv('lance')*2.6))*dt;
+  if(p.eau<debit*.4) return false;
+  p.eau=Math.max(0,p.eau-debit);
+  const cx0=celX(x-port), cx1=celX(x+port), cy0=celY(y-port), cy1=celY(y+port);
+  const puis=eq? (.85+(porteur.niv||1)*.06) : (1+niv('lance')*.16);
+  for(let cy=cy0;cy<=cy1;cy++) for(let cx=cx0;cx<=cx1;cx++){
+    if(!dedans(cx,cy)) continue;
+    const wx=(cx+.5)*CEL, wy=(cy+.5)*CEL;
+    const dx=wx-x, dy=wy-y, d=Math.hypot(dx,dy);
+    if(d>port) continue;
+    const ec=Math.abs(((Math.atan2(dy,dx)-a+Math.PI*3)%TAU)-Math.PI);
+    if(ec>ouv*(1+d/port*.4)) continue;
+    const i=idx(cx,cy);
+    const q=(1-d/port*.55)*dt*puis;
+    M.hum[i]=Math.min(1,M.hum[i]+q*1.5);
+    M.chaud[i]=Math.max(0,M.chaud[i]-q*3.2);
+    if(M.etat[i]===FLAMMES||M.etat[i]===BRAISES){
+      M.inten[i]-=q*1.35;
+      if(G.vapeurs.length<110)
+        G.vapeurs.push({x:wx+rnd(-5,5),y:wy+rnd(-5,5),vie:.55,max:.55,r:rnd(6,13)});
+      if(M.inten[i]<=.10) eteindre(i,true);
+    }
+    M.sales.add(i);
+  }
+  return true;
+}
+/* la pelle : on retire le combustible. Lent, silencieux, décisif. */
+function couper(x,y,dt){
+  const i=celleAu(x,y);
+  if(i<0) return false;
+  if(M.fuel0[i]<=0 || M.etat[i]!==INTACT) return false;
+  const vit=(0.55+niv('outil')*.13)*dt;
+  M.fuel0[i]=Math.max(0,M.fuel0[i]-vit);
+  M.fuel[i]=M.fuel0[i];
+  if(M.fuel0[i]<=.02){
+    M.fuel0[i]=0; M.fuel[i]=0; M.veg[i]=V.nu; M.chaud[i]=0;
+    G.coupees++;
+    SND.outil(panDe(x));
+  }
+  M.sales.add(i);
+  return true;
+}
+/* le contre-feu : on brûle soi-même ce que le front viendra chercher.
+   Dangereux — il part avec le même vent que l'autre. */
+function contreFeu(x,y){
+  const i=celleAu(x,y);
+  if(i<0||M.etat[i]!==INTACT||M.fuel[i]<=0) return false;
+  if(G.allumettes<=0) return false;
+  G.allumettes--;
+  enflammer(i,true);
+  G.contres++;
+  SND.allume();
+  alerte('CONTRE-FEU ALLUMÉ','il va manger le combustible devant le front');
+  return true;
+}
+/* le largage : l'avion passe et pose une ligne de retardant en travers */
+function largage(x,y){
+  if(G.largages<=0||G.avion) return false;
+  G.largages--;
+  const a=G.vent.a+Math.PI/2;           // on largue en travers du vent
+  const lg=Math.max(M.L,M.H)*CEL*.20;
+  G.avion={x:x-Math.cos(a)*lg-Math.cos(G.vent.a)*260,
+           y:y-Math.sin(a)*lg-Math.sin(G.vent.a)*260,
+           ax:x-Math.cos(a)*lg, ay:y-Math.sin(a)*lg,
+           bx:x+Math.cos(a)*lg, by:y+Math.sin(a)*lg,
+           t:-1.6, dur:2.4, pose:0};
+  SND.avion();
+  alerte('LARGAGE DEMANDÉ','l\'avion arrive, dégage la zone');
+  return true;
+}
+function poserRetardant(x,y,r){
+  const cx0=celX(x-r), cx1=celX(x+r), cy0=celY(y-r), cy1=celY(y+r);
+  for(let cy=cy0;cy<=cy1;cy++) for(let cx=cx0;cx<=cx1;cx++){
+    if(!dedans(cx,cy)) continue;
+    const wx=(cx+.5)*CEL, wy=(cy+.5)*CEL;
+    if(Math.hypot(wx-x,wy-y)>r) continue;
+    const i=idx(cx,cy);
+    M.hum[i]=1; M.chaud[i]=0;
+    M.fuel0[i]*=.5; M.fuel[i]=Math.min(M.fuel[i],M.fuel0[i]);
+    M.retard=M.retard||new Uint8Array(M.N);
+    M.retard[i]=1;
+    if(M.etat[i]===FLAMMES||M.etat[i]===BRAISES) eteindre(i,true);
+    M.sales.add(i);
+    if(Math.random()<.2) G.vapeurs.push({x:wx,y:wy,vie:.8,max:.8,r:rnd(8,18)});
+  }
+}
+const panDe=x=>clamp((x-(G?G.p.x:0))/700,-1,1);
+/* ==========================================================================
+   6. ÉTAT ET INTERVENTION
+   ========================================================================== */
+let G=null, running=false, last=0, acc=0, enPause=false, autoPause=false;
+const cam={x:0,y:0};
+let secousse=0;
+function shake(a){ secousse=Math.min(26,secousse+a); }
+const ZOOM_BASE=1.62;
+let ZOOM=ZOOM_BASE;
+
+const OUTILS=[
+ {id:'lance',  nom:'LANCE',      em:'\u{1F6BF}', col:'#5fb0d8', touche:'1',
+  d:'Mouille et éteint. L\'eau est comptée : va la reprendre au camion ou au plan d\'eau.'},
+ {id:'pelle',  nom:'COUPURE',    em:'\u{1FA93}', col:'#c8a04f', touche:'2',
+  d:'Retire le combustible sous tes pieds. Lent, mais définitif.'},
+ {id:'contre', nom:'CONTRE-FEU', em:'\u{1F525}', col:'#ff6a1e', touche:'3',
+  d:'Allume toi-même devant le front pour lui retirer de quoi manger.'},
+ {id:'largage',nom:'LARGAGE',    em:'✈',    col:'#8fd14f', touche:'4',
+  d:'Appelle l\'avion. Il pose une ligne de retardant en travers du vent.'}
+];
+
+function nouvelleIntervention(S){
+  const graine=(S.id.length*7919 + S.L*31 + S.H)|0;
+  genererCarte(S,graine);
+  M.sales=new Set();
+  const eauMax=Math.round(100*(1+niv('cuve')*.22));
+  const souf=1;
+  G={
+    S, t:0, fin:false, gagne:false, cause:'',
+    p:{x:0,y:0,vx:0,vy:0,a:0,hp:100,hpMax:100,eau:eauMax,eauMax,
+       souffle:1,souffleMax:souf,repos:0,sprint:false,
+       outil:0, actionT:0, chaleur:0, fumee:0, inv:0, flash:0, marche:0},
+    vent:{a:S.vent.a, f:clamp(S.vent.f*(1+secheresse()*.30),0,1),
+          fEff:S.vent.f, cibleA:S.vent.a, cibleF:S.vent.f,
+          t:rnd(14,26), raf:0, rafT:rnd(3,8)},
+    brandons:[], vapeurs:[], fumees:[], parts:[], flot:[], gens:[],
+    largages:(S.largages||0)+niv('radio'), allumettes:3, avion:null,
+    coupees:0, eteintes:0, contres:0, sautes:0, evacues:0, brule:false,
+    repriseT:5, reprises:0,
+    intensite:0, nFlammes:0, brandonT:2, alerteT:0, score:0,
+    base:{x:0,y:0}, camion:{x:0,y:0}, tuto:null,
+    eq:[], sel:-1, ordres:0, blesses:0, marqueur:null, signal:null
+  };
+  /* --- le camion : point de départ, de repli et de remplissage --- */
+  placerBase();
+  /* --- l'équipe, puis les gens à évacuer --- */
+  poserEquipe();
+  placerGens(S);
+  /* --- les départs de feu, loin de la base et sous le vent des enjeux --- */
+  for(let k=0;k<(S.depart||1);k++) departFeu(k);
+  cam.x=G.p.x; cam.y=G.p.y;
+  G.totalGens=G.gens.length;
+  G.batiTotal=M.batiments.length;
+}
+
+function placerBase(){
+  const L=M.L, H=M.H;
+  /* on cherche une parcelle sûre : sur la piste si possible, près d'un enjeu */
+  let best=-1e9, bx=L>>1, by=H>>1;
+  for(let k=0;k<900;k++){
+    const x=ri(4,L-5), y=ri(4,H-5), i=idx(x,y);
+    if(M.veg[i]===V.eau) continue;
+    let s=0;
+    if(M.veg[i]===V.piste) s+=40;
+    if(M.veg[i]===V.nu||M.veg[i]===V.roche) s+=18;
+    if(M.fuel0[i]<.3) s+=14;
+    for(const b of M.batiments) s+=Math.max(0,90-Math.hypot(b.cx-x,b.cy-y))*.5;
+    for(const p of M.points) s+=Math.max(0,60-Math.hypot(p.x/CEL-x,p.y/CEL-y))*.4;
+    if(s>best){ best=s; bx=x; by=y; }
+  }
+  /* on dégage une plateforme autour du camion */
+  for(let dy=-2;dy<=2;dy++) for(let dx=-2;dx<=2;dx++){
+    if(!dedans(bx+dx,by+dy)) continue;
+    if(Math.hypot(dx,dy)>2.4) continue;
+    const i=idx(bx+dx,by+dy);
+    if(M.veg[i]===V.eau) continue;
+    M.veg[i]=V.nu; M.fuel[i]=M.fuel0[i]=0;
+  }
+  G.camion.x=G.base.x=(bx+.5)*CEL;
+  G.camion.y=G.base.y=(by+.5)*CEL;
+  G.p.x=G.camion.x; G.p.y=G.camion.y+18;
+}
+
+function placerGens(S){
+  const noms=['MARTA','JOSEPH','LINA','ANDRÉ','SOFIA','PIERRE','NOÉMIE','KARIM',
+              'ODILE','LUCAS','AÏCHA','RENÉ','CLARA','VINCENT'];
+  let n=S.gens||0;
+  const groupes=M.batiments.length?M.batiments:[{x:M.L*CEL/2,y:M.H*CEL/2,r:120}];
+  for(let k=0;k<n;k++){
+    const b=groupes[k%groupes.length];
+    const a=rnd(0,TAU), d=rnd(10,b.r*.9);
+    const x=clamp(b.x+Math.cos(a)*d,CEL,(M.L-1)*CEL);
+    const y=clamp(b.y+Math.sin(a)*d,CEL,(M.H-1)*CEL);
+    G.gens.push({x,y,vx:0,vy:0,nom:noms[(k*5+3)%noms.length],
+      etat:0, ph:rnd(0,TAU), marche:0, a:rnd(0,TAU), peur:0});
+  }
+}
+
+/* le départ de feu : on le place sous le vent des enjeux, pour que la menace
+   soit réelle, mais assez loin pour laisser le temps d'arriver */
+function departFeu(k){
+  const L=M.L, H=M.H;
+  const vx=Math.cos(G.vent.a), vy=Math.sin(G.vent.a);
+  let best=-1e9, bi=-1;
+  for(let e=0;e<1400;e++){
+    const x=ri(3,L-4), y=ri(3,H-4), i=idx(x,y);
+    if(M.fuel0[i]<=.2) continue;
+    const wx=(x+.5)*CEL, wy=(y+.5)*CEL;
+    const dBase=Math.hypot(wx-G.base.x,wy-G.base.y);
+    const loin=Math.max(360,Math.min(M.L,M.H)*CEL*.34);
+    if(dBase<loin) continue;
+    let s=-Math.abs(dBase-loin*1.35)*.5;
+    /* on veut que le vent pousse le feu vers un enjeu, pas vers le vide */
+    for(const b of M.batiments){
+      const dx=b.x-wx, dy=b.y-wy, d=Math.hypot(dx,dy)||1;
+      const align=(dx/d)*vx+(dy/d)*vy;
+      s+=align*140 - Math.abs(d-430)*.22;
+    }
+    /* il faut du combustible autour, pas seulement dessous : un départ isolé
+       au milieu des vignes s'éteint seul et la partie se gagne sans rien faire */
+    let voisins=0;
+    for(let d=0;d<8;d++){
+      const nx=x+VOIS[d][0], ny=y+VOIS[d][1];
+      if(dedans(nx,ny) && M.fuel0[idx(nx,ny)]>.3) voisins++;
+    }
+    if(voisins<5) continue;
+    s+=M.fuel0[i]*60+voisins*22;
+    s+=hash2(x,y,k*13)*40;
+    if(s>best){ best=s; bi=i; }
+  }
+  if(bi<0) bi=idx(ri(3,L-4),ri(3,H-4));
+  /* un départ n'est jamais une seule parcelle */
+  const cx=bi%L, cy=(bi/L)|0;
+  for(let dy=-2;dy<=2;dy++) for(let dx=-2;dx<=2;dx++){
+    if(!dedans(cx+dx,cy+dy)) continue;
+    if(Math.hypot(dx,dy)>2.2) continue;
+    if(Math.abs(dx)+Math.abs(dy)>2 && Math.random()<.5) continue;
+    enflammer(idx(cx+dx,cy+dy),false);
+  }
+  G.depart0=G.depart0||{x:(cx+.5)*CEL,y:(cy+.5)*CEL};
+}
+
+/* --- annonces --- */
+function alerte(t,s){
+  const el=$('alerte'); if(!el) return;
+  el.innerHTML=t+(s?'<span>'+s+'</span>':'');
+  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  SND.radio();
+}
+function flot(x,y,t,col,taille){
+  if(G.flot.length>26) return;
+  G.flot.push({x,y,t,col,vie:.9,max:.9,taille:taille||12});
+}
+function particule(x,y,col,sp,vie,r,g){
+  if(G.parts.length>420) return;
+  const a=rnd(0,TAU);
+  G.parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,vie,max:vie,col,r,g:g||0});
+}
+function fumee(x,y,force){
+  if(G.fumees.length>200) return;
+  G.fumees.push({x,y,vie:rnd(3.5,7),max:7,r:rnd(9,17),
+    vx:rnd(-6,6),vy:rnd(-6,6),ph:rnd(0,TAU),f:force});
+}
+
+/* ==========================================================================
+   7. ENTRÉES
+   ========================================================================== */
+const keys={};
+let tactile=false, joyM=null, joyA=null, tactileAction=false, tactileSprint=false;
+const souris={x:0,y:0,vue:false,appui:false};
+
+addEventListener('keydown',e=>{
+  const neuf=!keys[e.code];
+  keys[e.code]=true;
+  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Digit1','Digit2','Digit3','Digit4','Tab']
+     .includes(e.code)) e.preventDefault();
+  if(e.code==='Escape'||e.code==='KeyP'){ basculerPause(); return; }
+  if(!neuf||!G||!running||G.fin) return;
+  if(e.code==='Digit1') choisirOutil(0);
+  else if(e.code==='Digit2') choisirOutil(1);
+  else if(e.code==='Digit3') choisirOutil(2);
+  else if(e.code==='Digit4') choisirOutil(3);
+  else if(e.code==='Tab') choisirOutil((G.p.outil+1)%OUTILS.length);
+  else if(e.code==='KeyR') G.plan=!G.plan;
+  else if(e.code==='KeyQ') cyclerSel();
+  else if(e.code==='KeyE') poster();
+  else if(e.code==='KeyF') rappeler();
+},{passive:false});
+addEventListener('keyup',e=>{ keys[e.code]=false; });
+addEventListener('blur',()=>{ for(const k in keys) keys[k]=false;
+  souris.appui=false; joyM=joyA=null; tactileAction=false; tactileSprint=false; });
+
+function choisirOutil(n){
+  if(!G) return;
+  G.p.outil=n; SND.clic();
+  const O=OUTILS[n];
+  flot(G.p.x,G.p.y-30,O.nom,O.col,13);
+  majOutils();
+}
+
+/* pouce gauche : marcher. pouce droit : orienter et agir. */
+function tStart(e){
+  tactile=true;
+  if(!running) return;
+  for(const t of Array.from(e.changedTouches)){
+    const q={ox:t.clientX,oy:t.clientY,x:t.clientX,y:t.clientY,id:t.identifier};
+    if(t.clientX<VW*.5){ if(!joyM) joyM=q; }
+    else if(!joyA) joyA=q;
+  }
+  if(e.cancelable) e.preventDefault();
+}
+function tMove(e){
+  for(const t of Array.from(e.changedTouches)){
+    if(joyM&&t.identifier===joyM.id){ joyM.x=t.clientX; joyM.y=t.clientY; }
+    if(joyA&&t.identifier===joyA.id){ joyA.x=t.clientX; joyA.y=t.clientY; }
+  }
+  if(e.cancelable) e.preventDefault();
+}
+function tEnd(e){
+  for(const t of Array.from(e.changedTouches)){
+    if(joyM&&t.identifier===joyM.id) joyM=null;
+    if(joyA&&t.identifier===joyA.id) joyA=null;
+  }
+}
+cv.addEventListener('touchstart',tStart,{passive:false});
+cv.addEventListener('touchmove',tMove,{passive:false});
+cv.addEventListener('touchend',tEnd); cv.addEventListener('touchcancel',tEnd);
+addEventListener('mousemove',e=>{ souris.x=e.clientX; souris.y=e.clientY; souris.vue=true; });
+cv.addEventListener('mousedown',e=>{ if(e.button===0){ souris.appui=true;
+  souris.x=e.clientX; souris.y=e.clientY; souris.vue=true; } });
+addEventListener('mouseup',e=>{ if(e.button===0) souris.appui=false; });
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+addEventListener('wheel',e=>{
+  if(!G||!running||G.fin) return;
+  choisirOutil((G.p.outil+(e.deltaY>0?1:OUTILS.length-1))%OUTILS.length);
+},{passive:true});
+
+const ecranX=wx=>(wx-cam.x)*ZOOM+VW/2;
+const ecranY=wy=>(wy-cam.y)*ZOOM+VH/2;
+const mondeX=sx=>(sx-VW/2)/ZOOM+cam.x;
+const mondeY=sy=>(sy-VH/2)/ZOOM+cam.y;
+/* ==========================================================================
+   8. SIMULATION
+   ========================================================================== */
+function step(dt){
+  const p=G.p, S=M.S;
+  G.t+=dt;
+
+  /* ---------- déplacement ---------- */
+  let ix=0, iy=0;
+  if(keys.KeyW||keys.KeyZ||keys.ArrowUp) iy-=1;
+  if(keys.KeyS||keys.ArrowDown) iy+=1;
+  if(keys.KeyA||keys.ArrowLeft) ix-=1;   // Q est pris par la sélection d'équipier
+  if(keys.KeyD||keys.ArrowRight) ix+=1;
+  if(joyM){
+    const dx=joyM.x-joyM.ox, dy=joyM.y-joyM.oy, m=Math.hypot(dx,dy);
+    if(m>10){ const f=Math.min(1,m/62); ix=dx/m*f; iy=dy/m*f; }
+  }
+  const mm=Math.hypot(ix,iy); if(mm>1){ ix/=mm; iy/=mm; }
+
+  /* le souffle : courir se paie, et la fumée coupe les jambes */
+  p.sprint=(keys.ShiftLeft||keys.ShiftRight||tactileSprint) && p.souffle>.05 && mm>.15;
+  if(p.sprint){ p.souffle=Math.max(0,p.souffle-dt*.30); p.repos=0; }
+  else{
+    p.repos+=dt;
+    if(p.repos>.6) p.souffle=Math.min(p.souffleMax,
+      p.souffle+dt*.22*(1-p.fumee*.6)*(1+niv('souffle')*.25));
+  }
+
+  /* le terrain freine : la garrigue et la pinède se traversent mal,
+     la pente coûte, la piste est un boulevard */
+  const ic=celleAu(p.x,p.y);
+  let frein=1;
+  if(ic>=0){
+    const v=VEG[M.veg[ic]];
+    frein = v.id==='piste'||v.id==='nu'||v.id==='roche' ? 1.14
+          : v.id==='eau' ? .55
+          : (1 - v.fuel*.30);
+    const gx=M.pente[ic*2], gy=M.pente[ic*2+1];
+    const mont=(ix*gx+iy*gy);
+    frein*= mont>0 ? (1/(1+mont*1.5)) : (1+Math.min(.22,-mont*.35));
+  }
+  const base=96*(1+niv('bottes')*.09);
+  const vit=base*frein*(p.sprint?1.55:1)*(p.souffle<.1?.72:1);
+  p.vx+=(ix*vit-p.vx)*Math.min(1,dt*10);
+  p.vy+=(iy*vit-p.vy)*Math.min(1,dt*10);
+  p.x=clamp(p.x+p.vx*dt, CEL, (M.L-1)*CEL);
+  p.y=clamp(p.y+p.vy*dt, CEL, (M.H-1)*CEL);
+  const allure=Math.hypot(p.vx,p.vy);
+  p.marche+=dt*allure*.13;
+
+  /* ---------- visée ---------- */
+  let but=null;
+  if(joyA){
+    const dx=joyA.x-joyA.ox, dy=joyA.y-joyA.oy, m=Math.hypot(dx,dy);
+    if(m>12) but=Math.atan2(dy,dx);
+  } else if(souris.vue && !tactile){
+    but=Math.atan2(souris.y-ecranY(p.y), souris.x-ecranX(p.x));
+  }
+  if(but===null && allure>22) but=Math.atan2(p.vy,p.vx);
+  if(but!==null){
+    const ec=((but-p.a+Math.PI*3)%TAU)-Math.PI;
+    p.a+=ec*Math.min(1,dt*((souris.vue&&!tactile)?40:14));
+  }
+
+  /* ---------- action ---------- */
+  let agit=false;
+  if(!tactile && souris.appui) agit=true;
+  if(joyA && Math.hypot(joyA.x-joyA.ox,joyA.y-joyA.oy)>26) agit=true;
+  if(keys.Space) agit=true;
+  if(tactileAction) agit=true;
+  const neuf=agit&&!p.agitPrec;
+  p.agitPrec=agit;
+  p.enAction=false;
+
+  if(agit){
+    const O=OUTILS[p.outil];
+    if(O.id==='lance'){
+      if(arroser(p.x,p.y,p.a,dt)){ p.enAction=true; SND.jet(0);
+        p.souffle=Math.max(0,p.souffle-dt*.05); }
+      else if(neuf) flot(p.x,p.y-30,'CUVE VIDE','#ff3d4f',13);
+    } else if(O.id==='pelle'){
+      if(allure<40){ if(couper(p.x,p.y,dt)) p.enAction=true;
+        p.souffle=Math.max(0,p.souffle-dt*.13); }
+      else if(neuf) flot(p.x,p.y-30,'ARRÊTE-TOI POUR CREUSER','#c8a04f',12);
+    } else if(O.id==='contre' && neuf){
+      const cx=p.x+Math.cos(p.a)*34, cy=p.y+Math.sin(p.a)*34;
+      if(!contreFeu(cx,cy)) flot(p.x,p.y-30,
+        G.allumettes<=0?'PLUS D\'ALLUMETTES':'PAS DE COMBUSTIBLE ICI','#ff3d4f',12);
+    } else if(O.id==='largage' && neuf){
+      const cx=p.x+Math.cos(p.a)*230, cy=p.y+Math.sin(p.a)*230;
+      if(!largage(cx,cy)) flot(p.x,p.y-30,
+        G.largages<=0?'PLUS DE LARGAGE':'L\'AVION EST EN APPROCHE','#ff3d4f',12);
+    }
+  }
+
+  /* ---------- eau : on se ravitaille au camion ou au plan d'eau ---------- */
+  let source=null;
+  if(Math.hypot(p.x-G.camion.x,p.y-G.camion.y)<46) source='camion';
+  else for(const pt of M.points) if(Math.hypot(p.x-pt.x,p.y-pt.y)<pt.r+26){ source='eau'; break; }
+  G.source=source;
+  if(source && p.eau<p.eauMax){
+    p.eau=Math.min(p.eauMax,p.eau+dt*(source==='camion'?68:44));
+    if(Math.random()<dt*8) particule(p.x,p.y+6,'#8fc4e0',rnd(10,50),.4,2);
+  }
+  if(source==='camion'){
+    if(G.allumettes<3 && (G.rechargeA=(G.rechargeA||0)+dt)>2.5){ G.rechargeA=0; G.allumettes++; }
+    if(p.hp<p.hpMax) p.hp=Math.min(p.hpMax,p.hp+dt*3.2);
+    p.souffle=Math.min(p.souffleMax,p.souffle+dt*.35);
+  }
+
+  /* ---------- chaleur et fumée ---------- */
+  let chal=0, fum=0;
+  const rc=3;
+  const pcx=celX(p.x), pcy=celY(p.y);
+  for(let cy=pcy-rc;cy<=pcy+rc;cy++) for(let cx=pcx-rc;cx<=pcx+rc;cx++){
+    if(!dedans(cx,cy)) continue;
+    const i=idx(cx,cy);
+    if(M.inten[i]<=0) continue;
+    const d=Math.hypot((cx+.5)*CEL-p.x,(cy+.5)*CEL-p.y);
+    const q=M.inten[i]/(1+d*d/2200);
+    chal+=q;
+    fum+=q*.6;
+  }
+  /* sous le vent d'un front, on ne respire plus */
+  const vx=Math.cos(G.vent.a), vy=Math.sin(G.vent.a);
+  p.chaleur+=(chal-p.chaleur)*Math.min(1,dt*3.4);
+  p.fumee+=(clamp(fum*.5,0,1)-p.fumee)*Math.min(1,dt*1.6);
+  const resist=1-niv('tenue')*.15;
+  if(p.chaleur>.55 && p.inv<=0){
+    const deg=Math.min(3.0,p.chaleur-.55)*15*dt*resist*(SAVE.assiste?.6:1);
+    p.hp-=deg;
+    if(p.chaleur>1.4 && SND.peut('recule',1600)) alerte('RECULE','tu es trop près du front');
+    p.brulT=(p.brulT||0)+dt;
+    if(p.brulT>.7){ p.brulT=0; G.brule=true; flashDegat();
+      flot(p.x,p.y-34,'BRÛLURE','#ff6a1e',14); SND.brulure(); shake(5); }
+  } else p.brulT=0;
+  if(ic>=0 && M.etat[ic]===FLAMMES && p.inv<=0){
+    p.hp-=26*dt*resist; G.brule=true;
+    if(Math.random()<dt*4) flot(p.x,p.y-34,'TU ES DANS LE FEU','#ff3d4f',15);
+  }
+  if(p.fumee>.4) p.souffle=Math.max(0,p.souffle-dt*(p.fumee-.4)*.30*(1-niv('souffle')*.2));
+  if(p.inv>0) p.inv-=dt;
+  if(p.flash>0) p.flash-=dt;
+  if(p.hp<=0 && !G.fin){ finIntervention(false,'Tu es tombé sur le front.'); return; }
+
+  /* ---------- caméra ---------- */
+  const av=p.enAction?60:34;
+  cam.x+=(p.x+Math.cos(p.a)*av+p.vx*.16-cam.x)*Math.min(1,dt*5);
+  cam.y+=(p.y+Math.sin(p.a)*av+p.vy*.16-cam.y)*Math.min(1,dt*5);
+  /* on ne montre jamais le vide autour de la carte */
+  const dw=VW/ZOOM/2, dh=VH/ZOOM/2, LW=M.L*CEL, LH=M.H*CEL;
+  cam.x = LW<dw*2 ? LW/2 : clamp(cam.x,dw,LW-dw);
+  cam.y = LH<dh*2 ? LH/2 : clamp(cam.y,dh,LH-dh);
+
+  /* ---------- vent et feu ---------- */
+  pasVent(dt);
+  G.feuT=(G.feuT||0)-dt;
+  if(G.feuT<=0){
+    const pas=1/11;
+    G.feuT+=pas;
+    pasFeu(pas*(1+G.vent.fEff*.15));
+  }
+
+  /* ---------- fumée et braises visibles ---------- */
+  G.fumT=(G.fumT||0)-dt;
+  if(G.fumT<=0 && G.nFlammes){
+    G.fumT=.055;
+    let n=0, ch=-1;
+    for(const i of M.actifs){
+      if(M.etat[i]!==FLAMMES) continue;
+      n++; if(Math.random()<1/n) ch=i;
+    }
+    if(ch>=0){
+      const wx=(ch%M.L+.5)*CEL, wy=((ch/M.L|0)+.5)*CEL;
+      fumee(wx+rnd(-6,6),wy+rnd(-6,6),M.inten[ch]);
+      if(Math.random()<.4) particule(wx,wy,'#ffb02e',rnd(20,90),rnd(.4,.9),rnd(1.4,2.8),-60);
+    }
+  }
+  for(let k=G.fumees.length-1;k>=0;k--){
+    const f=G.fumees[k];
+    f.vie-=dt;
+    if(f.vie<=0){ G.fumees.splice(k,1); continue; }
+    f.x+=(vx*G.vent.fEff*90+f.vx)*dt;
+    f.y+=(vy*G.vent.fEff*90+f.vy)*dt;
+    f.r+=dt*16;
+    f.vx*=Math.pow(.5,dt); f.vy*=Math.pow(.5,dt);
+  }
+  for(let k=G.vapeurs.length-1;k>=0;k--){
+    const v=G.vapeurs[k]; v.vie-=dt; v.r+=dt*22;
+    v.x+=vx*40*dt; v.y+=vy*40*dt-14*dt;
+    if(v.vie<=0) G.vapeurs.splice(k,1);
+  }
+  for(let k=G.parts.length-1;k>=0;k--){
+    const q=G.parts[k]; q.vie-=dt;
+    if(q.vie<=0){ G.parts.splice(k,1); continue; }
+    q.x+=(q.vx+vx*G.vent.fEff*70)*dt; q.y+=(q.vy+q.g+vy*G.vent.fEff*70)*dt;
+    q.vx*=Math.pow(.24,dt); q.vy*=Math.pow(.24,dt);
+  }
+  for(let k=G.flot.length-1;k>=0;k--){
+    const f=G.flot[k]; f.vie-=dt; f.y-=dt*22;
+    if(f.vie<=0) G.flot.splice(k,1);
+  }
+
+  /* ---------- l'avion ---------- */
+  if(G.avion){
+    const A=G.avion;
+    A.t+=dt;
+    if(A.t>=0 && A.t<=A.dur){
+      const u=A.t/A.dur;
+      A.x=lerp(A.ax,A.bx,u); A.y=lerp(A.ay,A.by,u);
+      A.pose+=dt;
+      if(A.pose>.05){
+        A.pose=0;
+        poserRetardant(A.x,A.y,44);
+        if(Math.random()<.5) SND.largage();
+      }
+    } else if(A.t<0){
+      const u=1+A.t/1.6;
+      A.x=lerp(A.ax-Math.cos(G.vent.a+Math.PI/2)*420,A.ax,u);
+      A.y=lerp(A.ay-Math.sin(G.vent.a+Math.PI/2)*420,A.ay,u);
+    } else if(A.t>A.dur+1.4){ G.avion=null; }
+  }
+
+  /* ---------- l'équipe ---------- */
+  pasEquipe(dt);
+  if(G.marqueur){ G.marqueur.t-=dt; if(G.marqueur.t<=0) G.marqueur=null; }
+  if(G.signal){ G.signal.t-=dt; if(G.signal.t<=0) G.signal=null; }
+
+  /* ---------- les gens ---------- */
+  for(let k=G.gens.length-1;k>=0;k--){
+    const g=G.gens[k];
+    g.ph+=dt*2.4;
+    const dj=Math.hypot(g.x-p.x,g.y-p.y);
+    if(g.etat===0){
+      /* Ils attendent qu'on vienne les chercher — mais personne ne reste
+         planté devant une flamme. Dès que ça approche, ils reculent ; c'est
+         ce qui leur laisse une chance quand on arrive un peu tard. */
+      let fx=0, fy=0, danger=0;
+      const gc=celX(g.x), gr=celY(g.y);
+      for(let dy=-3;dy<=3;dy++) for(let dx=-3;dx<=3;dx++){
+        if(!dedans(gc+dx,gr+dy)) continue;
+        const q=M.inten[idx(gc+dx,gr+dy)];
+        if(q<=.05) continue;
+        const d=Math.hypot(dx,dy)||1;
+        fx-=dx/d*q; fy-=dy/d*q; danger+=q/d;
+      }
+      if(danger>.12){
+        const m=Math.hypot(fx,fy)||1;
+        g.peur=Math.min(1,g.peur+dt*2);
+        g.vx+=(fx/m*70-g.vx)*Math.min(1,dt*4);
+        g.vy+=(fy/m*70-g.vy)*Math.min(1,dt*4);
+        g.x=clamp(g.x+g.vx*dt,CEL,(M.L-1)*CEL);
+        g.y=clamp(g.y+g.vy*dt,CEL,(M.H-1)*CEL);
+        g.marche+=dt*Math.hypot(g.vx,g.vy)*.13;
+        if(Math.hypot(g.vx,g.vy)>14) g.a=Math.atan2(g.vy,g.vx);
+      } else { g.vx*=Math.pow(.02,dt); g.vy*=Math.pow(.02,dt); }
+      if(dj<44){ g.etat=1; SND.sauve();
+        flot(g.x,g.y-30,g.nom+' TE SUIT','#8fd14f',13);
+        alerte(g.nom+' TE SUIT','ramène-la au camion'); }
+    } else if(g.etat===1){
+      /* ils suivent, un peu en retard, et se serrent quand ça chauffe */
+      const cible=48+ (g.peur>.4?0:14);
+      if(dj>cible){
+        const a=Math.atan2(p.y-g.y,p.x-g.x);
+        const v=(dj>140?96:74);
+        g.vx+=(Math.cos(a)*v-g.vx)*Math.min(1,dt*6);
+        g.vy+=(Math.sin(a)*v-g.vy)*Math.min(1,dt*6);
+      } else { g.vx*=Math.pow(.02,dt); g.vy*=Math.pow(.02,dt); }
+      g.x=clamp(g.x+g.vx*dt,CEL,(M.L-1)*CEL);
+      g.y=clamp(g.y+g.vy*dt,CEL,(M.H-1)*CEL);
+      g.marche+=dt*Math.hypot(g.vx,g.vy)*.13;
+      if(Math.hypot(g.vx,g.vy)>14) g.a=Math.atan2(g.vy,g.vx);
+      if(Math.hypot(g.x-G.camion.x,g.y-G.camion.y)<52){
+        G.evacues++; G.gens.splice(k,1);
+        SND.bien(); flot(G.camion.x,G.camion.y-40,g.nom+' EST À L\'ABRI','#8fd14f',15);
+        alerte(g.nom+' EST À L\'ABRI',G.evacues+' sur '+G.totalGens+' évacués');
+        continue;
+      }
+    }
+    /* le feu ne les épargne pas */
+    const gi=celleAu(g.x,g.y);
+    if(gi>=0 && M.inten[gi]>.1){
+      g.peur=1;
+      g.hp=(g.hp===undefined?100:g.hp)-dt*40;
+      if(Math.random()<dt*3) flot(g.x,g.y-28,'AU SECOURS','#ff3d4f',13);
+      if(g.hp<=0){
+        G.gens.splice(k,1); G.perdus=(G.perdus||0)+1;
+        alerte(g.nom+' N\'EST PAS RESSORTI','—');
+        SND.mal(); shake(10);
+      }
+    } else g.peur=Math.max(0,g.peur-dt*.4);
+  }
+
+  /* ---------- la nappe sonore suit le front ---------- */
+  SND.ambiance(G.vent.fEff, clamp(G.intensite/22,0,1));
+
+  /* ---------- reprise ----------
+     Un feu qui s'éteint tout seul en deux minutes n'est pas une intervention.
+     Et sous les cendres il reste toujours de quoi repartir : c'est la hantise
+     des équipes de nuit, et ici c'est ce qui garantit qu'il y a une partie
+     quel que soit le tirage du terrain. */
+  if(!G.fin && G.t<150 && G.reprises<3 && G.nFlammes===0 && !G.brandons.length
+     && M.brulees/Math.max(1,M.total)<.05){
+    G.repriseT-=dt;
+    if(G.repriseT<=0){
+      G.repriseT=8; G.reprises++;
+      departFeu(11+G.reprises);
+      alerte('REPRISE','un foyer est reparti sous le vent');
+      SND.sirene();
+    }
+  }
+
+  /* ---------- fin ? ---------- */
+  verifierFin();
+  if(secousse>0) secousse=Math.max(0,secousse-dt*52);
+}
+
+function flashDegat(){
+  const e=$('brule'); if(!e) return;
+  e.style.opacity='.85'; setTimeout(()=>e.style.opacity='0',70);
+}
+
+function verifierFin(){
+  if(G.fin) return;
+  /* défaite : un enjeu parti en fumée */
+  for(const b of M.batiments){
+    if(b.total && b.perdues/b.total>.6 && !b.perdu){
+      b.perdu=true;
+      finIntervention(false,(b.camp?'Le camping':'Le hameau')+' a brûlé.');
+      return;
+    }
+  }
+  /* défaite : le massif entier y passe */
+  if(M.total && (M.brulees+G.nFlammes)/M.total>.68){
+    finIntervention(false,'Le massif est parti. Il n\'y a plus rien à défendre.');
+    return;
+  }
+  /* victoire : plus une flamme, plus une braise, plus un brandon en l'air */
+  if(G.t>15 && G.nFlammes===0 && !G.brandons.length
+     && (M.brulees/Math.max(1,M.total)>.02 || G.t>170)){
+    let braise=false;
+    for(const i of M.actifs) if(M.etat[i]===BRAISES && M.inten[i]>.05){ braise=true; break; }
+    if(!braise){ finIntervention(true,'Le feu est maîtrisé.'); }
+  }
+}
+/* ==========================================================================
+   9. RENDU
+   ==========================================================================
+   Le sol est peint une fois pour toutes sur une toile hors écran de la taille
+   du massif, puis recopié. Seules les parcelles qui changent sont repeintes :
+   c'est ce qui permet d'afficher vingt mille parcelles sans y penser. */
+const SOLK=2;                    // pixels de texture par unité monde
+const CT=CEL*SOLK;               // côté d'une parcelle sur la couche de sol
+let solCv=null, solG=null;
+let feuCv=null, feuG=null;             // couche de lueur, en basse résolution
+const GLOW=[];                          // pastilles de lueur pré-calculées
+let TROU=null;                          // pastille servant à percer la nuit
+
+function preparerLueurs(){
+  for(let k=0;k<3;k++){
+    const R=[26,44,74][k], c=document.createElement('canvas');
+    c.width=c.height=R*2;
+    const g=c.getContext('2d');
+    const gr=g.createRadialGradient(R,R,0,R,R,R);
+    gr.addColorStop(0,'rgba(255,178,72,1)');
+    gr.addColorStop(.26,'rgba(255,110,24,.62)');
+    gr.addColorStop(.62,'rgba(206,54,10,.26)');
+    gr.addColorStop(1,'rgba(150,26,6,0)');
+    g.fillStyle=gr; g.fillRect(0,0,R*2,R*2);
+    GLOW.push(c);
+  }
+  /* pastille de percement : on la recopie au lieu de refabriquer un dégradé
+     radial à chaque image — c'était le poste le plus lourd des nuits */
+  const R=128;
+  TROU=document.createElement('canvas'); TROU.width=TROU.height=R*2;
+  const t=TROU.getContext('2d');
+  const tg=t.createRadialGradient(R,R,0,R,R,R);
+  tg.addColorStop(0,'rgba(0,0,0,1)');
+  tg.addColorStop(.46,'rgba(0,0,0,.62)');
+  tg.addColorStop(1,'rgba(0,0,0,0)');
+  t.fillStyle=tg; t.fillRect(0,0,R*2,R*2);
+}
+preparerLueurs();
+
+function preparerSol(){
+  solCv=document.createElement('canvas');
+  solCv.width=M.L*CT; solCv.height=M.H*CT;
+  solG=solCv.getContext('2d');
+  for(let cy=0;cy<M.H;cy++) for(let cx=0;cx<M.L;cx++) peindreCellule(cx,cy);
+  M.sol=solCv;
+}
+/* teinte d'une parcelle. On peint à deux fois la résolution d'affichage :
+   c'est ce qui permet d'y mettre un grain, des touffes et des arbres qui
+   tiennent la route une fois la carte réduite à l'écran. */
+function peindreCellule(cx,cy){
+  const i=idx(cx,cy), v=VEG[M.veg[i]], g=solG;
+  const x=cx*CT, y=cy*CT;
+  const h=hash2(cx,cy,3), h2=hash2(cx,cy,17);
+  const e=M.etat[i];
+  const brule=(e===CENDRES||e===BRAISES);
+
+  /* --- fond. La teinte varie doucement d'une parcelle à l'autre : une nappe
+     parfaitement unie se lit comme une erreur d'affichage, pas comme un pré. */
+  let col;
+  if(e===BRAISES) col='#3d2115';
+  else if(e===CENDRES) col= v.arbre? '#16130f' : (v.bati? '#332c25' : '#1e1a15');
+  else col=nuance(h<.5?v.col:v.col2, bruitFractal(cx/6.5,cy/6.5,M.g+901,2,.5)-.5);
+  g.fillStyle=col;
+  g.fillRect(x,y,CT,CT);
+
+  /* --- grain propre à chaque milieu --- */
+  if(!brule){
+    if(v.sec){                                   // herbe sèche : fines hachures
+      g.strokeStyle='rgba(238,222,150,.22)'; g.lineWidth=1;
+      const nh=4+((hash2(cx,cy,8)*5)|0);
+      for(let k=0;k<nh;k++){
+        const bx=x-2+hash2(cx*7+k,cy,41)*(CT+4), by=y-2+hash2(cx,cy*7+k,42)*(CT+4);
+        g.beginPath(); g.moveTo(bx,by); g.lineTo(bx+1.2,by-3.4); g.stroke();
+      }
+      g.fillStyle='rgba(120,100,50,.14)';
+      g.fillRect(x,y+CT*h2*.8,CT,1.6);
+    }
+    if(v.rang){                                  // vigne : rangs réguliers
+      g.strokeStyle='rgba(24,38,18,.42)'; g.lineWidth=2.2;
+      for(let k=3;k<CT;k+=7){
+        g.beginPath(); g.moveTo(x+k,y); g.lineTo(x+k,y+CT); g.stroke();
+      }
+      g.fillStyle='rgba(146,168,96,.22)';
+      for(let k=3;k<CT;k+=7) g.fillRect(x+k-1,y+((h*8)|0),1.4,CT*.5);
+    }
+    if(v.eau){                                   // eau : moirures claires
+      for(let k=0;k<3;k++){
+        g.fillStyle='rgba(150,205,235,'+(.05+hash2(cx,cy,50+k)*.07).toFixed(3)+')';
+        g.fillRect(x,y+hash2(cx,cy,60+k)*CT,CT,1.8);
+      }
+    }
+    if(v.dur){                                   // rocaille et piste : cailloux
+      for(let k=0;k<5;k++){
+        const bx=x+hash2(cx,cy,70+k)*CT, by=y+hash2(cx,cy,80+k)*CT;
+        g.fillStyle=hash2(cx,cy,90+k)<.5?'rgba(255,250,235,.13)':'rgba(30,24,16,.16)';
+        g.fillRect(bx,by,1.8+hash2(cx,cy,95+k)*2,1.4+hash2(cx,cy,96+k)*1.6);
+      }
+    }
+    if(v.buis){                                  // garrigue : touffes basses
+      const nb2=2+((hash2(cx,cy,9)*4)|0);
+      for(let k=0;k<nb2;k++){
+        /* elles débordent volontairement : cadrées dans la parcelle, elles
+           dessinaient une grille régulière sur tout le massif */
+        const bx=x-3+hash2(cx,cy,10+k)*(CT+6), by=y-3+hash2(cx,cy,20+k)*(CT+6);
+        const r=1.5+hash2(cx,cy,30+k)*2.4;
+        g.fillStyle='rgba(20,26,12,.28)';
+        g.beginPath(); g.arc(bx+.8,by+.9,r,0,TAU); g.fill();
+        g.fillStyle=hash2(cx,cy,35+k)<.5?'#5e6438':'#6c7342';
+        g.beginPath(); g.arc(bx,by,r,0,TAU); g.fill();
+      }
+    }
+  } else {
+    /* après le feu : cendre inégale, quelques plaques encore claires */
+    for(let k=0;k<6;k++){
+      const bx=x-2+hash2(cx,cy,110+k)*(CT+4), by=y-2+hash2(cx,cy,120+k)*(CT+4);
+      const t=hash2(cx,cy,130+k);
+      g.fillStyle= t<.3 ? 'rgba(178,172,162,.20)'      // plaques de cendre claire
+                 : t<.6 ? 'rgba(96,58,34,.26)'         // terre cuite
+                        : 'rgba(0,0,0,.34)';
+      g.fillRect(bx,by,2.2+hash2(cx,cy,140+k)*3.4,1.8+hash2(cx,cy,141+k)*2.8);
+    }
+  }
+  if(v.arbre) dessinerArbre(g,x,y,cx,cy,v.arbre,brule);
+  if(v.bati) dessinerBati(g,x,y,cx,cy,brule);
+
+  /* --- relief : lumière rasante du nord-ouest. Sans elle, le massif est plat
+     et le joueur ne voit pas les versants qui vont accélérer le feu.
+     L'ombrage est peint en dégradé d'un bord à l'autre de la parcelle :
+     appliqué à plat, il découpait le massif en marches d'escalier. --- */
+  const shOf=(ax,ay)=>{
+    const j=idx(clamp(ax,0,M.L-1),clamp(ay,0,M.H-1));
+    return clamp((M.pente[j*2]+M.pente[j*2+1])*.70,-.62,.62);
+  };
+  const sc=shOf(cx,cy);
+  const sg=g.createLinearGradient(x,y,x+CT,y+CT);
+  const teindre=s=> s>0 ? 'rgba(255,238,196,'+(s*.34).toFixed(3)+')'
+                        : 'rgba(8,12,20,'+(-s*.46).toFixed(3)+')';
+  sg.addColorStop(0,teindre((shOf(cx-1,cy-1)+sc)*.5));
+  sg.addColorStop(.5,teindre(sc));
+  sg.addColorStop(1,teindre((shOf(cx+1,cy+1)+sc)*.5));
+  g.fillStyle=sg; g.fillRect(x,y,CT,CT);
+  /* les fonds restent sombres, les crêtes s'éclairent : ça donne le volume */
+  const rel=clamp(M.alt[i]/Math.max(1,M.ech),0,1);
+  g.fillStyle= rel>.5 ? 'rgba(255,244,214,'+((rel-.5)*.10).toFixed(3)+')'
+                      : 'rgba(10,14,22,'+((.5-rel)*.16).toFixed(3)+')';
+  g.fillRect(x,y,CT,CT);
+
+  if(M.retard&&M.retard[i]&&e!==CENDRES){
+    g.fillStyle='rgba(222,88,44,.30)'; g.fillRect(x,y,CT,CT);
+    g.fillStyle='rgba(255,140,90,.14)';
+    g.fillRect(x,y+((h*CT)|0),CT,2.4);
+  }
+  if(M.veg[i]===V.nu && M.fuel0[i]<=0){
+    /* une coupure fraîche se lit : sol retourné, sillons */
+    g.strokeStyle='rgba(38,26,14,.34)'; g.lineWidth=1.4;
+    for(let k=4;k<CT;k+=6){
+      g.beginPath(); g.moveTo(x,y+k); g.lineTo(x+CT,y+k-1.4); g.stroke();
+    }
+  }
+}
+/* décale une couleur vers le clair ou le sombre, sans virer de teinte */
+const _nc={};
+function nuance(hex,k){
+  const cle=hex+((k*40)|0);
+  if(_nc[cle]) return _nc[cle];
+  const n=parseInt(hex.slice(1),16);
+  const f=1+clamp(k,-.5,.5)*.44;
+  const r=clamp(Math.round(((n>>16)&255)*f),0,255);
+  const v=clamp(Math.round(((n>>8)&255)*f),0,255);
+  const b=clamp(Math.round((n&255)*f),0,255);
+  return _nc[cle]='rgb('+r+','+v+','+b+')';
+}
+function dessinerArbre(g,x,y,cx,cy,type,brule){
+  const n=type==='pin'?2:1;
+  for(let k=0;k<n;k++){
+    const ox=x+CT*(.3+hash2(cx,cy,61+k)*.4), oy=y+CT*(.3+hash2(cx,cy,62+k)*.4);
+    const r=(type==='pin'?4.4:6.2)*(.8+hash2(cx,cy,63+k)*.45);
+    g.fillStyle='rgba(0,0,0,.34)';
+    g.beginPath(); g.ellipse(ox+r*.5,oy+r*.55,r*.92,r*.5,0,0,TAU); g.fill();
+    if(brule){
+      g.strokeStyle='#100e0c'; g.lineWidth=1.6; g.lineCap='round';
+      g.beginPath(); g.moveTo(ox,oy+r*.6); g.lineTo(ox-.5,oy-r*.9); g.stroke();
+      g.lineWidth=1;
+      g.beginPath(); g.moveTo(ox-.4,oy-r*.2); g.lineTo(ox-r*.75,oy-r*.75);
+      g.moveTo(ox-.4,oy-r*.45); g.lineTo(ox+r*.65,oy-r*.9); g.stroke();
+      continue;
+    }
+    if(type==='pin'){
+      /* pin d'Alep : houppier étalé et clair sur un fût sombre */
+      g.strokeStyle='#3a2c1e'; g.lineWidth=1.4;
+      g.beginPath(); g.moveTo(ox,oy+r*.7); g.lineTo(ox,oy); g.stroke();
+      g.fillStyle=hash2(cx,cy,64+k)<.5?'#2c4a30':'#33553a';
+      g.beginPath(); g.arc(ox,oy-r*.25,r,0,TAU); g.fill();
+      g.fillStyle='rgba(126,176,104,.28)';
+      g.beginPath(); g.arc(ox-r*.32,oy-r*.55,r*.5,0,TAU); g.fill();
+      g.fillStyle='rgba(6,14,8,.30)';
+      g.beginPath(); g.arc(ox+r*.34,oy+r*.1,r*.46,0,TAU); g.fill();
+    } else {
+      g.fillStyle=hash2(cx,cy,64+k)<.5?'#33512c':'#3b5b33';
+      g.beginPath(); g.arc(ox,oy,r,0,TAU); g.fill();
+      g.fillStyle='rgba(150,186,110,.24)';
+      g.beginPath(); g.arc(ox-r*.3,oy-r*.34,r*.52,0,TAU); g.fill();
+      g.fillStyle='rgba(8,16,8,.26)';
+      g.beginPath(); g.arc(ox+r*.32,oy+r*.28,r*.44,0,TAU); g.fill();
+    }
+  }
+}
+function dessinerBati(g,x,y,cx,cy,brule){
+  const w=CT*.66, hh=CT*.54;
+  const ox=x+(CT-w)/2+(hash2(cx,cy,71)-.5)*CT*.16;
+  const oy=y+(CT-hh)/2+(hash2(cx,cy,72)-.5)*CT*.16;
+  g.fillStyle='rgba(0,0,0,.34)'; g.fillRect(ox+2.4,oy+3,w,hh);
+  g.fillStyle=brule?'#2a2420':(hash2(cx,cy,73)<.5?'#cbbda4':'#bfb098');
+  g.fillRect(ox,oy,w,hh);
+  /* toit de tuiles, faîtage marqué */
+  g.fillStyle=brule?'#141210':(hash2(cx,cy,74)<.5?'#a45437':'#96492f');
+  g.fillRect(ox-1.4,oy-2.2,w+2.8,hh*.46);
+  g.fillStyle='rgba(0,0,0,.22)';
+  g.fillRect(ox-1.4,oy+hh*.46-2.2,w+2.8,1.6);
+  if(!brule){
+    g.fillStyle='rgba(48,38,26,.8)';
+    g.fillRect(ox+w*.36,oy+hh*.58,w*.24,hh*.42);
+    g.fillStyle='rgba(255,240,200,.22)';
+    g.fillRect(ox+w*.1,oy+hh*.58,w*.16,hh*.2);
+  } else {
+    g.strokeStyle='rgba(0,0,0,.6)'; g.lineWidth=1.2;
+    g.beginPath(); g.moveTo(ox,oy); g.lineTo(ox+w,oy+hh); g.moveTo(ox+w,oy); g.lineTo(ox,oy+hh); g.stroke();
+  }
+}
+/* les parcelles qui ont changé depuis la dernière image */
+function repeindreSales(){
+  if(!M.sales.size) return;
+  for(const i of M.sales) peindreCellule(i%M.L,(i/M.L)|0);
+  M.sales.clear();
+}
+
+/* --------------------------------------------------------------- rendu --- */
+function dessiner(){
+  const p=G.p;
+  const sx=secousse?rnd(-secousse,secousse):0, sy=secousse?rnd(-secousse,secousse):0;
+  if(!M.sol) preparerSol(); else repeindreSales();
+  if(!feuCv){ feuCv=document.createElement('canvas'); feuG=feuCv.getContext('2d'); }
+  const FW=Math.max(2,Math.round(VW/3)), FH=Math.max(2,Math.round(VH/3));
+  if(feuCv.width!==FW||feuCv.height!==FH){ feuCv.width=FW; feuCv.height=FH; }
+
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.fillStyle=M.S.nuit?'#070a0c':'#141210';
+  ctx.fillRect(0,0,VW,VH);
+
+  /* --- le sol --- */
+  const vw=VW/ZOOM, vh=VH/ZOOM;
+  const x0=cam.x-vw/2-sx/ZOOM, y0=cam.y-vh/2-sy/ZOOM;
+  ctx.drawImage(solCv, x0*SOLK,y0*SOLK,vw*SOLK,vh*SOLK, 0,0,VW,VH);
+
+  /* --- couche de lueur : une pastille par foyer, en basse résolution --- */
+  feuG.setTransform(1,0,0,1,0,0);
+  feuG.clearRect(0,0,FW,FH);
+  feuG.globalCompositeOperation='lighter';
+  const k3=FW/VW;
+  /* Exposition automatique : additionner mille six cents halos donnait un
+     écran blanc. Plus le front est large, moins chaque foyer pèse — c'est
+     ce que fait l'œil devant un incendie. */
+  const expo=clamp(300/(300+(G.nVis||0)),.16,1);
+  let dessines=0, nVis=0;
+  for(const i of M.actifs){
+    const it=M.inten[i];
+    if(it<=.02) continue;
+    const cx=i%M.L, cy=(i/M.L)|0;
+    const wx=(cx+.5)*CEL, wy=(cy+.5)*CEL;
+    if(wx<x0-60||wy<y0-60||wx>x0+vw+60||wy>y0+vh+60) continue;
+    nVis++;
+    const ex=(ecranX(wx)+sx)*k3, ey=(ecranY(wy)+sy)*k3;
+    const n=it>1?2:(it>.5?1:0);
+    const gl=GLOW[n], R=gl.width*.5*ZOOM*k3*(.34+it*.34);
+    feuG.globalAlpha=clamp(it*.62*expo+.05,0,.75);
+    feuG.drawImage(gl,ex-R,ey-R,R*2,R*2);
+    if(++dessines>2400) break;
+  }
+  G.nVis=nVis;
+  feuG.globalAlpha=1;
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  ctx.globalAlpha=.82;
+  ctx.drawImage(feuCv,0,0,VW,VH);
+  ctx.restore();
+
+  /* --- flammes.
+     Deux choses les rendent crédibles. D'abord elles ne sont hautes qu'au
+     BORD du front : à l'intérieur, il ne reste que des braises basses — c'est
+     vrai d'un vrai feu, et ça donne à l'incendie sa forme d'anneau. Ensuite
+     chacune a sa taille, son inclinaison et sa teinte : dessinées à
+     l'identique, elles formaient une grille de chevrons. --- */
+  ctx.save();
+  ctx.translate(VW/2+sx,VH/2+sy); ctx.scale(ZOOM,ZOOM); ctx.translate(-cam.x,-cam.y);
+  let nf=0;
+  ctx.globalCompositeOperation='lighter';
+  const vx=Math.cos(G.vent.a)*G.vent.fEff, vy=Math.sin(G.vent.a)*G.vent.fEff;
+  for(const i of M.actifs){
+    if(M.etat[i]!==FLAMMES) continue;
+    const it=M.inten[i];
+    if(it<.12) continue;
+    const cx=i%M.L, cy=(i/M.L)|0;
+    const wx=(cx+.5)*CEL, wy=(cy+.5)*CEL;
+    if(wx<x0-24||wy<y0-24||wx>x0+vw+24||wy>y0+vh+24) continue;
+    /* est-on sur le bord du front ? */
+    let bord=0;
+    for(let d=0;d<4;d++){
+      const nx=cx+VOIS[d][0], ny=cy+VOIS[d][1];
+      if(!dedans(nx,ny)) continue;
+      const j=idx(nx,ny);
+      if(M.etat[j]===INTACT && M.fuel[j]>.05) bord++;
+    }
+    const ampleur=bord? (.55+bord*.28) : .34;
+    const nl=bord?2:1;
+    for(let k=0;k<nl;k++){
+      const gr=hash2(cx,cy,200+k);
+      const ph=G.t*(5.5+gr*4)+gr*11;
+      const ox=wx+(hash2(cx,cy,210+k)-.5)*CEL*.8;
+      const oy=wy+(hash2(cx,cy,220+k)-.5)*CEL*.6;
+      const hh=(5+it*15)*ampleur*(.62+.38*Math.sin(ph))*(.7+gr*.6);
+      const lr=(2.4+it*2.8)*(.7+gr*.7);
+      const pen=Math.sin(ph*.6)*.22;                       // la flamme ondule
+      ctx.globalAlpha=clamp((.20+it*.34)*ampleur*(.45+expo*.55),0,.7);
+      ctx.fillStyle= it>1.05&&bord ? (gr<.4?'#ffe9a8':'#ffc04a')
+                   : (it>.55 ? (gr<.5?'#ffb02e':'#ff8c22') : '#ff6a1e');
+      ctx.beginPath();
+      ctx.moveTo(ox-lr,oy+2);
+      ctx.quadraticCurveTo(ox-lr*.35+pen*hh, oy-hh*.55,
+                           ox+vx*hh*.9+pen*hh*1.4, oy-hh+vy*hh*.5);
+      ctx.quadraticCurveTo(ox+lr*.45+pen*hh, oy-hh*.5, ox+lr,oy+2);
+      ctx.closePath(); ctx.fill();
+    }
+    if(++nf>340) break;
+  }
+  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+
+  /* --- braises au sol --- */
+  for(const i of M.actifs){
+    if(M.etat[i]!==BRAISES) continue;
+    const it=M.inten[i]; if(it<.03) continue;
+    const cx=i%M.L, cy=(i/M.L)|0;
+    const wx=(cx+.5)*CEL, wy=(cy+.5)*CEL;
+    if(wx<x0||wy<y0||wx>x0+vw||wy>y0+vh) continue;
+    ctx.fillStyle='rgba(255,'+Math.round(70+it*90)+',30,'+clamp(it*1.4,0,.7).toFixed(2)+')';
+    ctx.fillRect(wx-CEL*.3,wy-CEL*.3,CEL*.6,CEL*.6);
+  }
+
+  /* --- retardant frais et parcelles mouillées : un rendu qui se lit --- */
+  if(niv('flair')){
+    ctx.globalAlpha=.5;
+    for(const i of M.actifs){
+      if(M.etat[i]!==INTACT||M.chaud[i]<=.12) continue;
+      const cx=i%M.L, cy=(i/M.L)|0;
+      const wx=cx*CEL, wy=cy*CEL;
+      if(wx<x0||wy<y0||wx>x0+vw||wy>y0+vh) continue;
+      const q=clamp(M.chaud[i]/SEUIL,0,1);
+      ctx.strokeStyle='rgba(255,'+Math.round(200-q*140)+',60,'+(.25+q*.5).toFixed(2)+')';
+      ctx.lineWidth=1.2;
+      ctx.strokeRect(wx+1,wy+1,CEL-2,CEL-2);
+    }
+    ctx.globalAlpha=1;
+  }
+
+  /* --- vapeur d'eau --- */
+  for(const v of G.vapeurs){
+    const a=clamp(v.vie/v.max,0,1);
+    ctx.fillStyle='rgba(226,238,244,'+(a*.42).toFixed(3)+')';
+    ctx.beginPath(); ctx.arc(v.x,v.y,v.r,0,TAU); ctx.fill();
+  }
+
+  /* --- le camion et le point de rassemblement --- */
+  dessinerCamion();
+
+  /* --- l'équipe --- */
+  dessinerEquipe();
+
+  /* --- les gens --- */
+  for(const g of G.gens) dessinerPersonne(g);
+
+  /* --- le pompier --- */
+  dessinerPompier();
+
+  /* --- brandons en vol : de vraies braises qui traversent le ciel --- */
+  ctx.globalCompositeOperation='lighter';
+  for(const b of G.brandons){
+    const u=clamp(b.t/b.dur,0,1);
+    const x=lerp(b.x0!==undefined?b.x0:b.x,b.tx,u);
+    const y=lerp(b.y0!==undefined?b.y0:b.y,b.ty,u)-Math.sin(u*Math.PI)*46;
+    ctx.fillStyle='rgba(255,'+Math.round(150+80*Math.sin(b.ph+G.t*14))+',60,.95)';
+    ctx.beginPath(); ctx.arc(x,y,2.4,0,TAU); ctx.fill();
+    ctx.fillStyle='rgba(255,120,40,.28)';
+    ctx.beginPath(); ctx.arc(x,y,6.5,0,TAU); ctx.fill();
+  }
+  /* --- particules --- */
+  for(const q of G.parts){
+    ctx.globalAlpha=clamp(q.vie/q.max,0,1)*.9;
+    ctx.fillStyle=q.col;
+    ctx.beginPath(); ctx.arc(q.x,q.y,q.r,0,TAU); ctx.fill();
+  }
+  ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over';
+
+  /* --- l'avion --- */
+  if(G.avion) dessinerAvion();
+
+  /* --- la fumée passe devant tout le reste --- */
+  for(const f of G.fumees){
+    const a=clamp(f.vie/f.max,0,1);
+    const gr=ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r);
+    const t=clamp(f.f*.5,0,1);
+    gr.addColorStop(0,'rgba('+Math.round(70+t*40)+','+Math.round(66+t*30)+','+Math.round(62+t*20)+','+(a*.5).toFixed(3)+')');
+    gr.addColorStop(1,'rgba(60,58,56,0)');
+    ctx.fillStyle=gr;
+    ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,TAU); ctx.fill();
+  }
+
+  /* --- chiffres flottants --- */
+  ctx.textAlign='center';
+  for(const f of G.flot){
+    ctx.globalAlpha=clamp(f.vie/.45,0,1);
+    ctx.font='700 '+f.taille+'px '+FONT;
+    ctx.fillStyle='rgba(0,0,0,.65)'; ctx.fillText(f.t,f.x+1,f.y+1);
+    ctx.fillStyle=f.col; ctx.fillText(f.t,f.x,f.y);
+  }
+  ctx.globalAlpha=1;
+  ctx.restore();
+
+  /* --- la nuit : le feu est la seule lampe --- */
+  if(M.S.nuit) eclairageNuit(sx,sy);
+
+  /* --- voile de chaleur et de fumée sur l'écran --- */
+  if(p.chaleur>.35){
+    const a=clamp((p.chaleur-.35)*.13,0,.15);
+    ctx.fillStyle='rgba(190,80,24,'+a.toFixed(3)+')'; ctx.fillRect(0,0,VW,VH);
+  }
+  if(p.fumee>.18){
+    /* en vignette : un aplat sur tout l'écran rendait le jeu illisible */
+    const a=clamp((p.fumee-.18)*.42,0,.34);
+    const vg=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*.16,
+                                      VW/2,VH/2,Math.max(VW,VH)*.62);
+    vg.addColorStop(0,'rgba(64,60,55,0)');
+    vg.addColorStop(1,'rgba(64,60,55,'+a.toFixed(3)+')');
+    ctx.fillStyle=vg; ctx.fillRect(0,0,VW,VH);
+  }
+  const ratio=p.hp/p.hpMax;
+  if(ratio<.4){
+    const inten=(1-ratio/.4)*(.3+.12*Math.sin(G.t*5));
+    const rg=ctx.createRadialGradient(VW/2,VH/2,Math.min(VW,VH)*.2,VW/2,VH/2,Math.max(VW,VH)*.66);
+    rg.addColorStop(0,'rgba(150,20,10,0)'); rg.addColorStop(1,'rgba(150,20,10,'+inten.toFixed(3)+')');
+    ctx.fillStyle=rg; ctx.fillRect(0,0,VW,VH);
+  }
+
+  /* --- surcouches --- */
+  dessinerVent();
+  dessinerCarte();
+  dessinerReperes(sx,sy);
+  if(tactile){ stick(joyM,'rgba(233,228,214,.22)'); stick(joyA,OUTILS[p.outil].col); }
+  else if(souris.vue) reticule();
+}
+
+function eclairageNuit(sx,sy){
+  const LW=lightCv.width, LH=lightCv.height, k=LW/VW;
+  lg.setTransform(1,0,0,1,0,0);
+  lg.globalCompositeOperation='source-over';
+  lg.fillStyle='rgba(4,7,10,.90)'; lg.fillRect(0,0,LW,LH);
+  lg.globalCompositeOperation='destination-out';
+  const perce=(wx,wy,R,a)=>{
+    const ex=(ecranX(wx)+sx)*k, ey=(ecranY(wy)+sy)*k, r=R*ZOOM*k;
+    if(ex<-r||ey<-r||ex>LW+r||ey>LH+r) return;
+    lg.globalAlpha=a;
+    lg.drawImage(TROU,ex-r,ey-r,r*2,r*2);
+  };
+  perce(G.p.x,G.p.y,150,1);                       // la lampe frontale
+  perce(G.camion.x,G.camion.y,190,.85);           // le camion et ses gyrophares
+  for(const e of G.eq) perce(e.x,e.y,74,.7);      // les casques de l'équipe
+  lg.globalAlpha=.95;
+  lg.drawImage(feuCv,0,0,LW,LH);                  // le feu est la vraie lampe
+  lg.globalAlpha=1;
+  ctx.drawImage(lightCv,0,0,VW,VH);
+}
+
+/* --- silhouettes --- */
+function dessinerPompier(){
+  const p=G.p;
+  ctx.save();
+  ctx.translate(p.x,p.y);
+  ctx.fillStyle='rgba(0,0,0,.34)';
+  ctx.beginPath(); ctx.ellipse(0,7,9,4.5,0,0,TAU); ctx.fill();
+  ctx.rotate(p.a);
+  const bal=Math.sin(p.marche*2)*2.2;
+  /* jambes */
+  ctx.strokeStyle='#26302a'; ctx.lineWidth=4.2; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-1,-3); ctx.lineTo(-3,-3-bal*.6); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-1,3); ctx.lineTo(-3,3+bal*.6); ctx.stroke();
+  /* veste de feu : sombre avec bandes rétro-réfléchissantes */
+  ctx.fillStyle='#2f3a30';
+  ctx.beginPath(); ctx.roundRect(-6,-6,12,12,4); ctx.fill();
+  ctx.fillStyle='#e8d24a';
+  ctx.fillRect(-4.5,-6.4,2.2,12.8);
+  ctx.fillStyle='#c8532a';
+  ctx.beginPath(); ctx.roundRect(-6.6,-2.2,13.2,2.2,1); ctx.fill();
+  /* bras et lance */
+  const O=OUTILS[p.outil];
+  ctx.strokeStyle='#2f3a30'; ctx.lineWidth=3.4;
+  ctx.beginPath(); ctx.moveTo(2,-5); ctx.lineTo(9,-2.5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(2,5); ctx.lineTo(9,2.5); ctx.stroke();
+  if(O.id==='lance'){
+    ctx.strokeStyle='#c9c4b4'; ctx.lineWidth=2.4;
+    ctx.beginPath(); ctx.moveTo(7,0); ctx.lineTo(16,0); ctx.stroke();
+    ctx.strokeStyle='#4a5a48'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(7,1); ctx.quadraticCurveTo(-2,10,-10,4); ctx.stroke();
+  } else if(O.id==='pelle'){
+    ctx.strokeStyle='#8a6b40'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(6,-1); ctx.lineTo(15,4); ctx.stroke();
+    ctx.fillStyle='#b8b2a4';
+    ctx.beginPath(); ctx.ellipse(16,5,3.4,2.4,.5,0,TAU); ctx.fill();
+  } else if(O.id==='contre'){
+    ctx.strokeStyle='#6a5030'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(6,0); ctx.lineTo(14,0); ctx.stroke();
+    ctx.fillStyle='#ffb02e';
+    ctx.beginPath(); ctx.arc(15.5,0,2.6+Math.sin(G.t*14)*.7,0,TAU); ctx.fill();
+  } else {
+    ctx.fillStyle='#8fd14f';
+    ctx.beginPath(); ctx.arc(13,0,3,0,TAU); ctx.fill();
+  }
+  /* casque */
+  ctx.fillStyle='#d8b93a';
+  ctx.beginPath(); ctx.arc(1.5,0,4.6,0,TAU); ctx.fill();
+  ctx.fillStyle='#3a3428';
+  ctx.beginPath(); ctx.arc(3.4,0,2.2,-1.1,1.1); ctx.fill();
+  ctx.restore();
+
+  /* jet d'eau */
+  if(p.enAction && OUTILS[p.outil].id==='lance'){
+    const port=52+niv('lance')*9;
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,port);
+    g.addColorStop(0,'rgba(180,225,245,.34)'); g.addColorStop(1,'rgba(150,210,240,0)');
+    ctx.fillStyle=g;
+    ctx.beginPath(); ctx.moveTo(p.x,p.y);
+    ctx.arc(p.x,p.y,port,p.a-.42,p.a+.42); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    for(let k=0;k<3;k++){
+      const d=rnd(14,port), a=p.a+rnd(-.4,.4);
+      ctx.fillStyle='rgba(214,238,250,'+rnd(.2,.5).toFixed(2)+')';
+      ctx.beginPath(); ctx.arc(p.x+Math.cos(a)*d,p.y+Math.sin(a)*d,rnd(1,2.6),0,TAU); ctx.fill();
+    }
+  }
+  if(p.enAction && OUTILS[p.outil].id==='pelle'){
+    ctx.fillStyle='rgba(120,96,60,.6)';
+    for(let k=0;k<2;k++) ctx.fillRect(p.x+rnd(-8,8),p.y+rnd(-8,8),2,2);
+  }
+}
+function dessinerPersonne(g){
+  ctx.save();
+  ctx.translate(g.x,g.y);
+  ctx.fillStyle='rgba(0,0,0,.3)';
+  ctx.beginPath(); ctx.ellipse(0,6,7,3.6,0,0,TAU); ctx.fill();
+  if(g.etat===0){
+    /* un halo au sol et un chevron : on les repère sans crever l'écran */
+    const pu=.5+.5*Math.sin(g.ph);
+    ctx.save(); ctx.globalCompositeOperation='lighter';
+    ctx.globalAlpha=.14+.10*pu; ctx.fillStyle='#ffd45c';
+    ctx.beginPath(); ctx.ellipse(0,4,20+pu*5,10+pu*3,0,0,TAU); ctx.fill();
+    ctx.restore();
+    ctx.globalAlpha=.55+.35*pu; ctx.fillStyle='#ffd45c';
+    const yy=-20-pu*4;
+    ctx.beginPath(); ctx.moveTo(0,yy+7); ctx.lineTo(-5,yy); ctx.lineTo(5,yy);
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha=1;
+  }
+  ctx.rotate(g.a);
+  ctx.fillStyle=g.etat===0?'#c8a04f':'#7fb0d0';
+  ctx.beginPath(); ctx.roundRect(-4.5,-4.5,9,9,3); ctx.fill();
+  ctx.fillStyle='#d8b48a';
+  ctx.beginPath(); ctx.arc(1,0,3.4,0,TAU); ctx.fill();
+  ctx.restore();
+  if(g.peur>.2){
+    ctx.font='700 12px '+FONT; ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,61,79,'+g.peur.toFixed(2)+')';
+    ctx.fillText('!',g.x,g.y-14);
+  }
+}
+function dessinerCamion(){
+  const c=G.camion;
+  ctx.save(); ctx.translate(c.x,c.y);
+  ctx.fillStyle='rgba(0,0,0,.34)';
+  ctx.beginPath(); ctx.ellipse(0,8,22,9,0,0,TAU); ctx.fill();
+  ctx.fillStyle='#8d1f22'; ctx.beginPath(); ctx.roundRect(-19,-10,38,20,3); ctx.fill();
+  ctx.fillStyle='#a82a2c'; ctx.fillRect(-19,-10,13,20);
+  ctx.fillStyle='#2a2f2c'; ctx.fillRect(-6,-10,25,4);
+  ctx.fillStyle='#d8d2c4'; ctx.fillRect(-2,-3,16,6);
+  /* gyrophares */
+  const g1=(Math.sin(G.t*7)>0);
+  ctx.fillStyle=g1?'rgba(90,170,255,.95)':'rgba(40,70,110,.6)';
+  ctx.beginPath(); ctx.arc(-13,-12,3,0,TAU); ctx.fill();
+  ctx.fillStyle=!g1?'rgba(90,170,255,.95)':'rgba(40,70,110,.6)';
+  ctx.beginPath(); ctx.arc(-6,-12,3,0,TAU); ctx.fill();
+  ctx.restore();
+  /* la zone de rassemblement */
+  ctx.strokeStyle='rgba(143,209,79,'+(.3+.18*Math.sin(G.t*2.4)).toFixed(2)+')';
+  ctx.lineWidth=2; ctx.setLineDash([7,7]);
+  ctx.beginPath(); ctx.arc(c.x,c.y,52,0,TAU); ctx.stroke();
+  ctx.setLineDash([]);
+}
+function dessinerAvion(){
+  const A=G.avion;
+  const a=Math.atan2(A.by-A.ay,A.bx-A.ax);
+  ctx.save(); ctx.translate(A.x,A.y);
+  ctx.fillStyle='rgba(0,0,0,.22)';
+  ctx.beginPath(); ctx.ellipse(6,46,20,7,0,0,TAU); ctx.fill();
+  ctx.rotate(a);
+  ctx.fillStyle='#d8d2c4';
+  ctx.beginPath(); ctx.moveTo(20,0); ctx.lineTo(-14,6); ctx.lineTo(-14,-6); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#c8532a';
+  ctx.fillRect(-6,-19,7,38);
+  ctx.fillStyle='#8fb4c8';
+  ctx.beginPath(); ctx.arc(13,0,3,0,TAU); ctx.fill();
+  ctx.restore();
+  if(A.t>=0&&A.t<=A.dur){
+    ctx.fillStyle='rgba(226,96,54,.30)';
+    ctx.beginPath(); ctx.arc(A.x,A.y,46,0,TAU); ctx.fill();
+  }
+}
+
+/* --- la rose des vents : l'information la plus importante de l'écran --- */
+function dessinerVent(){
+  const R=Math.min(42,Math.max(28,Math.min(VW,VH)*.055));
+  const cx=VW-R-20, cy=R+(VH<560?58:78);
+  const W=G.vent;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,TAU);
+  ctx.fillStyle='rgba(10,12,10,.55)'; ctx.fill();
+  ctx.strokeStyle='rgba(232,226,210,.22)'; ctx.lineWidth=1.2; ctx.stroke();
+  ctx.font='700 8px '+FONT; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='rgba(232,226,210,.4)';
+  ctx.fillText('N',cx,cy-R+7); ctx.fillText('S',cx,cy+R-7);
+  ctx.fillText('O',cx-R+7,cy); ctx.fillText('E',cx+R-7,cy);
+  /* la flèche montre où le vent VA : c'est là que le feu ira */
+  const a=W.a, L=R*.66*(.45+W.fEff*.62);
+  ctx.strokeStyle=W.fEff>.6?'#ff6a1e':(W.fEff>.35?'#ffb02e':'#8fd14f');
+  ctx.lineWidth=3; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(cx-Math.cos(a)*L*.7,cy-Math.sin(a)*L*.7);
+  ctx.lineTo(cx+Math.cos(a)*L,cy+Math.sin(a)*L); ctx.stroke();
+  ctx.fillStyle=ctx.strokeStyle;
+  ctx.save(); ctx.translate(cx+Math.cos(a)*L,cy+Math.sin(a)*L); ctx.rotate(a);
+  ctx.beginPath(); ctx.moveTo(7,0); ctx.lineTo(-4,5); ctx.lineTo(-4,-5); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  ctx.restore();
+  ctx.textBaseline='alphabetic';
+  ctx.font='700 9px '+FONT; ctx.textAlign='center';
+  ctx.fillStyle='rgba(232,226,210,.6)';
+  ctx.fillText(Math.round(W.fEff*78)+' km/h · '+cardinal(W.a+Math.PI),cx,cy+R+13);
+}
+
+/* --- le plan du massif : sans lui, on ne sait pas où est le front --- */
+function dessinerCarte(){
+  if(G.plan===false) return;
+  const maxW=Math.min(190,VW*.24);
+  const ech=maxW/(M.L*CEL);
+  const w=M.L*CEL*ech, h=M.H*CEL*ech;
+  const x=14, y=VH-h-(tactile?96:56);
+  ctx.save();
+  ctx.globalAlpha=.9;
+  ctx.fillStyle='rgba(8,10,8,.7)';
+  ctx.fillRect(x-3,y-3,w+6,h+6);
+  ctx.drawImage(solCv,0,0,solCv.width,solCv.height,x,y,w,h);
+  /* le front, en rouge vif */
+  ctx.globalAlpha=1;
+  for(const i of M.actifs){
+    if(M.inten[i]<=.05) continue;
+    const cx=i%M.L, cy=(i/M.L)|0;
+    ctx.fillStyle=M.etat[i]===FLAMMES?'rgba(255,110,30,.95)':'rgba(190,60,20,.7)';
+    ctx.fillRect(x+cx*CEL*ech-.6,y+cy*CEL*ech-.6,Math.max(1.4,CEL*ech+1.2),Math.max(1.4,CEL*ech+1.2));
+  }
+  for(const b of M.batiments){
+    ctx.strokeStyle=b.perdues/Math.max(1,b.total)>.3?'rgba(255,61,79,.9)':'rgba(143,209,79,.9)';
+    ctx.lineWidth=1.4;
+    ctx.strokeRect(x+(b.cx-b.r/CEL)*CEL*ech, y+(b.cy-b.r/CEL)*CEL*ech,
+                   b.r*2*ech, b.r*2*ech);
+  }
+  for(const g of G.gens){
+    ctx.fillStyle=g.etat===0?'rgba(255,212,92,.95)':'rgba(143,209,79,.95)';
+    ctx.fillRect(x+g.x*ech-1.4,y+g.y*ech-1.4,2.8,2.8);
+  }
+  for(const e of G.eq){
+    ctx.fillStyle=EQUIPIERS[e.t].col;
+    ctx.fillRect(x+e.x*ech-1.4,y+e.y*ech-1.4,2.8,2.8);
+    if(e.ordre){
+      ctx.strokeStyle=EQUIPIERS[e.t].col; ctx.globalAlpha=.5; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.arc(x+e.ordre.x*ech,y+e.ordre.y*ech,3,0,TAU); ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+  }
+  if(G.signal){
+    ctx.strokeStyle='rgba(143,209,79,.95)'; ctx.lineWidth=1.6;
+    ctx.beginPath(); ctx.arc(x+G.signal.x*ech,y+G.signal.y*ech,5,0,TAU); ctx.stroke();
+  }
+  ctx.fillStyle='rgba(200,60,60,.95)';
+  ctx.fillRect(x+G.camion.x*ech-2,y+G.camion.y*ech-2,4,4);
+  ctx.fillStyle='#fff';
+  ctx.fillRect(x+G.p.x*ech-1.6,y+G.p.y*ech-1.6,3.2,3.2);
+  ctx.strokeStyle='rgba(232,226,210,.3)'; ctx.lineWidth=1;
+  ctx.strokeRect(x,y,w,h);
+  ctx.restore();
+  ctx.font='700 8px '+FONT; ctx.textAlign='left';
+  ctx.fillStyle='rgba(232,226,210,.45)';
+  ctx.fillText('LE MASSIF · R',x,y-6);
+}
+
+/* --- repères vers ce qu'on ne voit pas --- */
+function dessinerReperes(sx,sy){
+  const p=G.p;
+  const bord=Math.min(VW,VH)/2-46;
+  const fleche=(wx,wy,col,txt)=>{
+    const ex=ecranX(wx)+sx, ey=ecranY(wy)+sy;
+    if(ex>40&&ex<VW-40&&ey>70&&ey<VH-70) return false;
+    const a=Math.atan2(wy-p.y,wx-p.x);
+    const ax=VW/2+Math.cos(a)*bord, ay=VH/2+Math.sin(a)*bord;
+    ctx.save(); ctx.translate(ax,ay);
+    ctx.globalAlpha=.34; ctx.fillStyle=col;
+    ctx.beginPath(); ctx.arc(0,0,17,0,TAU); ctx.fill(); ctx.globalAlpha=1;
+    ctx.rotate(a); ctx.fillStyle=col;
+    ctx.beginPath(); ctx.moveTo(14,0); ctx.lineTo(-6,8); ctx.lineTo(-6,-8); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    if(txt){
+      ctx.font='700 9px '+FONT; ctx.textAlign='center';
+      ctx.fillStyle=col;
+      ctx.fillText(txt,ax,ay+28);
+      ctx.fillStyle='rgba(232,226,210,.6)';
+      ctx.fillText(nb(enM(Math.hypot(wx-p.x,wy-p.y)/CEL))+' m',ax,ay+38);
+    }
+    return true;
+  };
+  for(const g of G.gens) if(g.etat===0) fleche(g.x,g.y,'#ffd45c','À ÉVACUER');
+  if(G.evacues<G.totalGens||G.gens.some(g=>g.etat===1)) fleche(G.camion.x,G.camion.y,'#8fd14f','CAMION');
+  for(const b of M.batiments){
+    if(b.perdues/Math.max(1,b.total)>.05 && b.perdues<b.total)
+      fleche(b.x,b.y,'#ff3d4f',b.nom+' EN FEU');
+  }
+}
+function stick(j,col){
+  if(!j) return;
+  const dx=j.x-j.ox, dy=j.y-j.oy, m=Math.min(62,Math.hypot(dx,dy)), a=Math.atan2(dy,dx);
+  ctx.strokeStyle='rgba(233,228,214,.14)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(j.ox,j.oy,62,0,TAU); ctx.stroke();
+  ctx.fillStyle=col; ctx.globalAlpha=.4;
+  ctx.beginPath(); ctx.arc(j.ox+Math.cos(a)*m,j.oy+Math.sin(a)*m,23,0,TAU); ctx.fill();
+  ctx.globalAlpha=1;
+}
+function reticule(){
+  const x=souris.x, y=souris.y, c=OUTILS[G.p.outil].col;
+  ctx.strokeStyle=c; ctx.lineWidth=1.6;
+  ctx.beginPath();
+  ctx.moveTo(x-11,y); ctx.lineTo(x-4,y); ctx.moveTo(x+4,y); ctx.lineTo(x+11,y);
+  ctx.moveTo(x,y-11); ctx.lineTo(x,y-4); ctx.moveTo(x,y+4); ctx.lineTo(x,y+11);
+  ctx.stroke();
+}
+/* ==========================================================================
+   10. INTERFACE
+   ========================================================================== */
+let hudCache={};
+function majHud(){
+  const p=G.p;
+  const set=(id,v)=>{ const e=$(id); if(e&&hudCache[id]!==v){ hudCache[id]=v; e.textContent=v; } };
+  set('hTemps',fmt(G.t));
+  const brul=(M.brulees+G.nFlammes)*HECT, tot=M.total*HECT;
+  set('hBrule',ha(brul)+' ha');
+  set('hSauve',ha(Math.max(0,tot-brul))+' ha');
+  set('hFront',nb(G.nFlammes)+' foyers');
+  const ebar=$('hFrontBar');
+  if(ebar) ebar.style.width=clamp(G.nFlammes/220*100,0,100)+'%';
+  $('vieFill').style.width=clamp(p.hp/p.hpMax*100,0,100)+'%';
+  $('eauFill').style.width=clamp(p.eau/p.eauMax*100,0,100)+'%';
+  $('soufFill').style.width=clamp(p.souffle/p.souffleMax*100,0,100)+'%';
+  /* la chaleur : elle brûle au-delà de 55 % de la jauge, on le montre avant */
+  const ch=clamp(p.chaleur/1.6,0,1);
+  $('chalFill').style.width=Math.round(ch*100)+'%';
+  const cb=$('chalBloc');
+  cb.classList.toggle('froid',ch<.06);
+  cb.classList.toggle('brule',p.chaleur>.55);
+  set('hChal',p.chaleur>.55?'BRÛLE':(ch>.2?'PROCHE':''));
+  set('hEau',Math.round(p.eau)+' L');
+  const vb=$('vieBloc');
+  if(vb){ vb.classList.toggle('bas',p.hp/p.hpMax<.4); vb.classList.toggle('crit',p.hp/p.hpMax<.18); }
+  const eb=$('eauBloc');
+  if(eb) eb.classList.toggle('bas',p.eau<p.eauMax*.22);
+  set('hSource',G.source?(G.source==='camion'?'REMPLISSAGE AU CAMION':'REMPLISSAGE AU PLAN D\'EAU'):'');
+  /* pastilles d'état */
+  let et='';
+  if(p.chaleur>.5) et+='<span class="et chaud">CHALEUR</span>';
+  if(p.fumee>.35) et+='<span class="et fum">FUMÉE</span>';
+  if(p.souffle<.2) et+='<span class="et souf">ESSOUFFLÉ</span>';
+  if(G.gens.some(g=>g.etat===1)) et+='<span class="et ok">'+G.gens.filter(g=>g.etat===1).length+' TE SUIVENT</span>';
+  if(hudCache.et!==et){ hudCache.et=et; $('etats').innerHTML=et; }
+  G.eqT=(G.eqT||0)-1;
+  if(G.eqT<=0){ G.eqT=12; majEquipeHud(); }   // douze images suffisent pour l'état
+  const oc=$('cptOutil');
+  if(oc){
+    const O=OUTILS[p.outil];
+    const v=O.id==='contre'?G.allumettes:(O.id==='largage'?G.largages:'');
+    set('cptOutil',v===''?'':String(v));
+    oc.style.display=v===''?'none':'';
+  }
+}
+function majOutils(){
+  const box=$('outils'); if(!box) return;
+  box.innerHTML=OUTILS.map((o,i)=>{
+    const v=o.id==='contre'?G.allumettes:(o.id==='largage'?G.largages:null);
+    return '<button class="ou'+(i===G.p.outil?' on':'')+(v===0?' vide':'')+'" data-o="'+i+'" '
+      +'style="--c:'+o.col+'"><span class="ouK">'+o.touche+'</span>'
+      +'<b>'+o.em+'</b>'+o.nom+(v!==null?'<i>'+v+'</i>':'')+'</button>';
+  }).join('');
+  Array.prototype.forEach.call(box.querySelectorAll('.ou'),b=>{
+    const f=e=>{ e.preventDefault(); e.stopPropagation(); choisirOutil(+b.getAttribute('data-o')); };
+    b.addEventListener('click',f);
+    b.addEventListener('touchstart',f,{passive:false});
+  });
+  const d=$('outilAide');
+  if(d){
+    d.textContent=OUTILS[G.p.outil].d;
+    d.style.opacity='1';
+    clearTimeout(d._t);
+    d._t=setTimeout(()=>{ d.style.opacity='0'; },4200);
+  }
+}
+
+function basculerPause(veut){
+  if(!G||G.fin) return;
+  const c=veut===undefined?!enPause:veut;
+  if(c===enPause) return;
+  enPause=c;
+  if(enPause){
+    running=false; joyM=joyA=null;
+    $('pauseInfo').textContent=M.S.nom+'  ·  '+fmt(G.t)+'  ·  '+ha(M.brulees*HECT)+' ha brûlés';
+    $('pause').classList.add('on');
+  } else { $('pause').classList.remove('on'); reprendre(); }
+}
+function reprendre(){ running=true; acc=0; last=performance.now(); }
+
+/* ==========================================================================
+   11. FIN D'INTERVENTION
+   ========================================================================== */
+function finIntervention(gagne,cause){
+  if(!G||G.fin) return;
+  running=false; G.fin=true; G.gagne=gagne; G.cause=cause;
+  joyM=joyA=null;
+  SND.nappesOff();
+  gagne?SND.bien():SND.mal();
+  $('hud').classList.remove('on'); $('actions').classList.remove('on');
+
+  /* ce qui flambe encore est perdu : le compter comme sauvé serait mentir */
+  const brulC=M.brulees+G.nFlammes;
+  const totH=M.total*HECT, brulH=brulC*HECT, sauvH=Math.max(0,totH-brulH);
+  G.sauves=sauvH; G.brules=brulH;
+  G.batiSaufs=M.batiments.filter(b=>b.perdues/Math.max(1,b.total)<=.3).length;
+  const partBrul=M.total?brulC/M.total:0;
+
+  /* --- étoiles --- */
+  let et=0;
+  if(gagne){
+    et=1;
+    if(partBrul<.25) et++;
+    if(G.evacues>=G.totalGens && G.batiSaufs>=M.batiments.length) et++;
+  }
+  /* --- points et expérience : une intervention ratée rapporte quand même --- */
+  const pts=Math.max(40,Math.round(sauvH*26 + G.evacues*120 + G.batiSaufs*210
+    + (gagne?420:0) + G.coupees*3 + G.eteintes*.4));
+  const xp=Math.max(35,Math.round(pts*.55 + G.t*.4));
+  const avG=gradeDe(SAVE.xp||0);
+  SAVE.pts+=pts; SAVE.xp=(SAVE.xp||0)+xp;
+  const apG=gradeDe(SAVE.xp);
+  const lots=[];
+  for(let n=avG.n+1;n<=apG.n;n++){
+    const gain=200+n*90;
+    SAVE.pts+=gain;
+    lots.push('GRADE '+n+' · +'+nb(gain)+' pts');
+  }
+  /* l'équipe : chacun gagne de l'expérience, les blessés se soignent */
+  const eqTxt=[];
+  for(const e of G.eq){
+    const g=Math.max(12,Math.round(pts/9));
+    const av=eqNiveau(e.m); e.m.xp=(e.m.xp||0)+g;
+    const ap=eqNiveau(e.m);
+    eqTxt.push(e.nom+(ap>av?' passe niveau '+ap:' +'+nb(g)+' xp'));
+  }
+  for(const m of SAVE.equipe) if(m.blesse>0 && !G.eq.some(e=>e.m===m)) m.blesse--;
+  SAVE.interventions=(SAVE.interventions||0)+1;
+  SAVE.totalSauves=(SAVE.totalSauves||0)+sauvH;
+  SAVE.totalBrules=(SAVE.totalBrules||0)+brulH;
+  SAVE.totalGens=(SAVE.totalGens||0)+G.evacues;
+  SAVE.totalBati=(SAVE.totalBati||0)+G.batiSaufs;
+  const id=M.S.id;
+  const av=SAVE.finis[id]||0;
+  if(et>av) SAVE.finis[id]=et;
+  if(gagne && (!SAVE.meilleur[id] || sauvH>SAVE.meilleur[id])) SAVE.meilleur[id]=sauvH;
+  if(gagne && (!SAVE.records[id] || G.t<SAVE.records[id])) SAVE.records[id]=Math.round(G.t);
+
+  /* --- objectifs du jour --- */
+  const O=objectifsDuJour();
+  const faits=[]; let primeO=0;
+  G.gagne=gagne;
+  for(const c of O.liste){
+    if(c.fait) continue;
+    const d=defObj(c.id);
+    let v=0; try{ v=d.val(G); }catch(e){}
+    const ok=d.inv? (gagne && G.t<=c.obj) : (v>=c.obj);
+    if(ok){ c.fait=true; primeO+=d.prime; faits.push(d.txt(c.obj)); }
+  }
+  SAVE.pts+=primeO;
+
+  /* --- objectif de session --- */
+  const j=AUJ();
+  if(!SAVE.session||SAVE.session.j!==j) SAVE.session={j,n:0};
+  let sess=0;
+  if(SAVE.session.n<3){
+    SAVE.session.n++;
+    sess=[120,200,340][SAVE.session.n-1];
+    SAVE.pts+=sess;
+  }
+  /* --- série de jours --- */
+  if(SAVE.dernier!==j){
+    const h=new Date(); h.setDate(h.getDate()-1);
+    SAVE.serie=(SAVE.dernier===jourISO(h))?(SAVE.serie||0)+1:1;
+    SAVE.dernier=j;
+  }
+  /* --- la campagne avance, gagnée ou perdue : l'été ne s'arrête pas.
+     On peut rejouer n'importe quelle journée pour améliorer ses étoiles. --- */
+  let campTxt='';
+  if(G.campagne){
+    const SA=saisonEtat(), j=G.campagneJour;
+    SA.etoiles[j]=Math.max(SA.etoiles[j]||0,et);
+    if(j===SA.jour){
+      SA.jour++;
+      if(SA.jour>=SAISON.length){
+        const prime=2500+SA.num*1500;
+        SAVE.pts+=prime;
+        campTxt='ÉTÉ '+SA.num+' TERMINÉ · +'+nb(prime)+' points';
+        SA.num++; SA.jour=0;
+      } else campTxt='JOURNÉE SUIVANTE : '+SAISON[SA.jour].t;
+    }
+  }
+
+  /* --- déblocage du secteur suivant --- */
+  let deblo='';
+  for(const S of SECTEURS){
+    if(SAVE.secteurs.indexOf(S.id)>=0) continue;
+    if(SAVE.pts>=S.prix){ SAVE.secteurs.push(S.id); deblo=S.nom+' EST OUVERT'; break; }
+  }
+  sauver();
+
+  /* --- l'écran --- */
+  $('finTitre').textContent=gagne?'FEU MAÎTRISÉ':'INTERVENTION PERDUE';
+  $('finTitre').style.color=gagne?'#8fd14f':'#ff3d4f';
+  $('finEye').textContent=M.S.nom+' · '+cause;
+  $('finEtoiles').innerHTML=[0,1,2].map(i=>
+    '<span class="etoile'+(i<et?' on':'')+'" style="--d:'+(.2+i*.22)+'s">★</span>').join('');
+  const cell=(t,v,c)=>'<div class="cell"><span>'+t+'</span><b'+(c?' style="color:'+c+'"':'')+'>'+v+'</b></div>';
+  $('finGrille').innerHTML=
+    cell('MASSIF SAUVÉ',ha(sauvH)+' ha','#8fd14f')
+   +cell('PARTI EN FUMÉE',ha(brulH)+' ha','#ff6a1e')
+   +cell('PERSONNES ÉVACUÉES',G.evacues+' / '+G.totalGens,G.evacues>=G.totalGens?'#8fd14f':'#ffb02e')
+   +cell('BÂTI PRÉSERVÉ',G.batiSaufs+' / '+M.batiments.length,
+         G.batiSaufs>=M.batiments.length?'#8fd14f':'#ffb02e')
+   +cell('DURÉE',fmt(G.t))
+   +cell('COUPURE OUVERTE',nb(enM(G.coupees))+' m')
+   +cell('FOYERS NOYÉS',nb(G.eteintes))
+   +cell('SAUTES DE FEU',nb(G.sautes));
+
+  /* « tu n'étais pas loin » : la marche suivante, chiffrée */
+  const pq=[];
+  if(!gagne) pq.push({t:'IL RESTAIT',v:nb(G.nFlammes)+' foyers',p:clamp(1-G.nFlammes/220,0,1),c:'#ff6a1e'});
+  if(et<3&&gagne){
+    if(partBrul>=.25) pq.push({t:'POUR LA 2ᵉ ÉTOILE',
+      v:'brûler moins de '+ha(M.total*.25*HECT)+' ha',p:clamp(.25/Math.max(.01,partBrul),0,1),c:'#ffd45c'});
+    if(G.evacues<G.totalGens) pq.push({t:'POUR LA 3ᵉ ÉTOILE',
+      v:(G.totalGens-G.evacues)+' personne'+(G.totalGens-G.evacues>1?'s':'')+' à sortir',
+      p:G.evacues/Math.max(1,G.totalGens),c:'#ffd45c'});
+    else if(G.batiSaufs<M.batiments.length) pq.push({t:'POUR LA 3ᵉ ÉTOILE',
+      v:'ne rien perdre du bâti',p:G.batiSaufs/Math.max(1,M.batiments.length),c:'#ffd45c'});
+  }
+  const rec=SAVE.records[id];
+  if(gagne&&rec&&G.t>rec) pq.push({t:'TON MEILLEUR TEMPS ICI',v:Math.ceil(G.t-rec)+' s',
+    p:clamp(rec/G.t,0,1),c:'#6fc4e8'});
+  $('finPresque').innerHTML=pq.length? '<div class="pqT">TU N\'ÉTAIS PAS LOIN</div>'
+    +pq.slice(0,2).map((x,i)=>'<div class="pq" style="--c:'+x.c+';--d:'+(.6+i*.12)+'s">'
+      +'<div class="pqL"><span>'+x.t+'</span><b>'+x.v+'</b></div>'
+      +'<div class="pqBar"><i style="width:'+Math.round(x.p*100)+'%"></i></div></div>').join('')
+    : '';
+
+  /* le grade : il monte toujours */
+  const monte=apG.n>avG.n;
+  const gb=$('finGrade');
+  gb.style.setProperty('--c',apG.titre.c);
+  gb.innerHTML='<div class="grHaut"><span class="grT">'+apG.titre.t+' · GRADE '+apG.n+'</span>'
+    +'<span class="grX">+ '+nb(xp)+' XP</span></div>'
+    +'<div class="grBar"><i id="grFill" style="width:'+(monte?0:Math.round(avG.reste/avG.seuil*100))+'%"></i></div>'
+    +'<div class="grBas">'+(monte?('TU PASSES '+(apG.n-avG.n)+' GRADE'+(apG.n-avG.n>1?'S':''))
+      :('encore '+nb(apG.seuil-apG.reste)+' XP avant le grade '+(apG.n+1)))+'</div>';
+  setTimeout(()=>{ const f=$('grFill'); if(f) f.style.width=Math.round(apG.reste/apG.seuil*100)+'%'; },monte?700:250);
+
+  /* le palmarès */
+  const L=[];
+  const li=(em,t,s,v,c)=>L.push({em,t,s:s||'',v:v||'',c:c||'#8e948a'});
+  li('\u{1F4B6}','POINTS D\'INTERVENTION',
+     ha(sauvH)+' ha préservés, '+G.evacues+' évacué'+(G.evacues>1?'s':''),
+     '+'+nb(pts),'#8fd14f');
+  if(lots.length) li('\u{1F51D}',lots.length>1?'GRADES FRANCHIS':'NOUVEAU GRADE',
+     lots.join('  ·  '),'',apG.titre.c);
+  if(faits.length) li('\u{1F4CB}',faits.length>1?'OBJECTIFS DU JOUR':'OBJECTIF DU JOUR',
+     faits.join(' · '),'+'+nb(primeO),'#6fc4e8');
+  if(sess) li('\u{1F5D3}','SORTIE '+SAVE.session.n+' SUR 3 AUJOURD\'HUI',
+     SAVE.session.n<3?('encore '+(3-SAVE.session.n)+' pour la prime complète'):'objectif du jour rempli',
+     '+'+nb(sess),'#ffb02e');
+  if(eqTxt.length) li('\u{1F465}','TON ÉQUIPE',eqTxt.join(' · '),'','#c9a4ea');
+  if(G.blesses) li('\u{1FA79}','ÉVACUÉS DE L\'ÉQUIPE',
+     G.blesses+' homme'+(G.blesses>1?'s':'')+' hors service la prochaine sortie','','#ff3d4f');
+  if(G.sautes) li('\u{1F32C}','SAUTES DE FEU',
+     'le vent a porté '+G.sautes+' brandon'+(G.sautes>1?'s':'')+' devant le front','','#ff6a1e');
+  if(G.perdus) li('⚰','PERSONNES PERDUES',
+     G.perdus+' n\'a pas pu sortir','','#ff3d4f');
+  if(campTxt) li('\u{1F31E}','CAMPAGNE',campTxt,'','#ffb02e');
+  if(deblo) li('\u{1F5FA}','SECTEUR OUVERT',deblo,'','#ffd45c');
+  $('finPalmares').innerHTML=L.map((x,i)=>
+    '<div class="pal" style="--c:'+x.c+';--d:'+(1+i*.11)+'s"><span class="palIc">'+x.em+'</span>'
+    +'<div class="palT"><b>'+x.t+'</b>'+(x.s?'<span>'+x.s+'</span>':'')+'</div>'
+    +(x.v?'<span class="palV">'+x.v+'</span>':'')+'</div>').join('');
+
+  $('fin').classList.add('on');
+  majMenu();
+}
+
+/* ==========================================================================
+   12. MENU
+   ========================================================================== */
+function majMenu(){
+  const g=gradeActuel();
+  $('mNom').textContent=SAVE.nom||'SAPEUR';
+  $('mAv').textContent=(SAVE.nom||'S').charAt(0).toUpperCase();
+  $('mGrade').innerHTML='<span style="color:'+g.titre.c+'">'+g.titre.t+'</span> · GRADE '+g.n;
+  $('mGradeFill').style.width=Math.round(g.reste/g.seuil*100)+'%';
+  $('mPts').textContent=nb(SAVE.pts);
+  $('mSerie').textContent=(SAVE.serie||0)+' j';
+  const camp=SAVE.mode==='campagne';
+  Array.prototype.forEach.call($('modeBan').querySelectorAll('.mo'),b=>{
+    b.classList.toggle('on',b.getAttribute('data-m')===SAVE.mode);
+    b.onclick=()=>{ SAVE.mode=b.getAttribute('data-m'); sauver(); SND.clic(); majMenu(); };
+  });
+  $('campBan').style.display=camp?'':'none';
+  $('titreSecteur').style.display=camp?'none':'';
+  $('secteurs').style.display=camp?'none':'';
+  if(camp) construireCampagne();
+  construireSecteurs();
+  construireMatos();
+  construireCaserne();
+  construireObjectifs();
+  const S=camp? secteurDe(jourCampagne().sec) : secteurDe(SAVE.secteur);
+  $('sNom').textContent=S.nom;
+  $('sSous').textContent=S.sous;
+  $('sVice').textContent=S.vice;
+  $('sBrief').textContent=S.brief;
+  const SA=saisonEtat();
+  const e=camp? (SA.etoiles[Math.min(SA.jour,SAISON.length-1)]||0) : (SAVE.finis[S.id]||0);
+  $('sEtoiles').innerHTML=[0,1,2].map(i=>'<span class="etoile'+(i<e?' on':'')+'">★</span>').join('');
+  const m=SAVE.meilleur[S.id];
+  $('sRecord').textContent=m? ('MEILLEUR : '+ha(m)+' ha sauvés'
+    +(SAVE.records[S.id]?(' en '+fmt(SAVE.records[S.id])):'')) : 'Jamais tenu ce secteur';
+}
+/* --- l'été : douze journées, une pastille par journée --- */
+function construireCampagne(){
+  const SA=saisonEtat(), j=Math.min(SA.jour,SAISON.length-1), J=SAISON[j];
+  $('cbJour').textContent='JOURNÉE '+(j+1)+' / '+SAISON.length;
+  $('cbEte').textContent='ÉTÉ '+SA.num;
+  $('cbTitre').textContent=J.t;
+  $('cbTexte').textContent=J.txt;
+  const sech=clamp(J.sech+(SA.num-1)*.18,0,1);
+  $('cbSech').style.width=Math.round(sech*100)+'%';
+  $('cbListe').innerHTML=SAISON.map((d,i)=>{
+    const et=SA.etoiles[i]||0;
+    const cl=i<SA.jour?'fait':(i===SA.jour?'now':'futur');
+    return '<button class="cbD '+cl+'" data-j="'+i+'" title="'+echapper(d.t)+'">'
+      +(i<SA.jour&&et?('★'+et):(i+1))+'</button>';
+  }).join('');
+  Array.prototype.forEach.call($('cbListe').querySelectorAll('.cbD'),b=>{
+    const i=+b.getAttribute('data-j');
+    if(i>SA.jour) return;
+    b.onclick=()=>{ SND.clic(); lancerCampagne(i); };
+  });
+}
+
+/* --- la caserne : qui part avec toi --- */
+function construireCaserne(){
+  const box=$('caserne'); box.innerHTML='';
+  (SAVE.equipe||[]).forEach(m=>{
+    const D=EQUIPIERS[m.t];
+    const el=document.createElement('div');
+    el.className='eqC'+(m.blesse?' blesse':'');
+    el.style.setProperty('--c',D.col);
+    el.innerHTML='<span class="eqCe">'+D.em+'</span>'
+      +'<div class="eqCt"><b>'+m.nom+' · '+D.nom+'</b><span>'
+      +(m.blesse? 'À l\'infirmerie — indisponible '+m.blesse+' sortie'+(m.blesse>1?'s':'')
+                : D.d)+'</span></div>'
+      +'<div class="eqCn">NIV '+eqNiveau(m)+'</div>';
+    box.appendChild(el);
+  });
+  if((SAVE.equipe||[]).length>=4){
+    const n=document.createElement('div');
+    n.className='note'; n.style.textAlign='left'; n.style.margin='2px 0 0';
+    n.textContent='Quatre hommes partent avec toi au maximum.';
+    box.appendChild(n);
+    return;
+  }
+  for(const k in EQUIPIERS){
+    const D=EQUIPIERS[k];
+    const el=document.createElement('button');
+    el.className='eqC rec'+(SAVE.pts<D.prix?' cher':'');
+    el.style.setProperty('--c',D.col);
+    el.innerHTML='<span class="eqCe">'+D.em+'</span>'
+      +'<div class="eqCt"><b>RECRUTER UN '+D.nom+'</b><span>'+D.d+'</span></div>'
+      +'<div class="eqCn">'+nb(D.prix)+' pts</div>';
+    el.onclick=()=>{
+      if(recruter(k)){ SND.bien(); majMenu(); $('mMsg').textContent='UN '+D.nom+' REJOINT L\'ÉQUIPE'; }
+      else { SND.clic(); $('mMsg').textContent='IL TE MANQUE '+nb(D.prix-SAVE.pts)+' POINTS'; }
+    };
+    box.appendChild(el);
+  }
+}
+
+/* --- l'été : douze journées, une pastille par journée --- */
+function construireCampagne(){
+  const SA=saisonEtat(), j=Math.min(SA.jour,SAISON.length-1), J=SAISON[j];
+  $('cbJour').textContent='JOURNÉE '+(j+1)+' / '+SAISON.length;
+  $('cbEte').textContent='ÉTÉ '+SA.num;
+  $('cbTitre').textContent=J.t;
+  $('cbTexte').textContent=J.txt;
+  const sech=clamp(J.sech+(SA.num-1)*.18,0,1);
+  $('cbSech').style.width=Math.round(sech*100)+'%';
+  $('cbListe').innerHTML=SAISON.map((d,i)=>{
+    const et=SA.etoiles[i]||0;
+    const cl=i<SA.jour?'fait':(i===SA.jour?'now':'futur');
+    return '<button class="cbD '+cl+'" data-j="'+i+'" title="'+echapper(d.t)+'">'
+      +(i<SA.jour&&et?('★'+et):(i+1))+'</button>';
+  }).join('');
+  Array.prototype.forEach.call($('cbListe').querySelectorAll('.cbD'),b=>{
+    const i=+b.getAttribute('data-j');
+    if(i>SA.jour) return;
+    b.onclick=()=>{ SND.clic(); lancerCampagne(i); };
+  });
+}
+
+/* --- la caserne : qui part avec toi --- */
+function construireCaserne(){
+  const box=$('caserne'); box.innerHTML='';
+  (SAVE.equipe||[]).forEach(m=>{
+    const D=EQUIPIERS[m.t];
+    const el=document.createElement('div');
+    el.className='eqC'+(m.blesse?' blesse':'');
+    el.style.setProperty('--c',D.col);
+    el.innerHTML='<span class="eqCe">'+D.em+'</span>'
+      +'<div class="eqCt"><b>'+m.nom+' · '+D.nom+'</b><span>'
+      +(m.blesse? 'À l\'infirmerie — indisponible '+m.blesse+' sortie'+(m.blesse>1?'s':'')
+                : D.d)+'</span></div>'
+      +'<div class="eqCn">NIV '+eqNiveau(m)+'</div>';
+    box.appendChild(el);
+  });
+  if((SAVE.equipe||[]).length>=4){
+    const n=document.createElement('div');
+    n.className='note'; n.style.textAlign='left'; n.style.margin='2px 0 0';
+    n.textContent='Quatre hommes partent avec toi au maximum.';
+    box.appendChild(n);
+    return;
+  }
+  for(const k in EQUIPIERS){
+    const D=EQUIPIERS[k];
+    const el=document.createElement('button');
+    el.className='eqC rec'+(SAVE.pts<D.prix?' cher':'');
+    el.style.setProperty('--c',D.col);
+    el.innerHTML='<span class="eqCe">'+D.em+'</span>'
+      +'<div class="eqCt"><b>RECRUTER UN '+D.nom+'</b><span>'+D.d+'</span></div>'
+      +'<div class="eqCn">'+nb(D.prix)+' pts</div>';
+    el.onclick=()=>{
+      if(recruter(k)){ SND.bien(); majMenu(); $('mMsg').textContent='UN '+D.nom+' REJOINT L\'ÉQUIPE'; }
+      else { SND.clic(); $('mMsg').textContent='IL TE MANQUE '+nb(D.prix-SAVE.pts)+' POINTS'; }
+    };
+    box.appendChild(el);
+  }
+}
+
+function construireSecteurs(){
+  const box=$('secteurs'); box.innerHTML='';
+  SECTEURS.forEach(S=>{
+    const ouv=SAVE.secteurs.indexOf(S.id)>=0;
+    const b=document.createElement('button');
+    b.className='sec'+(ouv?'':' verrou')+(SAVE.secteur===S.id?' on':'');
+    const e=SAVE.finis[S.id]||0;
+    b.innerHTML='<b>'+S.nom+'</b><span>'+S.sous+'</span>'
+      +'<div class="secEt">'+[0,1,2].map(i=>'<i class="'+(i<e?'on':'')+'">★</i>').join('')+'</div>'
+      +(ouv?'':'<div class="secPrix">'+nb(S.prix)+' pts</div>');
+    b.onclick=()=>{
+      SND.clic();
+      if(ouv){ SAVE.secteur=S.id; sauver(); majMenu(); return; }
+      if(SAVE.pts>=S.prix){ SAVE.pts-=S.prix; SAVE.secteurs.push(S.id); SAVE.secteur=S.id;
+        sauver(); SND.bien(); majMenu(); }
+      else $('mMsg').textContent='IL TE MANQUE '+nb(S.prix-SAVE.pts)+' POINTS POUR '+S.nom;
+    };
+    box.appendChild(b);
+  });
+}
+function construireMatos(){
+  const box=$('matos'); box.innerHTML='';
+  for(const k in MATOS){
+    const D=MATOS[k], n=niv(k), max=n>=D.max, prix=D.prix(n);
+    const b=document.createElement('button');
+    b.className='mat'+(max?' max':'')+(SAVE.pts<prix&&!max?' cher':'');
+    b.innerHTML='<span class="matEm">'+D.em+'</span>'
+      +'<div class="matT"><b>'+D.nom+'</b><span>'+D.d(n+1>D.max?D.max:n+1)+'</span></div>'
+      +'<div class="matN">'+Array.from({length:D.max},(_,i)=>'<i class="'+(i<n?'on':'')+'"></i>').join('')
+      +(max?'<em>AU MAX</em>':'<em>'+nb(prix)+' pts</em>')+'</div>';
+    b.onclick=()=>{
+      if(max) return;
+      if(SAVE.pts<prix){ $('mMsg').textContent='IL TE MANQUE '+nb(prix-SAVE.pts)+' POINTS'; SND.clic(); return; }
+      SAVE.pts-=prix; SAVE.matos[k]=n+1; sauver(); SND.bien(); majMenu();
+      $('mMsg').textContent=D.nom+' AMÉLIORÉ';
+    };
+    box.appendChild(b);
+  }
+}
+function construireObjectifs(){
+  const O=objectifsDuJour(), box=$('objJour');
+  box.innerHTML=O.liste.map(c=>{
+    const d=defObj(c.id);
+    return '<div class="obj'+(c.fait?' fait':'')+'"><span>'+(c.fait?'✔':'○')+'</span>'
+      +'<div><b>'+d.txt(c.obj)+'</b><em>+'+d.prime+' points</em></div></div>';
+  }).join('');
+  const S=SAVE.session&&SAVE.session.j===AUJ()?SAVE.session.n:0;
+  $('objPied').innerHTML='Sortie du jour : <b>'+S+' sur 3</b>'
+    +(S<3?' — la prochaine rapporte '+[120,200,340][S]+' points':' — prime complète touchée')
+    +' &nbsp;·&nbsp; renouvellement dans <b>'+avantMinuit()+'</b>';
+}
+function avantMinuit(){
+  const d=new Date(), f=new Date(d); f.setHours(24,0,0,0);
+  const s=Math.max(0,Math.round((f-d)/1000));
+  const h=Math.floor(s/3600), m=Math.floor(s%3600/60);
+  return h? h+' h '+m+' min' : m+' min';
+}
+function montrer(id){ $('menu').classList.remove('on'); $(id).classList.add('on'); }
+function retour(id){ $(id).classList.remove('on'); $('menu').classList.add('on'); majMenu(); }
+
+/* ==========================================================================
+   15. L'ÉQUIPE
+   ==========================================================================
+   Seul, on ne tient pas une ligne : on court d'un flanc à l'autre pendant que
+   le feu passe derrière. Commander trois hommes change la nature du jeu — on
+   cesse d'éteindre pour se mettre à décider où l'on tient.
+   Un ordre tient en deux gestes : choisir qui, désigner où. Le reste, ils le
+   font seuls, y compris reculer quand ça devient intenable. */
+const EQUIPIERS={
+ lance:{nom:'PORTE-LANCE', em:'\u{1F6BF}', col:'#5fb0d8', prix:1200,
+   d:'Tient la ligne à la lance là où tu le postes. Sa cuve se vide : il va la remplir seul et revient.',
+   eau:90, portee:64, vit:88},
+ pelle:{nom:'PIOCHEUR', em:'\u{1FA93}', col:'#c8a04f', prix:1500,
+   d:'Ouvre une coupure en travers du vent autour du point que tu lui donnes. Lent, mais ça ne repousse pas.',
+   eau:0, portee:0, vit:82},
+ guetteur:{nom:'GUETTEUR', em:'\u{1F441}', col:'#8fd14f', prix:1900,
+   d:'Surveille les arrières et signale les départs secondaires avant qu\'ils ne grossissent.',
+   eau:40, portee:40, vit:104},
+ chef:{nom:'CHEF D\'AGRÈS', em:'\u{1F4FB}', col:'#c9a4ea', prix:2800,
+   d:'Un largage de plus par intervention, et il rappelle l\'équipe quand un homme est en danger.',
+   eau:70, portee:52, vit:92}
+};
+const NOMS_EQ=['PAUL','SAMI','NADIA','LOÏC','ÉLISE','MARCO','THÉO','JOSÉ','FANNY','OMAR',
+               'CÉLINE','BRUNO','ANNA','YANN'];
+
+/* --- recrutement, hors intervention --- */
+function recruter(t){
+  const D=EQUIPIERS[t];
+  if(SAVE.pts<D.prix) return false;
+  SAVE.pts-=D.prix;
+  SAVE.equipe.push({t, nom:NOMS_EQ[(SAVE.eqSeq++)%NOMS_EQ.length], xp:0, blesse:0});
+  sauver();
+  return true;
+}
+function eqNiveau(m){ let n=1,r=m.xp||0; while(n<20 && r>=140+n*110){ r-=140+n*110; n++; } return n; }
+function eqDispo(){ return (SAVE.equipe||[]).filter(m=>!m.blesse); }
+
+/* --- mise en piste --- */
+function poserEquipe(){
+  G.eq=[];
+  eqDispo().slice(0,4).forEach((m,i)=>{
+    const D=EQUIPIERS[m.t], n=eqNiveau(m);
+    const a=rnd(0,TAU);
+    G.eq.push({m, t:m.t, nom:m.nom, niv:n,
+      x:G.camion.x+Math.cos(a)*40+i*8, y:G.camion.y+Math.sin(a)*40,
+      vx:0, vy:0, a:0, marche:0,
+      hp:100, eauMax:D.eau*(1+n*.10), eau:D.eau*(1+n*.10),
+      etat:'suit', ordre:null, cd:0, chaleur:0, alerteT:0, travail:0, cible:null});
+    if(m.t==='chef') G.largages++;
+  });
+  G.sel=G.eq.length?0:-1;
+}
+
+/* --- ordres --- */
+function cyclerSel(){
+  if(!G.eq.length) return;
+  G.sel=(G.sel+1)%(G.eq.length+1);          // le dernier cran vise toute l'équipe
+  SND.clic();
+  const q=G.sel<G.eq.length? G.eq[G.sel].nom : 'TOUTE L\'ÉQUIPE';
+  flot(G.p.x,G.p.y-34,q,'#c9a4ea',13);
+  majEquipeHud();
+}
+function poster(){
+  if(!G.eq.length){ flot(G.p.x,G.p.y-34,'PAS D\'ÉQUIPE','#8e948a',12); return; }
+  const p=G.p;
+  const d=(G.sel<G.eq.length&&G.eq[G.sel].t==='pelle')?200:170;
+  const x=clamp(p.x+Math.cos(p.a)*d,CEL,(M.L-1)*CEL);
+  const y=clamp(p.y+Math.sin(p.a)*d,CEL,(M.H-1)*CEL);
+  const liste=G.sel<G.eq.length? [G.eq[G.sel]] : G.eq;
+  liste.forEach((e,i)=>{
+    const dec=liste.length>1? (i-(liste.length-1)/2)*46 : 0;
+    const pa=G.vent.a+Math.PI/2;
+    e.ordre={x:clamp(x+Math.cos(pa)*dec,CEL,(M.L-1)*CEL),
+             y:clamp(y+Math.sin(pa)*dec,CEL,(M.H-1)*CEL), t:0};
+    e.etat='route'; e.travail=0;
+  });
+  G.ordres=(G.ordres||0)+1;
+  SND.radio();
+  alerte(liste.length>1?'ÉQUIPE POSTÉE':liste[0].nom+' EN ROUTE',
+         liste.length>1?'ils tiennent la ligne':'il tient la position');
+  G.marqueur={x,y,t:1.4};
+}
+function rappeler(){
+  if(!G.eq.length) return;
+  for(const e of G.eq){ e.ordre=null; e.etat='suit'; }
+  SND.radio();
+  alerte('REPLI','toute l\'équipe revient sur toi');
+}
+
+/* --- ce qu'ils font tout seuls --- */
+function pasEquipe(dt){
+  const p=G.p;
+  for(let k=G.eq.length-1;k>=0;k--){
+    const e=G.eq[k], D=EQUIPIERS[e.t];
+    e.cd-=dt; e.alerteT-=dt;
+
+    /* chaleur reçue : ils ne restent pas dans le feu par obéissance */
+    let ch=0;
+    const cx=celX(e.x), cy=celY(e.y);
+    for(let dy=-2;dy<=2;dy++) for(let dx=-2;dx<=2;dx++){
+      if(!dedans(cx+dx,cy+dy)) continue;
+      const q=M.inten[idx(cx+dx,cy+dy)];
+      if(q>0) ch+=q/(1+(dx*dx+dy*dy)*.5);
+    }
+    e.chaleur+=(ch-e.chaleur)*Math.min(1,dt*3);
+    if(e.chaleur>.85){
+      if(e.etat!=='replie'){
+        e.etat='replie';
+        if(e.alerteT<=0){ e.alerteT=6;
+          alerte(e.nom+' RECULE','il est trop près du front'); }
+      }
+      e.hp-=Math.min(2.4,e.chaleur-.85)*11*dt;
+    } else if(e.etat==='replie' && e.chaleur<.45){
+      e.etat=e.ordre?'route':'suit';
+    }
+    if(e.hp<=0){
+      /* on ne tue personne : il est évacué, et il manquera à la prochaine sortie */
+      alerte(e.nom+' EST ÉVACUÉ','il ne repartira pas avec toi tout de suite');
+      SND.mal(); shake(8);
+      e.m.blesse=2; G.blesses=(G.blesses||0)+1;
+      G.eq.splice(k,1);
+      if(G.sel>=G.eq.length) G.sel=G.eq.length?0:-1;
+      sauver(); majEquipeHud();
+      continue;
+    }
+    if(e.hp<100 && e.chaleur<.2) e.hp=Math.min(100,e.hp+dt*2.2);
+
+    /* --- destination --- */
+    let bx=null, by=null, allure=D.vit*(1+e.niv*.03);
+    if(e.etat==='replie'){
+      /* fuir la chaleur, puis reprendre l'ordre */
+      let fx=0, fy=0;
+      for(let dy=-3;dy<=3;dy++) for(let dx=-3;dx<=3;dx++){
+        if(!dedans(cx+dx,cy+dy)) continue;
+        const q=M.inten[idx(cx+dx,cy+dy)];
+        if(q<=.05) continue;
+        const d=Math.hypot(dx,dy)||1;
+        fx-=dx/d*q; fy-=dy/d*q;
+      }
+      const m=Math.hypot(fx,fy)||1;
+      bx=e.x+fx/m*120; by=e.y+fy/m*120; allure*=1.25;
+    } else if(e.etat==='plein'){
+      const s=sourceProche(e.x,e.y);
+      bx=s.x; by=s.y;
+      if(Math.hypot(e.x-s.x,e.y-s.y)<48){
+        e.eau=Math.min(e.eauMax,e.eau+dt*70);
+        if(e.eau>=e.eauMax){ e.etat=e.ordre?'route':'suit'; }
+      }
+    } else if(e.ordre){
+      const d=Math.hypot(e.x-e.ordre.x,e.y-e.ordre.y);
+      if(e.etat==='travail'){
+        /* au travail, c'est le métier qui décide où poser les pieds */
+        if(e.but){ bx=e.but.x; by=e.but.y; allure*=.8; }
+      } else if(d<26){ e.etat='travail'; }
+      else { e.etat='route'; bx=e.ordre.x; by=e.ordre.y; }
+    } else {
+      /* en suivi : ils se rangent derrière toi, pas dessus */
+      const a=Math.atan2(e.y-p.y,e.x-p.x);
+      bx=p.x+Math.cos(a)*56; by=p.y+Math.sin(a)*56;
+      if(Math.hypot(e.x-p.x,e.y-p.y)<74){ bx=null; }
+      if(Math.hypot(e.x-p.x,e.y-p.y)>620){ e.x=p.x+Math.cos(a)*70; e.y=p.y+Math.sin(a)*70; }
+    }
+    if(bx!==null){
+      const dx=bx-e.x, dy=by-e.y, d=Math.hypot(dx,dy)||1;
+      e.vx+=(dx/d*allure-e.vx)*Math.min(1,dt*7);
+      e.vy+=(dy/d*allure-e.vy)*Math.min(1,dt*7);
+    } else { e.vx*=Math.pow(.03,dt); e.vy*=Math.pow(.03,dt); }
+    e.x=clamp(e.x+e.vx*dt,CEL,(M.L-1)*CEL);
+    e.y=clamp(e.y+e.vy*dt,CEL,(M.H-1)*CEL);
+    e.marche+=dt*Math.hypot(e.vx,e.vy)*.13;
+    if(Math.hypot(e.vx,e.vy)>16) e.a=Math.atan2(e.vy,e.vx);
+
+    /* --- le métier --- */
+    if(e.etat==='travail') travailler(e,D,dt);
+    /* le guetteur travaille même en marchant */
+    if(e.t==='guetteur' && e.cd<=0){ e.cd=3.4; guetter(e); }
+  }
+}
+function sourceProche(x,y){
+  let b={x:G.camion.x,y:G.camion.y}, bd=Math.hypot(x-G.camion.x,y-G.camion.y);
+  for(const pt of M.points){
+    const d=Math.hypot(x-pt.x,y-pt.y)-pt.r;
+    if(d<bd){ bd=d; b={x:pt.x,y:pt.y}; }
+  }
+  return b;
+}
+function travailler(e,D,dt){
+  if(e.t!=='pelle') e.but=null;              // eux tiennent leur position
+  if(e.t==='lance'){
+    /* il arrose le foyer le plus proche, en priorité celui qui menace l'arrière */
+    const c=foyerProche(e.x,e.y,D.portee+40);
+    if(c){
+      const a=Math.atan2(c.y-e.y,c.x-e.x);
+      e.a=a;
+      if(e.eau>0){
+        arroser(e.x,e.y,a,dt,e);
+        e.travaille=true;
+        if(Math.random()<dt*3) SND.jet(panDe(e.x));
+      } else e.etat='plein';
+    } else {
+      /* rien à noyer : il mouille le sol devant lui, ce qui est le vrai métier */
+      if(e.eau>0){ arroser(e.x,e.y,G.vent.a,dt*.6,e); e.travaille=true; }
+      else e.etat='plein';
+    }
+  } else if(e.t==='pelle'){
+    /* il ouvre une bande en travers du vent, de part et d'autre du point */
+    const pa=G.vent.a+Math.PI/2;
+    const n=3+Math.floor(e.niv/3);
+    let fait=true;
+    for(let s=-n;s<=n;s++){
+      const tx=e.ordre.x+Math.cos(pa)*s*CEL, ty=e.ordre.y+Math.sin(pa)*s*CEL;
+      const i=celleAu(tx,ty);
+      if(i<0||M.fuel0[i]<=0||M.etat[i]!==INTACT) continue;
+      fait=false;
+      /* il faut être dessus pour creuser : on lui donne la parcelle comme but */
+      e.but={x:tx,y:ty};
+      if(Math.hypot(e.x-tx,e.y-ty)<=CEL*.9){
+        couper(tx,ty,dt*(.7+e.niv*.08));
+        e.travaille=true;
+        if(Math.random()<dt*2) SND.outil(panDe(e.x));
+      }
+      break;
+    }
+    if(fait){ e.but=null; }
+    if(fait && e.cd<=0){ e.cd=5;
+      if(e.alerteT<=0){ e.alerteT=8; alerte(e.nom+' A FINI SA COUPURE','poste-le ailleurs'); }
+    }
+  } else if(e.t==='chef'||e.t==='guetteur'){
+    const c=foyerProche(e.x,e.y,D.portee+30);
+    if(c && e.eau>0){
+      e.a=Math.atan2(c.y-e.y,c.x-e.x);
+      arroser(e.x,e.y,e.a,dt*.8,e); e.travaille=true;
+    } else if(!e.eau) e.etat='plein';
+  }
+}
+function foyerProche(x,y,r){
+  let b=null, bd=r*r;
+  const cx=celX(x), cy=celY(y), n=Math.ceil(r/CEL)+1;
+  for(let dy=-n;dy<=n;dy++) for(let dx=-n;dx<=n;dx++){
+    if(!dedans(cx+dx,cy+dy)) continue;
+    const i=idx(cx+dx,cy+dy);
+    if(M.etat[i]!==FLAMMES) continue;
+    const wx=(cx+dx+.5)*CEL, wy=(cy+dy+.5)*CEL;
+    const d=(wx-x)*(wx-x)+(wy-y)*(wy-y);
+    if(d<bd){ bd=d; b={x:wx,y:wy}; }
+  }
+  return b;
+}
+/* le guetteur : il cherche les foyers isolés, ceux qu'on ne voit pas venir */
+function guetter(e){
+  if(e.alerteT>0) return;
+  let loin=null, bd=0;
+  for(const i of M.actifs){
+    if(M.etat[i]!==FLAMMES) continue;
+    const wx=(i%M.L+.5)*CEL, wy=((i/M.L|0)+.5)*CEL;
+    const d=Math.hypot(wx-G.p.x,wy-G.p.y);
+    if(d>bd && d>420){ bd=d; loin={x:wx,y:wy}; }
+  }
+  if(loin){
+    G.signal={x:loin.x,y:loin.y,t:9};
+    e.alerteT=14;
+    alerte(e.nom+' SIGNALE UN DÉPART','à '+nb(enM(bd/CEL))+' m, marqué sur ton plan');
+  }
+}
+
+/* --- rendu --- */
+function dessinerEquipe(){
+  for(let k=0;k<G.eq.length;k++){
+    const e=G.eq[k], D=EQUIPIERS[e.t];
+    /* la ligne vers son poste : on doit voir d'un coup d'œil qui est où */
+    if(e.ordre && (G.sel===k||G.sel===G.eq.length)){
+      ctx.save();
+      ctx.strokeStyle=D.col; ctx.globalAlpha=.28; ctx.lineWidth=1.6;
+      ctx.setLineDash([6,7]);
+      ctx.beginPath(); ctx.moveTo(e.x,e.y); ctx.lineTo(e.ordre.x,e.ordre.y); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha=.45;
+      ctx.beginPath(); ctx.arc(e.ordre.x,e.ordre.y,13,0,TAU); ctx.stroke();
+      ctx.restore();
+    }
+    ctx.save(); ctx.translate(e.x,e.y);
+    ctx.fillStyle='rgba(0,0,0,.32)';
+    ctx.beginPath(); ctx.ellipse(0,6,8,4,0,0,TAU); ctx.fill();
+    if(G.sel===k||G.sel===G.eq.length){
+      ctx.strokeStyle=D.col; ctx.globalAlpha=.5; ctx.lineWidth=1.6;
+      ctx.beginPath(); ctx.arc(0,0,13,0,TAU); ctx.stroke(); ctx.globalAlpha=1;
+    }
+    ctx.rotate(e.a);
+    const bal=Math.sin(e.marche*2)*1.8;
+    ctx.strokeStyle='#26302a'; ctx.lineWidth=3.6; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(-1,-2.6); ctx.lineTo(-2.6,-2.6-bal*.6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-1,2.6); ctx.lineTo(-2.6,2.6+bal*.6); ctx.stroke();
+    ctx.fillStyle='#2f3a30';
+    ctx.beginPath(); ctx.roundRect(-5,-5,10,10,3.4); ctx.fill();
+    ctx.fillStyle=D.col;
+    ctx.fillRect(-3.8,-5.4,1.9,10.8);
+    ctx.strokeStyle='#2f3a30'; ctx.lineWidth=2.8;
+    ctx.beginPath(); ctx.moveTo(1.6,-4.2); ctx.lineTo(7.4,-2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(1.6,4.2); ctx.lineTo(7.4,2); ctx.stroke();
+    if(e.t==='lance'){
+      ctx.strokeStyle='#c9c4b4'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(6,0); ctx.lineTo(13,0); ctx.stroke();
+    } else if(e.t==='pelle'){
+      ctx.strokeStyle='#8a6b40'; ctx.lineWidth=1.7;
+      ctx.beginPath(); ctx.moveTo(5,-1); ctx.lineTo(12,3); ctx.stroke();
+      ctx.fillStyle='#b8b2a4';
+      ctx.beginPath(); ctx.ellipse(13,4,2.8,2,.5,0,TAU); ctx.fill();
+    }
+    ctx.fillStyle='#d8b93a';
+    ctx.beginPath(); ctx.arc(1.2,0,3.9,0,TAU); ctx.fill();
+    ctx.restore();
+    /* jet d'eau des porte-lance */
+    if(e.travaille && (e.t!=='pelle')){
+      ctx.save(); ctx.globalCompositeOperation='lighter';
+      const g=ctx.createRadialGradient(e.x,e.y,0,e.x,e.y,D.portee);
+      g.addColorStop(0,'rgba(180,225,245,.26)'); g.addColorStop(1,'rgba(150,210,240,0)');
+      ctx.fillStyle=g;
+      ctx.beginPath(); ctx.moveTo(e.x,e.y);
+      ctx.arc(e.x,e.y,D.portee,e.a-.4,e.a+.4); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    e.travaille=false;
+    /* barre de vie quand il souffre */
+    if(e.hp<98){
+      ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(e.x-11,e.y-16,22,3);
+      ctx.fillStyle=e.hp<40?'#ff3d4f':'#8fd14f';
+      ctx.fillRect(e.x-11,e.y-16,22*clamp(e.hp/100,0,1),3);
+    }
+  }
+  if(G.marqueur){
+    const m=G.marqueur;
+    ctx.save(); ctx.strokeStyle='#c9a4ea';
+    ctx.globalAlpha=clamp(m.t,0,1)*.8; ctx.lineWidth=2.4;
+    ctx.beginPath(); ctx.arc(m.x,m.y,26*(1.6-m.t),0,TAU); ctx.stroke();
+    ctx.restore();
+  }
+  if(G.signal){
+    const s=G.signal, pu=.5+.5*Math.sin(G.t*5);
+    ctx.save(); ctx.strokeStyle='#8fd14f'; ctx.globalAlpha=.3+.4*pu; ctx.lineWidth=2.4;
+    ctx.beginPath(); ctx.arc(s.x,s.y,22+pu*8,0,TAU); ctx.stroke();
+    ctx.restore();
+  }
+}
+function majEquipeHud(){
+  const el=$('equipe'); if(!el) return;
+  if(!G||!G.eq||!G.eq.length){ el.innerHTML=''; el.style.display='none'; return; }
+  el.style.display='';
+  const ET={suit:'te suit', route:'en route', travail:'au travail',
+            replie:'recule', plein:'refait le plein'};
+  el.innerHTML=G.eq.map((e,i)=>{
+    const D=EQUIPIERS[e.t];
+    const sel=(G.sel===i||G.sel===G.eq.length)?' sel':'';
+    return '<button class="eqL'+sel+(e.etat==='replie'?' danger':'')+'" data-e="'+i+'" '
+      +'style="--c:'+D.col+'"><span class="eqEm">'+D.em+'</span>'
+      +'<div class="eqT"><b>'+e.nom+'</b><span>'+(ET[e.etat]||'')+'</span></div>'
+      +'<div class="eqJ"><i style="width:'+Math.round(clamp(e.hp,0,100))+'%"></i></div>'
+      +(D.eau?'<div class="eqJ eau"><i style="width:'+Math.round(clamp(e.eau/e.eauMax*100,0,100))+'%"></i></div>':'')
+      +'</button>';
+  }).join('')
+   +'<button class="eqL tous'+(G.sel===G.eq.length?' sel':'')+'" data-e="'+G.eq.length+'">'
+   +'<span class="eqEm">\u{1F465}</span><div class="eqT"><b>TOUTE L\'ÉQUIPE</b>'
+   +'<span>un seul ordre</span></div></button>';
+  Array.prototype.forEach.call(el.querySelectorAll('.eqL'),b=>{
+    const f=ev=>{ ev.preventDefault(); ev.stopPropagation();
+      G.sel=+b.getAttribute('data-e'); SND.clic(); majEquipeHud(); };
+    b.addEventListener('click',f);
+    b.addEventListener('touchstart',f,{passive:false});
+  });
+}
+
+/* ==========================================================================
+   13. ENTRAÎNEMENT
+   ========================================================================== */
+const TUTO=[
+ {t:'TU ES SUR LE FRONT',
+  s:'Déplace-toi : ZQSD ou les flèches, pouce gauche sur l\'écran. La souris ou le pouce droit oriente ta lance.',
+  ok:g=>g.tutoD>200},
+ {t:'REGARDE LE VENT',
+  s:'La rose des vents, en haut à droite. La flèche montre où le vent pousse le feu. Tout ce que tu feras dépend d\'elle.',
+  ok:g=>g.tutoT>6},
+ {t:'NOIE LE FEU',
+  s:'Approche un foyer et maintiens le clic (ou pousse le pouce droit à fond). L\'eau éteint, mais surtout elle mouille ce qui n\'a pas encore pris.',
+  ok:g=>g.eteintes>=4},
+ {t:'TA CUVE SE VIDE',
+  s:'Cent litres, pas un de plus. Reviens au camion — le cercle vert — ou trouve le plan d\'eau pour refaire le plein.',
+  ok:g=>g.source==='camion'||g.source==='eau'||g.p.eau>g.p.eauMax*.9},
+ {t:'OUVRE UNE COUPURE',
+  s:'Touche 2, ou le bouton COUPURE. Arrête-toi et creuse : tu retires le combustible sous tes pieds. Une parcelle nettoyée, un pas de côté, et on recommence — c\'est comme ça qu\'on trace une bande.',
+  ok:g=>g.coupees>=1},
+ {t:'SORS LES GENS',
+  s:'Les colonnes dorées sont des habitants. Touche-les, ils te suivent ; ramène-les dans le cercle vert du camion.',
+  ok:g=>g.evacues>=1},
+ {t:'À TOI DE JOUER',
+  s:'Le feu est maîtrisé quand il ne reste plus une flamme. Encercle-le : le vent et la pente font le reste.',
+  ok:g=>g.tutoT>5}
+];
+let tutoEnCours=false;
+function etapeTuto(i){
+  if(!G||!G.tuto) return;
+  const e=TUTO[i];
+  if(!e){ finTuto(); return; }
+  G.tuto.i=i; G.tutoT=0;
+  $('tutoN').textContent='ÉTAPE '+(i+1)+' / '+TUTO.length;
+  $('tutoT').textContent=e.t;
+  $('tutoS').textContent=e.s;
+  const c=$('tuto').querySelector('.cadre');
+  c.style.animation='none'; void c.offsetWidth; c.style.animation='';
+  SND.radio();
+}
+function finTuto(){
+  G.tuto=null; $('tuto').classList.remove('on');
+  SAVE.tuto=true; sauver();
+  alerte('ENTRAÎNEMENT TERMINÉ','le secteur est à toi');
+}
+
+/* ==========================================================================
+   14. LANCEMENT
+   ========================================================================== */
+function lancerCampagne(jour){
+  const SA=saisonEtat();
+  const j=(jour===undefined)?SA.jour:jour;
+  const J=SAISON[Math.min(j,SAISON.length-1)];
+  SAVE.mode='campagne'; sauver();
+  lancerIntervention(secteurDe(J.sec), !SAVE.tuto, j);
+}
+function lancerIntervention(S,tuto,campJour){
+  SND.init(); SND.reprendre(); SND.nappes();
+  ['menu','fin','pause','reglages'].forEach(k=>$(k).classList.remove('on'));
+  $('hud').classList.add('on');
+  if('ontouchstart' in window) $('actions').classList.add('on');
+  enPause=false; hudCache={};
+  nouvelleIntervention(S);
+  G.campagne=(campJour!==undefined);
+  G.campagneJour=campJour;
+  majOutils(); majEquipeHud(); majHud();
+  ZOOM=ZOOM_BASE*(Math.min(VW,VH)<560?.82:1);
+  if(tuto){
+    G.tuto={i:0}; G.tutoD=0; G.tutoT=0;
+    $('tuto').classList.add('on');
+    etapeTuto(0);
+  }
+  running=true; acc=0; last=performance.now();
+  briefing(S);
+}
+function briefing(S){
+  const b=$('brief');
+  b.innerHTML='<div class="bT">'+S.nom+'</div><div class="bS">'+S.sous+'</div>'
+    +'<div class="bL"><span class="bE">\u{1F525}</span><div><b>MAÎTRISER LE FEU</b>'
+    +'Il est maîtrisé quand il ne reste plus une flamme ni une braise.</div></div>'
+    +'<div class="bL"><span class="bE">\u{1F3E0}</span><div><b>DÉFENDRE LE BÂTI</b>'
+    +(M.batiments.length? M.batiments.map(x=>x.nom.toLowerCase()).join(', ')
+      : 'aucun bâti dans ce secteur')+'</div></div>'
+    +'<div class="bL"><span class="bE">\u{1F464}</span><div><b>ÉVACUER '+G.totalGens+' PERSONNES</b>'
+    +'Ramène-les au camion.</div></div>'
+    +'<div class="bV">'+S.vice+'</div>';
+  b.classList.remove('on'); void b.offsetWidth; b.classList.add('on');
+  SND.sirene();
+}
+
+/* ---------------- boucle ---------------- */
+function boucle(now){
+  requestAnimationFrame(boucle);
+  let dt=(now-last)/1000; last=now;
+  if(!(dt>0)) dt=0; if(dt>.05) dt=.05;
+  if(G && !G.fin){
+    if(running){
+      acc+=dt;
+      let garde=0;
+      while(acc>0 && garde++<6){ const d=Math.min(1/60,acc); pasJeu(d); acc-=d; if(!running) break; }
+      if(G&&!G.fin) majHud();
+    }
+    dessiner();
+  } else if(G && G.fin){
+    dessiner();
+  } else {
+    fondMenu(dt);
+  }
+}
+function pasJeu(d){
+  step(d);
+  if(G&&G.tuto&&!G.fin){
+    G.tutoD+=Math.hypot(G.p.vx,G.p.vy)*d;
+    G.tutoT+=d;
+    const e=TUTO[G.tuto.i];
+    /* au bout de cinquante secondes on passe : mieux vaut un joueur qui a raté
+       une consigne qu'un joueur coincé sur sa première partie */
+    if(e&&(e.ok(G)||G.tutoT>50)){
+      if(G.tuto.i+1<TUTO.length) etapeTuto(G.tuto.i+1); else finTuto();
+    }
+  }
+}
+
+/* --- fond animé du menu : des braises qui montent dans le noir --- */
+const braises=[];
+function fondMenu(dt){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  const g=ctx.createLinearGradient(0,0,0,VH);
+  g.addColorStop(0,'#140d09'); g.addColorStop(.55,'#0d0a08'); g.addColorStop(1,'#070605');
+  ctx.fillStyle=g; ctx.fillRect(0,0,VW,VH);
+  if(braises.length<90 && Math.random()<dt*40)
+    braises.push({x:rnd(0,VW),y:VH+10,v:rnd(18,64),a:rnd(0,TAU),r:rnd(.8,2.4),vie:rnd(4,10)});
+  ctx.globalCompositeOperation='lighter';
+  for(let i=braises.length-1;i>=0;i--){
+    const b=braises[i];
+    b.y-=b.v*dt; b.a+=dt*1.4; b.vie-=dt;
+    b.x+=Math.sin(b.a)*14*dt;
+    if(b.vie<=0||b.y<-20){ braises.splice(i,1); continue; }
+    ctx.fillStyle='rgba(255,'+Math.round(120+90*Math.sin(b.a))+',50,'+clamp(b.vie/4,0,1).toFixed(2)+')';
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,TAU); ctx.fill();
+  }
+  ctx.globalCompositeOperation='source-over';
+  /* une lueur d'incendie derrière l'horizon */
+  const gg=ctx.createRadialGradient(VW*.5,VH*1.05,0,VW*.5,VH*1.05,VH*.85);
+  gg.addColorStop(0,'rgba(200,70,20,.22)'); gg.addColorStop(1,'rgba(200,70,20,0)');
+  ctx.fillStyle=gg; ctx.fillRect(0,0,VW,VH);
+}
+
+/* ---------------- câblage de l'interface ---------------- */
+function cabler(){
+  $('jouer').onclick=()=>{
+    if(SAVE.mode==='campagne') lancerCampagne();
+    else lancerIntervention(secteurDe(SAVE.secteur),!SAVE.tuto);
+  };
+  $('tutoSkip').onclick=()=>{ if(G&&G.tuto) finTuto(); };
+  $('resume').onclick=()=>basculerPause(false);
+  $('quit').onclick=()=>{ if(G) finIntervention(false,'Tu as quitté le front.');
+    $('pause').classList.remove('on'); enPause=false; };
+  $('pauseBtn').onclick=()=>basculerPause();
+  $('finRejouer').onclick=()=>{ $('fin').classList.remove('on');
+    if(SAVE.mode==='campagne') lancerCampagne();
+    else lancerIntervention(secteurDe(SAVE.secteur),false); };
+  $('finMenu').onclick=()=>{ $('fin').classList.remove('on'); G=null;
+    $('menu').classList.add('on'); majMenu(); };
+  $('ouvrirRegl').onclick=()=>{ majReglages(); montrer('reglages'); };
+  $('fermerRegl').onclick=()=>retour('reglages');
+  $('sonBtn').onclick=()=>{ SAVE.son=!SAVE.son; SND.on=SAVE.son;
+    if(!SAVE.son) SND.nappesOff(); sauver(); majReglages(); };
+  $('assisteBtn').onclick=()=>{ SAVE.assiste=!SAVE.assiste; sauver(); majReglages(); };
+  $('volIn').oninput=e=>{ SAVE.volume=+e.target.value/100; SND.vol(SAVE.volume);
+    $('volVal').textContent=Math.round(SAVE.volume*100)+' %'; sauver(); };
+  $('revoirTuto').onclick=()=>{ SAVE.tuto=false; sauver();
+    $('reglages').classList.remove('on');
+    lancerIntervention(secteurDe(SAVE.secteurs[0]),true); };
+  $('effacer').onclick=()=>{
+    if(!confirm('Effacer toute la progression ?')) return;
+    SAVE=Object.assign({},SAVE_DEF); SAVE.matos={}; SAVE.secteurs=['restanques'];
+    sauver(); majMenu(); majReglages();
+  };
+  $('nomIn').oninput=e=>{ SAVE.nom=e.target.value.toUpperCase().slice(0,14); sauver(); majMenu(); };
+  /* boutons tactiles */
+  const presse=(id,f,rel)=>{
+    const b=$(id); if(!b) return;
+    b.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();f();},{passive:false});
+    b.addEventListener('mousedown',e=>{e.preventDefault();f();});
+    if(rel) ['touchend','touchcancel','mouseup','mouseleave'].forEach(ev=>
+      b.addEventListener(ev,e=>{e.preventDefault();rel();}));
+  };
+  presse('btnAction',()=>{tactileAction=true;},()=>{tactileAction=false;});
+  presse('btnCourir',()=>{tactileSprint=true;},()=>{tactileSprint=false;});
+  presse('btnPlan',()=>{ if(G) G.plan=G.plan===false; });
+  presse('btnPoster',()=>{ if(G&&running&&!G.fin) poster(); });
+  presse('btnEquipe',()=>{ if(G&&running&&!G.fin) cyclerSel(); });
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden && running && G && !G.fin && !enPause){ basculerPause(true); autoPause=true; }
+  });
+}
+function majReglages(){
+  $('sonBtn').textContent=SAVE.son?'SON : ACTIVÉ':'SON : COUPÉ';
+  $('assisteBtn').textContent=SAVE.assiste?'ALLURE : POSÉE':'ALLURE : RÉELLE';
+  $('assisteTxt').textContent=SAVE.assiste
+    ? 'Le feu se propage un quart moins vite et brûle moins fort. Pour apprendre, ou pour jouer tranquille.'
+    : 'La propagation telle qu\'elle est pensée. Le vent ne pardonne pas.';
+  $('volIn').value=Math.round((SAVE.volume||.6)*100);
+  $('volVal').textContent=Math.round((SAVE.volume||.6)*100)+' %';
+  $('nomIn').value=SAVE.nom||'';
+}
+
+charger();
+SND.on=SAVE.son!==false;
+cabler();
+majMenu(); majReglages();
+requestAnimationFrame(boucle);
+
+</script>
+</body>
+</html>

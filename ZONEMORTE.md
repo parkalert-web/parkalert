@@ -1,0 +1,327 @@
+# Zone Morte — couche de survie
+
+`zonemorte.html` est le jeu complet, dans un seul fichier, sans dépendance.
+Ce document décrit ce qui a été ajouté au jeu d'origine : une couche de
+simulation qui change la façon dont la zone se comporte, et les gestes de
+survie qu'elle rend nécessaires.
+
+## L'idée
+
+Le jeu partait d'un principe commode : la horde sait toujours où tu es.
+Maintenant elle l'apprend — par l'oreille, par les yeux, ou parce qu'un autre
+mort a grogné. Tout le reste découle de là : si le bruit compte, se taire
+devient une arme, et il faut une machette, un fumigène et un leurre pour en
+jouer.
+
+## Trois modes de simulation
+
+Réglages → **SIMULATION**. Le choix est enregistré avec la progression.
+
+| Mode | Ce qu'il change |
+|---|---|
+| **ARCADE** | Le jeu d'avant : la horde te repère toujours, les munitions ne s'épuisent pas, la visée est très stable. |
+| **SURVIE** (défaut) | Bruit, champ de vision, réserve de munitions, endurance et hémorragies. |
+| **HARDCORE** | Tout est actif, les réserves sont maigres, la dispersion plus large et une morsure s'infecte une fois sur deux. |
+
+## Perception et bruit
+
+- Chaque mort a trois états : **il erre**, **il cherche** (`?`), **il te tient** (`!`).
+  L'état s'affiche au-dessus de lui dès qu'il n'erre plus.
+- La **vue** est un cône de ±66° devant lui, d'une portée propre à l'espèce
+  (fiche complète dans le bestiaire, jauge « acuité »). La nuit, la brume et la
+  position accroupie la raccourcissent ; courir et braquer ta lampe sur lui
+  l'allongent.
+- Un mur, un conteneur ou une carcasse coupe la ligne de vue.
+- L'**ouïe** couvre 360° : chaque bruit lui donne une direction, avec une erreur
+  d'autant plus grande qu'il vient de loin. Il part fouiller l'endroit, patiente,
+  puis se remet à errer.
+- Celui qui te repère **grogne** et alerte ses voisins : c'est ainsi qu'une rue
+  entière se réveille.
+- Ce que tu émets, en pixels de portée : machette ~110, pas 22 à 190, course 330,
+  mitraillette 520, fusil d'assaut 700, pompe 800, fusil de précision 980,
+  explosion 900 + rayon, leurre 640 toutes les 0,7 s, tonnerre 1500.
+- Un mort qui erre dérive lentement vers les vivants : il ne sait pas où tu es,
+  il sait de quel côté ça sent la vie. Sans ce biais la zone se viderait.
+
+La barre **DISCRÉTION**, sous la vie, dit ce que tu vaux à l'oreille, et compte
+ceux qui te traquent en ce moment.
+
+## Balistique
+
+- **Dispersion dynamique** : elle monte à chaque départ de coup et retombe au
+  repos. Courir, être essoufflé et arroser l'ouvrent ; s'accroupir et respirer
+  la referment. Chaque arme a sa dispersion de base et son recul accumulé.
+- **Perte de puissance** au-delà de la portée utile de l'arme : la pompe ne vaut
+  plus rien à trente mètres, le fusil de précision garde presque tout.
+- **Coups vitaux** : la balle doit passer par la largeur d'un crâne *et* aborder
+  le corps de face ou de dos. Comme la tête balance avec la démarche, viser le
+  centre ne suffit pas — il faut tirer au bon moment. ×2 dégâts.
+  En pratique : ~43 % des touches en tir posé, ~17 % en arrosage.
+- Une balle perforante perd un tiers de sa force à chaque corps traversé.
+- Une traçante sur trois laisse un sillage : on lit sa trajectoire.
+
+## Munitions
+
+L'arme principale puise dans une **réserve** limitée (240 à 300 cartouches selon
+l'arme, 60 % de ça en hardcore). Les armes secondaires gagnées en montant de
+niveau restent gratuites : on n'est jamais complètement bloqué.
+
+- **Rechargement tactique** : la balle déjà chambrée ne se perd pas.
+- L'esquive **interrompt** le chargeur en cours.
+- Les corps lâchent des munitions, des soins et des objets à lancer.
+
+## Endurance, blessures, infection
+
+- **Endurance** : courir (Maj) la vide en ~4 s, l'esquive coûte 20 %. Elle
+  revient au repos, plus vite accroupi. À bout de souffle : la visée s'ouvre,
+  les bords de l'écran se resserrent, la respiration s'entend.
+- **Hémorragie** : jusqu'à trois plaies, 1,15 point de vie par seconde chacune,
+  jusqu'au bandage. Elle laisse une traînée de sang derrière toi.
+- **Infection** : une morsure sur quatre (une sur deux en hardcore). Elle monte
+  seule, décolore le monde, et une fois pleine ronge ta réserve de vie. Le sérum
+  la fait retomber des deux tiers.
+
+## Météo
+
+Cinq temps qui s'enchaînent d'eux-mêmes pendant la partie : **ciel dégagé**,
+**brume**, **pluie**, **orage**, **vent de cendres**. Chacun change la portée de
+vue des morts et la part de ton bruit que le temps avale — la pluie couvre les
+pas, le vent de cendres les porte plus loin. L'orage éclaire tout le terrain une
+demi-seconde à chaque éclair, et le coup de tonnerre réveille absolument tout le
+monde.
+
+## Gestes et objets
+
+| Touche | Geste |
+|---|---|
+| `Maj` | courir |
+| `C` | s'accroupir — deux fois plus lent, presque muet, bien plus précis |
+| `V` | frapper au corps à corps — silencieux, rien à recharger |
+| `G` / `B` / molette | lancer / changer d'objet |
+| `1` `2` `3` `4` | bandage, trousse, sérum, stimulant |
+| `R` | recharger |
+| `M` | afficher ou masquer le détecteur |
+
+Sur écran tactile, six boutons reprennent ces gestes (appui long sur le bouton
+de jet pour changer d'objet).
+
+**Objets à lancer** : grenade (explosion, très bruyante), molotov (nappe de feu),
+fumigène (à l'intérieur, plus personne ne te voit), leurre sonore (hurle à ta
+place 9 s et vide le quartier).
+
+## Interface
+
+- **Détecteur de mouvement** en haut à droite : il ne montre que ce que tu
+  perçois — ce qui te traque, ce que ta lampe éclaire, ce qui est à moins de
+  250 px — plus les caisses, le butin, les survivants et l'équipe.
+- Jauges d'endurance et de discrétion sous la vie, pastilles d'état
+  (hémorragie, infection, accroupi, course, stimulant, météo).
+- Sac rapide à gauche, réserve de munitions sous le chargeur.
+- Fin de partie : précision, coups vitaux, distance parcourue, discrétion
+  moyenne, corps à corps, objets lancés, hémorragies subies.
+- Entraînement : trois étapes de plus (bruit et position accroupie, machette,
+  objets lancés). L'étape sur le bruit est sautée en mode arcade.
+
+---
+
+# Ce qui donne envie de rester, et de revenir
+
+Le jeu ne manquait pas de systèmes de progression — il en avait treize.
+Il leur manquait d'exister **au bon moment** : à la mort, quand on décide de
+relancer ou de fermer l'onglet. Rien de neuf n'a été empilé par-dessus ; ce qui
+existait a été amené à ce moment-là.
+
+## L'écran de fin
+
+Avant, il énumérait des chiffres dans un pavé de texte. Il fait maintenant trois
+choses, dans cet ordre.
+
+1. **« Tu n'étais pas loin »** — les deux marches les plus proches, avec le
+   manque exact et une barre : *« prochaine caisse : 1 580 points »*,
+   *« ton record de survie : 14 s »*. Au-delà de deux, ce n'est plus un
+   encouragement mais une liste de reproches.
+2. **Le rang** — une barre qui monte, toujours, même après une sortie ratée à
+   quarante secondes (voir plus bas).
+3. **Le palmarès** — une ligne par chose qui a bougé, révélées l'une après
+   l'autre : étoiles, prime de victoire, contrats validés, succès, rangs
+   franchis, objectif du jour, pass, personnage, équipe, multiplicateurs.
+   Même information qu'avant, mais on la *voit* arriver.
+
+Le bouton de relance colle au bas de l'écran : la page est longue, et c'est le
+seul geste qu'on veut pouvoir faire à tout moment.
+
+## Le rang du survivant
+
+La seule progression qui ne peut jamais reculer. Chaque sortie donne de
+l'expérience de rang — le score domine, mais le temps tenu et les morts au sol
+comptent aussi, donc **on ne rentre jamais les mains vides**. C'est précisément
+après une mort rapide qu'on ferme le jeu ; il fallait que cette sortie-là compte
+quand même.
+
+Six titres : `RECRUE` → `SURVIVANT` (6) → `VÉTÉRAN` (12) → `CHASSEUR` (20) →
+`SPECTRE` (30) → `LÉGENDE` (45). Le titre et le rang s'affichent sous le pseudo,
+avec leur barre. Chaque rang rapporte des pièces, un jeton tous les cinq rangs,
+une caisse tous les dix. La montée est rapide au début — la deuxième partie doit
+servir à quelque chose — puis de plus en plus lente.
+
+## L'objectif de session
+
+Trois sorties dans la journée : 150, puis 250, puis 400 pièces et un jeton.
+La série de connexion récompense le fait de **venir** ; celui-ci récompense le
+fait de **rester**. Il s'affiche au menu et sur chaque écran de fin
+(*« encore 1 pour le jeton du jour »*).
+
+## Le bandeau « ce qui t'attend »
+
+Placé sous l'identité, avant même le bouton JOUER : tout ce qui est réclamable
+tout de suite, au même endroit — caisses à ouvrir, récompense du jour, paliers
+de pass, lots de la route, missions finies, équipe vide. Un joueur qui revient
+après deux jours voit d'un coup d'œil ce qu'il a laissé derrière lui.
+
+Dessous, l'échéance : *« contrats, défi et série renouvelés dans 2 h 04 »* —
+un compte à rebours qui descend sous les yeux.
+
+## Notes
+
+- Les libellés des écrans de fin et du bandeau sont traduits dans les quatre
+  langues du jeu. Les textes longs restent en français, comme le reste de la
+  prose (annonces, bestiaire, contrats, cinématiques).
+- Deux défauts d'origine corrigés au passage : un `\n` littéral traînait dans le
+  HTML du HUD et s'affichait à l'écran ; et l'écran de mort portait les libellés
+  de l'écran de victoire — « DÉLIVRÉS » au-dessus du niveau, « NIVEAU » au-dessus
+  de la meilleure série.
+
+---
+
+## Conformité aux règles AdSense
+
+Le jeu est monétisé par Google AdSense. Les
+[règles du programme](https://support.google.com/adsense/answer/48182) ont été
+relues ligne à ligne ; six manquements ont été corrigés.
+
+| Ce qui n'allait pas | La règle | Ce qui a été fait |
+|---|---|---|
+| Le bloc d'annonce de l'écran de mort était **coincé entre « RECOMMENCER » et « RETOUR À L'ACCUEIL »**, là où le joueur tape le plus vite | *Ad placement* — « ads implemented in placements that are intuitively meant for navigation » | Les deux blocs manuels sont supprimés ; Google place lui-même |
+| `data-ad-format="auto"` **sans hauteur réservée** : l'annonce poussait les boutons sous le doigt en se chargeant | Clics involontaires | Plus de bloc en flux, donc plus de décalage |
+| Aucun libellé, même fond que le jeu | « Format ads so that they become indistinguishable from other content » | Auto ads : Google signale toujours ses annonces |
+| **Aucun `push({})` nulle part**, et les blocs vivaient dans des écrans `display:none` | Bloc de taille nulle, impression jamais servie | Blocs supprimés |
+| `data-ad-slot="0000000000"` | Identifiants factices | Supprimés |
+| Ni `ads.txt`, ni éditeur identifié, ni contact | Inventaire non autorisé ; site jugé « non-content » | `ads.txt` à la racine, écran **MENTIONS LÉGALES** complet |
+
+Ce qui a été ajouté :
+
+- **`ads.txt`** à la racine du domaine, déclarant Google comme seul vendeur
+  autorisé. Sans lui, l'inventaire est classé « non autorisé » et cesse d'être
+  acheté.
+- **Un écran MENTIONS LÉGALES** accessible du menu, des réglages et de la
+  politique de confidentialité : éditeur, contact, hébergeur, régie et
+  identifiant éditeur, et l'engagement explicite de ne jamais inciter au clic
+  ni déguiser une annonce en élément de jeu.
+- **`<meta name="google-adsense-account">`** et une **URL canonique absolue**
+  (`https://zonemorte.netlify.app/` — elle pointait vers `./index.html`).
+- **`adsbygoogle-noablate`** sur les six commandes fixes du jeu (esquive,
+  rotation, actions, munitions, kit, sac rapide). Les annonces d'ancrage des
+  Auto ads se collent au bas de l'écran, exactement là où se trouve le bouton
+  de rotation : sans ce marqueur, chaque esquive serait devenue un clic
+  publicitaire involontaire — c'est-à-dire du trafic invalide.
+
+Le consentement était déjà correct et n'a pas été touché : Consent Mode v2 avec
+tous les signaux à `denied` par défaut, CMP certifié IAB TCF v2.2 (Funding
+Choices), et le script AdSense n'est chargé qu'une fois le verdict rendu.
+
+L'éditeur déclaré est **VanNDM Creations**, joignable à
+`cours2gtmathis78@gmail.com`. L'adresse tient dans une constante unique,
+`ADRESSE_CONTACT`, en haut du script : elle est posée par le code au lieu d'être
+écrite en dur dans un lien `mailto:` du HTML livré, ce qui arrête les ramasseurs
+de spam les plus simples — pas tous.
+
+### `ads.txt` et le sous-domaine
+
+`netlify.app` figure sur la
+[Public Suffix List](https://publicsuffix.org/list/). `zonemorte.netlify.app`
+compte donc comme un domaine racine à part entière pour les robots qui s'y
+réfèrent — dont celui de Google. Le fichier servi à
+`https://zonemorte.netlify.app/ads.txt` est au bon endroit, et il n'y a rien à
+demander à Netlify.
+
+### Ce qui reste à faire dans AdSense
+
+L'ordre compte, et ce n'est pas celui qu'on croit : **on n'active pas les Auto
+ads depuis l'onglet « Annonces »**. Un site n'y apparaît que s'il a d'abord été
+ajouté *et* approuvé.
+
+1. **AdSense → Sites → Ajouter un site** : `zonemorte.netlify.app`.
+2. Vérifier la propriété. La balise `<meta name="google-adsense-account">` est
+   déjà dans la page — il suffit de choisir cette méthode.
+3. **Demander l'examen** (« Request review »). C'est là que les mentions
+   légales, la politique de confidentialité et le contact comptent.
+4. Une fois le site approuvé : **Sites → la ligne du site → Modifier →
+   Paramètres des annonces → activer les Auto ads**. C'est le seul endroit d'où
+   on les active.
+5. Dans ces mêmes paramètres, **désactiver les annonces interstitielles
+   (vignettes)** : elles s'ouvrent en plein écran et couvriraient une partie en
+   cours. Les annonces d'ancrage peuvent rester, les commandes du jeu sont
+   protégées.
+
+---
+
+## Les pubs récompensées
+
+Deux endroits, une seule mécanique : **la pub ne donne quelque chose que si
+elle est regardée jusqu'au bout**.
+
+- **Dans la boutique.** Une carte en haut de la page : une pub = **300 pièces**,
+  **5 fois par jour** au maximum. Le compteur est journalier et stocké dans la
+  sauvegarde (`SAVE.pubs = {j:'2026-8-28', n:2}`) : il se remet à zéro tout
+  seul au changement de date.
+- **À la mort.** Un écran propose de repartir **à pleine vie, là où on est
+  tombé**, une seule fois par partie. Les zombies autour sont repoussés, on est
+  invulnérable 3,4 s, et le compte à rebours de **10 secondes** finit par
+  laisser mourir — rester bloqué devant un écran de mort est la pire façon de
+  finir une partie.
+
+### Trois règles qu'on ne contourne pas
+
+1. **On ne propose jamais un bouton qui va échouer.** `PUB.etat()` doit dire
+   « prêt » avant que l'offre s'affiche. À la mort, si aucune pub n'est
+   disponible, la partie se conclut normalement, sans écran intermédiaire.
+2. **Seul `adViewed` récompense.** `adDismissed` (pub fermée en route),
+   `noAdPreloaded` et `frequencyCapped` ne donnent rien, et le disent.
+3. **Rien ne bloque.** Si l'API ne répond pas, un filet de 12 s rend la main
+   avec un message. Si un bloqueur de pubs mange le script, l'attente est
+   abandonnée au bout de 15 s et l'offre passe en « indisponible » au lieu de
+   rester sur « les pubs se préparent… » indéfiniment.
+
+### AdMob n'est pas la bonne porte
+
+**AdMob ne sert que les applications natives** (Android/iOS). Un site web n'y a
+pas accès, même emballé plus tard dans une application.
+
+Pour un jeu web, la seule voie Google est **H5 Games Ads**, via l'**Ad Placement
+API** — le même script `adsbygoogle.js` et le même identifiant éditeur que les
+annonces automatiques. C'est pour ça que le code déclare `adConfig` et
+`adBreak` **avant** que le script arrive : ces deux fonctions empilent dans
+`window.adsbygoogle`, et un appel parti trop tôt serait perdu.
+
+À faire, une fois le site approuvé :
+
+1. AdSense → **Annonces → Par site → Jeux H5** (selon les comptes :
+   « H5 Games Ads »), et demander l'accès pour `zonemorte.netlify.app`.
+2. L'attribut `data-ad-frequency-hint="60s"` est exigé par l'API même quand on
+   ne se sert que des pubs récompensées — il est déjà posé.
+3. Tant que l'accès n'est pas accordé, `adBreak` répond `noAdPreloaded` : le
+   jeu reste jouable, la carte affiche « INDISPONIBLE », et rien ne casse.
+
+### Ce que ça rapporte
+
+Pas de réponse simple. Une pub récompensée se paie **nettement mieux à
+l'impression** qu'une bannière, parce que la personne l'a demandée et la
+regarde en entier. Mais elle est **volontaire** : le volume est bien plus
+faible. Dans les faits, sur un jeu web, les deux se complètent — les annonces
+automatiques font le fond, les pubs récompensées font les pics.
+
+L'inventaire récompensé d'AdMob est plus riche que celui du web, mais il n'est
+accessible qu'en publiant une vraie application. Les portails de jeux HTML5
+(**CrazyGames**, **Poki**, **GameDistribution**, **AdinPlay**, **Playwire**)
+paient souvent mieux qu'AdSense sur ce type de jeu, mais demandent en général
+d'héberger le jeu chez eux ou d'atteindre un seuil de trafic.

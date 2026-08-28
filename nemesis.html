@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>NÉMÉSIS — ton pire ennemi, c'est toi d'il y a dix secondes</title>
+<meta name="description" content="Une arène, des fragments, vingt-deux secondes. Tout ce que tu fais est enregistré : à la vague suivante, ton parcours précédent te poursuit et te tue au contact. Jeu d'arcade gratuit, sans installation, dans le navigateur.">
+<meta name="theme-color" content="#05060c">
+<style>
+:root{
+  --nuit:#05060c; --nuit2:#0a0d18; --panneau:#111726; --ligne:#232c40;
+  --encre:#e6eeff; --gris:#8494b3; --gris2:#57647f;
+  --cyan:#7fe3ff; --cyan2:#c9f2ff; --or:#ffe08a; --rouge:#ff4d6d;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
+  --titre:"Arial Black","Arial Bold",Impact,system-ui,sans-serif;
+  --t1:clamp(44px,14vw,108px); --t2:clamp(21px,5.4vw,38px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--nuit)}
+body{font-family:var(--mono);color:var(--encre);
+  -webkit-user-select:none;user-select:none;touch-action:none}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+
+#haut{position:fixed;top:0;left:0;right:0;z-index:20;pointer-events:none;
+  display:flex;align-items:flex-start;gap:12px;
+  padding:calc(env(safe-area-inset-top) + 9px) 13px 16px;
+  background:linear-gradient(180deg,rgba(5,6,12,.97) 0%,rgba(5,6,12,.88) 52%,rgba(5,6,12,0))}
+.bloc{display:flex;flex-direction:column;gap:2px;min-width:0}
+.bloc span{font-size:8px;letter-spacing:.2em;color:var(--gris2);font-weight:700;white-space:nowrap}
+.bloc b{font-family:var(--titre);line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+#hVague{font-size:clamp(26px,7vw,42px);color:var(--cyan)}
+#hFrag{font-size:clamp(15px,3.6vw,22px);color:var(--or)}
+#hScore{font-size:clamp(15px,3.6vw,22px)}
+#hFant{font-size:clamp(15px,3.6vw,22px);color:var(--gris)}
+#hFant.tiede{color:var(--or)} #hFant.chaud{color:var(--rouge)}
+.pousse{flex:1}
+#hQuot{font-size:8.5px;letter-spacing:.16em;color:var(--cyan);font-weight:700;
+  border:1px solid rgba(127,227,255,.42);border-radius:6px;padding:3px 7px;display:none}
+
+#bas{position:fixed;left:0;right:0;bottom:0;z-index:20;pointer-events:none;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:10px;
+  padding:20px 13px calc(env(safe-area-inset-bottom) + 10px);
+  background:linear-gradient(0deg,rgba(5,6,12,.96) 0%,rgba(5,6,12,.86) 55%,rgba(5,6,12,0))}
+.bt{pointer-events:auto;padding:11px 15px;border:2px solid var(--ligne);
+  border-radius:11px;background:rgba(17,23,38,.9);color:var(--encre);
+  font:700 11px/1 var(--mono);letter-spacing:.13em;cursor:pointer;
+  display:flex;align-items:center;gap:6px;transition:border-color .12s,transform .08s}
+.bt:hover{border-color:var(--gris)} .bt:active{transform:translateY(1px)}
+.bt em{font-style:normal;font-size:8.5px;color:var(--gris2)}
+#bDash{pointer-events:auto;border:2px solid rgba(127,227,255,.5);
+  background:rgba(127,227,255,.12);color:var(--cyan2);border-radius:50%;
+  width:clamp(78px,19vw,104px);aspect-ratio:1/1;
+  font:700 12px/1.25 var(--mono);letter-spacing:.1em;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  transition:transform .08s,background .12s}
+#bDash:active{transform:scale(.93);background:rgba(127,227,255,.24)}
+#bDash u{text-decoration:none;font-size:8px;color:var(--gris2);letter-spacing:.12em}
+#outils{pointer-events:auto;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+body:not(.enJeu) #haut,body:not(.enJeu) #bas,body:not(.enJeu) #flash{display:none}
+
+#flash{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 78px);
+  transform:translateX(-50%);z-index:22;pointer-events:none;
+  display:flex;flex-direction:column;align-items:center;gap:6px;width:max-content;max-width:92vw}
+.msg{padding:9px 16px;border-radius:20px;background:rgba(8,11,20,.96);
+  border:1px solid rgba(132,148,179,.34);color:var(--encre);
+  font:700 11px/1.45 var(--mono);letter-spacing:.07em;text-align:center;
+  animation:pop .28s both;box-shadow:0 6px 22px rgba(0,0,0,.6)}
+.msg.bon{border-color:rgba(255,224,138,.6);color:var(--or)}
+@keyframes pop{0%{opacity:0;transform:translateY(-8px) scale(.95)}100%{opacity:1;transform:none}}
+
+.screen{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;
+  align-items:center;padding:22px 15px 38px;overflow-y:auto;
+  background:radial-gradient(120% 68% at 50% 0%,rgba(80,40,120,.28),rgba(0,0,0,0) 60%),
+    linear-gradient(180deg,rgba(5,6,12,.972),rgba(5,6,12,.996))}
+.screen.on{display:flex}
+.screen>*{flex-shrink:0}
+h1{font-family:var(--titre);font-size:var(--t1);line-height:.86;text-align:center;
+  letter-spacing:-.02em;color:#fff;
+  text-shadow:0 0 38px rgba(127,227,255,.5),0 0 90px rgba(255,77,109,.35),
+    0 5px 0 rgba(30,20,60,.75)}
+h1 u{text-decoration:none;color:var(--rouge)}
+.eyebrow{font-size:9.5px;letter-spacing:.32em;color:var(--cyan);margin-bottom:8px;
+  font-weight:700;text-align:center}
+.sous{font-size:11px;letter-spacing:.07em;color:var(--gris);text-align:center;
+  margin-top:11px;line-height:1.85;max-width:600px}
+.verbe{margin-top:16px;max-width:580px;width:100%;padding:15px 18px;border-radius:14px;
+  background:rgba(17,23,38,.9);border:1px solid rgba(127,227,255,.22);
+  font-size:12px;line-height:1.95;color:var(--encre);text-align:center}
+.verbe b{color:var(--rouge)} .verbe em{font-style:normal;color:var(--cyan)}
+.gros{margin-top:16px;width:min(430px,100%);padding:18px 22px;border:0;border-radius:14px;
+  cursor:pointer;background:linear-gradient(160deg,#2b7fa8,#15405c);color:#fff;
+  box-shadow:0 6px 0 #0c2c40,0 14px 36px rgba(40,140,190,.34);
+  text-align:left;display:flex;flex-direction:column;gap:4px;
+  transition:transform .1s,box-shadow .1s}
+.gros b{font-family:var(--titre);font-size:21px}
+.gros span{font-size:10px;letter-spacing:.07em;color:rgba(255,255,255,.76)}
+.gros:hover{transform:translateY(-2px)} .gros:active{transform:translateY(3px)}
+.gros.quot{margin-top:9px;background:linear-gradient(160deg,#9c3352,#5a1730)}
+.gros.gris{margin-top:9px;background:linear-gradient(160deg,#2c3348,#171c29)}
+.liens{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-top:13px}
+.lien{background:none;border:1px solid rgba(132,148,179,.2);color:var(--gris);
+  font:700 10px/1 var(--mono);letter-spacing:.15em;cursor:pointer;padding:10px 13px;border-radius:9px}
+.lien:hover{border-color:var(--cyan);color:var(--encre)}
+.lien.danger{color:var(--rouge)}
+#meRang{display:flex;align-items:center;gap:9px;margin-top:13px;padding:8px 15px;
+  border-radius:12px;background:rgba(17,23,38,.88);border:1px solid rgba(127,227,255,.18)}
+#meRang span{font-size:17px} #meRang b{font-family:var(--titre);font-size:13px}
+#meRang u{text-decoration:none;font-size:9.5px;color:var(--or);letter-spacing:.09em}
+
+.grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:8px;
+  margin-top:13px;width:100%;max-width:620px}
+.cell{padding:10px 12px;border-radius:11px;background:rgba(17,23,38,.9);border:1px solid var(--ligne)}
+.cell span{display:block;font-size:8px;letter-spacing:.18em;color:var(--gris2);font-weight:700}
+.cell b{display:block;font-family:var(--titre);font-size:19px;margin-top:3px;font-variant-numeric:tabular-nums}
+.bloc2{width:100%;max-width:620px;margin-top:11px;padding:14px 16px;border-radius:12px;
+  background:rgba(17,23,38,.9);border:1px solid var(--ligne)}
+.bloc2 .sur{font-size:8.5px;letter-spacing:.2em;color:var(--gris2);font-weight:700;margin-bottom:7px}
+.bloc2 .txt{font-size:11.5px;line-height:1.8;color:var(--encre)}
+.rl{display:flex;align-items:center;gap:11px;padding:6px 0;border-bottom:1px dashed rgba(132,148,179,.14)}
+.rl:last-child{border-bottom:0}
+.rl .re{font-family:var(--titre);font-size:15px;width:24px;text-align:center;flex:0 0 auto;color:var(--cyan)}
+.rl .rt{flex:1;min-width:0}
+.rl .rt b{display:block;font-size:11px;letter-spacing:.09em}
+.rl .rt span{display:block;font-size:10px;color:var(--gris);line-height:1.5;margin-top:2px}
+.rl .rv{font-family:var(--titre);font-size:13px;flex:0 0 auto;color:var(--or);
+  letter-spacing:-2px;white-space:nowrap}
+#fPartage{width:100%;max-width:620px;margin-top:11px;padding:13px 15px;border-radius:11px;
+  background:rgba(3,4,8,.92);border:1px dashed rgba(127,227,255,.34);
+  font:700 12px/1.85 var(--mono);color:var(--cyan);white-space:pre-wrap;text-align:center}
+.relance{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+.relance .gros{margin-top:0;width:auto;min-width:158px;padding:13px 18px;
+  align-items:center;text-align:center}
+.relance .gros b{font-size:15px}
+
+.regl{width:100%;max-width:680px;margin-top:11px;padding:16px 18px;border-radius:12px;
+  background:rgba(17,23,38,.9);border:1px solid var(--ligne);font-size:11.5px;line-height:1.9}
+.regl h3{font-family:var(--titre);font-size:14px;color:var(--cyan);margin-bottom:6px}
+.regl b{color:var(--or)}
+.cle{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;align-items:center}
+kbd{background:rgba(127,227,255,.09);border:1px solid rgba(127,227,255,.28);
+  border-radius:6px;padding:2px 7px;font:700 10px var(--mono);color:var(--cyan)}
+#suListe{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:8px;
+  width:100%;max-width:660px;margin-top:11px}
+.suc{padding:10px 12px;border-radius:11px;background:rgba(17,23,38,.86);
+  border-left:4px solid rgba(132,148,179,.2);opacity:.5}
+.suc.ok{opacity:1;border-left-color:var(--or)}
+.suc b{display:block;font-size:10px;letter-spacing:.1em}
+.suc span{display:block;font-size:9.5px;color:var(--gris);margin-top:4px;line-height:1.5}
+.reg{display:flex;justify-content:space-between;align-items:center;gap:14px;
+  padding:12px 14px;border-radius:11px;background:rgba(17,23,38,.9);margin-top:8px;
+  width:100%;max-width:680px}
+.reg h4{font-size:10.5px;letter-spacing:.13em}
+.reg p{font-size:9.5px;color:var(--gris);margin-top:4px;line-height:1.55;max-width:330px}
+#legal a{color:var(--cyan)}
+
+@media (max-width:640px){ .verbe{font-size:11px;padding:12px 14px} .relance .gros{min-width:132px} }
+@media (max-height:560px){
+  #haut{padding-top:calc(env(safe-area-inset-top) + 3px);padding-bottom:8px}
+  #hVague{font-size:22px}
+  #bas{padding:10px 10px calc(env(safe-area-inset-bottom) + 6px)}
+  #bDash{width:clamp(58px,13vw,76px);font-size:10px}
+  .bt{padding:8px 11px;font-size:9.5px}
+  #flash{top:calc(env(safe-area-inset-top) + 46px)}
+  h1{font-size:clamp(30px,8vw,56px)}
+  .screen{padding-top:12px} .verbe{margin-top:9px;padding:10px 13px}
+  .gros{margin-top:9px;padding:12px 16px} .gros b{font-size:17px}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="haut">
+  <div class="bloc"><span>VAGUE</span><b id="hVague">1</b></div>
+  <div class="bloc" style="margin-left:8px"><span>FRAGMENTS</span><b id="hFrag">0 / 0</b></div>
+  <div class="bloc" style="margin-left:8px"><span>TOI EN PISTE</span><b id="hFant">0</b></div>
+  <div class="pousse"></div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+    <div class="bloc" style="align-items:flex-end"><span>SCORE</span><b id="hScore">0</b></div>
+    <div id="hQuot">ARÈNE DU JOUR</div>
+  </div>
+</div>
+
+<div id="flash"></div>
+
+<div id="bas">
+  <button id="bDash">RUÉE<u>ESPACE</u></button>
+  <div id="outils">
+    <button class="bt" id="bRegles">RÈGLES</button>
+    <button class="bt" id="bQuitter">QUITTER<em>ÉCHAP</em></button>
+  </div>
+</div>
+
+<div class="screen on" id="menu">
+  <h1>NÉMÉ<u>SIS</u></h1>
+  <div class="eyebrow" style="margin-top:9px">TON PIRE ENNEMI, C'EST TOI D'IL Y A DIX SECONDES</div>
+  <div id="meRang"></div>
+  <div class="verbe">
+    Une arène. Des fragments. Vingt-deux secondes.<br>
+    <em>Tout ce que tu fais est enregistré.</em><br>
+    À la vague suivante, ton parcours précédent rejoue à l'identique — et
+    <b>il te tue au contact</b>.<br>
+    À la neuvième vague, il y a neuf toi dans l'arène.
+  </div>
+  <button class="gros" id="meJouer"><b>COURSE LIBRE</b><span>—</span></button>
+  <button class="gros quot" id="meQuot"><b>ARÈNE DU JOUR</b>
+    <span>La même arène pour tout le monde</span></button>
+  <div class="liens">
+    <button class="lien" id="meRegles">RÈGLES</button>
+    <button class="lien" id="meSucces">SUCCÈS</button>
+    <button class="lien" id="meLegal">MENTIONS LÉGALES</button>
+  </div>
+</div>
+
+<div class="screen" id="fin">
+  <div class="eyebrow" id="fEye"></div>
+  <h1 style="font-size:var(--t2)" id="fTitre">TU T'ES EU</h1>
+  <div class="grille" id="fGrille"></div>
+  <div class="bloc2" id="fRecord"></div>
+  <div class="bloc2" id="fJournal"></div>
+  <div class="bloc2"><div class="sur">CE QUI S'EST PASSÉ</div>
+    <div class="txt" id="fNote"></div></div>
+  <div id="fPartage"></div>
+  <div class="relance">
+    <button class="gros" id="fRejouer"><b>RECOMMENCER</b></button>
+    <button class="gros gris" id="fCopier" style="min-width:200px"><b>COPIER LE RÉSULTAT</b></button>
+    <button class="gros gris" id="fMenu"><b>MENU</b></button>
+  </div>
+</div>
+
+<div class="screen" id="succes">
+  <div class="eyebrow">TABLEAU DE CHASSE</div>
+  <h1 style="font-size:var(--t2)">SUCCÈS</h1>
+  <div class="bloc2" id="suTete"></div>
+  <div id="suListe"></div>
+  <div class="relance"><button class="gros gris" id="suRetour"><b>RETOUR</b></button></div>
+</div>
+
+<div class="screen" id="regles">
+  <div class="eyebrow">MODE D'EMPLOI</div>
+  <h1 style="font-size:var(--t2)">COMMENT ÇA MARCHE</h1>
+
+  <div class="regl">
+    <h3>UNE VAGUE</h3>
+    Ramasse <b>tous les fragments</b> avant la fin des vingt-deux secondes. C'est
+    tout ce qu'il y a à faire, et ça ne change jamais.
+  </div>
+
+  <div class="regl">
+    <h3>LE PIÈGE</h3>
+    Chacun de tes déplacements est enregistré. À la vague suivante, il <b>rejoue
+    à l'identique</b> sous la forme d'un fantôme, et le toucher te tue.<br>
+    Une vague de plus, un fantôme de plus. Au-delà de neuf, le plus ancien
+    s'efface.<br>
+    D'où la seule règle qui compte : <b>le meilleur chemin ne sert qu'une fois</b>.
+    Celui que tu viens de prendre sera occupé par toi-même la prochaine fois.
+  </div>
+
+  <div class="regl">
+    <h3>CE QUI N'EST PAS UN PIÈGE</h3>
+    Un fantôme est <b>parfaitement prévisible</b> : c'est toi qui l'as écrit. Le
+    jeu te montre d'où il vient (sa trace) et où il va (le pointillé devant lui).
+    Se faire prendre est toujours une faute, jamais une surprise.
+  </div>
+
+  <div class="regl">
+    <h3>LA RUÉE</h3>
+    Trois fois la vitesse pendant deux dixièmes de seconde, et <b>tu traverses
+    les fantômes</b> le temps de la ruée. Deux secondes et demie de recharge,
+    affichée en anneau autour de toi.<br>
+    C'est le seul secours, et il est court.
+  </div>
+
+  <div class="regl">
+    <h3>LE VRAI LEVIER</h3>
+    Un fantôme ne vit que <b>le temps qu'a duré la vague où tu l'as enregistré</b>.
+    Boucler une vague en huit secondes fabrique un fantôme de huit secondes ;
+    traîner vingt secondes en fabrique un qui te collera vingt secondes.<br>
+    Aller vite ne rapporte donc pas que des points : <b>ça vide les vagues
+    suivantes</b>. C'est la seule façon d'aller loin.
+  </div>
+
+  <div class="regl">
+    <h3>COMMANDES</h3>
+    <div class="cle">
+      <kbd>↑ ↓ ← →</kbd><kbd>ZQSD</kbd><kbd>WASD</kbd> diriger
+      <kbd>Espace</kbd> la ruée <kbd>Échap</kbd> quitter
+    </div>
+    À la souris ou au doigt : <b>maintiens l'appui</b>, tu vas vers le point que
+    tu désignes. La ruée a son bouton en bas à gauche.
+  </div>
+
+  <div class="reg"><div><h4>SON</h4><p>Un bourdon qui monte à chaque fragment, et des chocs.</p></div>
+    <button class="lien" id="sonBtn">SON : ACTIVÉ</button></div>
+  <div class="reg"><div><h4>VOLUME</h4><p>Si le bourdon fatigue.</p></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <input type="range" id="volIn" min="0" max="100" step="5" style="width:120px">
+      <span id="volVal" style="font:700 11px var(--mono);color:var(--cyan);width:44px;
+        text-align:right">60 %</span></div></div>
+  <div class="reg"><div><h4 class="danger">EFFACER</h4><p>Records et succès.</p></div>
+    <button class="lien danger" id="effacer">TOUT EFFACER</button></div>
+  <div class="relance"><button class="gros gris" id="reRetour"><b>RETOUR</b></button></div>
+</div>
+
+<div class="screen" id="legal">
+  <div class="eyebrow">QUI PUBLIE CE JEU</div>
+  <h1 style="font-size:var(--t2)">MENTIONS LÉGALES</h1>
+  <div class="bloc2"><div class="sur">ÉDITEUR</div>
+    <div class="txt">Ce jeu est édité à titre non professionnel sous le nom
+    <b>VanNDM Creations</b>. Il est gratuit, sans compte et sans installation.</div></div>
+  <div class="bloc2"><div class="sur">NOUS ÉCRIRE</div>
+    <div class="txt" id="lgContact"></div></div>
+  <div class="bloc2"><div class="sur">TES DONNÉES</div>
+    <div class="txt">Tes records et tes succès sont enregistrés <b>uniquement dans
+    ton navigateur</b>. Rien n'est envoyé à un serveur, rien n'est associé à ton
+    identité, et aucun compte n'est demandé.</div></div>
+  <div class="bloc2"><div class="sur">PROPRIÉTÉ</div>
+    <div class="txt">Le code, les dessins, les sons et les textes de Némésis sont
+    l'œuvre de leur auteur.</div></div>
+  <div class="relance"><button class="gros gris" id="lgRetour"><b>RETOUR</b></button></div>
+</div>
+
+<script>
+
+/* ==========================================================================
+   NÉMÉSIS — ton pire ennemi, c'est toi d'il y a dix secondes
+   ==========================================================================
+   Un seul fichier, aucune dépendance, aucune image ni son téléchargé.
+
+   Une arène, des fragments à ramasser, vingt secondes. Rien d'autre.
+
+   Sauf que TOUT CE QUE TU FAIS EST ENREGISTRÉ. À la vague suivante, ton
+   parcours précédent rejoue à l'identique, et il te tue au contact. À la
+   huitième vague, sept versions de toi tournent en même temps que toi.
+
+   D'où la seule règle qui compte : LE MEILLEUR CHEMIN NE SERT QU'UNE FOIS.
+   Celui que tu viens de prendre sera occupé par toi-même la prochaine fois.
+   On ne joue donc pas contre un adversaire qu'on découvre, mais contre un
+   adversaire qu'on a soi-même écrit — et qu'on connaît par cœur, ce qui rend
+   chaque mort strictement impardonnable.
+
+   Conséquence technique : le pas de simulation est FIXE. Un fantôme qui
+   rejoue doit repasser exactement là où l'on est passé, à la frame près ;
+   un pas variable ferait dériver le rejeu et le jeu entier avec.
+   ========================================================================== */
+
+const cv=document.getElementById('c');
+let ctx=cv.getContext('2d',{alpha:false});
+let VW=0, VH=0, DPR=1;
+const TAU=Math.PI*2;
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const lerp=(a,b,t)=>a+(b-a)*t;
+const MONO='ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace';
+const TITRE='"Arial Black","Arial Bold",Impact,system-ui,sans-serif';
+
+/* ==========================================================================
+   LE HASARD
+   ==========================================================================
+   Semé par la course : l'arène et la position des fragments d'une course
+   donnée sont fixées à la seconde où elle commence. En mode quotidien, la date
+   fait la graine — même arène, mêmes fragments, même ordre, pour tout le
+   monde. Un second générateur, non semé, s'occupe des étincelles. */
+function semeur(a){
+  return function(){
+    a|=0; a=a+0x6D2B79F5|0;
+    let t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+let RNG=semeur(1);
+const rnd=(a,b)=>a+RNG()*(b-a);
+const ri=(a,b)=>Math.floor(a+RNG()*(b-a+1));
+const pick=l=>l[Math.floor(RNG()*l.length)];
+let DECO=semeur(60607);
+const drnd=(a,b)=>a+DECO()*(b-a);
+const dri=(a,b)=>Math.floor(a+DECO()*(b-a+1));
+const nb=n=>{
+  n=Math.round(n);
+  const s=Math.abs(n).toString();
+  let o='';
+  for(let i=0;i<s.length;i++) o+=(i&&(s.length-i)%3===0?' ':'')+s[i];
+  return (n<0?'−':'')+o;
+};
+
+/* ==========================================================================
+   L'ARÈNE ET LA VUE
+   ==========================================================================
+   L'arène se mesure en unités, jamais en pixels : le même parcours doit valoir
+   sur un téléphone et sur un écran large, sinon un fantôme enregistré ici ne
+   rejouerait pas là. Elle tient toujours entière à l'écran — on ne fait jamais
+   défiler, parce qu'un fantôme hors champ serait une mort qu'on n'a pas pu
+   voir venir. */
+const AW=100, AH=100;              // l'arène, en unités
+let ECH=6, OX=0, OY=0;
+function margesUI(){
+  const court=VH<=560;
+  return { haut:court?52:80, bas:court?58:86, cote:court?10:16 };
+}
+function cadrer(){
+  const m=margesUI();
+  const dispoW=Math.max(60,VW-m.cote*2);
+  const dispoH=Math.max(60,VH-m.haut-m.bas);
+  ECH=Math.min(dispoW/AW, dispoH/AH);
+  OX=m.cote+(dispoW-AW*ECH)/2;
+  OY=m.haut+(dispoH-AH*ECH)/2;
+}
+const ax=x=>OX+x*ECH;
+const ay=y=>OY+y*ECH;
+const xa=p=>(p-OX)/ECH;
+const ya=p=>(p-OY)/ECH;
+
+function redim(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  VW=window.innerWidth; VH=window.innerHeight;
+  cv.width=Math.round(VW*DPR); cv.height=Math.round(VH*DPR);
+  ctx=cv.getContext('2d',{alpha:false});
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  cadrer();
+  FOND=null;
+}
+addEventListener('resize',redim);
+
+let ecranActif='menu';
+let P=null;                        // la course en cours
+let horloge=0, last=performance.now();
+let FOND=null;
+
+/* un peu de géométrie */
+const dist2=(ax2,ay2,bx,by)=>{const dx=bx-ax2,dy=by-ay2;return dx*dx+dy*dy;};
+const dista=(ax2,ay2,bx,by)=>Math.hypot(bx-ax2,by-ay2);
+
+
+/* ==========================================================================
+   2. LE SON
+   ==========================================================================
+   Un jeu de vagues courtes a besoin d'un son qui dit OÙ EN EST LA VAGUE sans
+   qu'on quitte l'arène des yeux : un bourdon dont la hauteur monte à chaque
+   fragment ramassé, et qui devient franchement inquiétant quand le temps
+   file. Le reste est bref. */
+const SND={
+  ctx:null, maitre:null, bourdonO:null, bourdonG:null, bourdonF:null,
+  on:true, muet:false, volume:.6,
+  init(){
+    if(this.ctx) return;
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC){ this.on=false; return; }
+      this.ctx=new AC();
+      this.maitre=this.ctx.createGain();
+      this.maitre.gain.value=this.volume;
+      this.maitre.connect(this.ctx.destination);
+    }catch(e){ this.on=false; }
+  },
+  reprendre(){ if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume(); },
+  vol(v){ this.volume=v; if(this.maitre) this.maitre.gain.value=v; },
+  note(f,t0,dur,type,g,glisse){
+    if(!this.on||this.muet||!this.ctx) return;
+    const o=this.ctx.createOscillator(), a=this.ctx.createGain();
+    o.type=type||'sine'; o.frequency.setValueAtTime(f,t0);
+    if(glisse) o.frequency.exponentialRampToValueAtTime(Math.max(20,glisse),t0+dur);
+    a.gain.setValueAtTime(0,t0);
+    a.gain.linearRampToValueAtTime(g||.08,t0+.005);
+    a.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+    o.connect(a); a.connect(this.maitre);
+    o.start(t0); o.stop(t0+dur+.02);
+  },
+  bruit(t0,dur,freq,g,q,type){
+    if(!this.on||this.muet||!this.ctx) return;
+    const n=this.ctx.createBufferSource();
+    const len=Math.max(1,Math.floor(this.ctx.sampleRate*dur));
+    const b=this.ctx.createBuffer(1,len,this.ctx.sampleRate);
+    const d=b.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,1.6);
+    n.buffer=b;
+    const f=this.ctx.createBiquadFilter(); f.type=type||'bandpass';
+    f.frequency.value=freq||1200; f.Q.value=q||1.1;
+    const a=this.ctx.createGain(); a.gain.value=g||.08;
+    n.connect(f); f.connect(a); a.connect(this.maitre);
+    n.start(t0);
+  },
+  /* le bourdon : sa hauteur dit combien de fragments restent, son filtre dit
+     combien de temps il reste. Deux informations, aucun coup d'œil à donner. */
+  bourdon(reste,urgence){
+    if(!this.on||!this.ctx) return;
+    if(!this.bourdonO){
+      const o=this.ctx.createOscillator(); o.type='sawtooth';
+      const o2=this.ctx.createOscillator(); o2.type='sine';
+      const f=this.ctx.createBiquadFilter(); f.type='lowpass';
+      f.frequency.value=420; f.Q.value=6;
+      const g=this.ctx.createGain(); g.gain.value=0;
+      o.connect(f); o2.connect(f); f.connect(g); g.connect(this.maitre);
+      o.start(); o2.start();
+      this.bourdonO=o; this.bourdonO2=o2; this.bourdonG=g; this.bourdonF=f;
+    }
+    const t=this.ctx.currentTime;
+    const h=44+(1-clamp(reste,0,1))*26;
+    this.bourdonO.frequency.setTargetAtTime(h,t,.14);
+    this.bourdonO2.frequency.setTargetAtTime(h*2.005,t,.14);
+    this.bourdonF.frequency.setTargetAtTime(260+urgence*1500,t,.18);
+    this.bourdonG.gain.setTargetAtTime(this.muet?0:.05+urgence*.05,t,.2);
+  },
+  silence(){ if(this.bourdonG) this.bourdonG.gain.setTargetAtTime(0,this.ctx.currentTime,.06); },
+  /* le fragment : une note qui monte à chaque prise, comme un arpège qu'on
+     complète — c'est le seul son de récompense, et il est court */
+  fragment(k,n){
+    if(!this.ctx) return;
+    const t=this.ctx.currentTime;
+    const gamme=[523,659,784,880,1046,1318,1568];
+    this.note(gamme[Math.min(gamme.length-1,k)],t,.15,'triangle',.10);
+    this.note(gamme[Math.min(gamme.length-1,k)]*2,t+.02,.10,'sine',.05);
+  },
+  vague(){ if(this.ctx){ const t=this.ctx.currentTime;
+    [392,523,659,784].forEach((f,i)=>this.note(f,t+i*.07,i===3?.4:.12,'triangle',.1)); } },
+  /* le fantôme qui apparaît : un souffle inversé, court et froid */
+  spectre(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.bruit(t,.3,900,.07,1.4,'bandpass');
+    this.note(180,t,.34,'sine',.06,420); } },
+  dash(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.bruit(t,.11,2600,.09,1.8,'bandpass');
+    this.note(680,t,.10,'triangle',.05,1500); } },
+  refroidi(){ if(this.ctx) this.note(760,this.ctx.currentTime,.06,'square',.05); },
+  /* la mort : on est tué par soi-même, le son est un choc mat, pas un drame */
+  mort(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.bruit(t,.22,300,.2,.8,'lowpass');
+    this.note(160,t,.4,'triangle',.12,48);
+    this.note(240,t+.05,.3,'sine',.07,60); } },
+  temps(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(300,t,.18,'square',.07,150);
+    this.bruit(t,.25,500,.1,.9,'lowpass'); } },
+  clic(){ if(this.ctx) this.note(900,this.ctx.currentTime,.035,'square',.04); },
+  refus(){ if(this.ctx) this.note(180,this.ctx.currentTime,.08,'square',.05,120); },
+  gain(){ if(this.ctx){ const t=this.ctx.currentTime;
+    this.note(1046,t,.08,'triangle',.08);
+    this.note(1568,t+.07,.18,'triangle',.07); } }
+};
+
+
+/* ==========================================================================
+   3. LES CONSTANTES DU JEU
+   ==========================================================================
+   Elles tiennent en une page, et elles sont toutes ici : dans un jeu où l'on
+   affronte ses propres enregistrements, la moindre variation de vitesse rendrait
+   les vieux fantômes faux. Rien de ce qui suit ne change en cours de course. */
+
+const CLE='nemesis:v1';
+const Store=(()=>{ try{ localStorage.setItem('_t','1'); localStorage.removeItem('_t');
+  return {get:k=>localStorage.getItem(k), set:(k,v)=>localStorage.setItem(k,v)};
+}catch(e){ const m={}; return {get:k=>m[k]||null, set:(k,v)=>{m[k]=v;}}; } })();
+
+const PAS=1/60;                    // le pas fixe. Tout en dépend.
+const R_JOUEUR=1.9;                // rayons, en unités d'arène
+const R_FANTOME=1.9;
+const R_FRAG=2.2;
+const VIT=34;                      // unités par seconde
+const ACC=13;                      // ce qu'il faut pour changer de cap
+const DASH_V=104;                  // la ruée : trois fois la vitesse
+const DASH_D=.17;                  // sa durée
+const DASH_FROID=2.4;              // et son temps de recharge
+const GRACE=1.1;                   // les fantômes apparaissent en fondu
+const T_VAGUE=22;                  // le temps d'une vague, en secondes
+const MAX_TICKS=Math.ceil(T_VAGUE/PAS)+8;
+
+function fragmentsDe(v){ return Math.min(7,3+Math.floor(v/3)); }
+/* On ne garde pas tous les fantômes : au-delà, l'arène n'est plus un espace,
+   c'est un mur, et le jeu cesse d'être jouable au lieu de devenir difficile.
+   Le plus ancien s'efface — le plus vieux souvenir est celui qui pèse le moins. */
+function maxFantomes(v){ return Math.min(9,v); }
+
+const RANGS=[
+ {s:0,   nom:'ANONYME',   ico:'\u{25CB}', d:'Personne ne te connaît. Toi non plus.'},
+ {s:6,   nom:'SUIVI',     ico:'\u{25D4}', d:'Quelque chose marche dans tes pas.'},
+ {s:12,  nom:'TRAQUÉ',    ico:'\u{25D1}', d:'Il y a foule, et ils te ressemblent tous.'},
+ {s:20,  nom:'ASSIÉGÉ',   ico:'\u{25D5}', d:'L\'arène est pleine de toi.'},
+ {s:30,  nom:'INSAISISSABLE', ico:'\u{25CF}', d:'Tu ne repasses plus jamais deux fois.'},
+ {s:42,  nom:'NÉMÉSIS',   ico:'\u{2726}', d:'Il n\'y a plus que toi, et tu gagnes.'}
+];
+function rangDe(s){ let r=RANGS[0]; for(const x of RANGS) if(s>=x.s) r=x; return r; }
+function rangSuivant(s){ for(const x of RANGS) if(s<x.s) return x; return null; }
+
+const SUCCES=[
+ {id:'v1',    nom:'PREMIÈRE VAGUE',    d:'Passer la vague 1'},
+ {id:'v5',    nom:'CINQ',              d:'Atteindre la vague 5'},
+ {id:'v10',   nom:'DIX',               d:'Atteindre la vague 10'},
+ {id:'v15',   nom:'QUINZE',            d:'Atteindre la vague 15'},
+ {id:'v20',   nom:'VINGT',             d:'Atteindre la vague 20'},
+ {id:'plein', nom:'ARÈNE PLEINE',      d:'Survivre à une vague avec neuf fantômes'},
+ {id:'sansdash', nom:'À PIED',         d:'Passer une vague sans une seule ruée'},
+ {id:'dash5', nom:'FUITE EN AVANT',    d:'Cinq ruées dans une seule vague'},
+ {id:'vite',  nom:'EXPÉDITIF',         d:'Boucler une vague en moins de six secondes'},
+ {id:'frole', nom:'AU MILLIMÈTRE',     d:'Frôler un fantôme de moins d\'une demi-unité'},
+ {id:'frole50',nom:'PROVOCATEUR',      d:'Cinquante frôlements en tout'},
+ {id:'frag100',nom:'CENT FRAGMENTS',   d:'Ramasser cent fragments en tout'},
+ {id:'frag500',nom:'CINQ CENTS',       d:'Ramasser cinq cents fragments'},
+ {id:'mort25',nom:'ON SE REFAIT',      d:'Vingt-cinq courses'},
+ {id:'quot',  nom:'ARÈNE DU JOUR',     d:'Jouer l\'arène du jour'},
+ {id:'quot7', nom:'UNE SEMAINE',       d:'Sept arènes du jour'},
+ {id:'tue',   nom:'PAR MOI-MÊME',      d:'Se faire tuer par son propre fantôme'},
+ {id:'temps', nom:'LE TEMPS A GAGNÉ',  d:'Perdre une vague au chronomètre'}
+];
+
+/* la couleur d'un fantôme selon son âge : le plus récent est le plus vif, et
+   c'est celui dont on se souvient le mieux — la teinte suit la mémoire */
+const TEINTES=['#ff4d6d','#ff7a4d','#ffc14d','#9dff4d','#4dffd5','#4da6ff','#8a4dff','#ff4dd8','#ff4d8f'];
+
+
+/* ==========================================================================
+   4. L'ARÈNE, LA VAGUE, LES FANTÔMES
+   ==========================================================================
+   Tout se joue sur une propriété du format : un fantôme ne vit QUE le temps
+   qu'a duré la vague où on l'a enregistré. Jouer vite ne rapporte donc pas
+   seulement des points — ça fabrique des fantômes courts, et c'est le seul
+   levier durable sur la difficulté. Traîner, à l'inverse, se paie deux fois :
+   une fois au chronomètre, et une fois à toutes les vagues suivantes. */
+
+function graineDeCourse(mode){
+  if(mode==='quotidien') return graineDuJour();
+  return (Date.now()^(Math.random()*0x7fffffff))>>>1;
+}
+
+/* --------------------------------------------------------------- l'arène */
+function fabriquerArene(){
+  const murs=[];
+  const n=ri(3,6);
+  let garde=0;
+  while(murs.length<n&&garde++<400){
+    /* des blocs modestes : au-delà, l'arène cesse d'être un espace de course
+       pour devenir un couloir, et les fantômes n'ont plus besoin de nous
+       chasser — il suffit qu'ils attendent */
+    const w=rnd(7,20), h=rnd(7,20);
+    const x=rnd(9,AW-9-w), y=rnd(9,AH-9-h);
+    /* on laisse le centre libre : c'est là qu'on réapparaît à chaque vague,
+       et réapparaître dans un mur serait la pire des morts */
+    if(x<AW/2+11&&x+w>AW/2-11&&y<AH/2+11&&y+h>AH/2-11) continue;
+    let colle=false;
+    for(const m of murs)
+      if(x<m.x+m.w+6&&x+w>m.x-6&&y<m.y+m.h+6&&y+h>m.y-6){ colle=true; break; }
+    if(colle) continue;
+    murs.push({x,y,w,h});
+  }
+  return murs;
+}
+function dansMur(x,y,r){
+  for(const m of murs()){
+    const px=clamp(x,m.x,m.x+m.w), py=clamp(y,m.y,m.y+m.h);
+    if(dist2(x,y,px,py)<r*r) return m;
+  }
+  return null;
+}
+function murs(){ return P?P.murs:[]; }
+
+/* ------------------------------------------------------------ la course */
+function nouvelleCourse(mode){
+  const g=graineDeCourse(mode);
+  RNG=semeur(g);
+  P={ mode, graine:g,
+      murs:fabriquerArene(),
+      vague:0, tick:0, fini:0, cause:'',
+      fantomes:[], fragments:[],
+      j:{x:AW/2,y:AH/2,vx:0,vy:0,dirX:0,dirY:0,dashT:0,froid:0,trail:[]},
+      enreg:new Float32Array(MAX_TICKS*2), nEnreg:0,
+      score:0, frags:0, dashs:0, dashsVague:0, froles:0, frolesVague:0,
+      tVague:0, meilleureVague:0, journal:[],
+      parts:[], flottants:[], secousse:0, eclair:0 };
+  if(mode==='quotidien'){ P.dateQuot=dateDuJour(); decrocher('quot'); }
+  vagueSuivante();
+  return P;
+}
+
+function vagueSuivante(){
+  /* on range la vague qu'on vient de finir : elle devient un adversaire */
+  if(P.vague>0&&P.nEnreg>2){
+    P.fantomes.push({ t:P.enreg.slice(0,P.nEnreg*2), n:P.nEnreg,
+                      teinte:TEINTES[(P.vague-1)%TEINTES.length], vague:P.vague });
+    while(P.fantomes.length>maxFantomes(P.vague)) P.fantomes.shift();
+    P.journal.push({v:P.vague, t:+(P.tick*PAS).toFixed(1),
+                    f:P.fantomes.length, d:P.dashsVague});
+    while(P.journal.length>30) P.journal.shift();
+  }
+  P.vague++;
+  P.meilleureVague=Math.max(P.meilleureVague,P.vague);
+  P.tick=0; P.nEnreg=0;
+  P.dashsVague=0; P.frolesVague=0;
+  P.j.x=AW/2; P.j.y=AH/2; P.j.vx=0; P.j.vy=0; P.j.trail.length=0;
+  P.j.dashT=0; P.j.froid=0;
+  P.fragments=poserFragments(fragmentsDe(P.vague));
+  P.grace=GRACE;
+  if(P.vague>1) SND.spectre();
+  if(P.fantomes.length>=9) decrocher('plein');
+  for(const [n,id] of [[1,'v1'],[5,'v5'],[10,'v10'],[15,'v15'],[20,'v20']])
+    if(P.vague>n) decrocher(id);
+  majHUD();
+}
+
+/* Les fragments sont tirés de la graine de la course ET du numéro de vague :
+   la même course rejouée pose les mêmes fragments aux mêmes endroits. Sans ça
+   le mode quotidien ne voudrait rien dire. */
+function poserFragments(n){
+  const r=semeur((P.graine^(P.vague*2654435761))>>>0);
+  const l=[];
+  let garde=0;
+  while(l.length<n&&garde++<900){
+    const x=r()*(AW-16)+8, y=r()*(AH-16)+8;
+    if(dansMur(x,y,R_FRAG+2.5)) continue;
+    if(dista(x,y,AW/2,AH/2)<15) continue;          // jamais sur la réapparition
+    let colle=false;
+    for(const f of l) if(dista(x,y,f.x,f.y)<17){ colle=true; break; }
+    if(colle) continue;
+    l.push({x,y,pris:0,ph:r()*TAU});
+  }
+  /* filet : si l'arène est trop encombrée, on relâche l'écartement */
+  garde=0;
+  while(l.length<n&&garde++<900){
+    const x=r()*(AW-16)+8, y=r()*(AH-16)+8;
+    if(dansMur(x,y,R_FRAG+1.5)) continue;
+    if(dista(x,y,AW/2,AH/2)<12) continue;
+    l.push({x,y,pris:0,ph:r()*TAU});
+  }
+  return l;
+}
+
+/* ==========================================================================
+   UN PAS DE SIMULATION — À PAS FIXE, TOUJOURS
+   ========================================================================== */
+function unPas(){
+  if(!P||P.fini) return;
+  const j=P.j;
+
+  /* --- la ruée --- */
+  if(j.dashT>0) j.dashT-=PAS;
+  if(j.froid>0) j.froid=Math.max(0,j.froid-PAS);
+
+  /* --- le cap et la vitesse --- */
+  const d=Math.hypot(j.dirX,j.dirY);
+  let cx2=0, cy2=0;
+  if(d>.001){ cx2=j.dirX/d; cy2=j.dirY/d; }
+  const vise=j.dashT>0?DASH_V:VIT;
+  const cible_vx=cx2*vise, cible_vy=cy2*vise;
+  const k=1-Math.exp(-ACC*PAS);
+  if(j.dashT>0){ j.vx=j.dashVX; j.vy=j.dashVY; }
+  else { j.vx+=(cible_vx-j.vx)*k; j.vy+=(cible_vy-j.vy)*k; }
+
+  /* --- le déplacement, puis les murs --- */
+  j.x+=j.vx*PAS; j.y+=j.vy*PAS;
+  j.x=clamp(j.x,R_JOUEUR,AW-R_JOUEUR);
+  j.y=clamp(j.y,R_JOUEUR,AH-R_JOUEUR);
+  for(let i=0;i<3;i++){
+    const m=dansMur(j.x,j.y,R_JOUEUR);
+    if(!m) break;
+    const px=clamp(j.x,m.x,m.x+m.w), py=clamp(j.y,m.y,m.y+m.h);
+    let dx=j.x-px, dy=j.y-py;
+    let L=Math.hypot(dx,dy);
+    if(L<1e-6){
+      /* on est au centre du bloc : on ressort par le côté le plus proche */
+      const g=j.x-m.x, dr=m.x+m.w-j.x, h=j.y-m.y, b=m.y+m.h-j.y;
+      const mn=Math.min(g,dr,h,b);
+      if(mn===g){ dx=-1; dy=0; } else if(mn===dr){ dx=1; dy=0; }
+      else if(mn===h){ dx=0; dy=-1; } else { dx=0; dy=1; }
+      L=1;
+    }
+    j.x=px+dx/L*R_JOUEUR; j.y=py+dy/L*R_JOUEUR;
+    if(j.dashT<=0){ const n2=(j.vx*dx+j.vy*dy)/L; j.vx-=dx/L*n2; j.vy-=dy/L*n2; }
+  }
+
+  /* --- l'enregistrement : c'est lui, l'adversaire de la vague suivante --- */
+  if(P.nEnreg<MAX_TICKS){
+    P.enreg[P.nEnreg*2]=j.x;
+    P.enreg[P.nEnreg*2+1]=j.y;
+    P.nEnreg++;
+  }
+  j.trail.push(j.x,j.y);
+  while(j.trail.length>44) { j.trail.shift(); j.trail.shift(); }
+
+  /* --- les fragments --- */
+  let reste=0;
+  for(let i=0;i<P.fragments.length;i++){
+    const f=P.fragments[i];
+    if(f.pris) continue;
+    if(dist2(j.x,j.y,f.x,f.y)<(R_JOUEUR+R_FRAG)*(R_JOUEUR+R_FRAG)){
+      f.pris=1;
+      P.frags++;
+      SAVE.frags=(SAVE.frags||0)+1;
+      if(SAVE.frags>=100) decrocher('frag100');
+      if(SAVE.frags>=500) decrocher('frag500');
+      const pris=P.fragments.filter(x=>x.pris).length;
+      SND.fragment(pris-1,P.fragments.length);
+      P.score+=10*P.vague;
+      P.parts.push({x:f.x,y:f.y,n:14,col:'#ffe08a'});
+      P.flottants.push({x:f.x,y:f.y,t:'+'+(10*P.vague),vie:.9,col:'#ffe08a'});
+      /* on ne garde jamais plus de huit étiquettes ni douze gerbes : sur une
+         longue vague elles s'empileraient jusqu'à masquer les fantômes, et
+         cacher un fantôme est la seule chose que ce jeu n'a pas le droit de
+         faire */
+      while(P.flottants.length>8) P.flottants.shift();
+      while(P.parts.length>12) P.parts.shift();
+    } else reste++;
+  }
+
+  /* --- les fantômes : ils rejouent, à la frame près --- */
+  if(P.grace>0) P.grace-=PAS;
+  const invuln=P.grace>0||j.dashT>0;
+  let plusProche=999;
+  for(const f of P.fantomes){
+    if(P.tick>=f.n) continue;
+    const gx=f.t[P.tick*2], gy=f.t[P.tick*2+1];
+    const dd=dista(j.x,j.y,gx,gy);
+    const seuil=R_JOUEUR+R_FANTOME;
+    if(dd-seuil<plusProche) plusProche=dd-seuil;
+    if(dd<seuil&&!invuln){ perdre('fantome',f); return; }
+  }
+  /* le frôlement : passer à moins d'une demi-unité sans se faire prendre.
+     C'est la seule chose que le jeu récompense en plus des fragments, et elle
+     récompense exactement ce qu'on veut voir : la confiance dans sa mémoire. */
+  if(!invuln&&plusProche>0&&plusProche<1.0&&!P.frolage){
+    P.frolage=.4;
+    P.froles++; P.frolesVague++;
+    SAVE.froles=(SAVE.froles||0)+1;
+    decrocher('frole');
+    if(SAVE.froles>=50) decrocher('frole50');
+    P.score+=5*P.vague;
+    P.flottants.push({x:j.x,y:j.y,t:'FRÔLÉ',vie:.8,col:'#7fe3ff'});
+    SND.refroidi();
+  }
+  if(P.frolage>0) P.frolage-=PAS;
+
+  P.tick++;
+  P.tVague=P.tick*PAS;
+
+  /* --- la fin de la vague, dans un sens ou dans l'autre --- */
+  if(!reste){
+    P.score+=Math.round(60*P.vague+Math.max(0,T_VAGUE-P.tVague)*8);
+    if(P.tVague<6) decrocher('vite');
+    if(P.dashsVague===0) decrocher('sansdash');
+    if(P.dashsVague>=5) decrocher('dash5');
+    SND.vague();
+    P.eclair=Math.max(P.eclair,.5);
+    vagueSuivante();
+    return;
+  }
+  if(P.tVague>=T_VAGUE){ perdre('temps'); return; }
+}
+
+function ruee(){
+  if(!P||P.fini) return false;
+  const j=P.j;
+  if(j.froid>0||j.dashT>0){ SND.refus(); return false; }
+  const d=Math.hypot(j.dirX,j.dirY);
+  let dx=j.dirX, dy=j.dirY;
+  if(d<.001){
+    const v=Math.hypot(j.vx,j.vy);
+    if(v<.001) return false;
+    dx=j.vx/v; dy=j.vy/v;
+  } else { dx/=d; dy/=d; }
+  j.dashT=DASH_D; j.froid=DASH_FROID;
+  j.dashVX=dx*DASH_V; j.dashVY=dy*DASH_V;
+  P.dashs++; P.dashsVague++;
+  SND.dash();
+  P.parts.push({x:j.x,y:j.y,n:10,col:'#7fe3ff'});
+  return true;
+}
+
+const CAUSES={ fantome:'TON PROPRE FANTÔME', temps:'LE TEMPS' };
+function perdre(cause,f){
+  if(P.fini) return;
+  P.fini=1; P.cause=cause;
+  P.tueur=f||null;
+  SND.silence();
+  if(cause==='temps'){ SND.temps(); decrocher('temps'); }
+  else { SND.mort(); decrocher('tue'); }
+  P.secousse=Math.min(22,P.secousse+16);
+  P.parts.push({x:P.j.x,y:P.j.y,n:26,col:'#ff4d6d'});
+  finCourse();
+  const cette=P;
+  setTimeout(()=>{ if(P===cette&&P.fini) montrerFin(); },900);
+}
+
+
+/* ==========================================================================
+   5. LE DESSIN
+   ==========================================================================
+   Une règle domine tout : ON DOIT POUVOIR LIRE OÙ VA CHAQUE FANTÔME. Ils sont
+   parfaitement prévisibles — c'est nous qui les avons écrits — mais encore
+   faut-il que l'écran le dise. Chaque fantôme traîne donc son passé immédiat
+   ET annonce sa demi-seconde à venir. Se faire prendre devient alors une
+   faute, jamais une surprise, et c'est toute la différence entre un jeu exigeant
+   et un jeu injuste. */
+
+function melange(c1,c2,t){
+  const h=s=>[parseInt(s.slice(1,3),16),parseInt(s.slice(3,5),16),parseInt(s.slice(5,7),16)];
+  const a=h(c1), b=h(c2);
+  return 'rgb('+Math.round(lerp(a[0],b[0],t))+','+Math.round(lerp(a[1],b[1],t))
+    +','+Math.round(lerp(a[2],b[2],t))+')';
+}
+function rgba(c,a){
+  const r=parseInt(c.slice(1,3),16), g=parseInt(c.slice(3,5),16), b=parseInt(c.slice(5,7),16);
+  return 'rgba('+r+','+g+','+b+','+a+')';
+}
+
+function peindreFond(){
+  const o=document.createElement('canvas');
+  o.width=Math.max(1,Math.round(VW)); o.height=Math.max(1,Math.round(VH));
+  const g=o.getContext('2d');
+  const grd=g.createRadialGradient(VW*.5,VH*.45,20,VW*.5,VH*.5,Math.max(VW,VH)*.75);
+  grd.addColorStop(0,'#121627'); grd.addColorStop(1,'#05060c');
+  g.fillStyle=grd; g.fillRect(0,0,VW,VH);
+  const D=semeur(7711);
+  g.fillStyle='rgba(255,255,255,.03)';
+  for(let i=0;i<190;i++){
+    const x=D()*VW, y=D()*VH, r=D()*1.6+.3;
+    g.beginPath(); g.arc(x,y,r,0,TAU); g.fill();
+  }
+  FOND=o;
+}
+
+function dessinerArene(){
+  const X=ax(0), Y=ay(0), W=AW*ECH, H=AH*ECH;
+  ctx.fillStyle='#0a0d18';
+  ctx.fillRect(X,Y,W,H);
+  /* le quadrillage : il donne l'échelle et aide à mémoriser un parcours */
+  ctx.strokeStyle='rgba(120,140,190,.08)'; ctx.lineWidth=1;
+  ctx.beginPath();
+  for(let i=10;i<AW;i+=10){ ctx.moveTo(ax(i),Y); ctx.lineTo(ax(i),Y+H); }
+  for(let i=10;i<AH;i+=10){ ctx.moveTo(X,ay(i)); ctx.lineTo(X+W,ay(i)); }
+  ctx.stroke();
+  ctx.strokeStyle='rgba(140,165,220,.4)'; ctx.lineWidth=2;
+  ctx.strokeRect(X,Y,W,H);
+  for(const m of P.murs){
+    const mx=ax(m.x), my=ay(m.y), mw=m.w*ECH, mh=m.h*ECH;
+    const g=ctx.createLinearGradient(mx,my,mx,my+mh);
+    g.addColorStop(0,'#39435f'); g.addColorStop(1,'#232b40');
+    ctx.fillStyle=g; ctx.fillRect(mx,my,mw,mh);
+    ctx.fillStyle='rgba(255,255,255,.14)'; ctx.fillRect(mx,my,mw,Math.max(1.5,mh*.06));
+    ctx.strokeStyle='rgba(6,9,16,.7)'; ctx.lineWidth=1.5;
+    ctx.strokeRect(mx+.5,my+.5,mw-1,mh-1);
+  }
+}
+
+function dessinerFragments(){
+  for(const f of P.fragments){
+    if(f.pris) continue;
+    const p=.5+.5*Math.sin(horloge*3.6+f.ph);
+    const X=ax(f.x), Y=ay(f.y), r=R_FRAG*ECH;
+    const g=ctx.createRadialGradient(X,Y,0,X,Y,r*2.4);
+    g.addColorStop(0,'rgba(255,224,138,'+(.45+p*.3)+')');
+    g.addColorStop(1,'rgba(255,224,138,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(X,Y,r*2.4,0,TAU); ctx.fill();
+    ctx.save(); ctx.translate(X,Y); ctx.rotate(horloge*1.4+f.ph);
+    ctx.fillStyle='#ffe08a';
+    ctx.beginPath();
+    for(let k=0;k<4;k++){
+      const a=k*Math.PI/2;
+      ctx.lineTo(Math.cos(a)*r*(1+p*.16),Math.sin(a)*r*(1+p*.16));
+      ctx.lineTo(Math.cos(a+Math.PI/4)*r*.38,Math.sin(a+Math.PI/4)*r*.38);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+}
+
+/* ------------------------------------------------------------ les fantômes */
+function dessinerFantomes(){
+  const fondu=P.grace>0?clamp(1-P.grace/GRACE,0,1):1;
+  for(const f of P.fantomes){
+    if(P.tick>=f.n) continue;
+    const i=P.tick;
+    const X=ax(f.t[i*2]), Y=ay(f.t[i*2+1]);
+    /* d'où il vient : la trace derrière lui */
+    ctx.strokeStyle=rgba(f.teinte,.20*fondu);
+    ctx.lineWidth=Math.max(1.5,R_FANTOME*ECH*.55);
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath();
+    for(let k=Math.max(0,i-26);k<=i;k+=2)
+      ctx.lineTo(ax(f.t[k*2]),ay(f.t[k*2+1]));
+    ctx.stroke();
+    /* OÙ IL VA : la demi-seconde à venir, en pointillé. C'est cette ligne
+       qui transforme une embuscade en problème d'itinéraire. */
+    if(i+2<f.n){
+      ctx.strokeStyle=rgba(f.teinte,.5*fondu);
+      ctx.lineWidth=Math.max(1,ECH*.35);
+      ctx.setLineDash([ECH*1.1,ECH*.9]);
+      ctx.beginPath();
+      ctx.moveTo(X,Y);
+      for(let k=i+2;k<Math.min(f.n,i+32);k+=3)
+        ctx.lineTo(ax(f.t[k*2]),ay(f.t[k*2+1]));
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    /* le fantôme lui-même */
+    const r=R_FANTOME*ECH;
+    const g=ctx.createRadialGradient(X,Y,0,X,Y,r*2.2);
+    g.addColorStop(0,rgba(f.teinte,.42*fondu)); g.addColorStop(1,rgba(f.teinte,0));
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(X,Y,r*2.2,0,TAU); ctx.fill();
+    ctx.fillStyle=rgba(f.teinte,.30*fondu);
+    ctx.beginPath(); ctx.arc(X,Y,r,0,TAU); ctx.fill();
+    ctx.strokeStyle=rgba(f.teinte,.95*fondu);
+    ctx.lineWidth=Math.max(1.5,ECH*.34);
+    ctx.beginPath(); ctx.arc(X,Y,r,0,TAU); ctx.stroke();
+    /* son numéro de vague : on sait ainsi lequel de soi on esquive */
+    if(ECH>4.4){
+      ctx.font='700 '+Math.max(8,Math.round(ECH*1.5))+'px '+MONO;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle=rgba(f.teinte,.9*fondu);
+      ctx.fillText(String(f.vague),X,Y);
+      ctx.textBaseline='alphabetic';
+    }
+  }
+}
+
+function dessinerJoueur(){
+  const j=P.j;
+  const X=ax(j.x), Y=ay(j.y), r=R_JOUEUR*ECH;
+  /* la traîne */
+  if(j.trail.length>=4){
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    for(let k=0;k<j.trail.length-2;k+=2){
+      const t=k/(j.trail.length-2);
+      ctx.strokeStyle='rgba(127,227,255,'+(t*t*.5)+')';
+      ctx.lineWidth=Math.max(1,r*1.1*t);
+      ctx.beginPath();
+      ctx.moveTo(ax(j.trail[k]),ay(j.trail[k+1]));
+      ctx.lineTo(ax(j.trail[k+2]),ay(j.trail[k+3]));
+      ctx.stroke();
+    }
+  }
+  const invuln=P.grace>0||j.dashT>0;
+  const g=ctx.createRadialGradient(X,Y,0,X,Y,r*3);
+  g.addColorStop(0,'rgba(190,245,255,.55)'); g.addColorStop(1,'rgba(127,227,255,0)');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(X,Y,r*3,0,TAU); ctx.fill();
+  ctx.fillStyle=invuln?'#ffffff':'#dff6ff';
+  ctx.beginPath(); ctx.arc(X,Y,r,0,TAU); ctx.fill();
+  ctx.strokeStyle=invuln?'#ffffff':'#7fe3ff';
+  ctx.lineWidth=Math.max(1.5,ECH*.4);
+  ctx.beginPath(); ctx.arc(X,Y,r*1.35,0,TAU); ctx.stroke();
+  /* l'anneau de recharge de la ruée, autour de soi : jamais besoin de
+     regarder ailleurs qu'à l'endroit où l'on va mourir */
+  if(j.froid>0){
+    ctx.strokeStyle='rgba(127,227,255,.65)';
+    ctx.lineWidth=Math.max(1.5,ECH*.4);
+    ctx.beginPath();
+    ctx.arc(X,Y,r*2.1,-Math.PI/2,-Math.PI/2+TAU*(1-j.froid/DASH_FROID));
+    ctx.stroke();
+  } else {
+    ctx.strokeStyle='rgba(255,255,255,'+(.3+.25*Math.sin(horloge*5))+')';
+    ctx.lineWidth=Math.max(1,ECH*.2);
+    ctx.beginPath(); ctx.arc(X,Y,r*2.1,0,TAU); ctx.stroke();
+  }
+}
+
+function dessinerParts(){
+  for(const p of P.parts){
+    for(const q of p.l||[]){
+      if(q.vie<=0) continue;
+      ctx.globalAlpha=clamp(q.vie*2,0,1);
+      ctx.fillStyle=p.col;
+      const s=Math.max(1,ECH*.35*q.vie);
+      ctx.fillRect(ax(q.x)-s/2,ay(q.y)-s/2,s,s);
+    }
+  }
+  ctx.globalAlpha=1;
+}
+function dessinerFlottants(){
+  for(const f of P.flottants){
+    ctx.globalAlpha=clamp(f.vie*1.6,0,1);
+    ctx.font='700 '+Math.max(10,Math.round(ECH*2.1))+'px '+TITRE;
+    ctx.textAlign='center';
+    const Y=ay(f.y)-ECH*(2.4+(1-f.vie)*3.2);
+    ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillText(f.t,ax(f.x)+1,Y+1);
+    ctx.fillStyle=f.col; ctx.fillText(f.t,ax(f.x),Y);
+  }
+  ctx.globalAlpha=1;
+}
+
+/* le temps qui reste, sur le bord même de l'arène : on le voit du coin de
+   l'œil sans jamais quitter son personnage du regard */
+function dessinerTemps(){
+  const k=clamp(1-P.tVague/T_VAGUE,0,1);
+  const X=ax(0), Y=ay(0), W=AW*ECH, H=AH*ECH;
+  const urgent=k<.25;
+  ctx.strokeStyle=urgent?('rgba(255,77,109,'+(.6+.4*Math.sin(horloge*9))+')')
+    :'rgba(127,227,255,.75)';
+  ctx.lineWidth=3.5;
+  ctx.beginPath();
+  ctx.moveTo(X,Y+H); ctx.lineTo(X,Y+H-H*k);
+  ctx.moveTo(X+W,Y+H); ctx.lineTo(X+W,Y+H-H*k);
+  ctx.stroke();
+}
+
+function dessiner(dt){
+  if(!FOND||FOND.width!==Math.round(VW)) peindreFond();
+  ctx.drawImage(FOND,0,0);
+  if(!P) return;
+  ctx.save();
+  if(P.secousse>.2)
+    ctx.translate(drnd(-1,1)*P.secousse,drnd(-1,1)*P.secousse);
+  dessinerArene();
+  dessinerTemps();
+  dessinerFragments();
+  dessinerFantomes();
+  dessinerParts();
+  if(!P.fini||P.cause==='temps') dessinerJoueur();
+  dessinerFlottants();
+  ctx.restore();
+  if(P.eclair>0){
+    ctx.fillStyle='rgba(190,240,255,'+(P.eclair*.22)+')';
+    ctx.fillRect(0,0,VW,VH);
+  }
+  if(P.grace>0&&P.vague>1){
+    ctx.font='700 '+Math.max(12,Math.round(Math.min(VW,VH)*.032))+'px '+MONO;
+    ctx.textAlign='center';
+    ctx.fillStyle='rgba(220,235,255,'+clamp(P.grace/GRACE,0,1)*.85+')';
+    ctx.fillText(P.fantomes.length+' FANTÔME'+(P.fantomes.length>1?'S':''),
+      VW/2, ay(0)-Math.max(10,ECH*2));
+  }
+}
+
+/* ---------------------------------------------------------------- animation */
+function pasAnim(dt){
+  if(!P) return;
+  P.secousse*=Math.pow(.0015,dt);
+  P.eclair=Math.max(0,P.eclair-dt*2.2);
+  for(let i=P.parts.length-1;i>=0;i--){
+    const p=P.parts[i];
+    if(!p.l){
+      p.l=[];
+      for(let k=0;k<p.n;k++) p.l.push({x:p.x,y:p.y,
+        vx:drnd(-26,26), vy:drnd(-26,26), vie:drnd(.3,.8)});
+    }
+    let vivant=0;
+    for(const q of p.l){
+      if(q.vie<=0) continue;
+      q.vie-=dt; if(q.vie<=0) continue;
+      vivant++;
+      q.x+=q.vx*dt; q.y+=q.vy*dt; q.vx*=.94; q.vy*=.94;
+    }
+    if(!vivant) P.parts.splice(i,1);
+  }
+  for(let i=P.flottants.length-1;i>=0;i--){
+    P.flottants[i].vie-=dt;
+    if(P.flottants[i].vie<=0) P.flottants.splice(i,1);
+  }
+}
+
+
+/* ==========================================================================
+   6. CE QUI EST ÉCRIT AUTOUR
+   ==========================================================================
+   Quatre nombres, pas un de plus : la vague, ce qui reste à ramasser, combien
+   de toi tournent dans l'arène, et le score. Le temps, lui, n'est pas un
+   nombre — il est dessiné sur les bords de l'arène, parce qu'on n'a pas une
+   demi-seconde à donner à un chiffre quand neuf fantômes convergent. */
+
+function ecrans(id){
+  for(const s of document.querySelectorAll('.screen')) s.classList.toggle('on',s.id===id);
+  document.body.classList.toggle('enJeu',!id&&!!P&&!P.fini);
+}
+function message(txt,dur,genre){
+  const f=$('flash');
+  const d=document.createElement('div');
+  d.className='msg'+(genre?' '+genre:'');
+  d.textContent=txt;
+  f.appendChild(d);
+  while(f.children.length>3) f.removeChild(f.firstChild);
+  setTimeout(()=>{ if(d.parentNode) d.parentNode.removeChild(d); },dur||1500);
+}
+
+function majHUD(){
+  if(!P) return;
+  $('hVague').textContent=P.vague;
+  const reste=P.fragments.filter(f=>!f.pris).length;
+  $('hFrag').textContent=reste+' / '+P.fragments.length;
+  $('hScore').textContent=nb(P.score);
+  const n=P.fantomes.length;
+  $('hFant').textContent=n;
+  $('hFant').className=n>=7?'chaud':(n>=4?'tiede':'');
+  $('hQuot').style.display=P.mode==='quotidien'?'':'none';
+}
+
+/* ==========================================================================
+   LA FIN DE COURSE
+   ========================================================================== */
+function montrerFin(){
+  if(!P||!P.fini) return;
+  const rec=P.recordAvant||0;
+  $('fEye').textContent=P.mode==='quotidien'
+    ? ('ARÈNE DU JOUR · '+dateDuJour())
+    : ('TU AS ÉTÉ ARRÊTÉ PAR ' + (CAUSES[P.cause]||'—'));
+  $('fTitre').textContent=P.cause==='temps'?'LE TEMPS T\'A EU':'TU T\'ES EU';
+  $('fGrille').innerHTML=
+     cell('VAGUE ATTEINTE',P.vague,P.vague>rec?'var(--or)':'')
+    +cell('SCORE',nb(P.score),'')
+    +cell('FRAGMENTS',P.frags,'')
+    +cell('FRÔLEMENTS',P.froles,P.froles?'var(--cyan)':'')
+    +cell('RUÉES',P.dashs,'')
+    +cell('FANTÔMES EN PISTE',P.fantomes.length,'');
+
+  /* le record : on compare à ce qu'on VALAIT AVANT, sinon on ne bat personne */
+  const best=P.mode==='quotidien'?(SAVE.quotBest||0):(SAVE.meilleur||0);
+  const bv=P.mode==='quotidien'?(SAVE.quotVague||0):(SAVE.meilleureVague||0);
+  $('fRecord').innerHTML='<div class="sur">'+(P.mode==='quotidien'?'TON ARÈNE DU JOUR':'TON RECORD')+'</div>'
+    +(P.nouveauRecord
+      ? '<div class="rl"><div class="re">★</div><div class="rt"><b>NOUVEAU RECORD</b>'
+        +'<span>Ancien : '+nb(P.recordScore||0)+' points, vague '+(P.recordVague||0)+'.</span></div>'
+        +'<div class="rv">'+nb(P.score)+'</div></div>'
+      : '<div class="rl"><div class="re">·</div><div class="rt"><b>MEILLEUR : '+nb(best)+' POINTS</b>'
+        +'<span>Vague '+bv+'. Il te manque '+nb(Math.max(0,best-P.score))+' points.</span></div>'
+        +'<div class="rv">'+nb(P.score)+'</div></div>');
+
+  /* le journal : une ligne par vague, et surtout SA DURÉE — c'est elle qui
+     dicte la longueur du fantôme qu'on s'est fabriqué */
+  $('fJournal').innerHTML='<div class="sur">VAGUE PAR VAGUE — ET LA DURÉE DU FANTÔME QU\'ELLE A LAISSÉ</div>'
+    +(P.journal.length?P.journal.slice(-9).map(j=>
+      '<div class="rl"><div class="re">'+j.v+'</div><div class="rt">'
+      +'<b>'+j.t.toFixed(1)+' s</b><span>'+j.f+' fantôme'+(j.f>1?'s':'')
+      +' en piste · '+j.d+' ruée'+(j.d>1?'s':'')+'</span></div>'
+      +'<div class="rv" style="color:'+TEINTES[(j.v-1)%TEINTES.length]+'">'
+      +'▬'.repeat(Math.max(1,Math.round(j.t/2)))+'</div></div>').join('')
+      :'<div class="rl"><div class="rt"><span>Aucune vague terminée.</span></div></div>');
+
+  let note;
+  if(P.vague<=2) note='Les premières vagues sont vides. C\'est après qu\'on comprend : le chemin que tu viens de prendre sera occupé par toi-même.';
+  else if(P.cause==='temps') note='Le temps t\'a eu, pas un fantôme. Ramasser plus vite ne rapporte pas que des points : ça fabrique des fantômes plus COURTS, et les vagues suivantes en sont d\'autant plus vides.';
+  else if(P.dashs===0) note='Aucune ruée de toute la course. Elle traverse les fantômes pendant deux dixièmes de seconde — c\'est peu, mais c\'est la seule chose qui passe à travers soi-même.';
+  else note='Le fantôme qui t\'a eu, c\'est toi à la vague '+(P.tueur?P.tueur.vague:'?')+'. Il refaisait exactement ce que tu avais fait. Le seul remède est de ne jamais reprendre le même chemin.';
+  $('fNote').textContent=note;
+
+  $('fPartage').textContent=textePartage();
+  ecranActif='fin'; ecrans('fin');
+}
+function cell(t,v,col){
+  return '<div class="cell"><span>'+t+'</span><b'+(col?' style="color:'+col+'"':'')
+    +'>'+v+'</b></div>';
+}
+function textePartage(){
+  if(!P) return '';
+  const t1='NÉMÉSIS — '+(P.mode==='quotidien'?('arène du jour '+dateDuJour()):'course libre');
+  const t2='vague '+P.vague+' · '+nb(P.score)+' pts · '+P.frags+' fragments · '
+    +P.froles+' frôlements';
+  const t3='◍'.repeat(Math.min(9,P.fantomes.length))
+    +'○'.repeat(Math.max(0,9-P.fantomes.length))+'  arrêté par '
+    +(P.cause==='temps'?'le temps':'lui-même');
+  return t1+'\n'+t2+'\n'+t3;
+}
+
+/* ==========================================================================
+   MENU, SUCCÈS, RÈGLES
+   ========================================================================== */
+function succesN(){ return SUCCES.filter(s=>succesFait(s.id)).length; }
+function montrerSucces(){
+  $('suTete').innerHTML='<div class="sur">OÙ TU EN ES</div>'
+    +'<div class="txt"><b>'+succesN()+'</b> succès sur '+SUCCES.length
+    +' · meilleure vague <b>'+(SAVE.meilleureVague||0)+'</b> · record <b>'
+    +nb(SAVE.meilleur||0)+'</b><br><b>'+nb(SAVE.courses||0)
+    +'</b> courses · <b>'+nb(SAVE.frags||0)+'</b> fragments · <b>'
+    +nb(SAVE.froles||0)+'</b> frôlements</div>';
+  $('suListe').innerHTML=SUCCES.map(s=>'<div class="suc'+(succesFait(s.id)?' ok':'')
+    +'"><b>'+s.nom+'</b><span>'+s.d+'</span></div>').join('');
+  ecranActif='succes'; ecrans('succes');
+}
+function montrerMenu(){
+  ecranActif='menu';
+  const v=SAVE.meilleureVague||0, r=rangDe(v), suiv=rangSuivant(v);
+  $('meRang').innerHTML='<span>'+r.ico+'</span><b>'+r.nom+'</b>'
+    +(suiv?'<u>vague '+suiv.s+' pour '+suiv.nom+'</u>':'<u>vague '+v+'</u>');
+  $('meJouer').innerHTML='<b>COURSE LIBRE</b><span>'
+    +(SAVE.courses?('meilleure vague '+(SAVE.meilleureVague||0)+' · record '
+        +nb(SAVE.meilleur||0)+' points')
+      :'Une arène tirée au sort. Vingt-deux secondes par vague.')+'</span>';
+  const fait=SAVE.quotDate===dateDuJour();
+  $('meQuot').innerHTML='<b>ARÈNE DU JOUR'+(fait?' — DÉJÀ COURUE':'')+'</b><span>'
+    +(fait?('vague '+(SAVE.quotVague||0)+' · '+nb(SAVE.quotBest||0)+' points · rejouer')
+      :'La même arène et les mêmes fragments pour tout le monde')+'</span>';
+  ecrans('menu');
+}
+function majReglages(){
+  $('sonBtn').textContent=SAVE.son?'SON : ACTIVÉ':'SON : COUPÉ';
+  $('volIn').value=Math.round((SAVE.volume||.6)*100);
+  $('volVal').textContent=Math.round((SAVE.volume||.6)*100)+' %';
+}
+
+
+/* ==========================================================================
+   7. CE QUI RESTE
+   ==========================================================================
+   Presque rien, et c'est voulu. Pas de déblocage, pas de boutique, pas
+   d'amélioration : une course neuve part avec exactement la même vitesse et
+   la même ruée que la centième. Dans un jeu où l'adversaire est une copie de
+   soi, donner un avantage au joueur reviendrait à le donner aussi aux
+   fantômes — ils ne feraient que courir plus vite après nous. */
+
+const SAVE_DEF={ son:true, volume:.6, succes:{},
+  meilleur:0, meilleureVague:0, courses:0, frags:0, froles:0, dashs:0,
+  quotDate:'', quotBest:0, quotVague:0, quotJoues:0, quotSerie:0, quotFait:'', vu:0 };
+let SAVE=Object.assign({},SAVE_DEF);
+
+function charger(){
+  try{
+    const b=Store.get(CLE);
+    if(b){
+      SAVE=Object.assign({},SAVE_DEF,JSON.parse(b));
+      if(!SAVE.succes||typeof SAVE.succes!=='object'||Array.isArray(SAVE.succes))
+        SAVE.succes={};
+      /* on ne fait pas confiance à ce qui vient du disque */
+      for(const k of ['meilleur','meilleureVague','courses','frags','froles',
+                      'dashs','quotBest','quotVague','quotJoues','quotSerie']){
+        const v=+SAVE[k];
+        SAVE[k]=(isFinite(v)&&v>=0)?Math.floor(v):0;
+      }
+    }
+  }catch(e){ SAVE=Object.assign({},SAVE_DEF,{succes:{}}); }
+}
+function sauver(){ try{ Store.set(CLE,JSON.stringify(SAVE)); }catch(e){} }
+
+function succesFait(id){ return !!(SAVE.succes&&SAVE.succes[id]); }
+function decrocher(id){
+  if(succesFait(id)) return;
+  const s=SUCCES.find(x=>x.id===id);
+  if(!s) return;
+  SAVE.succes=SAVE.succes||{};
+  SAVE.succes[id]=1;
+  sauver();
+  message('SUCCÈS · '+s.nom,2400,'bon');
+  SND.gain();
+}
+
+function dateDuJour(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')
+    +'-'+String(d.getDate()).padStart(2,'0');
+}
+function graineDuJour(){
+  const s=dateDuJour();
+  let h=2166136261;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); }
+  return h>>>1;
+}
+
+/* le compte d'une course finie */
+function finCourse(){
+  /* le record d'AVANT, gardé pour l'écran de fin : sans lui on se compare à
+     soi-même et on n'a jamais battu personne */
+  const quot=P.mode==='quotidien';
+  P.recordScore=quot?(SAVE.quotBest||0):(SAVE.meilleur||0);
+  P.recordVague=quot?(SAVE.quotVague||0):(SAVE.meilleureVague||0);
+  P.recordAvant=P.recordVague;
+  P.nouveauRecord=P.score>P.recordScore;
+  SAVE.courses=(SAVE.courses||0)+1;
+  if(SAVE.courses>=25) decrocher('mort25');
+  SAVE.dashs=(SAVE.dashs||0)+P.dashs;
+  if(quot){
+    SAVE.quotJoues=(SAVE.quotJoues||0)+1;
+    SAVE.quotBest=Math.max(SAVE.quotBest||0,P.score);
+    SAVE.quotVague=Math.max(SAVE.quotVague||0,P.vague);
+    if(SAVE.quotDate!==P.dateQuot){ SAVE.quotDate=P.dateQuot;
+      SAVE.quotBest=P.score; SAVE.quotVague=P.vague; }
+    if(SAVE.quotFait!==P.dateQuot){ SAVE.quotFait=P.dateQuot;
+      SAVE.quotSerie=(SAVE.quotSerie||0)+1; }
+    if(SAVE.quotJoues>=7) decrocher('quot7');
+  } else {
+    SAVE.meilleur=Math.max(SAVE.meilleur||0,P.score);
+  }
+  SAVE.meilleureVague=Math.max(SAVE.meilleureVague||0,P.vague);
+  sauver();
+}
+
+
+/* ==========================================================================
+   8. LES ENTRÉES ET LA BOUCLE
+   ==========================================================================
+   Deux gestes : diriger, et se ruer. Au clavier ou au doigt, et dans les deux
+   cas on dirige EN CONTINU — pas de case, pas de tour, pas de temps mort. */
+
+const TOUCHES={};
+let pointeur=null;                 // {x,y} en unités d'arène, tant qu'on appuie
+
+function directionJoueur(){
+  if(!P) return [0,0];
+  let dx=0, dy=0;
+  if(TOUCHES.ArrowLeft||TOUCHES.KeyA||TOUCHES.KeyQ) dx-=1;
+  if(TOUCHES.ArrowRight||TOUCHES.KeyD) dx+=1;
+  if(TOUCHES.ArrowUp||TOUCHES.KeyW||TOUCHES.KeyZ) dy-=1;
+  if(TOUCHES.ArrowDown||TOUCHES.KeyS) dy+=1;
+  if(dx||dy) return [dx,dy];
+  if(pointeur){
+    const ex=pointeur.x-P.j.x, ey=pointeur.y-P.j.y;
+    const d=Math.hypot(ex,ey);
+    /* une zone morte autour de soi : sinon on tremble sur place dès qu'on
+       relâche à peu près là où l'on est */
+    if(d>R_JOUEUR*.9) return [ex/d,ey/d];
+  }
+  return [0,0];
+}
+
+/* l'adresse de contact publique — une seule ligne à changer */
+const ADRESSE_CONTACT='cours2gtmathis78@gmail.com';
+
+function cabler(){
+  const p=$('lgContact');
+  if(p){
+    p.textContent='Un bug, une idée, un score improbable : ';
+    const a=document.createElement('a');
+    a.href='mailto:'+ADRESSE_CONTACT;
+    a.textContent=ADRESSE_CONTACT;
+    p.appendChild(a);
+  }
+  addEventListener('keydown',e=>{
+    if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')) return;
+    if(e.code==='Escape'){ revenir(); return; }
+    if(ecranActif!=='jeu') return;
+    TOUCHES[e.code]=1;
+    if(e.code==='Space'){ SND.init(); SND.reprendre(); ruee(); e.preventDefault(); }
+    if(/^(Arrow|Key)/.test(e.code)) e.preventDefault();
+  });
+  addEventListener('keyup',e=>{ TOUCHES[e.code]=0; });
+  addEventListener('blur',()=>{ for(const k in TOUCHES) TOUCHES[k]=0; pointeur=null; });
+
+  const pos=(cx2,cy2)=>({x:clamp(xa(cx2),0,AW), y:clamp(ya(cy2),0,AH)});
+  cv.addEventListener('mousedown',e=>{
+    if(e.button!==0) return;
+    SND.init(); SND.reprendre();
+    pointeur=pos(e.clientX,e.clientY);
+  });
+  addEventListener('mousemove',e=>{ if(pointeur) pointeur=pos(e.clientX,e.clientY); });
+  addEventListener('mouseup',()=>{ pointeur=null; });
+  cv.addEventListener('contextmenu',e=>{ e.preventDefault(); ruee(); });
+
+  cv.addEventListener('touchstart',e=>{
+    const t=e.touches[0]; if(!t) return;
+    SND.init(); SND.reprendre();
+    pointeur=pos(t.clientX,t.clientY);
+    if(e.cancelable) e.preventDefault();
+  },{passive:false});
+  cv.addEventListener('touchmove',e=>{
+    const t=e.touches[0]; if(!t) return;
+    pointeur=pos(t.clientX,t.clientY);
+    if(e.cancelable) e.preventDefault();
+  },{passive:false});
+  const lache=e=>{ if(!e.touches||!e.touches.length) pointeur=null;
+    if(e.cancelable) e.preventDefault(); };
+  cv.addEventListener('touchend',lache,{passive:false});
+  cv.addEventListener('touchcancel',lache,{passive:false});
+
+  const bd=$('bDash');
+  const go=e=>{ e.preventDefault(); SND.init(); SND.reprendre(); ruee(); };
+  bd.addEventListener('touchstart',go,{passive:false});
+  bd.addEventListener('mousedown',go);
+  $('bQuitter').onclick=()=>{ arreter(); montrerMenu(); };
+  $('bRegles').onclick=()=>{ if(P) P.enCours=1; ecranActif='regles'; ecrans('regles'); };
+
+  $('meJouer').onclick=()=>{ SND.init(); SND.reprendre(); demarrer('libre'); };
+  $('meQuot').onclick=()=>{ SND.init(); SND.reprendre(); demarrer('quotidien'); };
+  $('meRegles').onclick=()=>{ SND.init(); if(P) P.enCours=0;
+    ecranActif='regles'; ecrans('regles'); };
+  $('meSucces').onclick=()=>{ SND.init(); montrerSucces(); };
+  $('meLegal').onclick=()=>{ SND.init(); ecranActif='legal'; ecrans('legal'); };
+  $('suRetour').onclick=()=>montrerMenu();
+  $('reRetour').onclick=()=>revenir();
+  $('lgRetour').onclick=()=>montrerMenu();
+  $('fRejouer').onclick=()=>{ SND.clic(); demarrer(P?P.mode:'libre'); };
+  $('fMenu').onclick=()=>{ SND.clic(); arreter(); montrerMenu(); };
+  $('fCopier').onclick=()=>{
+    const t=textePartage();
+    try{
+      navigator.clipboard.writeText(t);
+      $('fCopier').innerHTML='<b>COPIÉ ✓</b>';
+      setTimeout(()=>{ const b=$('fCopier');
+        if(b) b.innerHTML='<b>COPIER LE RÉSULTAT</b>'; },1800);
+    }catch(err){ $('fCopier').innerHTML='<b>COPIE IMPOSSIBLE</b>'; }
+  };
+  $('sonBtn').onclick=()=>{
+    SAVE.son=!SAVE.son; SND.on=SAVE.son;
+    if(!SAVE.son) SND.silence();
+    sauver(); majReglages();
+  };
+  $('volIn').oninput=e=>{
+    SAVE.volume=+e.target.value/100; SND.vol(SAVE.volume);
+    $('volVal').textContent=Math.round(SAVE.volume*100)+' %';
+    sauver();
+  };
+  $('effacer').onclick=()=>{
+    if(!confirm('Effacer les records et les succès ?')) return;
+    SAVE=Object.assign({},SAVE_DEF,{succes:{}});
+    sauver(); montrerMenu();
+  };
+}
+
+function demarrer(mode){
+  nouvelleCourse(mode);
+  ecranActif='jeu'; ecrans(null);
+  reste=0;
+  message(mode==='quotidien'?('ARÈNE DU JOUR — '+dateDuJour()):'VAGUE 1',1800);
+  if(!SAVE.vu){
+    SAVE.vu=1; sauver();
+    setTimeout(()=>{ if(ecranActif==='jeu')
+      message('Ramasse tout avant la fin du temps',2600); },1200);
+    setTimeout(()=>{ if(ecranActif==='jeu')
+      message('Tes déplacements sont enregistrés. À la vague 2, ils te poursuivront.',4200); },3600);
+  }
+}
+function arreter(){ SND.silence(); }
+function revenir(){
+  if(ecranActif==='regles'&&P&&!P.fini&&P.enCours){ ecranActif='jeu'; ecrans(null); return; }
+  if(ecranActif==='jeu'){ arreter(); montrerMenu(); return; }
+  if(ecranActif!=='menu') montrerMenu();
+}
+
+/* ---------------------------------------------------------------- la boucle
+   Le pas est FIXE et l'accumulateur est borné. Sur une machine lente, on
+   préfère ralentir le jeu plutôt que sauter des pas : sauter un pas ferait
+   dériver le rejeu des fantômes, et un fantôme qui ne repasse pas où l'on est
+   passé rend le jeu entier faux. */
+let reste=0;
+function boucle(now){
+  const dt=Math.min(.25,(now-last)/1000);
+  last=now;
+  horloge+=dt;
+  if(P&&!P.fini&&ecranActif==='jeu'){
+    reste+=dt;
+    let n=0;
+    while(reste>=PAS&&n<8){
+      reste-=PAS;
+      const [dx,dy]=directionJoueur();
+      P.j.dirX=dx; P.j.dirY=dy;
+      unPas();
+      n++;
+      if(!P||P.fini) break;
+    }
+    if(P&&!P.fini){
+      const r=P.fragments.filter(f=>!f.pris).length/Math.max(1,P.fragments.length);
+      SND.bourdon(r,clamp((P.tVague-T_VAGUE*.55)/(T_VAGUE*.45),0,1));
+      majHUD();
+    }
+  }
+  pasAnim(dt);
+  dessiner(dt);
+  requestAnimationFrame(boucle);
+}
+
+/* ---------------------------------------------------------------- départ */
+charger();
+SND.on=SAVE.son;
+SND.volume=SAVE.volume;
+RNG=semeur(12345);
+P=null;
+redim();
+cabler();
+montrerMenu();
+majReglages();
+requestAnimationFrame(boucle);
+
+</script>
+</body>
+</html>

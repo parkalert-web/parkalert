@@ -1,0 +1,18 @@
+# ads.txt — VanNDM Creations
+#
+# Déclare Google comme seul vendeur autorisé de l'inventaire publicitaire.
+# Sans ce fichier, Google classe les annonces en « inventaire non autorisé »
+# et cesse de les acheter.
+#
+# Le contenu est IDENTIQUE pour tous les sites du compte : c'est le même
+# identifiant éditeur. Ce fichier doit être servi à la racine de CHAQUE
+# domaine, séparément :
+#     https://zonemorte.netlify.app/ads.txt
+#     https://supermarchetycoon.netlify.app/ads.txt
+#     https://acherongame.netlify.app/ads.txt
+#     https://cinetycoon.netlify.app/ads.txt
+#
+# netlify.app figure sur la Public Suffix List : chaque sous-domaine compte
+# donc comme un domaine racine à part entière, et il n'y a rien à demander
+# à Netlify.
+google.com, pub-5640171592773109, DIRECT, f08c47fec0942fa0
