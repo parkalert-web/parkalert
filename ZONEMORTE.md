@@ -262,3 +262,66 @@ ajouté *et* approuvé.
    (vignettes)** : elles s'ouvrent en plein écran et couvriraient une partie en
    cours. Les annonces d'ancrage peuvent rester, les commandes du jeu sont
    protégées.
+
+---
+
+## Les pubs récompensées
+
+Deux endroits, une seule mécanique : **la pub ne donne quelque chose que si
+elle est regardée jusqu'au bout**.
+
+- **Dans la boutique.** Une carte en haut de la page : une pub = **300 pièces**,
+  **5 fois par jour** au maximum. Le compteur est journalier et stocké dans la
+  sauvegarde (`SAVE.pubs = {j:'2026-8-28', n:2}`) : il se remet à zéro tout
+  seul au changement de date.
+- **À la mort.** Un écran propose de repartir **à pleine vie, là où on est
+  tombé**, une seule fois par partie. Les zombies autour sont repoussés, on est
+  invulnérable 3,4 s, et le compte à rebours de **10 secondes** finit par
+  laisser mourir — rester bloqué devant un écran de mort est la pire façon de
+  finir une partie.
+
+### Trois règles qu'on ne contourne pas
+
+1. **On ne propose jamais un bouton qui va échouer.** `PUB.etat()` doit dire
+   « prêt » avant que l'offre s'affiche. À la mort, si aucune pub n'est
+   disponible, la partie se conclut normalement, sans écran intermédiaire.
+2. **Seul `adViewed` récompense.** `adDismissed` (pub fermée en route),
+   `noAdPreloaded` et `frequencyCapped` ne donnent rien, et le disent.
+3. **Rien ne bloque.** Si l'API ne répond pas, un filet de 12 s rend la main
+   avec un message. Si un bloqueur de pubs mange le script, l'attente est
+   abandonnée au bout de 15 s et l'offre passe en « indisponible » au lieu de
+   rester sur « les pubs se préparent… » indéfiniment.
+
+### AdMob n'est pas la bonne porte
+
+**AdMob ne sert que les applications natives** (Android/iOS). Un site web n'y a
+pas accès, même emballé plus tard dans une application.
+
+Pour un jeu web, la seule voie Google est **H5 Games Ads**, via l'**Ad Placement
+API** — le même script `adsbygoogle.js` et le même identifiant éditeur que les
+annonces automatiques. C'est pour ça que le code déclare `adConfig` et
+`adBreak` **avant** que le script arrive : ces deux fonctions empilent dans
+`window.adsbygoogle`, et un appel parti trop tôt serait perdu.
+
+À faire, une fois le site approuvé :
+
+1. AdSense → **Annonces → Par site → Jeux H5** (selon les comptes :
+   « H5 Games Ads »), et demander l'accès pour `zonemorte.netlify.app`.
+2. L'attribut `data-ad-frequency-hint="60s"` est exigé par l'API même quand on
+   ne se sert que des pubs récompensées — il est déjà posé.
+3. Tant que l'accès n'est pas accordé, `adBreak` répond `noAdPreloaded` : le
+   jeu reste jouable, la carte affiche « INDISPONIBLE », et rien ne casse.
+
+### Ce que ça rapporte
+
+Pas de réponse simple. Une pub récompensée se paie **nettement mieux à
+l'impression** qu'une bannière, parce que la personne l'a demandée et la
+regarde en entier. Mais elle est **volontaire** : le volume est bien plus
+faible. Dans les faits, sur un jeu web, les deux se complètent — les annonces
+automatiques font le fond, les pubs récompensées font les pics.
+
+L'inventaire récompensé d'AdMob est plus riche que celui du web, mais il n'est
+accessible qu'en publiant une vraie application. Les portails de jeux HTML5
+(**CrazyGames**, **Poki**, **GameDistribution**, **AdinPlay**, **Playwire**)
+paient souvent mieux qu'AdSense sur ce type de jeu, mais demandent en général
+d'héberger le jeu chez eux ou d'atteindre un seuil de trafic.

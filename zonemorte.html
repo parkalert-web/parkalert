@@ -53,12 +53,23 @@ signalGooglefcPresent();})();</script>
 <script>
 /* AdSense n'est chargé qu'une fois le CMP prêt : c'est ce que Google exige
    pour que les annonces respectent le choix de la personne. */
+/* L'API Ad Placement (H5 Games Ads) passe par le MÊME script que les annonces
+   automatiques : il suffit de déclarer adConfig et adBreak, qui empilent dans
+   la même file. Elles doivent exister avant que le script arrive — sinon les
+   appels partis trop tôt sont perdus. */
+window.adsbygoogle=window.adsbygoogle||[];
+window.adBreak=function(o){ window.adsbygoogle.push(o); };
+window.adConfig=function(o){ window.adsbygoogle.push(o); };
+
 (function(){
   var lance=false;
   function charger(){
     if(lance) return; lance=true;
     var t=document.createElement('script');
     t.async=true; t.crossOrigin='anonymous';
+    /* l'indice de fréquence est exigé par l'API de placement, même quand on
+       ne se sert que des pubs récompensées */
+    t.setAttribute('data-ad-frequency-hint','60s');
     t.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5640171592773109';
     document.head.appendChild(t);
   }
@@ -1163,6 +1174,42 @@ body.paysage{}
   h1,h4,.pbTitre,.cinT,.bTerrain,#cine .cinMenace b{text-wrap:balance}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---- les pubs récompensées ---- */
+.pubBox{max-width:760px;margin:0 auto 14px;border:2px solid #3a4a2e;border-radius:14px;
+  background:linear-gradient(150deg,#141a10,#1b2414);padding:13px 15px;
+  display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+.pubBox .pi{font-size:30px;line-height:1}
+.pubBox .pc{flex:1;min-width:150px}
+.pubBox .pc b{display:block;font-family:var(--titre,inherit);font-size:14px;
+  letter-spacing:.06em;color:var(--toxique,#a8d43c)}
+.pubBox .pc span{display:block;font-size:11px;line-height:1.55;color:var(--gris,#8e948a);
+  margin-top:3px}
+.pubBox button{padding:12px 16px;border-radius:11px;border:2px solid var(--toxique,#a8d43c);
+  background:var(--toxique,#a8d43c);color:#0d1207;font-weight:700;font-size:13px;
+  letter-spacing:.06em;cursor:pointer;white-space:nowrap}
+.pubBox button:disabled{background:transparent;color:var(--gris,#8e948a);
+  border-color:#3a4a2e;cursor:not-allowed}
+.pubBox .pmsg{flex-basis:100%;font-size:11px;line-height:1.6;color:#e2b34a;min-height:0}
+
+/* ---- la seconde chance ---- */
+#chance{position:fixed;inset:0;z-index:9500;display:none;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;padding:22px;
+  background:rgba(8,6,4,.90);backdrop-filter:blur(3px);text-align:center}
+#chance.on{display:flex}
+#chance h2{font-size:clamp(26px,8vw,48px);color:var(--sang-vif,#ff3d4f);
+  letter-spacing:.06em;margin:0}
+#chance .sc{font-size:12px;letter-spacing:.14em;color:#cfc7b8;max-width:420px;line-height:1.7}
+#chance .cbtns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+#chance button{padding:14px 20px;border-radius:12px;font-weight:700;font-size:14px;
+  letter-spacing:.06em;cursor:pointer;border:2px solid var(--toxique,#a8d43c);
+  background:var(--toxique,#a8d43c);color:#0d1207}
+#chance button.non{background:transparent;color:#b9b2a4;border-color:#4a4438}
+#chance .cbar{width:min(320px,80vw);height:5px;border-radius:3px;background:#2b2620;
+  overflow:hidden}
+#chance .cbar i{display:block;height:100%;background:var(--sang-vif,#ff3d4f);width:100%;
+  transition:width .1s linear}
+#chance .cmsg{font-size:12px;color:#e2b34a;min-height:16px;max-width:420px;line-height:1.6}
 </style>
 </head>
 <body>
@@ -1314,10 +1361,22 @@ body.paysage{}
   <div class="eyebrow">TOUT CE QUI S'ACHÈTE TE SURVIVRA</div>
   <h1 style="font-size:clamp(30px,9vw,54px)">BOUTIQUE</h1>
   <div class="solde">TU AS <b id="sSolde">0</b> PIÈCES</div>
+  <div class="pubBox" id="pubBox"></div>
   <div class="rayon">ÉQUIPEMENT <em>EFFETS PERMANENTS</em></div>
   <div class="shopgrid" id="shopGrid"></div>
   <div class="rayon">TENUES <em>CELLES QUE TU AS GAGNÉES SONT ICI</em></div>
   <div class="skingrid" id="skinGrid"></div>
+</div>
+
+<div id="chance">
+  <h2>TU ES TOMBÉ</h2>
+  <div class="sc" id="chTxt"></div>
+  <div class="cbar"><i id="chBar"></i></div>
+  <div class="cbtns">
+    <button id="chOui">REGARDER UNE PUB · REPARTIR</button>
+    <button class="non" id="chNon">ACCEPTER LA MORT</button>
+  </div>
+  <div class="cmsg" id="chMsg"></div>
 </div>
 
 <div class="screen" id="lvl">
@@ -3118,6 +3177,151 @@ function reclamerSerie(){
 /* --- boutique : des renforts qui durent un temps donné, pas des bonus permanents.
    On achète une durée, elle se consomme en temps de jeu réel. --- */
 const DUREES=[{m:15,mult:1,nom:'15 MIN'},{m:30,mult:1.8,nom:'30 MIN'},{m:60,mult:3.2,nom:'1 HEURE'}];
+/* ==========================================================================
+   LES PUBS RÉCOMPENSÉES
+   ==========================================================================
+   Une pub qu'on choisit de regarder, en échange de quelque chose. C'est le
+   seul format publicitaire qui n'est pas subi : rien ne s'affiche tant que le
+   joueur n'a pas appuyé, et il sait exactement ce qu'il y gagne avant de
+   commencer.
+
+   Deux règles qu'on ne contourne pas :
+
+   — la récompense n'est donnée QUE dans adViewed(), c'est-à-dire quand Google
+     confirme que la pub a été regardée jusqu'au bout. Fermer la pub en cours
+     de route ne donne rien, et c'est dit d'avance ;
+   — quand les pubs récompensées ne sont pas disponibles — compte pas encore
+     validé, bloqueur, pas d'annonce à servir, région sans stock — on le DIT.
+     Un bouton qui tourne dans le vide est pire que pas de bouton.
+
+   Le format s'appelle H5 Games Ads, et il passe par l'API Ad Placement
+   (adConfig / adBreak), servie par le même script que les annonces
+   automatiques. Il faut l'activer côté compte : voir README-PUBS.md.
+   ========================================================================== */
+const PUB={
+  api:false,          // le script est là et l'API répond
+  pretAPI:false,      // onReady a été appelé
+  enCours:false,
+  dernierEtat:'',
+  ecoute:[],
+
+  init(){
+    /* adConfig n'existe que si le script d'annonces a été chargé — donc après
+       le verdict du consentement. On réessaie tant qu'il n'est pas là. */
+    let essais=0;
+    const tenter=()=>{
+      if(typeof window.adConfig==='function'){
+        this.api=true;
+        try{
+          window.adConfig({
+            preloadAdBreaks:'on',
+            sound:'on',
+            onReady:()=>{ this.pretAPI=true; this.abandon=false; this.prevenir(); }
+          });
+        }catch(e){ this.api=false; this.dernierEtat='erreur'; }
+        /* adConfig est NOTRE relais : il existe toujours, y compris quand le
+           script de la régie n'arrive jamais. Sa présence ne prouve donc rien.
+           Sans réponse au bout de quinze secondes, c'est qu'il n'y en aura
+           pas — bloqueur, compte pas encore validé, région sans stock. */
+        setTimeout(()=>{
+          if(!this.pretAPI){ this.abandon=true; this.dernierEtat='absente'; this.prevenir(); }
+        },15000);
+        this.prevenir();
+        return;
+      }
+      if(++essais<40) setTimeout(tenter,500);   // vingt secondes, puis on renonce
+      else { this.dernierEtat='absente'; this.prevenir(); }
+    };
+    tenter();
+  },
+
+  /* de quoi écrire un état honnête dans l'interface */
+  etat(){
+    if(!this.api||this.abandon) return {ok:false, txt:'Les pubs récompensées ne sont pas '
+      +'encore actives sur ce site.', court:'INDISPONIBLE'};
+    if(!this.pretAPI) return {ok:false, txt:'Les pubs se préparent…', court:'UN INSTANT'};
+    if(this.enCours) return {ok:false, txt:'Une pub est déjà en cours.', court:'EN COURS'};
+    return {ok:true, txt:'', court:'PRÊT'};
+  },
+  surEtat(f){ this.ecoute.push(f); },
+  prevenir(){ for(const f of this.ecoute) try{ f(); }catch(e){} },
+
+  /* ------------------------------------------------------------------------
+     Lance une pub récompensée. `onGagne` n'est appelé que si la pub a été
+     regardée jusqu'au bout ; `onRate` reçoit une phrase à montrer, toujours.
+     ---------------------------------------------------------------------- */
+  recompense(nom,onGagne,onRate){
+    if(this.enCours){ onRate('Une pub est déjà en cours.'); return; }
+    const e=this.etat();
+    if(!e.ok&&(this.abandon||!this.api)){ onRate(e.txt); return; }
+    if(typeof window.adBreak!=='function'){
+      onRate('Les pubs récompensées ne sont pas encore actives sur ce site. '
+        +'Reviens quand la régie aura validé le jeu.');
+      return;
+    }
+    this.enCours=true;
+    let vue=false, fini=false;
+    /* filet : si l'API ne rappelle jamais, on ne laisse pas le joueur devant
+       un écran mort */
+    const minuteur=setTimeout(()=>{
+      if(fini) return;
+      fini=true; this.enCours=false;
+      onRate('Aucune pub n\'a pu être chargée. Réessaie dans un moment.');
+      this.prevenir();
+    },12000);
+    const terminer=(msg)=>{
+      if(fini) return;
+      fini=true; clearTimeout(minuteur); this.enCours=false;
+      if(vue) onGagne(); else onRate(msg||'Pub interrompue : pas de récompense.');
+      this.prevenir();
+    };
+    try{
+      window.adBreak({
+        type:'reward',
+        name:nom,
+        /* le joueur a DÉJÀ appuyé sur notre bouton : son accord est donné,
+           on lance donc la pub sans lui poser une deuxième fois la question */
+        beforeReward:(montrer)=>{ try{ montrer(); }catch(e){ terminer(); } },
+        adDismissed:()=>{ vue=false; },
+        adViewed:()=>{ vue=true; },
+        adBreakDone:(info)=>{
+          this.dernierEtat=(info&&info.breakStatus)||'';
+          terminer(({
+            noAdPreloaded:'Aucune pub disponible pour le moment.',
+            frequencyCapped:'Tu as déjà vu beaucoup de pubs : reviens plus tard.',
+            notReady:'Les pubs ne sont pas prêtes.',
+            timeout:'La pub a mis trop de temps à venir.',
+            error:'La pub n\'a pas pu se charger.',
+            ignored:'Pub annulée.'
+          })[this.dernierEtat]);
+        }
+      });
+    }catch(e){ terminer('La pub n\'a pas pu se lancer.'); }
+  }
+};
+
+/* ==========================================================================
+   CE QUE LES PUBS RAPPORTENT
+   ==========================================================================
+   Un plafond par jour, et il est affiché. Sans plafond, regarder trente pubs
+   d'affilée deviendrait la meilleure façon de jouer — ce qui n'est pas un jeu,
+   et ce que les régies sanctionnent de toute façon comme du trafic incité.
+   ========================================================================== */
+const PUB_PIECES=300, PUB_MAX_JOUR=5;
+
+function jourCourt(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function pubsVues(){
+  if(!SAVE.pubs||SAVE.pubs.j!==jourCourt()) SAVE.pubs={j:jourCourt(), n:0};
+  return SAVE.pubs.n;
+}
+function pubsRestantes(){ return Math.max(0,PUB_MAX_JOUR-pubsVues()); }
+function noterPubVue(){
+  pubsVues();
+  SAVE.pubs.n++;
+  SAVE.pubsTotal=(SAVE.pubsTotal||0)+1;
+  sauver();
+}
+
 const BOUTIQUE={
   forme    :{ic:'\u{1F4AA}',nom:'STIMULANTS',       desc:'+35 % de vie maximale.',            base:900},
   calibre  :{ic:'\u{1F4A5}',nom:'MUNITIONS LOURDES',desc:'+30 % de dégâts avec toutes les armes.',base:1400},
@@ -4051,6 +4255,42 @@ function construireSkins(){
     box.appendChild(el);
   });
 }
+/* La carte des pièces contre une pub. Elle dit trois choses avant qu'on
+   appuie : ce qu'on gagne, combien il en reste aujourd'hui, et — quand ça ne
+   marche pas — pourquoi. */
+let pubMsg='', pubMsgT=-1e9;
+function majPubBoutique(msg){
+  const el=$('pubBox');
+  if(!el) return;
+  /* la boutique se redessine toute seule chaque seconde : le message doit
+     survivre à ça, sinon il clignote et disparaît avant d'être lu */
+  if(msg!==undefined){ pubMsg=msg; pubMsgT=performance.now(); }
+  if(performance.now()-pubMsgT>7000) pubMsg='';
+  const e=PUB.etat(), reste=pubsRestantes();
+  const peut=e.ok&&reste>0;
+  el.innerHTML='<span class="pi">\u{1F4FA}</span>'
+    +'<div class="pc"><b>DES PIÈCES CONTRE UNE PUB</b>'
+    +'<span>Une pub jusqu\'au bout = <b style="color:#ffd45c">'+nb(PUB_PIECES)
+    +' pièces</b>. '+(reste>0?('Il t\'en reste <b>'+reste+'</b> sur '+PUB_MAX_JOUR
+      +' aujourd\'hui.'):'Tu as pris tes '+PUB_MAX_JOUR+' pubs du jour — reviens demain.')
+    +' Fermer la pub avant la fin ne donne rien.</span></div>'
+    +'<button id="pubGo"'+(peut?'':' disabled')+'>'
+    +(reste<=0?'REVIENS DEMAIN':(e.ok?'REGARDER · +'+nb(PUB_PIECES):e.court))+'</button>'
+    +'<div class="pmsg">'+(pubMsg||(e.ok?'':e.txt))+'</div>';
+  const b=$('pubGo');
+  if(b) b.onclick=()=>{
+    majPubBoutique('La pub se charge…');
+    PUB.recompense('pieces-boutique',()=>{
+      SAVE.pieces+=PUB_PIECES;
+      SAVE.piecesGagnees=(SAVE.piecesGagnees||0)+PUB_PIECES;
+      noterPubVue();
+      SND.init(); SND.reprendre(); SND.rechargeFin();
+      construireBoutique(); majBanque();
+      majPubBoutique('+'+nb(PUB_PIECES)+' pièces. Merci — c\'est ce qui paie le jeu.');
+    },(m)=>{ majPubBoutique(m); });
+  };
+}
+
 function construireBoutique(){
   const box=$('shopGrid'); box.innerHTML='';
   for(const k in BOUTIQUE){
@@ -4078,6 +4318,7 @@ function construireBoutique(){
     box.appendChild(el);
   }
   $('sSolde').textContent=nb(SAVE.pieces);
+  majPubBoutique();
   construireSkins();
 }
 /* rafraîchit les décomptes chaque seconde tant que la boutique est ouverte */
@@ -8994,7 +9235,69 @@ function finPartie(){
     return;
   }
   if(G.fin) return;
-  running=false; G.fin=true; joyM=joyA=null;
+  running=false; joyM=joyA=null;
+  /* Une seconde chance par partie, et seulement si une pub est VRAIMENT
+     disponible : proposer un bouton qui échoue serait pire que ne rien
+     proposer. À l'entraînement on se relève déjà tout seul. */
+  if(!G.chancePub&&!G.entrainement&&PUB.etat().ok){ proposerChancePub(); return; }
+  conclurePartie();
+}
+
+/* ---- l'offre, avec un compte à rebours : on ne bloque pas le joueur ---- */
+let chanceTim=0;
+function proposerChancePub(){
+  const el=$('chance');
+  $('chTxt').innerHTML='Regarde une pub jusqu\'au bout et tu repars <b>à pleine '
+    +'vie</b>, là où tu es tombé. Une seule fois par partie.<br>'
+    +'<span style="color:var(--gris,#8e948a)">Fermer la pub avant la fin ne donne rien.</span>';
+  $('chMsg').textContent='';
+  $('chOui').disabled=false;
+  $('chNon').disabled=false;
+  el.classList.add('on');
+  /* dix secondes pour décider, puis on laisse mourir : rester bloqué devant un
+     écran de mort est la pire façon de finir une partie */
+  const t0=performance.now(), duree=10000;
+  clearInterval(chanceTim);
+  chanceTim=setInterval(()=>{
+    const u=1-(performance.now()-t0)/duree;
+    $('chBar').style.width=Math.max(0,u*100).toFixed(1)+'%';
+    if(u<=0){ clearInterval(chanceTim); refuserChance(); }
+  },80);
+}
+function fermerChance(){
+  clearInterval(chanceTim);
+  $('chance').classList.remove('on');
+}
+function refuserChance(){ fermerChance(); conclurePartie(); }
+function accepterChance(){
+  clearInterval(chanceTim);
+  $('chOui').disabled=true; $('chNon').disabled=true;
+  $('chMsg').textContent='La pub se charge…';
+  PUB.recompense('seconde-chance',()=>{
+    noterPubVue();
+    fermerChance();
+    releverParPub();
+  },(m)=>{
+    $('chMsg').textContent=m+' Tu peux quand même repartir de zéro.';
+    $('chNon').disabled=false;
+    $('chNon').textContent='CONTINUER';
+  });
+}
+function releverParPub(){
+  const p=G.p;
+  G.chancePub=1;
+  p.hp=p.hpMax; p.inv=3.4; p.flash=.45;
+  for(const z of G.zombies){
+    const a=Math.atan2(z.y-p.y,z.x-p.x);
+    z.kx+=Math.cos(a)*900; z.ky+=Math.sin(a)*900;
+  }
+  explosion(p.x,p.y,230,0); SND.rugissement(); shake(20); ralenti=.5;
+  flot(p.x,p.y-42,'SECONDE CHANCE','#a8d43c',16);
+  running=true; acc=0; last=performance.now();
+}
+
+function conclurePartie(){
+  G.fin=true;
   SND.fin();
   $('hud').classList.remove('on'); $('bossbar').classList.remove('on'); btnEsq.classList.remove('on');
   $('actions').classList.remove('on'); $('quitEntr').classList.remove('on');
@@ -9841,6 +10144,12 @@ $('resume').onclick=()=>basculerPause(false);
 $('quit').onclick=()=>{ enPause=false; $('pause').classList.remove('on');
   if(G&&G.tuto) finTuto(); else finPartie(); };
 $('closeShop').onclick=()=>retour('shop');
+$('chOui').onclick=()=>accepterChance();
+$('chNon').onclick=()=>refuserChance();
+/* les pubs récompensées se réveillent dès que le script d'annonces est là, et
+   l'interface de la boutique se remet à jour toute seule quand l'état change */
+PUB.init();
+PUB.surEtat(()=>{ if($('shop').classList.contains('on')) majPubBoutique(); });
 
 function afficherSerie(){
   const box=$('jours'); box.innerHTML='';
