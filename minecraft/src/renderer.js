@@ -53,7 +53,7 @@ void main() {
 
   vec3 pos = uOrigin + vec3(x, y, z);
   if (off == 1u) pos.y -= 0.115;
-  else if (off == 2u) pos += NORMALS[face] * 0.0625;
+  else if (off == 2u) pos -= NORMALS[face] * 0.0625;
 
   // Courbe de lumière de Minecraft : chaque niveau perdu retire ~15 %.
   float skyTerm = pow(0.86, 15.0 - sky) * uDay;

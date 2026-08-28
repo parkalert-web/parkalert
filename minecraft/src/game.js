@@ -149,7 +149,7 @@ export class Game {
     this.onMouseMove = (e) => {
       if (document.pointerLockElement !== canvas) return;
       const s = (this.settings.sensitivity ?? 1) * 0.0022;
-      this.player.yaw -= e.movementX * s;
+      this.player.yaw += e.movementX * s;
       this.player.pitch -= e.movementY * s;
       const lim = Math.PI / 2 - 0.001;
       this.player.pitch = Math.max(-lim, Math.min(lim, this.player.pitch));

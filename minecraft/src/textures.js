@@ -1484,3 +1484,116 @@ tex('spider_eye', (p) => p.art([
 ], { '#': '#8a2a2a', a: '#f0d000' }));
 
 export { Paint };
+
+/* ─────────────────── Tuiles ajoutées : jungle, savane, marais, badlands ───────────────────
+   Elles sont déclarées après coup pour que les couches déjà utilisées gardent
+   leur numéro : les mondes sauvegardés continuent d'afficher les bons blocs. */
+
+tex('jungle_log_side', (p) => logSide(p, '#5a4426', '#3f2f16', '#6b5433'));
+tex('jungle_log_top', (p) => logTop(p, '#c8a05a', '#a07a3a', '#5a4426'));
+tex('jungle_planks', (p) => planks(p, '#a87f52', '#86633c', '#bd9464'));
+tex('jungle_leaves', (p) => leaves(p, '#2f8f2a', '#1f6b1c', '#43a83a'));
+tex('jungle_sapling', (p) => {
+  p.art([
+    '................',
+    '................',
+    '.....#....#.....',
+    '....###..###....',
+    '...##########...',
+    '....########....',
+    '.....######.....',
+    '......####......',
+    '.......##.......',
+    '.......#........',
+    '.......#........',
+    '.......#........',
+    '......###.......',
+    '................',
+    '................',
+    '................',
+  ], { '#': '#2f8f2a' });
+  for (let y = 9; y < 13; y++) p.px(7, y, '#5a4426');
+});
+
+tex('acacia_log_side', (p) => logSide(p, '#6b5a4a', '#4a3c30', '#8a7562'));
+tex('acacia_log_top', (p) => logTop(p, '#b06a3a', '#8a5028', '#6b5a4a'));
+tex('acacia_planks', (p) => planks(p, '#b06336', '#8d4c26', '#c47a4c'));
+tex('acacia_leaves', (p) => leaves(p, '#6f9e2f', '#547a20', '#89b845'));
+tex('acacia_sapling', (p) => {
+  p.art([
+    '................',
+    '................',
+    '................',
+    '...##########...',
+    '..############..',
+    '...####..####...',
+    '................',
+    '.......#........',
+    '.......#........',
+    '.......#........',
+    '.......#........',
+    '......###.......',
+    '................',
+    '................',
+    '................',
+    '................',
+  ], { '#': '#6f9e2f' });
+  for (let y = 7; y < 12; y++) p.px(7, y, '#6b5a4a');
+});
+
+tex('red_sand', (p) => { p.fill('#bf6c33').grain(14).speckle('#a85c28', 30).speckle('#d2814a', 22); });
+tex('red_sandstone_top', (p) => { p.fill('#bd6a32').grain(8).speckle('#a85c28', 20); });
+tex('red_sandstone_side', (p) => {
+  p.fill('#bd6a32').grain(8);
+  p.rect(0, 3, 16, 1, '#9c5222'); p.rect(0, 11, 16, 1, '#9c5222');
+  p.rect(0, 4, 16, 1, '#d18048'); p.rect(0, 12, 16, 1, '#d18048');
+  p.speckle('#a85c28', 24);
+});
+tex('red_sandstone_bottom', (p) => { p.fill('#a85c28').grain(10).speckle('#8f4c1e', 24); });
+
+function terracotta(p, base, light, dark) {
+  p.fill(base).grain(12);
+  p.speckle(dark, 26).speckle(light, 18);
+  for (let i = 0; i < 5; i++) {
+    const y = (p.rng() * 16) | 0;
+    p.rect(0, y, 16, 1, p.rng() < 0.5 ? dark : light);
+  }
+  p.grain(6);
+}
+tex('terracotta', (p) => terracotta(p, '#985e43', '#a97052', '#7d4a33'));
+tex('terracotta_orange', (p) => terracotta(p, '#a05324', '#bd6a34', '#82401a'));
+tex('terracotta_white', (p) => terracotta(p, '#d1b1a1', '#e2c6b8', '#b5928a'));
+tex('terracotta_yellow', (p) => terracotta(p, '#ba8523', '#d19c38', '#96691a'));
+
+tex('podzol_top', (p) => { p.fill('#5a3f22').grain(16).speckle('#43301a', 34).speckle('#7a5a34', 24); });
+tex('podzol_side', (p) => {
+  p.fill('#8a6543').grain(18).speckle('#6f4f33', 26);
+  p.rect(0, 0, 16, 3, '#5a3f22');
+  const edge = [3, 4, 3, 4, 4, 3, 2, 4, 4, 3, 4, 2, 3, 4, 4, 3];
+  for (let x = 0; x < 16; x++) p.px(x, edge[x] - 1, '#43301a');
+});
+
+tex('vine', (p) => {
+  const rng = p.rng;
+  for (let x = 1; x < 16; x += 4) {
+    let cx = x;
+    const h = 10 + ((rng() * 6) | 0);
+    for (let y = 0; y < h; y++) {
+      p.px(cx, y, '#3f7a2a');
+      p.px(cx + 1, y, '#356a22');
+      if (rng() < 0.2) cx += rng() < 0.5 ? 1 : -1;
+      if (rng() < 0.18) { p.px(cx - 1, y, '#4f8f36'); p.px(cx + 2, y, '#4f8f36'); }
+    }
+  }
+});
+
+tex('sugar_cane', (p) => {
+  for (const x of [4, 11]) {
+    for (let y = 0; y < 16; y++) {
+      p.px(x, y, '#8fbf5a');
+      p.px(x + 1, y, '#7aa848');
+      if (y % 5 === 0) { p.px(x, y, '#a8cf72'); p.px(x + 1, y, '#a8cf72'); }
+    }
+  }
+  p.px(3, 4, '#8fbf5a'); p.px(12, 9, '#8fbf5a');
+});

@@ -280,6 +280,53 @@ def('bed', {
   tex: { top: 'bed_top', bottom: 'oak_planks', side: 'bed_side' },
 });
 
+/* ─────────────── Blocs des biomes ajoutés (jungle, savane, marais, badlands) ───────────────
+   Déclarés à la fin pour que les identifiants existants ne bougent pas : un
+   monde sauvegardé avant leur arrivée continue d'afficher les bons blocs. */
+
+for (const [n, label] of [['jungle', 'acajou'], ['acacia', 'acacia']]) {
+  def(`${n}_log`, {
+    label: `Tronc d'${label}`, hardness: 2, tool: 'axe', sound: 'wood', fuel: 300,
+    tex: { top: `${n}_log_top`, bottom: `${n}_log_top`, side: `${n}_log_side` },
+  });
+  def(`${n}_planks`, { label: `Planches d'${label}`, tex: `${n}_planks`, hardness: 2, tool: 'axe', sound: 'wood', fuel: 300 });
+  def(`${n}_leaves`, {
+    label: `Feuilles d'${label}`, tex: `${n}_leaves`, hardness: 0.2, sound: 'grass',
+    opaque: false, opacity: 1, render: 'cube', solid: true, drop: null,
+  });
+  def(`${n}_sapling`, {
+    label: `Pousse d'${label}`, tex: `${n}_sapling`, render: 'cross', opaque: false, solid: false,
+    hardness: 0, sound: 'grass', needsSupport: true, plantOn: ['grass_block', 'dirt', 'coarse_dirt', 'farmland', 'podzol'],
+  });
+}
+
+def('red_sand', { label: 'Sable rouge', tex: 'red_sand', hardness: 0.5, tool: 'shovel', sound: 'sand', gravity: true });
+def('red_sandstone', {
+  label: 'Grès rouge', hardness: 0.8, tool: 'pickaxe', tier: 1,
+  tex: { top: 'red_sandstone_top', bottom: 'red_sandstone_bottom', side: 'red_sandstone_side' },
+});
+def('terracotta', { label: 'Terre cuite', tex: 'terracotta', hardness: 1.25, tool: 'pickaxe', tier: 1 });
+def('terracotta_orange', { label: 'Terre cuite orange', tex: 'terracotta_orange', hardness: 1.25, tool: 'pickaxe', tier: 1 });
+def('terracotta_white', { label: 'Terre cuite blanche', tex: 'terracotta_white', hardness: 1.25, tool: 'pickaxe', tier: 1 });
+def('terracotta_yellow', { label: 'Terre cuite jaune', tex: 'terracotta_yellow', hardness: 1.25, tool: 'pickaxe', tier: 1 });
+
+def('podzol', {
+  label: 'Podzol', hardness: 0.5, tool: 'shovel', sound: 'gravel', drop: 'dirt',
+  tex: { top: 'podzol_top', bottom: 'dirt', side: 'podzol_side' },
+});
+
+def('vine', {
+  label: 'Liane', tex: 'vine', render: 'flat', opaque: false, solid: false, climbable: true,
+  hardness: 0.2, tool: 'shears', sound: 'grass', tint: 'foliage', facing: true,
+  drop: null, replaceable: true,
+});
+
+def('sugar_cane', {
+  label: 'Canne à sucre', tex: 'sugar_cane', render: 'cross', opaque: false, solid: false,
+  hardness: 0, sound: 'grass', needsSupport: true, growable: true,
+  plantOn: ['sand', 'red_sand', 'dirt', 'grass_block', 'podzol'],
+});
+
 /* ─────────────────────────── Aides de gameplay ─────────────────────────── */
 
 export const TIER_OF = { none: 0, wood: 1, gold: 1, stone: 2, iron: 3, diamond: 4 };
@@ -319,6 +366,10 @@ export function blockDrops(bl, tool, rng = Math.random, data = 0) {
     const mature = data >= 7;
     push('wheat_seeds', mature ? 1 + Math.floor(rng() * 3) : 1);
     if (mature) push('wheat_item', 1);
+    return out;
+  }
+  if (bl.name === 'vine') {
+    if (tool && tool.tool === 'shears') push('vine', 1);
     return out;
   }
   if (bl.name.endsWith('_leaves')) {

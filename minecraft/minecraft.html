@@ -2148,6 +2148,119 @@ tex('spider_eye', (p) => p.art([
 
 
 
+/* ─────────────────── Tuiles ajoutées : jungle, savane, marais, badlands ───────────────────
+   Elles sont déclarées après coup pour que les couches déjà utilisées gardent
+   leur numéro : les mondes sauvegardés continuent d'afficher les bons blocs. */
+
+tex('jungle_log_side', (p) => logSide(p, '#5a4426', '#3f2f16', '#6b5433'));
+tex('jungle_log_top', (p) => logTop(p, '#c8a05a', '#a07a3a', '#5a4426'));
+tex('jungle_planks', (p) => planks(p, '#a87f52', '#86633c', '#bd9464'));
+tex('jungle_leaves', (p) => leaves(p, '#2f8f2a', '#1f6b1c', '#43a83a'));
+tex('jungle_sapling', (p) => {
+  p.art([
+    '................',
+    '................',
+    '.....#....#.....',
+    '....###..###....',
+    '...##########...',
+    '....########....',
+    '.....######.....',
+    '......####......',
+    '.......##.......',
+    '.......#........',
+    '.......#........',
+    '.......#........',
+    '......###.......',
+    '................',
+    '................',
+    '................',
+  ], { '#': '#2f8f2a' });
+  for (let y = 9; y < 13; y++) p.px(7, y, '#5a4426');
+});
+
+tex('acacia_log_side', (p) => logSide(p, '#6b5a4a', '#4a3c30', '#8a7562'));
+tex('acacia_log_top', (p) => logTop(p, '#b06a3a', '#8a5028', '#6b5a4a'));
+tex('acacia_planks', (p) => planks(p, '#b06336', '#8d4c26', '#c47a4c'));
+tex('acacia_leaves', (p) => leaves(p, '#6f9e2f', '#547a20', '#89b845'));
+tex('acacia_sapling', (p) => {
+  p.art([
+    '................',
+    '................',
+    '................',
+    '...##########...',
+    '..############..',
+    '...####..####...',
+    '................',
+    '.......#........',
+    '.......#........',
+    '.......#........',
+    '.......#........',
+    '......###.......',
+    '................',
+    '................',
+    '................',
+    '................',
+  ], { '#': '#6f9e2f' });
+  for (let y = 7; y < 12; y++) p.px(7, y, '#6b5a4a');
+});
+
+tex('red_sand', (p) => { p.fill('#bf6c33').grain(14).speckle('#a85c28', 30).speckle('#d2814a', 22); });
+tex('red_sandstone_top', (p) => { p.fill('#bd6a32').grain(8).speckle('#a85c28', 20); });
+tex('red_sandstone_side', (p) => {
+  p.fill('#bd6a32').grain(8);
+  p.rect(0, 3, 16, 1, '#9c5222'); p.rect(0, 11, 16, 1, '#9c5222');
+  p.rect(0, 4, 16, 1, '#d18048'); p.rect(0, 12, 16, 1, '#d18048');
+  p.speckle('#a85c28', 24);
+});
+tex('red_sandstone_bottom', (p) => { p.fill('#a85c28').grain(10).speckle('#8f4c1e', 24); });
+
+function terracotta(p, base, light, dark) {
+  p.fill(base).grain(12);
+  p.speckle(dark, 26).speckle(light, 18);
+  for (let i = 0; i < 5; i++) {
+    const y = (p.rng() * 16) | 0;
+    p.rect(0, y, 16, 1, p.rng() < 0.5 ? dark : light);
+  }
+  p.grain(6);
+}
+tex('terracotta', (p) => terracotta(p, '#985e43', '#a97052', '#7d4a33'));
+tex('terracotta_orange', (p) => terracotta(p, '#a05324', '#bd6a34', '#82401a'));
+tex('terracotta_white', (p) => terracotta(p, '#d1b1a1', '#e2c6b8', '#b5928a'));
+tex('terracotta_yellow', (p) => terracotta(p, '#ba8523', '#d19c38', '#96691a'));
+
+tex('podzol_top', (p) => { p.fill('#5a3f22').grain(16).speckle('#43301a', 34).speckle('#7a5a34', 24); });
+tex('podzol_side', (p) => {
+  p.fill('#8a6543').grain(18).speckle('#6f4f33', 26);
+  p.rect(0, 0, 16, 3, '#5a3f22');
+  const edge = [3, 4, 3, 4, 4, 3, 2, 4, 4, 3, 4, 2, 3, 4, 4, 3];
+  for (let x = 0; x < 16; x++) p.px(x, edge[x] - 1, '#43301a');
+});
+
+tex('vine', (p) => {
+  const rng = p.rng;
+  for (let x = 1; x < 16; x += 4) {
+    let cx = x;
+    const h = 10 + ((rng() * 6) | 0);
+    for (let y = 0; y < h; y++) {
+      p.px(cx, y, '#3f7a2a');
+      p.px(cx + 1, y, '#356a22');
+      if (rng() < 0.2) cx += rng() < 0.5 ? 1 : -1;
+      if (rng() < 0.18) { p.px(cx - 1, y, '#4f8f36'); p.px(cx + 2, y, '#4f8f36'); }
+    }
+  }
+});
+
+tex('sugar_cane', (p) => {
+  for (const x of [4, 11]) {
+    for (let y = 0; y < 16; y++) {
+      p.px(x, y, '#8fbf5a');
+      p.px(x + 1, y, '#7aa848');
+      if (y % 5 === 0) { p.px(x, y, '#a8cf72'); p.px(x + 1, y, '#a8cf72'); }
+    }
+  }
+  p.px(3, 4, '#8fbf5a'); p.px(12, 9, '#8fbf5a');
+});
+
 return { Paint, TILE, T, hasTile, tileCount, tileNames, tilePixels, buildAtlas };
 })();
 
@@ -2435,6 +2548,53 @@ def('bed', {
   tex: { top: 'bed_top', bottom: 'oak_planks', side: 'bed_side' },
 });
 
+/* ─────────────── Blocs des biomes ajoutés (jungle, savane, marais, badlands) ───────────────
+   Déclarés à la fin pour que les identifiants existants ne bougent pas : un
+   monde sauvegardé avant leur arrivée continue d'afficher les bons blocs. */
+
+for (const [n, label] of [['jungle', 'acajou'], ['acacia', 'acacia']]) {
+  def(`${n}_log`, {
+    label: `Tronc d'${label}`, hardness: 2, tool: 'axe', sound: 'wood', fuel: 300,
+    tex: { top: `${n}_log_top`, bottom: `${n}_log_top`, side: `${n}_log_side` },
+  });
+  def(`${n}_planks`, { label: `Planches d'${label}`, tex: `${n}_planks`, hardness: 2, tool: 'axe', sound: 'wood', fuel: 300 });
+  def(`${n}_leaves`, {
+    label: `Feuilles d'${label}`, tex: `${n}_leaves`, hardness: 0.2, sound: 'grass',
+    opaque: false, opacity: 1, render: 'cube', solid: true, drop: null,
+  });
+  def(`${n}_sapling`, {
+    label: `Pousse d'${label}`, tex: `${n}_sapling`, render: 'cross', opaque: false, solid: false,
+    hardness: 0, sound: 'grass', needsSupport: true, plantOn: ['grass_block', 'dirt', 'coarse_dirt', 'farmland', 'podzol'],
+  });
+}
+
+def('red_sand', { label: 'Sable rouge', tex: 'red_sand', hardness: 0.5, tool: 'shovel', sound: 'sand', gravity: true });
+def('red_sandstone', {
+  label: 'Grès rouge', hardness: 0.8, tool: 'pickaxe', tier: 1,
+  tex: { top: 'red_sandstone_top', bottom: 'red_sandstone_bottom', side: 'red_sandstone_side' },
+});
+def('terracotta', { label: 'Terre cuite', tex: 'terracotta', hardness: 1.25, tool: 'pickaxe', tier: 1 });
+def('terracotta_orange', { label: 'Terre cuite orange', tex: 'terracotta_orange', hardness: 1.25, tool: 'pickaxe', tier: 1 });
+def('terracotta_white', { label: 'Terre cuite blanche', tex: 'terracotta_white', hardness: 1.25, tool: 'pickaxe', tier: 1 });
+def('terracotta_yellow', { label: 'Terre cuite jaune', tex: 'terracotta_yellow', hardness: 1.25, tool: 'pickaxe', tier: 1 });
+
+def('podzol', {
+  label: 'Podzol', hardness: 0.5, tool: 'shovel', sound: 'gravel', drop: 'dirt',
+  tex: { top: 'podzol_top', bottom: 'dirt', side: 'podzol_side' },
+});
+
+def('vine', {
+  label: 'Liane', tex: 'vine', render: 'flat', opaque: false, solid: false, climbable: true,
+  hardness: 0.2, tool: 'shears', sound: 'grass', tint: 'foliage', facing: true,
+  drop: null, replaceable: true,
+});
+
+def('sugar_cane', {
+  label: 'Canne à sucre', tex: 'sugar_cane', render: 'cross', opaque: false, solid: false,
+  hardness: 0, sound: 'grass', needsSupport: true, growable: true,
+  plantOn: ['sand', 'red_sand', 'dirt', 'grass_block', 'podzol'],
+});
+
 /* ─────────────────────────── Aides de gameplay ─────────────────────────── */
 
 const TIER_OF = { none: 0, wood: 1, gold: 1, stone: 2, iron: 3, diamond: 4 };
@@ -2474,6 +2634,10 @@ function blockDrops(bl, tool, rng = Math.random, data = 0) {
     const mature = data >= 7;
     push('wheat_seeds', mature ? 1 + Math.floor(rng() * 3) : 1);
     if (mature) push('wheat_item', 1);
+    return out;
+  }
+  if (bl.name === 'vine') {
+    if (tool && tool.tool === 'shears') push('vine', 1);
     return out;
   }
   if (bl.name.endsWith('_leaves')) {
@@ -2533,21 +2697,40 @@ for (const n of ['air', 'stone', 'dirt', 'grass_block', 'sand', 'sandstone', 'gr
   'bedrock', 'coal_ore', 'iron_ore', 'gold_ore', 'diamond_ore', 'emerald_ore', 'lapis_ore', 'redstone_ore',
   'granite', 'diorite', 'andesite', 'snow_block', 'ice', 'cactus', 'dead_bush', 'tall_grass', 'dandelion',
   'poppy', 'oak_log', 'oak_leaves', 'birch_log', 'birch_leaves', 'spruce_log', 'spruce_leaves',
-  'red_mushroom', 'brown_mushroom', 'pumpkin', 'coarse_dirt']) ID[n] = idByName(n);
+  'red_mushroom', 'brown_mushroom', 'pumpkin', 'coarse_dirt',
+  'jungle_log', 'jungle_leaves', 'acacia_log', 'acacia_leaves', 'vine', 'sugar_cane',
+  'red_sand', 'red_sandstone', 'terracotta', 'terracotta_orange', 'terracotta_white',
+  'terracotta_yellow', 'podzol']) ID[n] = idByName(n);
 
 /* ──────────────────────────────── Biomes ──────────────────────────────── */
 
+/** Les quatre côtés d'un bloc : décalage x, décalage z, indice de face. */
+const DIRS4 = [[1, 0, 0], [-1, 0, 1], [0, 1, 4], [0, -1, 5]];
+
 const BIOMES = [
   { name: 'ocean', label: 'Océan', top: ID.gravel, filler: ID.gravel, grass: [0x5a, 0x9e, 0x6a], foliage: [0x4f, 0x8e, 0x44], trees: 0, plants: 0 },
-  { name: 'beach', label: 'Plage', top: ID.sand, filler: ID.sand, grass: [0x8f, 0xc4, 0x6a], foliage: [0x6f, 0xa8, 0x4a], trees: 0, plants: 0.01 },
-  { name: 'plains', label: 'Plaines', top: ID.grass_block, filler: ID.dirt, grass: [0x91, 0xbd, 0x59], foliage: [0x77, 0xab, 0x2f], trees: 0.004, plants: 0.22, tree: 'oak', flowers: true },
-  { name: 'forest', label: 'Forêt', top: ID.grass_block, filler: ID.dirt, grass: [0x79, 0xc0, 0x5a], foliage: [0x59, 0xae, 0x30], trees: 0.055, plants: 0.28, tree: 'oak', flowers: true },
+  { name: 'beach', cane: true, label: 'Plage', top: ID.sand, filler: ID.sand, grass: [0x8f, 0xc4, 0x6a], foliage: [0x6f, 0xa8, 0x4a], trees: 0, plants: 0.01 },
+  { name: 'plains', cane: true, label: 'Plaines', top: ID.grass_block, filler: ID.dirt, grass: [0x91, 0xbd, 0x59], foliage: [0x77, 0xab, 0x2f], trees: 0.004, plants: 0.22, tree: 'oak', flowers: true },
+  { name: 'forest', cane: true, label: 'Forêt', top: ID.grass_block, filler: ID.dirt, grass: [0x79, 0xc0, 0x5a], foliage: [0x59, 0xae, 0x30], trees: 0.055, plants: 0.28, tree: 'oak', flowers: true },
   { name: 'birch_forest', label: 'Forêt de bouleaux', top: ID.grass_block, filler: ID.dirt, grass: [0x88, 0xbb, 0x67], foliage: [0x6b, 0xa9, 0x41], trees: 0.05, plants: 0.24, tree: 'birch' },
   { name: 'taiga', label: 'Taïga', top: ID.grass_block, filler: ID.dirt, grass: [0x86, 0xb7, 0x83], foliage: [0x68, 0xa4, 0x64], trees: 0.06, plants: 0.14, tree: 'spruce', mushrooms: true },
-  { name: 'desert', label: 'Désert', top: ID.sand, filler: ID.sandstone, grass: [0xbf, 0xb7, 0x55], foliage: [0xae, 0xa4, 0x2a], trees: 0.002, plants: 0.02, tree: 'cactus', dead: true },
+  { name: 'desert', cane: true, label: 'Désert', top: ID.sand, filler: ID.sandstone, grass: [0xbf, 0xb7, 0x55], foliage: [0xae, 0xa4, 0x2a], trees: 0.002, plants: 0.02, tree: 'cactus', dead: true },
   { name: 'mountains', label: 'Montagnes', top: ID.grass_block, filler: ID.dirt, grass: [0x8a, 0xb6, 0x89], foliage: [0x6d, 0xa4, 0x6a], trees: 0.006, plants: 0.1, tree: 'spruce' },
   { name: 'snowy', label: 'Toundra enneigée', top: ID.snow_block, filler: ID.dirt, grass: [0x80, 0xb4, 0x97], foliage: [0x60, 0xa1, 0x7b], trees: 0.008, plants: 0.03, tree: 'spruce', snow: true },
+  { name: 'jungle', label: 'Jungle', top: ID.grass_block, filler: ID.dirt, grass: [0x59, 0xc9, 0x3c], foliage: [0x30, 0xbb, 0x0b], trees: 0.065, plants: 0.45, tree: 'jungle', vines: true, mushrooms: true, cane: true },
+  { name: 'savanna', cane: true, label: 'Savane', top: ID.grass_block, filler: ID.dirt, grass: [0xbf, 0xb7, 0x55], foliage: [0xae, 0xa4, 0x2a], trees: 0.014, plants: 0.3, tree: 'acacia' },
+  { name: 'swamp', label: 'Marais', top: ID.grass_block, filler: ID.dirt, grass: [0x6a, 0x70, 0x39], foliage: [0x6a, 0x70, 0x39], trees: 0.03, plants: 0.35, tree: 'oak', vines: true, mushrooms: true, cane: true, swamp: true },
+  { name: 'badlands', label: 'Badlands', top: ID.red_sand, filler: ID.terracotta, grass: [0x90, 0x81, 0x4d], foliage: [0x9e, 0x81, 0x4d], trees: 0.004, plants: 0.06, tree: 'cactus', dead: true, mesa: true },
 ];
+
+/** Couleur de la strate de terre cuite à une altitude donnée (badlands). */
+function mesaLayer(y) {
+  const m = ((y % 23) + 23) % 23;
+  if (m === 3 || m === 4 || m === 14) return ID.terracotta_orange;
+  if (m === 8 || m === 17 || m === 18) return ID.terracotta_white;
+  if (m === 11 || m === 21) return ID.terracotta_yellow;
+  return ID.terracotta;
+}
 
 const BIOME_ID = {};
 BIOMES.forEach((b, i) => { BIOME_ID[b.name] = i; });
@@ -2585,10 +2768,23 @@ class WorldGen {
     else if (h <= SEA_LEVEL + 1) biome = BIOME_ID.beach;
     else if (h > SEA_LEVEL + 30) biome = BIOME_ID.mountains;
     else if (temp < -0.16) biome = hum > -0.05 ? BIOME_ID.taiga : BIOME_ID.snowy;
-    else if (temp > 0.16 && hum < 0.08) biome = BIOME_ID.desert;
+    else if (temp > 0.26 && hum < -0.02) biome = BIOME_ID.badlands;
+    else if (temp > 0.16 && hum < 0.06) biome = BIOME_ID.desert;
+    else if (temp > 0.04 && hum > 0.19) biome = BIOME_ID.jungle;
+    else if (temp > 0.05 && hum >= 0.05 && hum <= 0.17) biome = BIOME_ID.savanna;
+    else if (hum > 0.11 && h < SEA_LEVEL + 7) biome = BIOME_ID.swamp;
     else if (hum > 0.14) biome = temp > 0.02 ? BIOME_ID.forest : BIOME_ID.birch_forest;
     else if (hum > 0.02) biome = BIOME_ID.forest;
     else biome = BIOME_ID.plains;
+
+    // Le marais est plat et gorgé d'eau ; les badlands montent en plateaux.
+    if (biome === BIOME_ID.swamp) {
+      // Terrain plat, criblé de mares : sans elles, un marais n'en est pas un.
+      const plat = SEA_LEVEL + Math.round((h - SEA_LEVEL) * 0.25);
+      const mare = this.nDirt.perlin2(wx / 27 + 90, wz / 27 - 40);
+      h = plat + (mare > 0.1 ? -2 : 0);
+    }
+    else if (biome === BIOME_ID.badlands) h = SEA_LEVEL + 4 + Math.round((h - SEA_LEVEL) * 1.15);
 
     return { h, biome, temp, hum, mountainMask };
   }
@@ -2628,6 +2824,7 @@ class WorldGen {
           else if (y <= 2 && hash3i(wx, y, wz, this.seed) < 0.6 - y * 0.2) id = ID.bedrock;
           else if (y > col.h) id = y <= SEA_LEVEL ? ID.water : 0;
           else if (y === col.h) id = col.h <= SEA_LEVEL + 1 && b.name !== 'desert' ? (col.h < SEA_LEVEL - 1 ? ID.gravel : ID.sand) : b.top;
+          else if (b.mesa && y > col.h - 26) id = mesaLayer(y);
           else if (y > col.h - dirtDepth) id = b.filler;
           else {
             id = ID.stone;
@@ -2643,6 +2840,8 @@ class WorldGen {
           if (id) blocks[idx(x, y, z)] = id;
         }
 
+        // Sable rouge en surface des badlands bas, terre cuite sur les hauteurs.
+        if (b.mesa && col.h > SEA_LEVEL + 12) blocks[idx(x, col.h, z)] = mesaLayer(col.h);
         // Montagnes enneigées au-dessus de 88.
         if (col.h > 88 && b.top === ID.grass_block) blocks[idx(x, col.h, z)] = ID.snow_block;
         // Surface gelée dans la toundra.
@@ -2721,13 +2920,14 @@ class WorldGen {
   featuresOf(world, fcx, fcz, target) {
     const rng = mulberry32((fcx * 1013904223 + fcz * 1664525 + this.seed * 7919) >>> 0);
     const baseX = fcx * CX, baseZ = fcz * CZ;
-    const put = (wx, wy, wz, id, force = false) => {
+    const put = (wx, wy, wz, id, force = false, data = 0) => {
       const lx = wx - target.cx * CX, lz = wz - target.cz * CZ;
       if (lx < 0 || lx >= CX || lz < 0 || lz >= CZ || wy < 0 || wy >= WORLD_H) return;
       const i = idx(lx, wy, lz);
       const cur = target.blocks[i];
       if (!force && cur !== 0 && cur !== ID.water) return;
       target.blocks[i] = id;
+      if (data) target.setData(lx, wy, lz, data);
     };
     const groundAt = (wx, wz) => this.column(wx, wz);
 
@@ -2737,10 +2937,11 @@ class WorldGen {
       const wz = baseZ + Math.floor(rng() * CZ);
       const col = groundAt(wx, wz);
       const b = BIOMES[col.biome];
-      if (!b.tree || rng() > b.trees * 26) continue;
+      // `trees` est une probabilité par colonne : 24 tentatives sur 256 colonnes.
+      if (!b.tree || rng() > b.trees * 10.7) continue;
       if (col.h <= SEA_LEVEL) continue;
       if (b.tree === 'cactus') this.cactus(put, wx, col.h + 1, wz, rng);
-      else this.tree(put, wx, col.h + 1, wz, b.tree, rng);
+      else this.tree(put, wx, col.h + 1, wz, b.tree, rng, b.vines);
     }
 
     // Herbes, fleurs, champignons, citrouilles
@@ -2755,6 +2956,16 @@ class WorldGen {
       const y = col.h + 1;
       if (b.dead) { if (rng() < 0.5) put(wx, y, wz, ID.dead_bush); continue; }
       if (b.snow) { if (rng() < 0.3) put(wx, y, wz, ID.tall_grass); continue; }
+      // Canne à sucre : uniquement les pieds dans l'eau, comme dans le jeu.
+      if (b.cane && rng() < 0.35) {
+        const bordDeau = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+          .some(([ox, oz]) => groundAt(wx + ox, wz + oz).h < SEA_LEVEL);
+        if (bordDeau) {
+          const h = 2 + Math.floor(rng() * 3);
+          for (let k = 0; k < h; k++) put(wx, y + k, wz, ID.sugar_cane);
+          continue;
+        }
+      }
       const q = rng();
       if (b.flowers && q < 0.12) put(wx, y, wz, ID.dandelion);
       else if (b.flowers && q < 0.2) put(wx, y, wz, ID.poppy);
@@ -2765,27 +2976,83 @@ class WorldGen {
   }
 
   /** Un arbre : tronc + houppier, forme dépendante de l'essence. */
-  tree(put, x, y, z, kind, rng) {
-    const logId = kind === 'oak' ? ID.oak_log : kind === 'birch' ? ID.birch_log : ID.spruce_log;
-    const leafId = kind === 'oak' ? ID.oak_leaves : kind === 'birch' ? ID.birch_leaves : ID.spruce_leaves;
+  tree(put, x, y, z, kind, rng, vines = false) {
+    const LOGS = { oak: ID.oak_log, birch: ID.birch_log, spruce: ID.spruce_log, jungle: ID.jungle_log, acacia: ID.acacia_log };
+    const LEAVES = { oak: ID.oak_leaves, birch: ID.birch_leaves, spruce: ID.spruce_leaves, jungle: ID.jungle_leaves, acacia: ID.acacia_leaves };
+    const logId = LOGS[kind] ?? ID.oak_log;
+    const leafId = LEAVES[kind] ?? ID.oak_leaves;
+    const feuilles = [];
+    const poseFeuille = (fx, fy, fz) => { put(fx, fy, fz, leafId); feuilles.push([fx, fy, fz]); };
+
     if (kind === 'spruce') {
       const h = 7 + Math.floor(rng() * 5);
       for (let i = 0; i < h; i++) put(x, y + i, z, logId, true);
-      let r = 0;
       for (let i = h - 1; i >= 2; i--) {
-        const layer = h - 1 - i;
-        r = layer % 2 === 0 ? Math.min(3, 1 + Math.floor(layer / 2)) : Math.max(1, Math.floor(layer / 2));
+        const couche = h - 1 - i;
+        const r = couche % 2 === 0 ? Math.min(3, 1 + Math.floor(couche / 2)) : Math.max(1, Math.floor(couche / 2));
         for (let dx = -r; dx <= r; dx++) {
           for (let dz = -r; dz <= r; dz++) {
             if (Math.abs(dx) + Math.abs(dz) > r + 1) continue;
             if (dx === 0 && dz === 0 && i < h) continue;
-            put(x + dx, y + i, z + dz, leafId);
+            poseFeuille(x + dx, y + i, z + dz);
           }
         }
       }
-      put(x, y + h, z, leafId);
+      poseFeuille(x, y + h, z);
       return;
     }
+
+    if (kind === 'acacia') {
+      // Tronc droit puis penché, houppier plat : la silhouette de la savane.
+      const tronc = 4 + Math.floor(rng() * 2);
+      for (let i = 0; i < tronc; i++) put(x, y + i, z, logId, true);
+      const dx = rng() < 0.5 ? 1 : -1;
+      const dz = rng() < 0.5 ? 1 : -1;
+      const penche = rng() < 0.5;
+      let cx = x, cz = z, cy = y + tronc;
+      for (let i = 0; i < 3; i++) {
+        if (penche) cx += dx; else cz += dz;
+        put(cx, cy, cz, logId, true);
+        cy++;
+      }
+      for (let ry = 0; ry < 2; ry++) {
+        const r = ry === 0 ? 3 : 2;
+        for (let ox = -r; ox <= r; ox++) {
+          for (let oz = -r; oz <= r; oz++) {
+            if (Math.abs(ox) + Math.abs(oz) > r + 1) continue;
+            poseFeuille(cx + ox, cy - 1 + ry, cz + oz);
+          }
+        }
+      }
+      return;
+    }
+
+    if (kind === 'jungle') {
+      // Grand fût nu et couronne haute, d'où pendent les lianes.
+      const h = 9 + Math.floor(rng() * 6);
+      for (let i = 0; i < h; i++) put(x, y + i, z, logId, true);
+      for (let dy = h - 2; dy <= h + 1; dy++) {
+        const r = dy >= h ? 2 : 3;
+        for (let dx = -r; dx <= r; dx++) {
+          for (let dz = -r; dz <= r; dz++) {
+            if (dx * dx + dz * dz > r * r + 1) continue;
+            if (dx === 0 && dz === 0 && dy < h) continue;
+            if (Math.abs(dx) === r && Math.abs(dz) === r && rng() < 0.6) continue;
+            poseFeuille(x + dx, y + dy, z + dz);
+          }
+        }
+      }
+      // Quelques lianes le long du tronc.
+      for (let i = 3; i < h - 2; i++) {
+        if (rng() < 0.35) {
+          const [ox, oz, face] = DIRS4[(rng() * 4) | 0];
+          put(x + ox, y + i, z + oz, ID.vine, false, face ^ 1);
+        }
+      }
+      this.vines(put, feuilles, rng);
+      return;
+    }
+
     const h = (kind === 'birch' ? 6 : 5) + Math.floor(rng() * 3);
     for (let i = 0; i < h; i++) put(x, y + i, z, logId, true);
     for (let dy = h - 3; dy <= h; dy++) {
@@ -2794,9 +3061,20 @@ class WorldGen {
         for (let dz = -r; dz <= r; dz++) {
           if (dx === 0 && dz === 0 && dy < h) continue;
           if (Math.abs(dx) === r && Math.abs(dz) === r && (rng() < 0.5 || dy >= h - 1)) continue;
-          put(x + dx, y + dy, z + dz, leafId);
+          poseFeuille(x + dx, y + dy, z + dz);
         }
       }
+    }
+    if (vines) this.vines(put, feuilles, rng);
+  }
+
+  /** Rideaux de lianes accrochés sous le houppier. */
+  vines(put, feuilles, rng) {
+    for (const [fx, fy, fz] of feuilles) {
+      if (rng() > 0.22) continue;
+      const [ox, oz, face] = DIRS4[(rng() * 4) | 0];
+      const longueur = 1 + Math.floor(rng() * 5);
+      for (let k = 0; k < longueur; k++) put(fx + ox, fy - k, fz + oz, ID.vine, false, face ^ 1);
     }
   }
 
@@ -4221,14 +4499,23 @@ function rotateZ(out, a) {
   return out;
 }
 
-/** Matrice de vue d'une caméra placée en (x,y,z) et orientée par yaw/pitch. */
+/**
+ * Matrice de vue d'une caméra placée en (x,y,z) et orientée par yaw/pitch.
+ *
+ * Convention du jeu, identique à celle de Minecraft :
+ *   • yaw 0 regarde vers +Z ; l'avant vaut (−sin yaw·cos pitch, sin pitch, cos yaw·cos pitch)
+ *     — c'est exactement ce que renvoie Player.lookVector(), donc le viseur
+ *     et l'image montrent le même bloc ;
+ *   • le repère du monde étant direct avec Y vers le haut, la droite de la
+ *     caméra vaut (−cos yaw, 0, −sin yaw) : face au sud, l'ouest est à droite.
+ */
 function viewMatrix(out, x, y, z, yaw, pitch) {
   const cy = Math.cos(yaw), sy = Math.sin(yaw);
   const cp = Math.cos(pitch), sp = Math.sin(pitch);
-  // R = Rx(pitch) * Ry(yaw) puis translation ; on écrit directement l'inverse.
-  out[0] = cy; out[1] = sy * sp; out[2] = -sy * cp; out[3] = 0;
-  out[4] = 0; out[5] = cp; out[6] = sp; out[7] = 0;
-  out[8] = sy; out[9] = -cy * sp; out[10] = cy * cp; out[11] = 0;
+  // Lignes de la rotation : droite, haut, arrière (l'inverse de l'avant).
+  out[0] = -cy; out[1] = sy * sp; out[2] = sy * cp; out[3] = 0;
+  out[4] = 0; out[5] = cp; out[6] = -sp; out[7] = 0;
+  out[8] = -sy; out[9] = -cy * sp; out[10] = -cy * cp; out[11] = 0;
   out[12] = -(out[0] * x + out[4] * y + out[8] * z);
   out[13] = -(out[1] * x + out[5] * y + out[9] * z);
   out[14] = -(out[2] * x + out[6] * y + out[10] * z);
@@ -4352,7 +4639,7 @@ void main() {
 
   vec3 pos = uOrigin + vec3(x, y, z);
   if (off == 1u) pos.y -= 0.115;
-  else if (off == 2u) pos += NORMALS[face] * 0.0625;
+  else if (off == 2u) pos -= NORMALS[face] * 0.0625;
 
   // Courbe de lumière de Minecraft : chaque niveau perdu retire ~15 %.
   float skyTerm = pow(0.86, 15.0 - sky) * uDay;
@@ -5319,13 +5606,21 @@ function forEachBlockIn(world, e, fn) {
   }
 }
 
-/** Y a-t-il ce fluide à hauteur d'yeux / de corps ? */
+/**
+ * Y a-t-il ce fluide au contact ?
+ * Comme dans le jeu, la boîte entière compte : les pieds qui trempent
+ * suffisent. C'est ce qui permet de nager pour se hisser sur une berge, au
+ * lieu de flotter indéfiniment au ras de la surface.
+ */
 function inFluid(world, e, fluid, atEyes = false) {
-  const hw = e.width / 2 * 0.8;
-  const y = atEyes ? e.y + e.height * 0.9 : e.y + e.height * 0.4;
-  for (const [dx, dz] of [[0, 0], [-hw, -hw], [hw, hw], [-hw, hw], [hw, -hw]]) {
-    const bl = BLOCKS[world.getBlock(Math.floor(e.x + dx), Math.floor(y), Math.floor(e.z + dz))];
-    if (bl.fluid === fluid) return true;
+  const hw = (e.width / 2) * 0.8;
+  const hauteurs = atEyes ? [e.height * 0.9] : [0.1, e.height * 0.4];
+  for (const h of hauteurs) {
+    const y = Math.floor(e.y + h);
+    for (const [dx, dz] of [[0, 0], [-hw, -hw], [hw, hw], [-hw, hw], [hw, -hw]]) {
+      const bl = BLOCKS[world.getBlock(Math.floor(e.x + dx), y, Math.floor(e.z + dz))];
+      if (bl.fluid === fluid) return true;
+    }
   }
   return false;
 }
@@ -6731,12 +7026,10 @@ class Player extends Entity {
 
     if (this.sprinting && (len === 0 || this.food <= 6)) this.sprinting = false;
 
+    // Avant et droite de la caméra (mêmes vecteurs que la matrice de vue).
     const cy = Math.cos(this.yaw), sy = Math.sin(this.yaw);
-    let dirX = fx * cy - fz * sy;
-    let dirZ = fx * sy + fz * cy;
-    // Repère : yaw 0 regarde vers +Z.
-    dirX = -fz * sy + fx * cy;
-    dirZ = fz * cy + fx * sy;
+    const dirX = -fz * sy - fx * cy;
+    const dirZ = fz * cy - fx * sy;
 
     if (this.flying) {
       const speed = FLY * (input.sprint ? 2.2 : 1) * (this.sneaking ? 0.4 : 1);
@@ -6765,7 +7058,11 @@ class Player extends Entity {
       if (!input.jump && !input.sneak && len === 0) this.vy = 0;
     } else if (swimming) {
       this.vy -= GRAVITY * 0.32 * dt;
-      if (input.jump) this.vy = Math.min(this.vy + 22 * dt, 3.4);
+      // Les pieds au sol dans l'eau peu profonde : on saute pour de bon.
+      if (input.jump) {
+        if (this.onGround) this.vy = JUMP_V * 0.9;
+        else this.vy = Math.min(this.vy + 26 * dt, 3.6);
+      }
       this.vy = Math.max(this.vy, -3);
     } else {
       this.vy -= GRAVITY * dt;
@@ -6779,6 +7076,15 @@ class Player extends Entity {
 
     const before = { x: this.x, z: this.z };
     let hit = move(world, this, this.vx * dt, this.vy * dt, this.vz * dt);
+
+    // Sortir de l'eau : buter contre une berge en nageant fait remonter, comme
+    // dans le jeu. Sans cela, on reste prisonnier du moindre plan d'eau.
+    if (swimming && (hit.x || hit.z) && this.vy < 4) {
+      const ahead = { x: this.x + Math.sign(dirX) * 0.5, z: this.z + Math.sign(dirZ) * 0.5 };
+      const headFree = !BLOCKS[world.getBlock(
+        Math.floor(hit.x ? ahead.x : this.x), Math.floor(this.y + 1.2), Math.floor(hit.z ? ahead.z : this.z))].solid;
+      if (headFree || this.inWater) this.vy = 5.2;
+    }
 
     // Accroupi : on ne tombe pas du rebord.
     if (this.sneaking && wasOnGround && !hit.ground && this.vy <= 0) {
@@ -7225,7 +7531,8 @@ class Player extends Entity {
       const quad = Math.round(yaw / (Math.PI / 2)) % 4;   // 0=+Z(sud) …
       data = [2, 3, 0, 1][quad];
     }
-    if (placing.render === 'flat') data = hit.face;
+    // Un panneau plat regarde son support : c'est la face opposée à celle cliquée.
+    if (placing.render === 'flat') data = hit.face ^ 1;
     if (placing.name === 'wheat') data = 0;
 
     world.setBlock(x, y, z, it.place, data);
@@ -7431,7 +7738,7 @@ const { stack } = __m['items.js'];
 
 const RECIPES = [];
 
-const WOODS = ['oak', 'birch', 'spruce'];
+const WOODS = ['oak', 'birch', 'spruce', 'jungle', 'acacia'];
 const ANY_PLANKS = WOODS.map((w) => `${w}_planks`);
 const ANY_LOG = WOODS.map((w) => `${w}_log`);
 
@@ -7489,6 +7796,7 @@ for (const [mat, blockName] of COMPACT) {
 
 shaped('stone_bricks', 4, ['##', '##'], { '#': 'stone' });
 shaped('sandstone', 1, ['##', '##'], { '#': 'sand' });
+shaped('red_sandstone', 1, ['##', '##'], { '#': 'red_sand' });
 shaped('brick', 1, ['##', '##'], { '#': 'brick_item' });
 shaped('glowstone', 1, ['##', '##'], { '#': 'gold_ingot' });
 
@@ -8966,7 +9274,7 @@ class Game {
     this.onMouseMove = (e) => {
       if (document.pointerLockElement !== canvas) return;
       const s = (this.settings.sensitivity ?? 1) * 0.0022;
-      this.player.yaw -= e.movementX * s;
+      this.player.yaw += e.movementX * s;
       this.player.pitch -= e.movementY * s;
       const lim = Math.PI / 2 - 0.001;
       this.player.pitch = Math.max(-lim, Math.min(lim, this.player.pitch));

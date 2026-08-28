@@ -82,14 +82,23 @@ export function rotateZ(out, a) {
   return out;
 }
 
-/** Matrice de vue d'une caméra placée en (x,y,z) et orientée par yaw/pitch. */
+/**
+ * Matrice de vue d'une caméra placée en (x,y,z) et orientée par yaw/pitch.
+ *
+ * Convention du jeu, identique à celle de Minecraft :
+ *   • yaw 0 regarde vers +Z ; l'avant vaut (−sin yaw·cos pitch, sin pitch, cos yaw·cos pitch)
+ *     — c'est exactement ce que renvoie Player.lookVector(), donc le viseur
+ *     et l'image montrent le même bloc ;
+ *   • le repère du monde étant direct avec Y vers le haut, la droite de la
+ *     caméra vaut (−cos yaw, 0, −sin yaw) : face au sud, l'ouest est à droite.
+ */
 export function viewMatrix(out, x, y, z, yaw, pitch) {
   const cy = Math.cos(yaw), sy = Math.sin(yaw);
   const cp = Math.cos(pitch), sp = Math.sin(pitch);
-  // R = Rx(pitch) * Ry(yaw) puis translation ; on écrit directement l'inverse.
-  out[0] = cy; out[1] = sy * sp; out[2] = -sy * cp; out[3] = 0;
-  out[4] = 0; out[5] = cp; out[6] = sp; out[7] = 0;
-  out[8] = sy; out[9] = -cy * sp; out[10] = cy * cp; out[11] = 0;
+  // Lignes de la rotation : droite, haut, arrière (l'inverse de l'avant).
+  out[0] = -cy; out[1] = sy * sp; out[2] = sy * cp; out[3] = 0;
+  out[4] = 0; out[5] = cp; out[6] = -sp; out[7] = 0;
+  out[8] = -sy; out[9] = -cy * sp; out[10] = -cy * cp; out[11] = 0;
   out[12] = -(out[0] * x + out[4] * y + out[8] * z);
   out[13] = -(out[1] * x + out[5] * y + out[9] * z);
   out[14] = -(out[2] * x + out[6] * y + out[10] * z);

@@ -11,7 +11,7 @@ import { stack } from './items.js';
 
 export const RECIPES = [];
 
-const WOODS = ['oak', 'birch', 'spruce'];
+const WOODS = ['oak', 'birch', 'spruce', 'jungle', 'acacia'];
 const ANY_PLANKS = WOODS.map((w) => `${w}_planks`);
 const ANY_LOG = WOODS.map((w) => `${w}_log`);
 
@@ -69,6 +69,7 @@ for (const [mat, blockName] of COMPACT) {
 
 shaped('stone_bricks', 4, ['##', '##'], { '#': 'stone' });
 shaped('sandstone', 1, ['##', '##'], { '#': 'sand' });
+shaped('red_sandstone', 1, ['##', '##'], { '#': 'red_sand' });
 shaped('brick', 1, ['##', '##'], { '#': 'brick_item' });
 shaped('glowstone', 1, ['##', '##'], { '#': 'gold_ingot' });
 

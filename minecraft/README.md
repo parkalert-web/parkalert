@@ -7,7 +7,7 @@ démarrage et les bruitages sont synthétisés par Web Audio.
 
 ```
 minecraft/
-  minecraft.html      LE JEU EN UN SEUL FICHIER (engendré) — 355 Ko
+  minecraft.html      LE JEU EN UN SEUL FICHIER (engendré) — 380 Ko
   index.html          version modulaire, pour développer
   style.css           habillage (menus, ATH, inventaires)
   src/                21 modules ES, sans dépendance
@@ -56,11 +56,14 @@ Commandes du chat : `/gamemode`, `/time set jour|nuit|midi|<ticks>`,
 ## Ce qui est là
 
 **Monde** — infini, découpé en tronçons de 16 × 128 × 16, généré par bruit de
-Perlin : neuf biomes (océan, plage, plaines, forêt, forêt de bouleaux, taïga,
-désert, montagnes, toundra), grottes et cavernes, filons de minerai dont la
-profondeur suit la rareté, lacs de lave, arbres à cheval sur les tronçons,
-fleurs, champignons, cactus, citrouilles. Une graine (numérique ou textuelle)
-redonne toujours le même monde.
+Perlin. Treize biomes : océan, plage, plaines, forêt, forêt de bouleaux, taïga,
+désert, montagnes, toundra enneigée, **jungle** (grands acajous et rideaux de
+lianes), **savane** (acacias au houppier plat), **marais** (plat, mares d'eau,
+chênes drapés de lianes, cannes à sucre) et **badlands** (plateaux de terre
+cuite en strates orange, blanches et jaunes sur du sable rouge). S'y ajoutent
+grottes et cavernes, filons dont la profondeur suit la rareté, lacs de lave,
+arbres à cheval sur les tronçons, fleurs, champignons, cactus, citrouilles.
+Une graine (numérique ou textuelle) redonne toujours le même monde.
 
 **Lumière** — deux canaux comme dans le jeu : la lumière du ciel qui tombe
 verticalement sans s'affaiblir puis déborde sur les côtés, et celle des blocs
@@ -80,7 +83,9 @@ vide. Armure en cuir, or, fer ou diamant (chaque point retire 4 % de dégâts),
 outils avec durabilité et paliers (le diamant seul entame l'obsidienne),
 expérience et niveaux, mort avec perte de l'inventaire et réapparition.
 
-**Artisanat** — 76 recettes façonnées et informes, grille 2 × 2 portable et 3 × 3
+**Artisanat** — 79 recettes façonnées et informes, cinq essences de bois
+(chêne, bouleau, sapin, acajou, acacia) interchangeables dans toutes les
+recettes, grille 2 × 2 portable et 3 × 3
 sur l'établi, four avec combustible, jauge de combustion et progression de
 cuisson, coffres de 27 emplacements. Outils, armures, arc et flèches, torches,
 lit, TNT, blocs compactés, pain, pomme dorée…
@@ -128,6 +133,11 @@ cubes pleins, des croix et des panneaux plats).
   chaque étape avec son budget par image. Un tronçon n'est décoré que si ses huit
   voisins ont leur relief, et n'est maillé que si ses quatre voisins sont
   éclairés : pas de couture visible ni d'arbre coupé en deux.
+- **Repère du monde** : yaw 0 regarde vers +Z, l'avant vaut
+  (−sin yaw·cos pitch, sin pitch, cos yaw·cos pitch), et la droite de la caméra
+  (−cos yaw, 0, −sin yaw) — face au sud, l'ouest est à droite, comme dans le
+  jeu. Le déplacement, le lancer de rayon, l'orientation des créatures et la
+  matrice de vue suivent tous cette convention.
 - **Lumière** : BFS d'ajout et de retrait, amorcé uniquement le long des parois
   (ailleurs le ciel est déjà à 15) — c'est ce qui fait tenir l'éclairage d'un
   tronçon en quelques millisecondes.
@@ -138,11 +148,13 @@ cubes pleins, des croix et des panneaux plats).
 npm run test:minecraft
 ```
 
-29 tests couvrent la reproductibilité du monde, la répartition des minerais, les
+36 tests couvrent la reproductibilité du monde, la répartition des minerais, les
 durées de cassage, les paliers d'outils, les recettes, les inventaires, la
 propagation et le retrait de la lumière, les collisions, l'écoulement de l'eau,
-la gravité du sable, le four, la pousse du blé, l'élagage des faces et la
-sauvegarde différentielle.
+la gravité du sable, le four, la pousse du blé, l'élagage des faces, la
+sauvegarde différentielle, le décor des biomes et **l'accord entre la caméra et
+le viseur** — la matrice de vue et le vecteur de visée s'étaient un jour
+retrouvés opposés, et le viseur désignait alors un bloc dans le dos du joueur.
 
 ---
 

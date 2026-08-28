@@ -138,13 +138,21 @@ export function forEachBlockIn(world, e, fn) {
   }
 }
 
-/** Y a-t-il ce fluide à hauteur d'yeux / de corps ? */
+/**
+ * Y a-t-il ce fluide au contact ?
+ * Comme dans le jeu, la boîte entière compte : les pieds qui trempent
+ * suffisent. C'est ce qui permet de nager pour se hisser sur une berge, au
+ * lieu de flotter indéfiniment au ras de la surface.
+ */
 export function inFluid(world, e, fluid, atEyes = false) {
-  const hw = e.width / 2 * 0.8;
-  const y = atEyes ? e.y + e.height * 0.9 : e.y + e.height * 0.4;
-  for (const [dx, dz] of [[0, 0], [-hw, -hw], [hw, hw], [-hw, hw], [hw, -hw]]) {
-    const bl = BLOCKS[world.getBlock(Math.floor(e.x + dx), Math.floor(y), Math.floor(e.z + dz))];
-    if (bl.fluid === fluid) return true;
+  const hw = (e.width / 2) * 0.8;
+  const hauteurs = atEyes ? [e.height * 0.9] : [0.1, e.height * 0.4];
+  for (const h of hauteurs) {
+    const y = Math.floor(e.y + h);
+    for (const [dx, dz] of [[0, 0], [-hw, -hw], [hw, hw], [-hw, hw], [hw, -hw]]) {
+      const bl = BLOCKS[world.getBlock(Math.floor(e.x + dx), y, Math.floor(e.z + dz))];
+      if (bl.fluid === fluid) return true;
+    }
   }
   return false;
 }

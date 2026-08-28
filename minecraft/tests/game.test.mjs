@@ -18,10 +18,11 @@ import { BLOCKS, blockByName, idByName, breakTime, canHarvest, blockDrops } from
 import { getItem, stack, maxStackOf, toolStats, ITEMS } from '../src/items.js';
 import { findRecipe, smeltResult, RECIPES } from '../src/crafting.js';
 import { Inventory, PlayerInventory } from '../src/inventory.js';
-import { move } from '../src/physics.js';
+import { move, inFluid } from '../src/physics.js';
 import { buildChunkMesh } from '../src/mesher.js';
 import { buildAtlas, tileNames, T } from '../src/textures.js';
 import { chunkDiff, seedFromString } from '../src/save.js';
+import { mat4, viewMatrix } from '../src/math.js';
 
 /** Monde de test : tronçons générés et éclairés autour de l'origine. */
 function makeWorld(seed = 4242, radius = 2) {
@@ -417,4 +418,121 @@ test('les recettes ne fabriquent que des objets existants', () => {
       for (const n of [].concat(spec)) assert.ok(getItem(n), `ingrédient inconnu : ${n}`);
     }
   }
+});
+
+/* ─────────────────── Caméra, commandes et nage ─────────────────── */
+
+test('la caméra regarde exactement où vise le joueur', () => {
+  // Ce test garde le bug le plus coûteux du projet : la matrice de vue et le
+  // vecteur de visée s'étaient retrouvés opposés, si bien que le viseur
+  // désignait un bloc dans le dos du joueur — impossible de casser ni de poser.
+  const m = mat4();
+  for (const yaw of [0, 0.7, Math.PI / 2, Math.PI, 4.2, 6.0]) {
+    for (const pitch of [-1.2, -0.3, 0, 0.4, 1.2]) {
+      viewMatrix(m, 0, 0, 0, yaw, pitch);
+      // L'avant de la caméra est l'opposé de sa troisième ligne.
+      const cam = [-m[2], -m[6], -m[10]];
+      const cp = Math.cos(pitch);
+      const visee = [-Math.sin(yaw) * cp, Math.sin(pitch), Math.cos(yaw) * cp];
+      for (let i = 0; i < 3; i++) {
+        assert.ok(Math.abs(cam[i] - visee[i]) < 1e-6,
+          `yaw ${yaw} pitch ${pitch} : la caméra regarde ${cam.map((v) => v.toFixed(2))} `
+          + `alors que le viseur pointe ${visee.map((v) => v.toFixed(2))}`);
+      }
+    }
+  }
+});
+
+test('la matrice de vue reste directe (image non miroir)', () => {
+  const m = viewMatrix(mat4(), 3, 4, 5, 1.1, 0.3);
+  const r = [m[0], m[4], m[8]];   // droite
+  const u = [m[1], m[5], m[9]];   // haut
+  const b = [m[2], m[6], m[10]];  // arrière
+  const cross = [r[1] * u[2] - r[2] * u[1], r[2] * u[0] - r[0] * u[2], r[0] * u[1] - r[1] * u[0]];
+  for (let i = 0; i < 3; i++) {
+    assert.ok(Math.abs(cross[i] - b[i]) < 1e-6, 'droite × haut doit valoir l’arrière');
+  }
+});
+
+test('les pieds dans l’eau comptent comme « dans l’eau »', () => {
+  const w = makeWorld(4242, 2);
+  const stone = idByName('stone'), water = idByName('water');
+  for (let x = 0; x < 8; x++) for (let z = 0; z < 8; z++) {
+    for (let k = -3; k < 6; k++) w.setBlock(x, 70 + k, z, k < 0 ? stone : 0);
+  }
+  for (let x = 2; x < 6; x++) for (let z = 2; z < 6; z++) w.setBlock(x, 70, z, water);
+  const e = { x: 3.5, y: 70, z: 3.5, width: 0.6, height: 1.8 };
+  assert.equal(inFluid(w, e, 'water'), true, 'un joueur les pieds dans l’eau doit nager');
+  e.x = 0.5; e.z = 0.5;
+  assert.equal(inFluid(w, e, 'water'), false, 'hors de l’eau, on ne nage pas');
+});
+
+/* ─────────────────── Biomes et blocs ajoutés ─────────────────── */
+
+test('les treize biomes existent et ont chacun leur couleur d’herbe', () => {
+  assert.equal(BIOMES.length, 13);
+  for (const b of BIOMES) {
+    assert.ok(Array.isArray(b.grass) && b.grass.length === 3, `${b.name} : teinte d’herbe manquante`);
+    assert.ok(b.label && b.label.length > 2, `${b.name} : libellé manquant`);
+  }
+  for (const n of ['jungle', 'savanna', 'swamp', 'badlands']) {
+    assert.ok(BIOMES.some((b) => b.name === n), `biome manquant : ${n}`);
+  }
+});
+
+test('la jungle, la savane, le marais et les badlands produisent leur décor', () => {
+  const g = new WorldGen(12345);
+  const attendus = {
+    jungle: ['jungle_log', 'jungle_leaves', 'vine'],
+    savanna: ['acacia_log', 'acacia_leaves'],
+    swamp: ['water', 'oak_log'],
+    badlands: ['terracotta', 'red_sand'],
+  };
+  // Un tronçon représentatif de chaque biome, cherché autour de l'origine.
+  const trouves = {};
+  for (let cx = -75; cx < 75 && Object.keys(trouves).length < 4; cx += 2) {
+    for (let cz = -75; cz < 75; cz += 2) {
+      const nom = BIOMES[g.column(cx * 16 + 8, cz * 16 + 8).biome].name;
+      if (attendus[nom] && !trouves[nom]) trouves[nom] = [cx, cz];
+    }
+  }
+  for (const [nom, blocs] of Object.entries(attendus)) {
+    assert.ok(trouves[nom], `aucun tronçon de ${nom} trouvé`);
+    // Trois tronçons sur trois : un marais peut être noyé, une savane clairsemée.
+    const presents = new Set();
+    const [cx0, cz0] = trouves[nom];
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dz = -1; dz <= 1; dz++) {
+        const c = new Chunk(cx0 + dx, cz0 + dz);
+        g.generate(c);
+        g.populate(null, c);
+        for (const id of c.blocks) if (id) presents.add(BLOCKS[id].name);
+      }
+    }
+    for (const b of blocs) assert.ok(presents.has(b), `${nom} : ${b} absent`);
+  }
+});
+
+test('les cinq essences de bois se travaillent toutes', () => {
+  for (const bois of ['oak', 'birch', 'spruce', 'jungle', 'acacia']) {
+    const planches = findRecipe([stack(`${bois}_log`), null, null, null], 2);
+    assert.equal(planches.result.item, `${bois}_planks`);
+    const g = new Array(9).fill(null);
+    g[0] = stack(`${bois}_planks`); g[1] = stack(`${bois}_planks`); g[2] = stack(`${bois}_planks`);
+    g[4] = stack('stick'); g[7] = stack('stick');
+    assert.equal(findRecipe(g, 3).result.item, 'wood_pickaxe', `${bois} : pioche impossible`);
+  }
+});
+
+test('les lianes et la canne à sucre se comportent comme des plantes', () => {
+  const liane = blockByName('vine');
+  assert.equal(liane.solid, false, 'on traverse les lianes');
+  assert.equal(liane.climbable, true, 'on grimpe aux lianes');
+  assert.deepEqual(blockDrops(liane, { tool: 'shears', tier: 'iron', speed: 5 }), [{ item: 'vine', count: 1 }]);
+  assert.deepEqual(blockDrops(liane, null), [], 'sans cisailles, la liane ne lâche rien');
+
+  const canne = blockByName('sugar_cane');
+  assert.equal(canne.render, 'cross');
+  assert.equal(canne.solid, false);
+  assert.ok(canne.plantOn.includes('sand'), 'la canne doit pousser sur le sable');
 });

@@ -16,21 +16,40 @@ for (const n of ['air', 'stone', 'dirt', 'grass_block', 'sand', 'sandstone', 'gr
   'bedrock', 'coal_ore', 'iron_ore', 'gold_ore', 'diamond_ore', 'emerald_ore', 'lapis_ore', 'redstone_ore',
   'granite', 'diorite', 'andesite', 'snow_block', 'ice', 'cactus', 'dead_bush', 'tall_grass', 'dandelion',
   'poppy', 'oak_log', 'oak_leaves', 'birch_log', 'birch_leaves', 'spruce_log', 'spruce_leaves',
-  'red_mushroom', 'brown_mushroom', 'pumpkin', 'coarse_dirt']) ID[n] = idByName(n);
+  'red_mushroom', 'brown_mushroom', 'pumpkin', 'coarse_dirt',
+  'jungle_log', 'jungle_leaves', 'acacia_log', 'acacia_leaves', 'vine', 'sugar_cane',
+  'red_sand', 'red_sandstone', 'terracotta', 'terracotta_orange', 'terracotta_white',
+  'terracotta_yellow', 'podzol']) ID[n] = idByName(n);
 
 /* ──────────────────────────────── Biomes ──────────────────────────────── */
 
+/** Les quatre côtés d'un bloc : décalage x, décalage z, indice de face. */
+const DIRS4 = [[1, 0, 0], [-1, 0, 1], [0, 1, 4], [0, -1, 5]];
+
 export const BIOMES = [
   { name: 'ocean', label: 'Océan', top: ID.gravel, filler: ID.gravel, grass: [0x5a, 0x9e, 0x6a], foliage: [0x4f, 0x8e, 0x44], trees: 0, plants: 0 },
-  { name: 'beach', label: 'Plage', top: ID.sand, filler: ID.sand, grass: [0x8f, 0xc4, 0x6a], foliage: [0x6f, 0xa8, 0x4a], trees: 0, plants: 0.01 },
-  { name: 'plains', label: 'Plaines', top: ID.grass_block, filler: ID.dirt, grass: [0x91, 0xbd, 0x59], foliage: [0x77, 0xab, 0x2f], trees: 0.004, plants: 0.22, tree: 'oak', flowers: true },
-  { name: 'forest', label: 'Forêt', top: ID.grass_block, filler: ID.dirt, grass: [0x79, 0xc0, 0x5a], foliage: [0x59, 0xae, 0x30], trees: 0.055, plants: 0.28, tree: 'oak', flowers: true },
+  { name: 'beach', cane: true, label: 'Plage', top: ID.sand, filler: ID.sand, grass: [0x8f, 0xc4, 0x6a], foliage: [0x6f, 0xa8, 0x4a], trees: 0, plants: 0.01 },
+  { name: 'plains', cane: true, label: 'Plaines', top: ID.grass_block, filler: ID.dirt, grass: [0x91, 0xbd, 0x59], foliage: [0x77, 0xab, 0x2f], trees: 0.004, plants: 0.22, tree: 'oak', flowers: true },
+  { name: 'forest', cane: true, label: 'Forêt', top: ID.grass_block, filler: ID.dirt, grass: [0x79, 0xc0, 0x5a], foliage: [0x59, 0xae, 0x30], trees: 0.055, plants: 0.28, tree: 'oak', flowers: true },
   { name: 'birch_forest', label: 'Forêt de bouleaux', top: ID.grass_block, filler: ID.dirt, grass: [0x88, 0xbb, 0x67], foliage: [0x6b, 0xa9, 0x41], trees: 0.05, plants: 0.24, tree: 'birch' },
   { name: 'taiga', label: 'Taïga', top: ID.grass_block, filler: ID.dirt, grass: [0x86, 0xb7, 0x83], foliage: [0x68, 0xa4, 0x64], trees: 0.06, plants: 0.14, tree: 'spruce', mushrooms: true },
-  { name: 'desert', label: 'Désert', top: ID.sand, filler: ID.sandstone, grass: [0xbf, 0xb7, 0x55], foliage: [0xae, 0xa4, 0x2a], trees: 0.002, plants: 0.02, tree: 'cactus', dead: true },
+  { name: 'desert', cane: true, label: 'Désert', top: ID.sand, filler: ID.sandstone, grass: [0xbf, 0xb7, 0x55], foliage: [0xae, 0xa4, 0x2a], trees: 0.002, plants: 0.02, tree: 'cactus', dead: true },
   { name: 'mountains', label: 'Montagnes', top: ID.grass_block, filler: ID.dirt, grass: [0x8a, 0xb6, 0x89], foliage: [0x6d, 0xa4, 0x6a], trees: 0.006, plants: 0.1, tree: 'spruce' },
   { name: 'snowy', label: 'Toundra enneigée', top: ID.snow_block, filler: ID.dirt, grass: [0x80, 0xb4, 0x97], foliage: [0x60, 0xa1, 0x7b], trees: 0.008, plants: 0.03, tree: 'spruce', snow: true },
+  { name: 'jungle', label: 'Jungle', top: ID.grass_block, filler: ID.dirt, grass: [0x59, 0xc9, 0x3c], foliage: [0x30, 0xbb, 0x0b], trees: 0.065, plants: 0.45, tree: 'jungle', vines: true, mushrooms: true, cane: true },
+  { name: 'savanna', cane: true, label: 'Savane', top: ID.grass_block, filler: ID.dirt, grass: [0xbf, 0xb7, 0x55], foliage: [0xae, 0xa4, 0x2a], trees: 0.014, plants: 0.3, tree: 'acacia' },
+  { name: 'swamp', label: 'Marais', top: ID.grass_block, filler: ID.dirt, grass: [0x6a, 0x70, 0x39], foliage: [0x6a, 0x70, 0x39], trees: 0.03, plants: 0.35, tree: 'oak', vines: true, mushrooms: true, cane: true, swamp: true },
+  { name: 'badlands', label: 'Badlands', top: ID.red_sand, filler: ID.terracotta, grass: [0x90, 0x81, 0x4d], foliage: [0x9e, 0x81, 0x4d], trees: 0.004, plants: 0.06, tree: 'cactus', dead: true, mesa: true },
 ];
+
+/** Couleur de la strate de terre cuite à une altitude donnée (badlands). */
+function mesaLayer(y) {
+  const m = ((y % 23) + 23) % 23;
+  if (m === 3 || m === 4 || m === 14) return ID.terracotta_orange;
+  if (m === 8 || m === 17 || m === 18) return ID.terracotta_white;
+  if (m === 11 || m === 21) return ID.terracotta_yellow;
+  return ID.terracotta;
+}
 
 export const BIOME_ID = {};
 BIOMES.forEach((b, i) => { BIOME_ID[b.name] = i; });
@@ -68,10 +87,23 @@ export class WorldGen {
     else if (h <= SEA_LEVEL + 1) biome = BIOME_ID.beach;
     else if (h > SEA_LEVEL + 30) biome = BIOME_ID.mountains;
     else if (temp < -0.16) biome = hum > -0.05 ? BIOME_ID.taiga : BIOME_ID.snowy;
-    else if (temp > 0.16 && hum < 0.08) biome = BIOME_ID.desert;
+    else if (temp > 0.26 && hum < -0.02) biome = BIOME_ID.badlands;
+    else if (temp > 0.16 && hum < 0.06) biome = BIOME_ID.desert;
+    else if (temp > 0.04 && hum > 0.19) biome = BIOME_ID.jungle;
+    else if (temp > 0.05 && hum >= 0.05 && hum <= 0.17) biome = BIOME_ID.savanna;
+    else if (hum > 0.11 && h < SEA_LEVEL + 7) biome = BIOME_ID.swamp;
     else if (hum > 0.14) biome = temp > 0.02 ? BIOME_ID.forest : BIOME_ID.birch_forest;
     else if (hum > 0.02) biome = BIOME_ID.forest;
     else biome = BIOME_ID.plains;
+
+    // Le marais est plat et gorgé d'eau ; les badlands montent en plateaux.
+    if (biome === BIOME_ID.swamp) {
+      // Terrain plat, criblé de mares : sans elles, un marais n'en est pas un.
+      const plat = SEA_LEVEL + Math.round((h - SEA_LEVEL) * 0.25);
+      const mare = this.nDirt.perlin2(wx / 27 + 90, wz / 27 - 40);
+      h = plat + (mare > 0.1 ? -2 : 0);
+    }
+    else if (biome === BIOME_ID.badlands) h = SEA_LEVEL + 4 + Math.round((h - SEA_LEVEL) * 1.15);
 
     return { h, biome, temp, hum, mountainMask };
   }
@@ -111,6 +143,7 @@ export class WorldGen {
           else if (y <= 2 && hash3i(wx, y, wz, this.seed) < 0.6 - y * 0.2) id = ID.bedrock;
           else if (y > col.h) id = y <= SEA_LEVEL ? ID.water : 0;
           else if (y === col.h) id = col.h <= SEA_LEVEL + 1 && b.name !== 'desert' ? (col.h < SEA_LEVEL - 1 ? ID.gravel : ID.sand) : b.top;
+          else if (b.mesa && y > col.h - 26) id = mesaLayer(y);
           else if (y > col.h - dirtDepth) id = b.filler;
           else {
             id = ID.stone;
@@ -126,6 +159,8 @@ export class WorldGen {
           if (id) blocks[idx(x, y, z)] = id;
         }
 
+        // Sable rouge en surface des badlands bas, terre cuite sur les hauteurs.
+        if (b.mesa && col.h > SEA_LEVEL + 12) blocks[idx(x, col.h, z)] = mesaLayer(col.h);
         // Montagnes enneigées au-dessus de 88.
         if (col.h > 88 && b.top === ID.grass_block) blocks[idx(x, col.h, z)] = ID.snow_block;
         // Surface gelée dans la toundra.
@@ -204,13 +239,14 @@ export class WorldGen {
   featuresOf(world, fcx, fcz, target) {
     const rng = mulberry32((fcx * 1013904223 + fcz * 1664525 + this.seed * 7919) >>> 0);
     const baseX = fcx * CX, baseZ = fcz * CZ;
-    const put = (wx, wy, wz, id, force = false) => {
+    const put = (wx, wy, wz, id, force = false, data = 0) => {
       const lx = wx - target.cx * CX, lz = wz - target.cz * CZ;
       if (lx < 0 || lx >= CX || lz < 0 || lz >= CZ || wy < 0 || wy >= WORLD_H) return;
       const i = idx(lx, wy, lz);
       const cur = target.blocks[i];
       if (!force && cur !== 0 && cur !== ID.water) return;
       target.blocks[i] = id;
+      if (data) target.setData(lx, wy, lz, data);
     };
     const groundAt = (wx, wz) => this.column(wx, wz);
 
@@ -220,10 +256,11 @@ export class WorldGen {
       const wz = baseZ + Math.floor(rng() * CZ);
       const col = groundAt(wx, wz);
       const b = BIOMES[col.biome];
-      if (!b.tree || rng() > b.trees * 26) continue;
+      // `trees` est une probabilité par colonne : 24 tentatives sur 256 colonnes.
+      if (!b.tree || rng() > b.trees * 10.7) continue;
       if (col.h <= SEA_LEVEL) continue;
       if (b.tree === 'cactus') this.cactus(put, wx, col.h + 1, wz, rng);
-      else this.tree(put, wx, col.h + 1, wz, b.tree, rng);
+      else this.tree(put, wx, col.h + 1, wz, b.tree, rng, b.vines);
     }
 
     // Herbes, fleurs, champignons, citrouilles
@@ -238,6 +275,16 @@ export class WorldGen {
       const y = col.h + 1;
       if (b.dead) { if (rng() < 0.5) put(wx, y, wz, ID.dead_bush); continue; }
       if (b.snow) { if (rng() < 0.3) put(wx, y, wz, ID.tall_grass); continue; }
+      // Canne à sucre : uniquement les pieds dans l'eau, comme dans le jeu.
+      if (b.cane && rng() < 0.35) {
+        const bordDeau = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+          .some(([ox, oz]) => groundAt(wx + ox, wz + oz).h < SEA_LEVEL);
+        if (bordDeau) {
+          const h = 2 + Math.floor(rng() * 3);
+          for (let k = 0; k < h; k++) put(wx, y + k, wz, ID.sugar_cane);
+          continue;
+        }
+      }
       const q = rng();
       if (b.flowers && q < 0.12) put(wx, y, wz, ID.dandelion);
       else if (b.flowers && q < 0.2) put(wx, y, wz, ID.poppy);
@@ -248,27 +295,83 @@ export class WorldGen {
   }
 
   /** Un arbre : tronc + houppier, forme dépendante de l'essence. */
-  tree(put, x, y, z, kind, rng) {
-    const logId = kind === 'oak' ? ID.oak_log : kind === 'birch' ? ID.birch_log : ID.spruce_log;
-    const leafId = kind === 'oak' ? ID.oak_leaves : kind === 'birch' ? ID.birch_leaves : ID.spruce_leaves;
+  tree(put, x, y, z, kind, rng, vines = false) {
+    const LOGS = { oak: ID.oak_log, birch: ID.birch_log, spruce: ID.spruce_log, jungle: ID.jungle_log, acacia: ID.acacia_log };
+    const LEAVES = { oak: ID.oak_leaves, birch: ID.birch_leaves, spruce: ID.spruce_leaves, jungle: ID.jungle_leaves, acacia: ID.acacia_leaves };
+    const logId = LOGS[kind] ?? ID.oak_log;
+    const leafId = LEAVES[kind] ?? ID.oak_leaves;
+    const feuilles = [];
+    const poseFeuille = (fx, fy, fz) => { put(fx, fy, fz, leafId); feuilles.push([fx, fy, fz]); };
+
     if (kind === 'spruce') {
       const h = 7 + Math.floor(rng() * 5);
       for (let i = 0; i < h; i++) put(x, y + i, z, logId, true);
-      let r = 0;
       for (let i = h - 1; i >= 2; i--) {
-        const layer = h - 1 - i;
-        r = layer % 2 === 0 ? Math.min(3, 1 + Math.floor(layer / 2)) : Math.max(1, Math.floor(layer / 2));
+        const couche = h - 1 - i;
+        const r = couche % 2 === 0 ? Math.min(3, 1 + Math.floor(couche / 2)) : Math.max(1, Math.floor(couche / 2));
         for (let dx = -r; dx <= r; dx++) {
           for (let dz = -r; dz <= r; dz++) {
             if (Math.abs(dx) + Math.abs(dz) > r + 1) continue;
             if (dx === 0 && dz === 0 && i < h) continue;
-            put(x + dx, y + i, z + dz, leafId);
+            poseFeuille(x + dx, y + i, z + dz);
           }
         }
       }
-      put(x, y + h, z, leafId);
+      poseFeuille(x, y + h, z);
       return;
     }
+
+    if (kind === 'acacia') {
+      // Tronc droit puis penché, houppier plat : la silhouette de la savane.
+      const tronc = 4 + Math.floor(rng() * 2);
+      for (let i = 0; i < tronc; i++) put(x, y + i, z, logId, true);
+      const dx = rng() < 0.5 ? 1 : -1;
+      const dz = rng() < 0.5 ? 1 : -1;
+      const penche = rng() < 0.5;
+      let cx = x, cz = z, cy = y + tronc;
+      for (let i = 0; i < 3; i++) {
+        if (penche) cx += dx; else cz += dz;
+        put(cx, cy, cz, logId, true);
+        cy++;
+      }
+      for (let ry = 0; ry < 2; ry++) {
+        const r = ry === 0 ? 3 : 2;
+        for (let ox = -r; ox <= r; ox++) {
+          for (let oz = -r; oz <= r; oz++) {
+            if (Math.abs(ox) + Math.abs(oz) > r + 1) continue;
+            poseFeuille(cx + ox, cy - 1 + ry, cz + oz);
+          }
+        }
+      }
+      return;
+    }
+
+    if (kind === 'jungle') {
+      // Grand fût nu et couronne haute, d'où pendent les lianes.
+      const h = 9 + Math.floor(rng() * 6);
+      for (let i = 0; i < h; i++) put(x, y + i, z, logId, true);
+      for (let dy = h - 2; dy <= h + 1; dy++) {
+        const r = dy >= h ? 2 : 3;
+        for (let dx = -r; dx <= r; dx++) {
+          for (let dz = -r; dz <= r; dz++) {
+            if (dx * dx + dz * dz > r * r + 1) continue;
+            if (dx === 0 && dz === 0 && dy < h) continue;
+            if (Math.abs(dx) === r && Math.abs(dz) === r && rng() < 0.6) continue;
+            poseFeuille(x + dx, y + dy, z + dz);
+          }
+        }
+      }
+      // Quelques lianes le long du tronc.
+      for (let i = 3; i < h - 2; i++) {
+        if (rng() < 0.35) {
+          const [ox, oz, face] = DIRS4[(rng() * 4) | 0];
+          put(x + ox, y + i, z + oz, ID.vine, false, face ^ 1);
+        }
+      }
+      this.vines(put, feuilles, rng);
+      return;
+    }
+
     const h = (kind === 'birch' ? 6 : 5) + Math.floor(rng() * 3);
     for (let i = 0; i < h; i++) put(x, y + i, z, logId, true);
     for (let dy = h - 3; dy <= h; dy++) {
@@ -277,9 +380,20 @@ export class WorldGen {
         for (let dz = -r; dz <= r; dz++) {
           if (dx === 0 && dz === 0 && dy < h) continue;
           if (Math.abs(dx) === r && Math.abs(dz) === r && (rng() < 0.5 || dy >= h - 1)) continue;
-          put(x + dx, y + dy, z + dz, leafId);
+          poseFeuille(x + dx, y + dy, z + dz);
         }
       }
+    }
+    if (vines) this.vines(put, feuilles, rng);
+  }
+
+  /** Rideaux de lianes accrochés sous le houppier. */
+  vines(put, feuilles, rng) {
+    for (const [fx, fy, fz] of feuilles) {
+      if (rng() > 0.22) continue;
+      const [ox, oz, face] = DIRS4[(rng() * 4) | 0];
+      const longueur = 1 + Math.floor(rng() * 5);
+      for (let k = 0; k < longueur; k++) put(fx + ox, fy - k, fz + oz, ID.vine, false, face ^ 1);
     }
   }
 

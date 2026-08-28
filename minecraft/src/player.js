@@ -127,12 +127,10 @@ export class Player extends Entity {
 
     if (this.sprinting && (len === 0 || this.food <= 6)) this.sprinting = false;
 
+    // Avant et droite de la caméra (mêmes vecteurs que la matrice de vue).
     const cy = Math.cos(this.yaw), sy = Math.sin(this.yaw);
-    let dirX = fx * cy - fz * sy;
-    let dirZ = fx * sy + fz * cy;
-    // Repère : yaw 0 regarde vers +Z.
-    dirX = -fz * sy + fx * cy;
-    dirZ = fz * cy + fx * sy;
+    const dirX = -fz * sy - fx * cy;
+    const dirZ = fz * cy - fx * sy;
 
     if (this.flying) {
       const speed = FLY * (input.sprint ? 2.2 : 1) * (this.sneaking ? 0.4 : 1);
@@ -161,7 +159,11 @@ export class Player extends Entity {
       if (!input.jump && !input.sneak && len === 0) this.vy = 0;
     } else if (swimming) {
       this.vy -= GRAVITY * 0.32 * dt;
-      if (input.jump) this.vy = Math.min(this.vy + 22 * dt, 3.4);
+      // Les pieds au sol dans l'eau peu profonde : on saute pour de bon.
+      if (input.jump) {
+        if (this.onGround) this.vy = JUMP_V * 0.9;
+        else this.vy = Math.min(this.vy + 26 * dt, 3.6);
+      }
       this.vy = Math.max(this.vy, -3);
     } else {
       this.vy -= GRAVITY * dt;
@@ -175,6 +177,15 @@ export class Player extends Entity {
 
     const before = { x: this.x, z: this.z };
     let hit = move(world, this, this.vx * dt, this.vy * dt, this.vz * dt);
+
+    // Sortir de l'eau : buter contre une berge en nageant fait remonter, comme
+    // dans le jeu. Sans cela, on reste prisonnier du moindre plan d'eau.
+    if (swimming && (hit.x || hit.z) && this.vy < 4) {
+      const ahead = { x: this.x + Math.sign(dirX) * 0.5, z: this.z + Math.sign(dirZ) * 0.5 };
+      const headFree = !BLOCKS[world.getBlock(
+        Math.floor(hit.x ? ahead.x : this.x), Math.floor(this.y + 1.2), Math.floor(hit.z ? ahead.z : this.z))].solid;
+      if (headFree || this.inWater) this.vy = 5.2;
+    }
 
     // Accroupi : on ne tombe pas du rebord.
     if (this.sneaking && wasOnGround && !hit.ground && this.vy <= 0) {
@@ -621,7 +632,8 @@ export class Player extends Entity {
       const quad = Math.round(yaw / (Math.PI / 2)) % 4;   // 0=+Z(sud) …
       data = [2, 3, 0, 1][quad];
     }
-    if (placing.render === 'flat') data = hit.face;
+    // Un panneau plat regarde son support : c'est la face opposée à celle cliquée.
+    if (placing.render === 'flat') data = hit.face ^ 1;
     if (placing.name === 'wheat') data = 0;
 
     world.setBlock(x, y, z, it.place, data);
