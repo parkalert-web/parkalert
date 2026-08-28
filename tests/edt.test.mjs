@@ -26,7 +26,7 @@ vm.runInThisContext(bloc[1], { filename: 'edt.html' });
 
 const {
   readSchedule, parseTime, parseRange, dayIndexOf, splitCell, teacherKey,
-  subjectKey, fitAxis, mergeAdjacent, fmtTime, fmtDuration,
+  subjectKey, fitAxis, mergeAdjacent, fmtTime, fmtDuration, parseWeek, usesWeeks,
   compare, mergeIntervals, intersectAll, subtract, commonTeachers,
   commonSubjects, groupTimes, phraseGroups, dayWindow,
 } = globalThis.EDT;
@@ -67,12 +67,31 @@ test('reconnaissance des jours malgré une lettre fausse', () => {
 
 test('découpage d’une cellule en matière / prof / salle', () => {
   assert.deepEqual(splitCell([{ text: 'MATHEMATIQUES' }, { text: 'M. DUPONT' }, { text: 'Salle 204' }]),
-    { subject: 'Mathematiques', teacher: 'M. Dupont', room: '204' });
+    { subject: 'Mathematiques', teacher: 'M. Dupont', room: '204', week: 0 });
   assert.deepEqual(splitCell([{ text: 'EPS' }, { text: 'Mme BERNARD' }, { text: 'GYMNASE' }]),
-    { subject: 'EPS', teacher: 'Mme Bernard', room: 'Gymnase' });
+    { subject: 'EPS', teacher: 'Mme Bernard', room: 'Gymnase', week: 0 });
   // Sans civilité : la ligne en capitales qui suit la matière est le nom du prof.
   assert.deepEqual(splitCell([{ text: 'ANGLAIS LV1' }, { text: 'MARTIN' }, { text: 'B12' }]),
-    { subject: 'Anglais LV1', teacher: 'Martin', room: 'B12' });
+    { subject: 'Anglais LV1', teacher: 'Martin', room: 'B12', week: 0 });
+});
+
+test('la semaine alternée écrite dans la case', () => {
+  assert.equal(parseWeek('MATHS S1'), 1);
+  assert.equal(parseWeek('SVT (sem. B)'), 2);
+  assert.equal(parseWeek('ANGLAIS Q2'), 2);
+  assert.equal(parseWeek('SEMAINE 2'), 2);
+  // Ce qui n'est pas une semaine ne doit jamais en devenir une.
+  for (const faux of ['Salle 1', 'Salle 204', 'Physique 1', 'S12', 'TP1', 'LV1', 'ES 1', '']) {
+    assert.equal(parseWeek(faux), 0, `« ${faux} » n’est pas une semaine`);
+  }
+
+  assert.deepEqual(splitCell([{ text: 'MATHEMATIQUES S1' }, { text: 'M. DUPONT' }, { text: 'Salle 204' }]),
+    { subject: 'Mathematiques', teacher: 'M. Dupont', room: '204', week: 1 });
+  assert.deepEqual(splitCell([{ text: 'SVT (sem. B)' }, { text: 'M. LEROY' }, { text: '210' }]),
+    { subject: 'SVT', teacher: 'M. Leroy', room: '210', week: 2 });
+  // « Salle S2 » est une salle, pas une semaine : la salle est retirée d'abord.
+  assert.deepEqual(splitCell([{ text: 'ANGLAIS' }, { text: 'Mme MARTIN' }, { text: 'Salle S2' }]),
+    { subject: 'Anglais', teacher: 'Mme Martin', room: 'S2', week: 0 });
 });
 
 test('un même prof écrit de plusieurs façons donne une seule clé', () => {
@@ -312,6 +331,64 @@ test('trois personnes : le commun se réduit à ce que tout le monde partage', (
   const eps = r.sameClass.filter((x) => x.subject === 'EPS');
   assert.equal(eps.length, 1);
   assert.deepEqual(eps[0].people.map((p) => p.name).sort(), ['Lou', 'Max']);
+});
+
+test('semaines alternées : chaque semaine se compare séparément', () => {
+  const w = (course, week) => ({ ...course, week });
+  const A = {
+    id: 'a',
+    name: 'A',
+    courses: [
+      c(0, h(8), h(10), 'Mathématiques', 'M. Dupont', '204'),            // toutes les semaines
+      w(c(0, h(10), h(12), 'SVT', 'M. Leroy', '210'), 1),
+      w(c(0, h(10), h(12), 'Anglais', 'Mme Martin', 'B12'), 2),
+    ],
+  };
+  const B = {
+    id: 'b',
+    name: 'B',
+    courses: [
+      c(0, h(8), h(10), 'Mathématiques', 'M. Dupont', '204'),
+      w(c(0, h(13), h(15), 'EPS', 'M. Bernard', 'Gymnase'), 1),
+      w(c(0, h(10), h(12), 'Anglais', 'Mme Martin', 'B12'), 2),
+    ],
+  };
+  assert.equal(usesWeeks([A, B]), true);
+  assert.equal(usesWeeks([{ id: 'x', name: 'X', courses: [c(0, h(8), h(9), 'Maths')] }]), false);
+
+  // Semaine 1 : A finit à 12h, B a EPS de 13h à 15h.
+  const s1 = compare([A, B], { week: 1 }).days.find((d) => d.day === 0);
+  assert.deepEqual(s1.together.map((i) => [fmtTime(i.start), fmtTime(i.end)]), [['8h00', '10h00']]);
+  assert.deepEqual(s1.free.map((i) => [fmtTime(i.start), fmtTime(i.end)]), [['12h00', '13h00']]);
+  assert.equal(fmtTime(s1.ends.groups[1].time), '15h00');
+
+  // Semaine 2 : les deux ont anglais de 10h à 12h, avec la même prof et la même salle.
+  const r2 = compare([A, B], { week: 2 });
+  const s2 = r2.days.find((d) => d.day === 0);
+  assert.deepEqual(s2.together.map((i) => [fmtTime(i.start), fmtTime(i.end)]), [['8h00', '12h00']]);
+  assert.equal(s2.free.length, 0);
+  assert.equal(s2.ends.same, true);
+  assert.deepEqual(r2.sameClass.map((x) => x.subject), ['Mathématiques', 'Anglais']);
+
+  // Le prof qu'on ne partage qu'en semaine 1 n'apparaît pas en semaine 2.
+  assert.deepEqual(compare([A, B], { week: 1 }).teachers.map((t) => t.key), ['DUPONT']);
+  assert.deepEqual(r2.teachers.map((t) => t.key).sort(), ['DUPONT', 'MARTIN']);
+});
+
+test('qui n’a pas cours la semaine affichée est signalé', () => {
+  const A = { id: 'a', name: 'A', courses: [{ ...c(0, h(8), h(10), 'Maths'), week: 1 }] };
+  const B = { id: 'b', name: 'B', courses: [{ ...c(0, h(8), h(10), 'SVT'), week: 2 }] };
+  assert.deepEqual(compare([A, B], { week: 1 }).absent.map((p) => p.name), ['B']);
+  assert.deepEqual(compare([A, B], { week: 2 }).absent.map((p) => p.name), ['A']);
+  assert.equal(compare([A, B], { week: 1 }).days.filter((d) => !d.partial).length, 0);
+});
+
+test('deux cours d’une même case, l’un en S1 l’autre en S2, ne fusionnent pas', () => {
+  const merged = mergeAdjacent([
+    { day: 0, start: 600, end: 720, subject: 'SVT', teacher: 'M. Leroy', week: 1 },
+    { day: 0, start: 600, end: 720, subject: 'Anglais', teacher: 'Mme Martin', week: 2 },
+  ]);
+  assert.equal(merged.length, 2);
 });
 
 test('un jour où une seule personne a cours n’invente pas de temps commun', () => {

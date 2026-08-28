@@ -146,6 +146,7 @@ try {
 
   // 3. Lecture (téléchargement du moteur + du dictionnaire au premier passage).
   const carte = page.locator('.person').nth(1);
+  await carte.waitFor({ state: 'visible', timeout: 20000 });   // la carte doit apparaître tout de suite
   const t0 = Date.now();
   let statut = '';
   while (Date.now() - t0 < 300000) {
@@ -182,6 +183,37 @@ try {
   log('TUILES', tuiles.replace(/\n/g, ' · '));
   assert(/libres ensemble/i.test(tuiles) && !/^0 min$/mi.test(tuiles), 'le temps libre commun est chiffré');
   assert(await page.locator('#week .blk').count() > 8, 'la semaine est dessinée');
+
+  // 5. Semaines alternées : invisibles tant que personne ne s'en sert.
+  assert(await page.locator('#weeks').isHidden(), 'aucun onglet de semaine par défaut');
+
+  // Sam ne fait SVT que la semaine 2 : la semaine 1, son après-midi est libre.
+  await page.evaluate(() => {
+    const st = JSON.parse(localStorage.getItem('edt.v1'));
+    st.schedules[0].courses = st.schedules[0].courses
+      .map((c) => (c.day === 0 && c.start === 780 ? { ...c, week: 2 } : c));
+    localStorage.setItem('edt.v1', JSON.stringify(st));
+  });
+  await page.goto(PAGE, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('#results:not([hidden])', { timeout: 15000 });
+
+  assert(await page.locator('#weeks .wk').count() === 2, 'deux onglets de semaine apparaissent');
+  assert((await page.locator('#weeks .wk.on').textContent()).includes('1'), 'la semaine 1 est affichée d’abord');
+
+  const carteLundi = () => page.locator('.day-card', { hasText: 'Lundi' }).first().innerText();
+  const s1 = await carteLundi();
+  assert(/TROUS EN COMMUN\s*12h00 → 14h00/i.test(s1), `semaine 1 : trou de 12h à 14h — obtenu ${JSON.stringify(s1.slice(0, 220))}`);
+
+  await page.locator('#weeks .wk', { hasText: 'Semaine 2' }).click();
+  await page.waitForTimeout(300);
+  const s2 = await carteLundi();
+  assert(/TROUS EN COMMUN\s*12h00 → 13h00/i.test(s2), `semaine 2 : trou de 12h à 13h — obtenu ${JSON.stringify(s2.slice(0, 220))}`);
+  assert((await page.locator('#weeks .wk.on').textContent()).includes('2'), 'l’onglet actif a suivi');
+
+  // Le choix de semaine survit au rechargement.
+  await page.goto(PAGE, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('#results:not([hidden])', { timeout: 15000 });
+  assert((await page.locator('#weeks .wk.on').textContent()).includes('2'), 'la semaine choisie est retenue');
 
   assert(errors.length === 0, `aucune erreur de page (${errors.join(' / ') || 'aucune'})`);
   await fs.unlink(path.join(ROOT, 'fail-edt-source.png')).catch(() => {});

@@ -18,7 +18,7 @@
 <meta name="description" content="Importez des photos d’emplois du temps : elles sont lues sur votre appareil, sans IA et sans compte, puis comparées — heures communes, trous, déjeuners, profs partagés."/>
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"/>
 <meta name="theme-color" content="#171b21" media="(prefers-color-scheme: dark)"/>
-<link rel="icon" href="data:image/svg+xml,<svg%20xmlns="http://www.w3.org/2000/svg"%20viewBox="0%200%2032%2032"><rect%20width="32"%20height="32"%20rx="7"%20fill="#0b5fd0"/><g%20fill="#fff"><rect%20x="7"%20y="7"%20width="7"%20height="6"%20rx="1.6"/><rect%20x="18"%20y="7"%20width="7"%20height="10"%20rx="1.6"/><rect%20x="7"%20y="17"%20width="7"%20height="8"%20rx="1.6"%20opacity=".5"/><rect%20x="18"%20y="21"%20width="7"%20height="4"%20rx="1.6"%20opacity=".5"/></g></svg>" type="image/svg+xml"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%230b5fd0'/%3E%3Cg%20fill='%23fff'%3E%3Crect%20x='7'%20y='7'%20width='7'%20height='6'%20rx='1.6'/%3E%3Crect%20x='18'%20y='7'%20width='7'%20height='10'%20rx='1.6'/%3E%3Crect%20x='7'%20y='17'%20width='7'%20height='8'%20rx='1.6'%20opacity='.5'/%3E%3Crect%20x='18'%20y='21'%20width='7'%20height='4'%20rx='1.6'%20opacity='.5'/%3E%3C/g%3E%3C/svg%3E" type="image/svg+xml"/>
 <style>
 /* ============================================================================
    « En commun » — comparateur d'emplois du temps.
@@ -220,6 +220,32 @@ section { margin-bottom: 26px; }
 .opt label { font-size: 14px; color: var(--text-2); }
 .opt select { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); }
 
+/* ─────────────────────── Semaines alternées ─────────────────────── */
+
+.p-week { display: block; margin-top: 6px; font-size: 13px; color: var(--text-2); }
+.p-week select {
+  padding: 3px 6px; margin-left: 4px;
+  border: 1px solid var(--border); border-radius: 7px;
+  background: var(--surface); font-size: 13px;
+}
+.wtag {
+  display: inline-block; margin-right: 4px; padding: 1px 8px;
+  border-radius: 999px; background: var(--surface); border: 1px solid var(--border);
+  font-size: 12px; font-weight: 600;
+}
+.wtag.w1 { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.wtag.w2 { background: var(--warning-soft); color: var(--warning); border-color: transparent; }
+
+.weeks { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.weeks[hidden] { display: none; }
+.wk {
+  border: 1px solid var(--border-strong); background: var(--surface);
+  color: var(--text-2); border-radius: 999px; padding: 6px 16px;
+  font-size: 14px; font-weight: 600;
+}
+.wk.on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.wk-note { font-size: 12.5px; color: var(--text-3); }
+
 /* ─────────────────────────── Tuiles de synthèse ─────────────────────────── */
 
 .tiles { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 14px; }
@@ -298,12 +324,13 @@ ul.plain li:last-child { border-bottom: 0; }
 
 .sheet-thumb { float: right; width: 190px; max-width: 40%; margin: 0 0 10px 14px; border-radius: 10px; border: 1px solid var(--border); }
 .tbl-wrap { overflow-x: auto; clear: both; }
-.tbl { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 14px; }
+.tbl { border-collapse: collapse; width: 100%; min-width: 700px; font-size: 14px; }
 .tbl th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); padding: 6px 4px; }
 .tbl td { padding: 3px 4px; border-top: 1px solid var(--border); }
 .tbl input, .tbl select { width: 100%; padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }
 .tbl input:focus, .tbl select:focus { outline: none; border-color: var(--accent); background: var(--surface); }
 .tbl td:nth-child(2), .tbl td:nth-child(3) { width: 104px; }
+.tbl td:nth-child(7) { width: 74px; }
 .tbl td:last-child { width: 40px; }
 .sheet-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
@@ -389,6 +416,7 @@ ul.plain li:last-child { border-bottom: 0; }
   <!-- ══════════════ 2. RÉSULTATS ══════════════ -->
   <section id="results" hidden>
     <h2><span class="num">2</span> Ce qu’on a en commun</h2>
+    <div id="weeks" class="weeks" hidden></div>
     <div id="summary" class="tiles"></div>
     <div class="card">
       <div class="week-wrap"><div id="week"></div></div>
@@ -441,6 +469,20 @@ ul.plain li:last-child { border-bottom: 0; }
         <li>Relisez le tableau : l’OCR se trompe, corriger deux lignes prend dix secondes.</li>
       </ul>
 
+      <h4>Semaines alternées (S1 / S2)</h4>
+      <p>Beaucoup d’emplois du temps changent une semaine sur deux. Un cours peut donc être
+      marqué <b>Semaine 1</b>, <b>Semaine 2</b>, ou <b>toutes les semaines</b> :</p>
+      <ul>
+        <li>si la marque est écrite dans la case (<i>MATHS S1</i>, <i>SVT (sem. B)</i>, <i>Q2</i>),
+        elle est reconnue automatiquement, case par case ;</li>
+        <li>si vous avez <b>une photo par semaine</b>, importez la première, puis cliquez
+        <b>« + Semaine 2 »</b> sur la carte de la personne pour ajouter la seconde ;</li>
+        <li>le menu <b>Semaine</b> de la carte, ou la colonne <b>Sem.</b> du tableau, permettent
+        de corriger à tout moment.</li>
+      </ul>
+      <p>Les résultats s’affichent alors semaine par semaine, avec deux onglets. Un cours laissé
+      sans marque compte dans les deux semaines.</p>
+
       <h4>Ce qui est calculé</h4>
       <ul>
         <li>Les moments où vous êtes <b>tous en cours</b> en même temps, et ceux où vous êtes dans le <b>même cours</b> (même prof, même salle).</li>
@@ -486,6 +528,36 @@ ul.plain li:last-child { border-bottom: 0; }
  */
 
 const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+
+/**
+ * Semaines alternées. 0 = le cours a lieu toutes les semaines, 1 et 2 = une
+ * semaine sur deux (appelée S1/S2, A/B, Q1/Q2 ou paire/impaire selon les
+ * établissements).
+ */
+const WEEKS = ['Toutes les semaines', 'Semaine 1', 'Semaine 2'];
+const WEEK_SHORT = ['', 'S1', 'S2'];
+
+/**
+ * Marque de semaine dans un texte : « S1 », « Q2 », « sem. A », « semaine 2 ».
+ * Volontairement stricte — « Salle 1 » ou « Physique 1 » ne sont pas des semaines.
+ */
+const WEEK_RE = /(?:^|[^A-Za-z0-9])(?:(?:SEM(?:AINE)?|QUINZAINE)\.?\s*([12AB])|([SQ])([12]))(?=$|[^A-Za-z0-9])/i;
+
+function parseWeek(text) {
+  const m = WEEK_RE.exec(String(text ?? ''));
+  if (!m) return 0;
+  const v = (m[1] || m[3] || '').toUpperCase();
+  if (v === '1' || v === 'A') return 1;
+  if (v === '2' || v === 'B') return 2;
+  return 0;
+}
+
+/** Un cours a-t-il lieu la semaine demandée ? (0 = on ne trie pas par semaine) */
+const inWeek = (course, week) => !week || !course.week || course.week === week;
+
+/** Quelqu'un utilise-t-il les semaines alternées ? Sinon on n'en parle pas. */
+const usesWeeks = (schedules) => (schedules || [])
+  .some((s) => (s.courses || []).some((c) => c.week === 1 || c.week === 2));
 
 /** Noms de jours acceptés, du plus long au plus court (jamais moins de 3 lettres). */
 const DAY_KEYS = [
@@ -751,16 +823,26 @@ function splitCell(lines) {
   const rest = [];
   let teacher = '';
   let room = '';
+  let week = 0;
 
   for (const line of raw) {
     let text = line;
 
-    // Salle : « Salle 204 », « S. B12 », « Gymnase »…
-    const mRoom = /\b(?:SALLES?|SLL?|S)\s*\.?\s*:?\s*([A-Z]{0,3}\s?-?\s?\d{1,3}[A-Z]?)\b/i.exec(stripAccents(text));
+    // Salle annoncée : « Salle 204 », « S. B12 ». On la retire en premier, sinon
+    // le « S2 » de « Salle S2 » passerait pour une marque de semaine.
+    const mRoom = /\b(?:SALLES?|SLL|S\s*\.)\s*\.?\s*:?\s*([A-Z]{0,3}\s?-?\s?\d{1,3}[A-Z]?)\b/i.exec(stripAccents(text));
     if (!room && mRoom) {
       room = mRoom[1].replace(/\s+/g, '');
       text = text.replace(new RegExp(`\\S*${mRoom[0].trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\S*`, 'i'), ' ');
     }
+
+    // Semaine alternée écrite dans la case : « MATHS S1 », « (sem. B) ».
+    if (!week) {
+      const w = parseWeek(text);
+      // La marque part avec ses parenthèses : « SVT (sem. B) » → « SVT ».
+      if (w) { week = w; text = text.replace(WEEK_RE, ' ').replace(/[()[\]]/g, ' '); }
+    }
+
     if (!room) {
       const tokens = text.split(/[\s,;]+/).filter(Boolean);
       const solo = tokens.find((tk, i) => ROOM_WORDS.test(norm(tk))
@@ -795,7 +877,7 @@ function splitCell(lines) {
   }
 
   const subject = prettyCase(rest.join(' ').replace(/\s+/g, ' ').trim());
-  return { subject, teacher, room };
+  return { subject, teacher, room, week };
 }
 
 /** Clé de comparaison d'un professeur : le nom de famille, sans civilité ni accent. */
@@ -833,6 +915,7 @@ function subjectKey(subject) {
 /* ─────────────────────────── Lecture complète ─────────────────────────── */
 
 const DEFAULTS = {
+  week: 0,                // semaine imposée à toute l'image (0 = toutes)
   minConf: 30,
   defaultDuration: 60,
   minDuration: 20,
@@ -892,6 +975,10 @@ function readSchedule(rawWords, opts = {}) {
 
   const bands = bandsFromHeaders(headers, bounds);
   const headerBottom = Math.max(...headers.map((h) => h.y1));
+
+  // « SEMAINE 2 » écrit en haut de la feuille : on s'en sert si l'utilisateur
+  // n'a rien imposé.
+  const weekHint = parseWeek(words.filter((w) => cy(w) <= headerBottom).map((w) => w.text).join(' '));
 
   // 1. Colonne des heures : à gauche du premier jour, sous les en-têtes.
   const gutter = [];
@@ -1005,6 +1092,7 @@ function readSchedule(rawWords, opts = {}) {
         subject,
         teacher: explicit ? (fields.teacher || splitCell([{ text: cleanSubject }]).teacher) : fields.teacher,
         room: fields.room,
+        week: fields.week || cfg.week || weekHint || 0,
         kind: PAUSE_RE.test(norm(subject)) ? 'pause' : 'cours',
         incomplete: !found || undefined,
         source,
@@ -1013,7 +1101,7 @@ function readSchedule(rawWords, opts = {}) {
     }
   }
 
-  const merged = mergeAdjacent(courses.sort((a, b) => a.day - b.day || a.start - b.start));
+  const merged = mergeAdjacent(courses.sort((a, b) => a.day - b.day || (a.week || 0) - (b.week || 0) || a.start - b.start));
   const sansMatiere = merged.filter((c) => c.incomplete).length;
   if (sansMatiere) {
     warnings.push(`${sansMatiere} cours ${sansMatiere > 1 ? 'sont' : 'est'} sans matière lisible : à compléter.`);
@@ -1025,7 +1113,7 @@ function readSchedule(rawWords, opts = {}) {
     courses: merged,
     warnings,
     quality,
-    layout: { transposed, days: bands.map((b) => b.day), axis: { a: axis.a, b: axis.b, n: axis.n }, samples: samples.length },
+    layout: { transposed, weekHint, days: bands.map((b) => b.day), axis: { a: axis.a, b: axis.b, n: axis.n }, samples: samples.length },
   };
 }
 
@@ -1037,7 +1125,8 @@ function mergeAdjacent(courses, tolerance = 6) {
 
     // Même case lue en deux morceaux (la matière d'un côté, le prof de
     // l'autre) : une ligne du tableau ne contient qu'un cours, on recolle.
-    if (prev && prev.day === c.day && prev.start === c.start && prev.end === c.end) {
+    if (prev && prev.day === c.day && prev.start === c.start && prev.end === c.end
+      && (prev.week || 0) === (c.week || 0)) {
       if (prev.incomplete && !c.incomplete) { prev.subject = c.subject; delete prev.incomplete; }
       prev.teacher = prev.teacher || c.teacher;
       prev.room = prev.room || c.room;
@@ -1046,6 +1135,7 @@ function mergeAdjacent(courses, tolerance = 6) {
     }
 
     const same = prev && prev.day === c.day
+      && (prev.week || 0) === (c.week || 0)
       && subjectKey(prev.subject) === subjectKey(c.subject)
       && teacherKey(prev.teacher) === teacherKey(c.teacher)
       && c.start - prev.end <= tolerance && c.start - prev.end >= -tolerance;
@@ -1147,21 +1237,21 @@ const totalMinutes = (list) => list.reduce((s, i) => s + (i.end - i.start), 0);
 /* ─────────────────────────── Une journée ─────────────────────────── */
 
 /** Les cours d'une personne un jour donné (les pauses ne sont pas du cours). */
-const coursesOf = (sched, day) => (sched.courses || [])
-  .filter((c) => c.day === day && c.kind !== 'pause' && c.end > c.start)
+const coursesOf = (sched, day, week = 0) => (sched.courses || [])
+  .filter((c) => c.day === day && c.kind !== 'pause' && c.end > c.start && inWeek(c, week))
   .sort((a, b) => a.start - b.start);
 
-const busyOf = (sched, day) => mergeIntervals(coursesOf(sched, day).map((c) => ({ start: c.start, end: c.end })));
+const busyOf = (sched, day, week = 0) => mergeIntervals(coursesOf(sched, day, week).map((c) => ({ start: c.start, end: c.end })));
 
 /** Amplitude de la journée : du premier cours au dernier. */
-function dayWindow(sched, day) {
-  const list = coursesOf(sched, day);
+function dayWindow(sched, day, week = 0) {
+  const list = coursesOf(sched, day, week);
   if (!list.length) return null;
   return { start: list[0].start, end: Math.max(...list.map((c) => c.end)) };
 }
 
 /** Le cours en train d'avoir lieu à un instant donné. */
-const courseAt = (sched, day, min) => coursesOf(sched, day).find((c) => c.start <= min && c.end > min) || null;
+const courseAt = (sched, day, min, week = 0) => coursesOf(sched, day, week).find((c) => c.start <= min && c.end > min) || null;
 
 /** Deux cours au même moment, même prof, même salle : c'est le même cours. */
 function sameCourse(a, b) {
@@ -1188,8 +1278,12 @@ function sameCourse(a, b) {
  */
 function compare(schedules, options = {}) {
   const cfg = { ...COMPARE_DEFAULTS, ...options };
+  const week = cfg.week === 1 || cfg.week === 2 ? cfg.week : 0;
   const list = (schedules || []).filter((s) => s && Array.isArray(s.courses));
   const result = {
+    week,
+    weeks: usesWeeks(list),
+    absent: [],
     people: list.map((s) => ({ id: s.id, name: s.name })),
     days: [],
     teachers: [],
@@ -1200,8 +1294,15 @@ function compare(schedules, options = {}) {
   };
   if (list.length < 2) return result;
 
+  // Qui n'a aucun cours dans la semaine affichée ? Mieux vaut le dire.
+  if (week) {
+    result.absent = list
+      .filter((s) => (s.courses || []).length && !(s.courses || []).some((c) => inWeek(c, week)))
+      .map((s) => ({ id: s.id, name: s.name }));
+  }
+
   for (let day = 0; day < 7; day += 1) {
-    const present = list.filter((s) => coursesOf(s, day).length);
+    const present = list.filter((s) => coursesOf(s, day, week).length);
     if (present.length < 2) {
       // Une seule personne (ou aucune) a cours : rien à mettre en commun ce jour-là.
       if (present.length === 1) {
@@ -1213,19 +1314,19 @@ function compare(schedules, options = {}) {
       continue;
     }
 
-    const windows = present.map((s) => dayWindow(s, day));
+    const windows = present.map((s) => dayWindow(s, day, week));
     const win = { start: Math.min(...windows.map((w) => w.start)), end: Math.max(...windows.map((w) => w.end)) };
 
     // Toutes les personnes comptent, même celles qui n'ont pas cours ce jour-là :
     // elles sont alors libres sur toute l'amplitude commune.
-    const busyLists = list.map((s) => clip(busyOf(s, day), win));
+    const busyLists = list.map((s) => clip(busyOf(s, day, week), win));
     const freeLists = busyLists.map((b) => subtract([win], b));
 
     // 1. En cours en même temps.
     const together = intersectAll(busyLists)
       .filter((i) => i.end - i.start >= cfg.minCommon)
       .map((i) => {
-        const who = list.map((s) => ({ id: s.id, name: s.name, course: courseAt(s, day, i.start + 1) }));
+        const who = list.map((s) => ({ id: s.id, name: s.name, course: courseAt(s, day, i.start + 1, week) }));
         const withCourse = who.filter((w) => w.course);
         const identical = withCourse.length === list.length
           && withCourse.every((w) => sameCourse(w.course, withCourse[0].course));
@@ -1237,7 +1338,7 @@ function compare(schedules, options = {}) {
 
     // 3. Trous : du temps libre commun coincé entre deux cours pour au moins un.
     const gaps = free.filter((i) => present.some((s) => {
-      const w = dayWindow(s, day);
+      const w = dayWindow(s, day, week);
       return w && i.start >= w.start && i.end <= w.end;
     }));
 
@@ -1245,8 +1346,8 @@ function compare(schedules, options = {}) {
     const lunch = clip(free, cfg.lunch).filter((i) => i.end - i.start >= cfg.minLunch);
 
     // 5. Débuts et fins de journée.
-    const starts = groupTimes(present.map((s) => ({ id: s.id, name: s.name, time: dayWindow(s, day).start })), cfg.tolerance);
-    const ends = groupTimes(present.map((s) => ({ id: s.id, name: s.name, time: dayWindow(s, day).end })), cfg.tolerance);
+    const starts = groupTimes(present.map((s) => ({ id: s.id, name: s.name, time: dayWindow(s, day, week).start })), cfg.tolerance);
+    const ends = groupTimes(present.map((s) => ({ id: s.id, name: s.name, time: dayWindow(s, day, week).end })), cfg.tolerance);
 
     result.days.push({
       day, name: DAYS[day], present: present.map((s) => s.id), partial: present.length < list.length,
@@ -1262,9 +1363,9 @@ function compare(schedules, options = {}) {
     result.best.lunch = longest(result.best.lunch, lunch, day);
   }
 
-  result.teachers = commonTeachers(list);
-  result.subjects = commonSubjects(list);
-  result.sameClass = sameClassCourses(list);
+  result.teachers = commonTeachers(list, week);
+  result.subjects = commonSubjects(list, week);
+  result.sameClass = sameClassCourses(list, week);
   return result;
 }
 
@@ -1296,10 +1397,11 @@ function longest(current, intervals, day) {
 /* ─────────────────────────── Profs, matières, classes ─────────────────────────── */
 
 /** Professeurs partagés par au moins deux personnes. */
-function commonTeachers(schedules) {
+function commonTeachers(schedules, week = 0) {
   const byKey = new Map();
   for (const s of schedules) {
     for (const c of s.courses || []) {
+      if (!inWeek(c, week)) continue;
       const key = teacherKey(c.teacher);
       if (!key || key.length < 2) continue;
       if (!byKey.has(key)) byKey.set(key, { key, label: c.teacher, people: new Map() });
@@ -1323,11 +1425,11 @@ function commonTeachers(schedules) {
 }
 
 /** Matières suivies par tout le monde (et par qui, si ce n'est pas tout le monde). */
-function commonSubjects(schedules) {
+function commonSubjects(schedules, week = 0) {
   const byKey = new Map();
   for (const s of schedules) {
     for (const c of s.courses || []) {
-      if (c.kind === 'pause') continue;
+      if (c.kind === 'pause' || !inWeek(c, week)) continue;
       const key = subjectKey(c.subject);
       if (!key || key.length < 2) continue;
       if (!byKey.has(key)) byKey.set(key, { key, label: c.subject, people: new Map() });
@@ -1343,12 +1445,12 @@ function commonSubjects(schedules) {
 }
 
 /** Cours où l'on est visiblement assis dans la même salle, avec le même prof. */
-function sameClassCourses(schedules) {
+function sameClassCourses(schedules, week = 0) {
   const out = [];
   for (let i = 0; i < schedules.length; i += 1) {
     for (let j = i + 1; j < schedules.length; j += 1) {
-      for (const a of schedules[i].courses || []) {
-        for (const b of schedules[j].courses || []) {
+      for (const a of (schedules[i].courses || []).filter((c) => inWeek(c, week))) {
+        for (const b of (schedules[j].courses || []).filter((c) => inWeek(c, week))) {
           if (a.day !== b.day || !sameCourse(a, b)) continue;
           out.push({
             day: a.day,
@@ -1408,7 +1510,8 @@ const KEY = 'edt.v1';
 const COLORS = ['#0b5fd0', '#c0332b', '#0f7a45', '#9a5b00', '#6b3fa0', '#0d7f8c'];
 
 const DEFAULT_OPTIONS = {
-  quality: 'precise',    // dictionnaire Tesseract : 'precise' (6 Mo) ou 'fast' (0,6 Mo)
+  quality: 'precise',
+  viewWeek: 1,           // semaine affichée dans les résultats (si semaines alternées)    // dictionnaire Tesseract : 'precise' (6 Mo) ou 'fast' (0,6 Mo)
   minCommon: 15,         // durée minimale d'un créneau commun, en minutes
   minLunch: 30,
   tolerance: 0,          // « en même temps » à ± n minutes
@@ -1481,6 +1584,7 @@ async function fromFile(file) {
           subject: String(c.subject || '').slice(0, 60),
           teacher: String(c.teacher || '').slice(0, 40),
           room: String(c.room || '').slice(0, 20),
+          week: c.week === 1 || c.week === 2 ? c.week : 0,
           kind: c.kind === 'pause' ? 'pause' : 'cours',
         })),
     }));
@@ -1489,7 +1593,8 @@ async function fromFile(file) {
 /* Ce que le noyau expose : l'interface s'en sert, et les tests le rejouent
    directement depuis ce fichier (voir tests/edt.test.mjs). */
 globalThis.EDT = {
-  DAYS, fmtTime, fmtDuration, snapTo, norm, stripAccents, levenshtein, prettyCase,
+  DAYS, WEEKS, WEEK_SHORT, inWeek, usesWeeks, parseWeek,
+  fmtTime, fmtDuration, snapTo, norm, stripAccents, levenshtein, prettyCase,
   parseTime, parseRange, dayIndexOf, fitAxis, cleanWords, groupLines, findDayHeaders,
   bandsFromHeaders, splitCell, teacherKey, subjectKey, readSchedule, mergeAdjacent,
   mergeIntervals, intersectPair, intersectAll, subtract, clip, totalMinutes,
@@ -1926,7 +2031,7 @@ async function recognize(canvas, { quality = 'precise', psm = PSM.block, onProgr
  * Une seconde tentative est lancée si la première ne trouve rien : les grilles
  * très colorées se lisent mieux sans seuillage, et en mode « texte épars ».
  */
-async function readTimetable(file, { rotate = 0, quality = 'precise', onProgress } = {}) {
+async function readTimetable(file, { rotate = 0, quality = 'precise', week = 0, onProgress } = {}) {
   const step = (label, progress = 0) => onProgress?.(label, progress);
 
   step('Préparation de l’image', 0.02);
@@ -1949,7 +2054,7 @@ async function readTimetable(file, { rotate = 0, quality = 'precise', onProgress
       psm: a.psm,
       onProgress: (label, p) => step(i ? `${label} (2ᵉ essai)` : label, 0.05 + p * 0.9),
     });
-    const parsed = readSchedule(words, { rulings: img.rules, rowsForBand: img.rowsForBand });
+    const parsed = readSchedule(words, { week, rulings: img.rules, rowsForBand: img.rowsForBand });
     const score = parsed.courses.length * 100 + parsed.quality;
     if (!best || score > best.score) best = { ...parsed, score, words, psm: a.psm };
     if (parsed.courses.length >= 3) break;         // inutile d'insister, c'est lu
@@ -1990,7 +2095,7 @@ const names = (list) => (list.length <= 1 ? (list[0] || '') : `${list.slice(0, -
 
 let state = load();
 const previews = new Map();      // id → vignette (hors localStorage si trop lourd)
-const files = new Map();         // id → fichier d'origine, pour pouvoir relire
+const files = new Map();         // id → [{ file, week }] : une photo par semaine
 const jobs = new Map();          // id → { label, value }
 let running = false;
 
@@ -2011,7 +2116,7 @@ function addFiles(list) {
 
   for (const file of images) {
     const id = newId();
-    files.set(id, file);
+    files.set(id, [{ file, week: 0 }]);
     state.schedules.push({
       id,
       name: `Emploi du temps ${state.schedules.length + 1}`,
@@ -2036,10 +2141,11 @@ async function runQueue() {
   try {
     while (jobs.size) {
       const id = [...jobs.keys()][0];
+      const job = jobs.get(id);
       const sched = byId(id);
-      const file = files.get(id);
-      if (!sched || !file) { jobs.delete(id); continue; }
-      await readOne(sched, file);        // retire la tâche en fin de lecture
+      const sources = files.get(id);
+      if (!sched || !sources?.length) { jobs.delete(id); continue; }
+      await readOne(sched, job.only);     // retire la tâche en fin de lecture
     }
   } finally {
     running = false;
@@ -2049,29 +2155,63 @@ async function runQueue() {
   }
 }
 
-async function readOne(sched, file) {
-  const setJob = (label, value) => { jobs.set(sched.id, { label, value }); renderPeople(); };
-  setJob('Préparation…', 0.02);
-  try {
-    const out = await readTimetable(file, {
-      rotate: sched.rotate || 0,
-      quality: state.options.quality,
-      onProgress: (label, value) => setJob(label, value),
-    });
-    sched.courses = out.courses;
-    sched.warnings = out.warnings;
-    sched.quality = out.quality;
-    sched.angle = out.angle;
-    previews.set(sched.id, out.preview);
-    sched.preview = out.preview;
-  } catch (err) {
-    console.error(err);
-    sched.warnings = [err.message || 'La lecture a échoué.'];
-    sched.quality = 0;
+/**
+ * Lit les photos d'une personne. `only` vise une seule photo (celle que l'on
+ * vient d'ajouter) : les cours de cette semaine-là sont alors remplacés, et le
+ * travail déjà corrigé sur l'autre semaine est conservé.
+ */
+async function readOne(sched, only = null) {
+  const sources = files.get(sched.id) || [];
+  const cibles = only == null ? sources.map((_, i) => i) : [only];
+  const setJob = (label, value) => {
+    jobs.set(sched.id, { label, value, only });
+    renderPeople();
+  };
+
+  const warnings = [];
+  for (const i of cibles) {
+    const src = sources[i];
+    if (!src) continue;
+    const prefixe = cibles.length > 1 ? `Photo ${i + 1}/${cibles.length} — ` : '';
+    setJob(`${prefixe}Préparation…`, 0.02);
+    try {
+      const out = await readTimetable(src.file, {
+        rotate: sched.rotate || 0,
+        quality: state.options.quality,
+        week: src.week || 0,
+        onProgress: (label, value) => setJob(prefixe + label, value),
+      });
+      const garde = only == null && i === cibles[0]
+        ? []                                              // relecture complète : on repart de zéro
+        : (sched.courses || []).filter((c) => (c.week || 0) !== (src.week || 0));
+      sched.courses = [...garde, ...out.courses];
+      sched.quality = out.quality;
+      sched.angle = out.angle;
+      warnings.push(...out.warnings);
+      if (!src.week || sources.length === 1) { previews.set(sched.id, out.preview); sched.preview = out.preview; }
+      src.read = true;
+    } catch (err) {
+      console.error(err);
+      warnings.push(err.message || 'La lecture a échoué.');
+      sched.quality = sched.quality ?? 0;
+    }
   }
+  sched.warnings = [...new Set(warnings)];
   jobs.delete(sched.id);
   persist();
   render();
+}
+
+/** Ajoute une photo à une personne déjà présente, pour l'autre semaine. */
+function attachPhoto(id, week, file) {
+  const sources = files.get(id) || [];
+  sources.push({ file, week });
+  files.set(id, sources);
+  const sched = byId(id);
+  if (sched) sched.source = 'photo';
+  jobs.set(id, { label: 'En attente…', value: 0, only: sources.length - 1 });
+  render();
+  runQueue();
 }
 
 /* ══════════════════════════ Rendu : les personnes ══════════════════════════ */
@@ -2090,6 +2230,10 @@ function renderPeople() {
     const preview = previews.get(s.id) || s.preview;
     const nb = (s.courses || []).length;
     const days = new Set((s.courses || []).map((c) => c.day));
+    const parSemaine = [0, 1, 2].map((w) => (s.courses || []).filter((c) => (c.week || 0) === w).length);
+    const melange = parSemaine.filter(Boolean).length > 1;
+    const seule = [0, 1, 2].find((w) => parSemaine[w] === nb);   // tout dans la même semaine ?
+    const manque = parSemaine[2] ? 1 : 2;                        // semaine à proposer en plus
 
     const status = job
       ? `<div class="bar"><span style="width:${Math.round((job.value || 0) * 100)}%"></span></div>
@@ -2102,6 +2246,14 @@ function renderPeople() {
     const warn = (s.warnings || []).length
       ? `<div class="p-warn">${s.warnings.map((w) => esc(w)).join('<br>')}</div>` : '';
 
+    // Semaines alternées : un choix simple tant qu'il n'y en a qu'une, le
+    // détail sinon (le tableau permet alors de régler cours par cours).
+    const semaines = !nb ? '' : melange
+      ? `<div class="p-week">${[1, 2, 0].filter((w) => parSemaine[w]).map((w) => `<span class="wtag${w ? ` w${w}` : ''}">${w ? WEEK_SHORT[w] : 'toutes'} : ${parSemaine[w]}</span>`).join(' ')}</div>`
+      : `<label class="p-week">Semaine
+           <select data-act="set-week">${WEEKS.map((label, w) => `<option value="${w}"${w === (seule ?? 0) ? ' selected' : ''}>${label.toLowerCase()}</option>`).join('')}</select>
+         </label>`;
+
     return `<article class="person" data-id="${s.id}" style="--c:${esc(s.color)}">
       <div class="p-head">
         <span class="dot"></span>
@@ -2112,15 +2264,18 @@ function renderPeople() {
         ${preview ? `<img class="p-thumb" src="${esc(preview)}" alt="Aperçu de la photo" data-act="zoom"/>` : ''}
         <div class="p-info">
           ${status}
+          ${semaines}
           ${warn}
-          ${nb ? miniWeek(s) : ''}
+          ${nb ? miniWeek(s, usesWeeks(state.schedules) ? state.options.viewWeek : 0) : ''}
         </div>
       </div>
       <div class="p-actions">
         <button class="btn small" data-act="edit">Vérifier / corriger</button>
-        ${s.source === 'photo' ? `
+        <button class="btn ghost small" data-act="add-week" data-w="${manque}"
+          title="Pour un emploi du temps sur deux semaines">+ Semaine ${manque}</button>
+        ${files.has(s.id) ? `
           <button class="btn ghost small" data-act="rotate" title="Si la photo est de travers">Pivoter</button>
-          <button class="btn ghost small" data-act="reread" ${files.has(s.id) ? '' : 'disabled title="Photo non conservée : réimportez-la"'}>Relire</button>` : ''}
+          <button class="btn ghost small" data-act="reread">Relire</button>` : ''}
       </div>
     </article>`;
   }).join('');
@@ -2129,8 +2284,8 @@ function renderPeople() {
 const qualityWord = (q) => (q >= 80 ? 'sûre' : q >= 55 ? 'correcte' : q > 0 ? 'incertaine — à vérifier' : 'ratée');
 
 /** Aperçu très compact de la semaine d'une personne. */
-function miniWeek(sched) {
-  const cours = (sched.courses || []).filter((c) => c.end > c.start);
+function miniWeek(sched, week = 0) {
+  const cours = (sched.courses || []).filter((c) => c.end > c.start && inWeek(c, week));
   if (!cours.length) return '';
   const t0 = Math.min(...cours.map((c) => c.start));
   const t1 = Math.max(...cours.map((c) => c.end));
@@ -2156,10 +2311,24 @@ function renderResults() {
   }
   host.hidden = false;
 
-  const r = compare(list, state.options);
+  // Les semaines alternées n'apparaissent que si quelqu'un s'en sert.
+  const alternees = usesWeeks(list);
+  const vue = alternees ? (state.options.viewWeek === 2 ? 2 : 1) : 0;
+  const onglets = $('#weeks');
+  onglets.hidden = !alternees;
+  onglets.innerHTML = !alternees ? '' : `
+    ${[1, 2].map((w) => `<button class="wk${w === vue ? ' on' : ''}" type="button" data-act="view-week" data-w="${w}">${WEEKS[w]}</button>`).join('')}
+    <span class="wk-note">Un cours sans marque de semaine compte dans les deux.</span>`;
+
+  const r = compare(list, { ...state.options, week: vue });
+  const absents = r.absent.length
+    ? `<div class="card note">${esc(r.absent.map((p) => p.name).join(', '))}
+        ${r.absent.length > 1 ? 'n’ont' : 'n’a'} aucun cours en ${WEEKS[vue].toLowerCase()}.</div>`
+    : '';
+
   $('#summary').innerHTML = tiles(r);
-  $('#week').innerHTML = weekGrid(list, r);
-  $('#details').innerHTML = dayCards(r) + teacherCard(r) + subjectCard(r) + sameClassCard(r);
+  $('#week').innerHTML = weekGrid(list, r, vue);
+  $('#details').innerHTML = absents + dayCards(r) + teacherCard(r) + subjectCard(r) + sameClassCard(r);
 }
 
 function tiles(r) {
@@ -2173,8 +2342,8 @@ function tiles(r) {
 }
 
 /** La semaine des uns par-dessus celle des autres, avec le libre commun en fond. */
-function weekGrid(list, r) {
-  const all = list.flatMap((s) => s.courses || []);
+function weekGrid(list, r, week = 0) {
+  const all = list.flatMap((s) => (s.courses || []).filter((c) => inWeek(c, week)));
   if (!all.length) return '';
   const t0 = Math.floor(Math.min(...all.map((c) => c.start)) / 60) * 60;
   const t1 = Math.ceil(Math.max(...all.map((c) => c.end)) / 60) * 60;
@@ -2189,7 +2358,7 @@ function weekGrid(list, r) {
     const info = r.days.find((x) => x.day === d);
     const free = (info && !info.partial ? info.free : []).map((i) => `<div class="band free" style="top:${pct(i.start)}%;height:${((i.end - i.start) / span) * 100}%"></div>`).join('');
     const cols = list.map((s) => {
-      const blocks = (s.courses || []).filter((c) => c.day === d).map((c) => `
+      const blocks = (s.courses || []).filter((c) => c.day === d && inWeek(c, week)).map((c) => `
         <div class="blk${c.kind === 'pause' ? ' pause' : ''}" style="top:${pct(c.start)}%;height:${Math.max(1.5, ((c.end - c.start) / span) * 100)}%"
              title="${esc(`${s.name} · ${DAYS[d]} ${fmtTime(c.start)}–${fmtTime(c.end)} · ${c.subject}${c.teacher ? ` · ${c.teacher}` : ''}${c.room ? ` · salle ${c.room}` : ''}`)}">
           <b>${esc(c.subject)}</b><i>${esc(c.teacher || c.room || '')}</i>
@@ -2270,6 +2439,7 @@ function sameClassCard(r) {
 /* ══════════════════════════ Éditeur ══════════════════════════ */
 
 let editing = null;
+let attente = null;      // { id, week } : photo attendue pour une personne existante
 
 function openEditor(id) {
   editing = id;
@@ -2282,7 +2452,7 @@ function openEditor(id) {
     ${preview ? `<img class="sheet-thumb" src="${esc(preview)}" alt="La photo importée"/>` : ''}
     <p class="note">Corrigez ce qui a été mal lu : c’est ce tableau qui sert au calcul, pas la photo.</p>
     <div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Jour</th><th>Début</th><th>Fin</th><th>Matière</th><th>Professeur</th><th>Salle</th><th></th></tr></thead>
+      <thead><tr><th>Jour</th><th>Début</th><th>Fin</th><th>Matière</th><th>Professeur</th><th>Salle</th><th>Sem.</th><th></th></tr></thead>
       <tbody>${(s.courses || []).map((c, i) => courseRow(c, i)).join('')}</tbody>
     </table></div>
     <div class="sheet-actions">
@@ -2301,6 +2471,7 @@ function courseRow(c, i) {
     <td><input type="text" data-f="subject" value="${esc(c.subject)}" placeholder="Matière"/></td>
     <td><input type="text" data-f="teacher" value="${esc(c.teacher || '')}" placeholder="Prof"/></td>
     <td><input type="text" data-f="room" value="${esc(c.room || '')}" placeholder="Salle"/></td>
+    <td><select data-f="week" title="Semaine alternée">${['—', 'S1', 'S2'].map((label, w) => `<option value="${w}"${w === (c.week || 0) ? ' selected' : ''}>${label}</option>`).join('')}</select></td>
     <td><button class="icon" data-act="del-course" title="Supprimer la ligne" aria-label="Supprimer la ligne">×</button></td>
   </tr>`;
 }
@@ -2349,15 +2520,24 @@ document.addEventListener('click', (e) => {
         $('#lightbox').hidden = false;
       }
     } else if (act === 'rotate') {
+      if (!files.get(id)?.length) { toast('Réimportez la photo pour la faire pivoter.'); return; }
       s.rotate = ((s.rotate || 0) + 90) % 360;
       persist();
-      const f = files.get(id);
-      if (f) { jobs.set(id, { label: 'Rotation…', value: 0 }); renderPeople(); runQueue(); }
-      else toast('Réimportez la photo pour la faire pivoter.');
+      jobs.set(id, { label: 'Rotation…', value: 0 }); renderPeople(); runQueue();
     } else if (act === 'reread') {
-      const f = files.get(id);
-      if (!f) { toast('La photo n’est plus en mémoire : réimportez-la.'); return; }
+      if (!files.get(id)?.length) { toast('La photo n’est plus en mémoire : réimportez-la.'); return; }
       jobs.set(id, { label: 'En attente…', value: 0 }); renderPeople(); runQueue();
+    } else if (act === 'add-week') {
+      // La photo qui arrive sera celle de l'autre semaine ; les cours déjà là
+      // deviennent ceux de la première, sans quoi ils compteraient dans les deux.
+      const w = Number(btn.dataset.w) || 2;
+      const autre = w === 2 ? 1 : 2;
+      if ((s.courses || []).some((c) => !c.week)) {
+        s.courses.forEach((c) => { if (!c.week) c.week = autre; });
+        persist();
+      }
+      attente = { id, week: w };
+      $('#file').click();
     }
     return;
   }
@@ -2373,7 +2553,13 @@ document.addEventListener('click', (e) => {
   if (act === 'add-course') {
     const s = byId(editing);
     const last = s.courses[s.courses.length - 1];
-    s.courses.push({ day: last ? last.day : 0, start: last ? last.end : 480, end: last ? last.end + 60 : 540, subject: '', teacher: '', room: '', kind: 'cours' });
+    s.courses.push({
+      day: last ? last.day : 0,
+      start: last ? last.end : 480,
+      end: last ? last.end + 60 : 540,
+      subject: '', teacher: '', room: '', kind: 'cours',
+      ...(last?.week ? { week: last.week } : {}),
+    });
     persist(); openEditor(editing);
     return;
   }
@@ -2387,8 +2573,14 @@ document.addEventListener('click', (e) => {
   if (act === 'close-sheet') { closeEditor(); return; }
   if (btn.id === 'lightbox') { btn.hidden = true; return; }
 
+  if (act === 'view-week') {
+    state.options.viewWeek = Number(btn.dataset.w) === 2 ? 2 : 1;
+    persist(); render();
+    return;
+  }
+
   // — barre d'outils
-  if (act === 'pick') $('#file').click();
+  if (act === 'pick') { attente = null; $('#file').click(); }
   else if (act === 'manual') {
     const id = newId();
     state.schedules.push({ id, name: `Personne ${state.schedules.length + 1}`, color: nextColor(state.schedules), source: 'manuel', courses: [], warnings: [] });
@@ -2413,6 +2605,16 @@ document.addEventListener('click', (e) => {
 document.addEventListener('change', (e) => {
   const el = e.target;
 
+  if (el.dataset.act === 'set-week') {
+    const s = byId(el.closest('.person').dataset.id);
+    if (s) {
+      const w = Number(el.value) || 0;
+      s.courses.forEach((c) => { if (w) c.week = w; else delete c.week; });
+      persist(); render();
+    }
+    return;
+  }
+
   if (el.dataset.act === 'rename') {
     const s = byId(el.closest('.person').dataset.id);
     if (s) { s.name = el.value.trim() || 'Sans nom'; persist(); renderResults(); }
@@ -2426,6 +2628,7 @@ document.addEventListener('change', (e) => {
     if (!c) return;
     const f = el.dataset.f;
     if (f === 'day') c.day = Number(el.value);
+    else if (f === 'week') { const w = Number(el.value) || 0; if (w) c.week = w; else delete c.week; }
     else if (f === 'start' || f === 'end') {
       const v = fromHhmm(el.value);
       if (v != null) c[f] = v;
@@ -2437,7 +2640,15 @@ document.addEventListener('change', (e) => {
     return;
   }
 
-  if (el.id === 'file') { addFiles(el.files); el.value = ''; }
+  if (el.id === 'file') {
+    // La liste est vidée par `value = ''` : on la recopie avant.
+    const photos = [...el.files];
+    const cible = attente;
+    attente = null;
+    el.value = '';
+    if (cible && photos[0]) attachPhoto(cible.id, cible.week, photos[0]);
+    else if (photos.length) addFiles(photos);
+  }
   else if (el.id === 'file-json') {
     const f = el.files[0];
     el.value = '';

@@ -311,6 +311,22 @@ Le reste fonctionne ensuite hors ligne, y compris en ouvrant le fichier depuis l
    du texte, et l'outil signale alors que c'est une estimation.
 6. Le contenu de la case est découpé en matière / professeur / salle.
 
+### Semaines alternées (S1 / S2)
+
+Beaucoup d'emplois du temps changent une semaine sur deux. Chaque cours porte donc une semaine —
+*toutes*, *1* ou *2* — renseignée de trois façons :
+
+- **automatiquement**, quand la marque est écrite dans la case : `MATHS S1`, `SVT (sem. B)`, `Q2`,
+  ou un titre `SEMAINE 2` en haut de la feuille. La reconnaissance est volontairement stricte :
+  `Salle 1`, `Physique 1`, `TP1` ou `LV1` ne sont pas des semaines, et `Salle S2` reste une salle ;
+- **par photo**, avec le bouton « + Semaine 2 » d'une personne : les cours déjà lus deviennent
+  ceux de la semaine 1, et la nouvelle photo fournit ceux de la semaine 2 ;
+- **à la main**, par le menu de la carte ou la colonne « Sem. » du tableau.
+
+Les résultats s'affichent ensuite semaine par semaine, avec deux onglets. Un cours sans marque
+compte dans les deux semaines, et deux cours qui occupent la même case en S1 et en S2 ne sont
+jamais fusionnés. Tant que personne n'utilise les semaines, l'outil n'en parle pas.
+
 ### Ce que ça ne fait pas
 
 La reconnaissance de caractères se trompe : un mot trop petit, une photo floue ou de travers, et
@@ -359,8 +375,10 @@ les neuf cours avec leurs horaires, leurs professeurs et leurs salles, sans coup
 quatre heures du vendredi, puis la comparaison doit annoncer le bon trou commun et le bon
 déjeuner. Aucune capture de référence n'est comparée : ce sont les cours lus qui sont vérifiés.
 
-Les 17 tests unitaires de l'emploi du temps ne lisent pas une copie du code : ils extraient le
+Les 21 tests unitaires de l'emploi du temps ne lisent pas une copie du code : ils extraient le
 bloc `noyau` de `edt.html` et l'exécutent, si bien qu'ils portent sur le fichier réellement livré.
+Le scénario bout en bout vérifie aussi les semaines alternées : les onglets n'apparaissent que
+lorsqu'une semaine est marquée, et le trou commun du lundi change bien d'une semaine à l'autre.
 
 Les comptes de test sont supprimés à la fin de chaque scénario.
 
